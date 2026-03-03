@@ -13,9 +13,26 @@ const loadTone = async (): Promise<ToneModule> => {
   return T
 }
 
+// ====== 本地存储键名 ======
+const STORAGE_KEY_SFX = 'xiuxian_sfx_enabled'
+const STORAGE_KEY_BGM = 'xiuxian_bgm_enabled'
+
+// ====== 从 localStorage 读取初始值 ======
+const getStoredBoolean = (key: string, defaultValue: boolean): boolean => {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored !== null) {
+      return stored === 'true'
+    }
+  } catch {
+    // localStorage 不可用时忽略
+  }
+  return defaultValue
+}
+
 // ====== 音量设置 ======
-const sfxEnabled = ref(true)
-const bgmEnabled = ref(true)
+const sfxEnabled = ref(getStoredBoolean(STORAGE_KEY_SFX, true))
+const bgmEnabled = ref(getStoredBoolean(STORAGE_KEY_BGM, true))
 const sfxVolume = 0.35
 const bgmVolume = 0.18
 
@@ -943,10 +960,20 @@ document.addEventListener('visibilitychange', () => {
 export const useAudio = () => {
   const toggleSfx = (): void => {
     sfxEnabled.value = !sfxEnabled.value
+    try {
+      localStorage.setItem(STORAGE_KEY_SFX, String(sfxEnabled.value))
+    } catch {
+      // localStorage 不可用时忽略
+    }
   }
 
   const toggleBgm = (): void => {
     bgmEnabled.value = !bgmEnabled.value
+    try {
+      localStorage.setItem(STORAGE_KEY_BGM, String(bgmEnabled.value))
+    } catch {
+      // localStorage 不可用时忽略
+    }
     if (bgmEnabled.value) {
       void playBgmLoop('sect_main')
     } else {
