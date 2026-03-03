@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14161e"/>
+      <stop offset="100%" style="stop-color:#232634"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7eb8da"/>
+      <stop offset="100%" style="stop-color:#c8a45c"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="64" fill="url(#bg)"/>
+  <!-- 外圈光环 -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#accent)" stroke-width="8" opacity="0.3"/>
+  <!-- 内圈光环 -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#accent)" stroke-width="4" opacity="0.5"/>
+  <!-- 太极图 -->
+  <path d="M256 96 a80 80 0 0 1 0 160 a40 40 0 0 0 0 -80 a40 40 0 0 1 0 -80" fill="#7eb8da" opacity="0.9"/>
+  <path d="M256 96 a80 80 0 0 0 0 160 a40 40 0 0 1 0 -80 a40 40 0 0 0 0 -80" fill="#c8a45c" opacity="0.9"/>
+  <!-- 小圆点 -->
+  <circle cx="256" cy="176" r="12" fill="#14161e"/>
+  <circle cx="256" cy="336" r="12" fill="#14161e"/>
+  <!-- 底部文字"仙" -->
+  <text x="256" y="420" text-anchor="middle" font-size="64" font-family="serif" fill="#c8a45c" opacity="0.8">仙</text>
+</svg>

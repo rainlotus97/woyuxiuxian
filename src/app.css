@@ -1,0 +1,293 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 像素字体（支持中英文） */
+@font-face {
+  font-family: 'zpix';
+  src: url('@/assets/fonts/zpix.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* 修仙主题配色（RGB 数值） */
+  --color-bg: 20 22 30;           /* 深邃夜空 - 道法自然 */
+  --color-panel: 35 38 52;        /* 玄玉灰 - 灵台清明 */
+  --color-text: 232 228 217;      /* 道骨白 - 返璞归真 */
+
+  /* 修仙核心色 */
+  --color-accent: #7eb8da;        /* 天青色 - 仙气飘渺 */
+  --color-accent-warm: #c8a45c;   /* 金丹色 - 金光灿灿 */
+  --color-danger: #c34043;        /* 业火红 - 走火入魔 */
+  --color-success: #5a9e6f;       /* 灵草绿 - 生机盎然 */
+  --color-muted: #6b7280;         /* 尘世灰 */
+
+  /* 五行元素色 */
+  --color-metal: #d4af37;         /* 金 - 锐利坚毅 */
+  --color-wood: #4a9e5f;          /* 木 - 生机勃发 */
+  --color-water: #4c8a9e;         /* 水 - 灵动深邃 */
+  --color-fire: #c35050;          /* 火 - 烈焰灼心 */
+  --color-earth: #8b7355;         /* 土 - 厚德载物 */
+
+  /* 灵根/资质色 */
+  --color-spirit-common: #9ca3af;    /* 凡品 */
+  --color-spirit-fine: #7eb8da;      /* 灵品 */
+  --color-spirit-rare: #b794f6;      /* 玄品 */
+  --color-spirit-epic: #f59e0b;      /* 仙品 */
+  --color-spirit-legendary: #ffd700; /* 神品 */
+
+  /* 字体 */
+  --font-game: 'zpix', monospace;
+
+  /* 间距基准 4px */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+
+  /* iOS 安全区域 */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+
+  /* 导航栏高度 */
+  --nav-height: 48px;
+  --tab-bar-height: 56px;
+
+  /* 实际内容区域（包含安全区域） */
+  --header-height: calc(var(--nav-height) + var(--safe-area-top));
+  --footer-height: calc(var(--tab-bar-height) + var(--safe-area-bottom));
+}
+
+/* 生产环境禁止选中和复制 */
+body.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* iOS PWA 全屏模式适配 */
+html {
+  height: 100%;
+  /* 禁止双击放大 */
+  touch-action: manipulation;
+}
+
+/* 全局基础样式 */
+body {
+  margin: 0;
+  background-color: rgb(var(--color-bg));
+  background-image:
+    radial-gradient(ellipse at top, rgba(126, 184, 218, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(200, 164, 92, 0.03) 0%, transparent 50%);
+  color: rgb(var(--color-text));
+  font-family: var(--font-game);
+  min-height: 100vh;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: pixelated;
+  /* iOS 安全区域 */
+  padding-top: var(--safe-area-top);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+button {
+  background-color: transparent;
+  background-image: none;
+}
+
+#app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-2);
+}
+
+@media (min-width: 768px) {
+  #app {
+    padding: var(--spacing-4);
+  }
+}
+
+/* 修仙风按钮 */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-4);
+  background: linear-gradient(145deg, rgb(var(--color-panel)) 0%, rgba(35, 38, 52, 0.9) 100%);
+  color: rgb(var(--color-text));
+  border: 1px solid rgba(126, 184, 218, 0.3);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(126, 184, 218, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.btn:hover::before {
+  transform: translateX(100%);
+}
+
+.btn:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 12px rgba(126, 184, 218, 0.3);
+}
+
+.btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.btn-danger:hover {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 12px rgba(195, 64, 67, 0.4);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  border-color: rgba(126, 184, 218, 0.3);
+  box-shadow: none;
+  transform: none;
+}
+
+/* 修仙风面板 */
+.game-panel {
+  background: linear-gradient(145deg, rgb(var(--color-panel)) 0%, rgba(30, 32, 48, 0.95) 100%);
+  border: 1px solid rgba(126, 184, 218, 0.2);
+  border-radius: 4px;
+  padding: var(--spacing-3);
+  position: relative;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.game-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(126, 184, 218, 0.3), transparent);
+}
+
+@media (min-width: 768px) {
+  .game-panel {
+    padding: var(--spacing-4);
+  }
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--color-bg));
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-muted);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* 隐藏 number 输入框的浏览器自带加减按钮 */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* 面板切换过渡 */
+.panel-fade-enter-active {
+  transition: opacity 0.2s ease-in;
+}
+
+.panel-fade-leave-active {
+  transition: opacity 0.15s ease-out;
+}
+
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+}
+
+/* 境界发光效果 */
+.realm-glow {
+  animation: realm-pulse 2s ease-in-out infinite;
+}
+
+@keyframes realm-pulse {
+  0%, 100% {
+    text-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    text-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+  }
+}
+
+/* 灵气飘动背景效果 */
+.spirit-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.spirit-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: float-up 8s ease-in-out infinite;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(100vh) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-100px) scale(1);
+    opacity: 0;
+  }
+}
