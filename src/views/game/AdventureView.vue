@@ -17,9 +17,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { sfxDiscovery, sfxEncounter } from '@/composables/useAudio'
 
+const router = useRouter()
 const { info, warning } = useToast()
 
 const locations = ref([
@@ -36,6 +38,8 @@ const handleExplore = (location: { id: number; name: string; level: number }) =>
   if (random > 0.5) {
     sfxEncounter()
     warning(`在${location.name}遭遇了妖魔！`)
+    // 进入战斗页面
+    router.push('/game/battle')
   } else {
     sfxDiscovery()
     info(`在${location.name}发现了灵草`)

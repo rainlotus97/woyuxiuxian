@@ -1,7 +1,7 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
@@ -39,9 +39,19 @@ const router = createRouter({
           component: () => import('@/views/game/ShopView.vue')
         },
         {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/game/ProfileView.vue')
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/game/SettingsView.vue')
+        },
+        {
+          path: 'battle',
+          name: 'battle',
+          component: () => import('@/views/game/BattleView.vue')
         }
       ]
     }
