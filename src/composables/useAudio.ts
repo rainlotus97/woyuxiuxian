@@ -54,7 +54,14 @@ interface SfxOptions {
 }
 
 const playSfx = (options: SfxOptions): void => {
-  if (!sfxEnabled.value || !T || document.hidden) return
+  if (!sfxEnabled.value || document.hidden) return
+
+  // 自动初始化 Tone.js（用户交互后才能启动 AudioContext）
+  if (!T) {
+    void loadTone()
+    // Tone.js 尚未初始化，跳过本次播放（用户需要再次点击）
+    return
+  }
 
   const {
     freq,
@@ -83,7 +90,12 @@ const playSfx = (options: SfxOptions): void => {
 
 // 播放和弦
 const playChord = (freqs: number[], duration: number, type: WaveType = 'sine', vol = sfxVolume): void => {
-  if (!sfxEnabled.value || !T || document.hidden) return
+  if (!sfxEnabled.value || document.hidden) return
+
+  if (!T) {
+    void loadTone()
+    return
+  }
 
   try {
     const synth = new T.PolySynth(T.Synth, {
@@ -101,7 +113,12 @@ const playChord = (freqs: number[], duration: number, type: WaveType = 'sine', v
 
 // 滑音效果
 const playGlissando = (startFreq: number, endFreq: number, duration: number, type: WaveType = 'sine', vol = sfxVolume): void => {
-  if (!sfxEnabled.value || !T || document.hidden) return
+  if (!sfxEnabled.value || document.hidden) return
+
+  if (!T) {
+    void loadTone()
+    return
+  }
 
   try {
     const synth = new T.Synth({
@@ -123,7 +140,12 @@ const playGlissando = (startFreq: number, endFreq: number, duration: number, typ
 
 // 噪声效果（雨声、风声、雪声等）
 const playNoise = (duration: number, type: 'white' | 'pink' | 'brown' = 'brown', vol = 0.1, filterFreq = 800): void => {
-  if (!sfxEnabled.value || !T || document.hidden) return
+  if (!sfxEnabled.value || document.hidden) return
+
+  if (!T) {
+    void loadTone()
+    return
+  }
 
   try {
     const noise = new T.Noise(type)
