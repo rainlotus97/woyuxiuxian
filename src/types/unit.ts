@@ -74,6 +74,7 @@ export interface StatusEffect {
   duration: number      // 剩余回合数
   value?: number        // 效果数值
   sourceId?: string    // 施加效果的单位 ID
+  icon?: string        // 显示图标
 }
 
 // ====== 单位属性 ======

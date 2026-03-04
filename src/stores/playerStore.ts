@@ -19,6 +19,7 @@ export interface InventoryItem {
   effects?: {
     type: string
     value: number
+    duration?: number
   }[]
 }
 
@@ -480,6 +481,8 @@ export const usePlayerStore = defineStore('player', () => {
     if (index === -1) return false
 
     const item = inventory.value[index]
+    if (!item) return false
+
     if (item.quantity > 1) {
       item.quantity--
     } else {

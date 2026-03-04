@@ -67,7 +67,7 @@ import { useModal } from '@/composables/useModal'
 import type { Equipment } from '@/types/equipment'
 
 const playerStore = usePlayerStore()
-const { success, warning, info } = useToast()
+const { success, warning } = useToast()
 const { startShopBgm } = useAudio()
 const { showItemAcquire } = useModal()
 
@@ -90,7 +90,7 @@ interface ShopItem {
   description: string
   equipmentId?: string
   equipmentData?: Equipment
-  effects?: { type: string; value: number }[]
+  effects?: { type: string; value: number; duration?: number }[]
 }
 
 const categories = [

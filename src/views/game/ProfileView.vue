@@ -201,7 +201,7 @@ const playerStore = usePlayerStore()
 
 const showEquipModal = ref(false)
 const selectedSlot = ref<'weapon' | 'armor' | 'accessory1' | 'accessory2' | null>(null)
-const previewEquip = ref<Equipment | null>(null)
+const previewEquip = ref<Equipment | null | undefined>(null)
 
 interface StatItem {
   key: string
