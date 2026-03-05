@@ -1,8 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watchEffect, toRaw } from 'vue'
 import type { Unit, Realm, Quality, Element, UnitStats, StatusEffect } from '@/types/unit'
-import { REALM_ORDER, REALM_MULTIPLIER, calculateBaseStats } from '@/types/unit'
+import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM_CULTIVATION_PER_SECOND, calculateBaseStats } from '@/types/unit'
 import type { Equipment } from '@/types/equipment'
+import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
+import {
+  SKILL_DEFINITIONS,
+  SKILL_TREE,
+  getSkillDefinition,
+  calculateSkillExpRequired,
+  createLearnedSkill,
+  getStarterSkills
+} from '@/types/skill'
+import type { AreaProgress } from '@/types/adventure'
 
 // 背包物品接口
 export interface InventoryItem {
@@ -35,7 +45,7 @@ interface PlayerState {
   // 修炼
   realm: Realm
   realmLevel: number  // 1-9
-  cultivation: number // 当���修为
+  cultivation: number // 当前修为
   maxCultivation: number // 突破所需修为
 
   // 等级
@@ -43,10 +53,15 @@ interface PlayerState {
 
   // 资源
   gold: number
+  skillPoints: number  // 技能点
+  stamina: number      // 体力值
+  maxStamina: number   // 最大体力值
+  lastStaminaRecoverTime: number  // 上次体力恢复时间
 
   // 属性
   baseStats: UnitStats  // 基础属性（不含装备）
   equipmentBonuses: Partial<UnitStats>  // 装备加成
+  skillBonuses: Partial<UnitStats>  // 技能被动加成
 
   // 装备槽位
   equippedWeapon?: Equipment
@@ -58,15 +73,18 @@ interface PlayerState {
   inventory: InventoryItem[]
   maxInventorySlots: number
 
-  // 技能
-  skills: string[]
+  // 技能（已学习的技能及其等级）
+  learnedSkills: LearnedSkill[]
 
   // 临时buff
   temporaryBuffs: StatusEffect[]
 
   // 挂机相关
-  idleStartTime: number | null  // 挂机开始时间戳
+  idleStartTime: number | null
   isIdling: boolean
+
+  // 历练区域进度
+  areaProgress: AreaProgress[]
 }
 
 // 默认玩家数据
@@ -79,11 +97,11 @@ function getDefaultPlayer(): PlayerState {
     quality: '灵品',
 
     realm: '炼气',
-    realmLevel: 3,
+    realmLevel: 1,
     cultivation: 0,
     maxCultivation: 100,
 
-    level: 5,
+    level: 1,
 
     gold: 100,
 
@@ -123,12 +141,23 @@ function getDefaultPlayer(): PlayerState {
     ],
     maxInventorySlots: 20,
 
-    skills: ['fireball', 'heal', 'thunder_strike', 'shield'],
+    // 初始技能（使用 createLearnedSkill 创建）
+    learnedSkills: getStarterSkills().map(id => createLearnedSkill(id)).filter((s): s is LearnedSkill => s !== null),
+    skillPoints: 3, // 初始技能点
+    skillBonuses: {},
 
     temporaryBuffs: [],
 
     idleStartTime: null,
-    isIdling: false
+    isIdling: false,
+
+    // 历练区域进度（初始为空，会在游戏运行时初始化）
+    areaProgress: [],
+
+    // 体力值系统
+    stamina: 100,
+    maxStamina: 100,
+    lastStaminaRecoverTime: Date.now()
   }
 }
 
@@ -142,7 +171,21 @@ export const usePlayerStore = defineStore('player', () => {
   let initialData: PlayerState
   try {
     const savedData = localStorage.getItem(STORAGE_KEY)
-    initialData = savedData ? JSON.parse(savedData) as PlayerState : getDefaultPlayer()
+    if (savedData) {
+      const parsed = JSON.parse(savedData) as Partial<PlayerState>
+      // 合并默认值，确保所有新属性都有默认值
+      const defaults = getDefaultPlayer()
+      initialData = {
+        ...defaults,
+        ...parsed,
+        // 确保技能系统的新属性有默认值
+        learnedSkills: parsed.learnedSkills ?? defaults.learnedSkills,
+        skillPoints: parsed.skillPoints ?? defaults.skillPoints,
+        skillBonuses: parsed.skillBonuses ?? defaults.skillBonuses,
+      }
+    } else {
+      initialData = getDefaultPlayer()
+    }
   } catch (e) {
     console.warn('Failed to load player data from localStorage, using defaults:', e)
     initialData = getDefaultPlayer()
@@ -176,14 +219,52 @@ export const usePlayerStore = defineStore('player', () => {
   const inventory = ref<InventoryItem[]>([...initialData.inventory])
   const maxInventorySlots = ref(initialData.maxInventorySlots)
 
-  const skills = ref<string[]>([...initialData.skills])
+  // 技能系统（兼容旧数据）
+  const learnedSkills = ref<LearnedSkill[]>(
+    Array.isArray(initialData.learnedSkills)
+      ? [...initialData.learnedSkills]
+      : getStarterSkills().map(id => createLearnedSkill(id)).filter((s): s is LearnedSkill => s !== null)
+  )
+  const skillPoints = ref(initialData.skillPoints ?? 3)
+  const skillBonuses = ref<Partial<UnitStats>>(initialData.skillBonuses ?? {})
 
   const temporaryBuffs = ref<StatusEffect[]>([...initialData.temporaryBuffs])
 
   const idleStartTime = ref<number | null>(initialData.idleStartTime)
   const isIdling = ref(initialData.isIdling)
 
+  // 历练区域进度
+  const areaProgress = ref<AreaProgress[]>(initialData.areaProgress ?? [])
+
+  // 体力值系统
+  const stamina = ref(initialData.stamina ?? 100)
+  const maxStamina = ref(initialData.maxStamina ?? 100)
+  const lastStaminaRecoverTime = ref(initialData.lastStaminaRecoverTime ?? Date.now())
+
   // ====== 计算属性 ======
+
+  // 体力恢复速率（每分钟恢复点数）
+  const staminaRecoverRate = 1
+
+  // 体力恢复时间（秒）
+  const staminaRecoverSeconds = computed(() => {
+    if (stamina.value >= maxStamina.value) return Infinity
+    return Math.ceil(60 / staminaRecoverRate) // 每点需要多少秒恢复
+  })
+
+  // 当前体力百分比
+  const staminaPercent = computed(() => {
+    return (stamina.value / maxStamina.value) * 100
+  })
+
+  // 下次恢复倒计时（秒）
+  const nextRecoverCountdown = computed(() => {
+    if (stamina.value >= maxStamina.value) return 0
+    const now = Date.now()
+    const elapsed = (now - lastStaminaRecoverTime.value) / 1000
+    const remaining = staminaRecoverSeconds.value - (elapsed % staminaRecoverSeconds.value)
+    return Math.ceil(remaining)
+  })
 
   // 所有已装备的装备
   const allEquipped = computed(() => {
@@ -195,27 +276,28 @@ export const usePlayerStore = defineStore('player', () => {
     return equipped
   })
 
-  // 总属性 = 基础 + 装备加成
+  // 总属性 = 基础 + 装备加成 + 技能被动加成
   const totalStats = computed<UnitStats>(() => {
     const base = baseStats.value
-    const bonus = equipmentBonuses.value
+    const equipBonus = equipmentBonuses.value
+    const skillBonus = skillBonuses.value
 
     return {
-      maxHp: (base.maxHp || 0) + (bonus.maxHp || 0),
+      maxHp: (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0),
       currentHp: Math.min(
-        base.currentHp + (bonus.maxHp || 0),
-        (base.maxHp || 0) + (bonus.maxHp || 0)
+        base.currentHp + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0),
+        (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0)
       ),
-      maxMp: (base.maxMp || 0) + (bonus.maxMp || 0),
+      maxMp: (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0),
       currentMp: Math.min(
-        base.currentMp + (bonus.maxMp || 0),
-        (base.maxMp || 0) + (bonus.maxMp || 0)
+        base.currentMp + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0),
+        (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0)
       ),
-      attack: (base.attack || 0) + (bonus.attack || 0),
-      defense: (base.defense || 0) + (bonus.defense || 0),
-      speed: (base.speed || 0) + (bonus.speed || 0),
-      critRate: (base.critRate || 0) + (bonus.critRate || 0),
-      critDamage: (base.critDamage || 0) + (bonus.critDamage || 0)
+      attack: (base.attack || 0) + (equipBonus.attack || 0) + (skillBonus.attack || 0),
+      defense: (base.defense || 0) + (equipBonus.defense || 0) + (skillBonus.defense || 0),
+      speed: (base.speed || 0) + (equipBonus.speed || 0) + (skillBonus.speed || 0),
+      critRate: (base.critRate || 0) + (equipBonus.critRate || 0) + (skillBonus.critRate || 0),
+      critDamage: (base.critDamage || 0) + (equipBonus.critDamage || 0) + (skillBonus.critDamage || 0)
     }
   })
 
@@ -234,8 +316,24 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 是否可以突破
   const canBreakthrough = computed(() =>
-    realmLevel.value === 9 && cultivation.value >= maxCultivation.value
+    realmLevel.value === 9 && cultivation.value >= maxCultivation.value && nextRealm.value !== null
   )
+
+  // 是否已达到最高境界
+  const isMaxRealm = computed(() => nextRealm.value === null)
+
+  // 境界颜色（渐变）
+  const realmColor = computed(() => REALM_COLORS[realm.value])
+
+  // 境界主色调（用于文字）
+  const realmPrimaryColor = computed(() => REALM_PRIMARY_COLOR[realm.value])
+
+  // 每秒修为获取量（基础值 * 境界层级系数）
+  const cultivationPerSecond = computed(() => {
+    const baseValue = REALM_CULTIVATION_PER_SECOND[realm.value]
+    const levelBonus = 1 + (realmLevel.value - 1) * 0.1 // 每层增加10%
+    return Math.floor(baseValue * levelBonus)
+  })
 
   // 获取下一个境界
   const nextRealm = computed(() => {
@@ -274,10 +372,16 @@ export const usePlayerStore = defineStore('player', () => {
         equippedAccessory2: toRaw(equippedAccessory2.value),
         inventory: toRaw(inventory.value),
         maxInventorySlots: maxInventorySlots.value,
-        skills: toRaw(skills.value),
+        learnedSkills: toRaw(learnedSkills.value),
+        skillPoints: skillPoints.value,
+        skillBonuses: toRaw(skillBonuses.value),
         temporaryBuffs: toRaw(temporaryBuffs.value),
         idleStartTime: idleStartTime.value,
-        isIdling: isIdling.value
+        isIdling: isIdling.value,
+        areaProgress: toRaw(areaProgress.value),
+        stamina: stamina.value,
+        maxStamina: maxStamina.value,
+        lastStaminaRecoverTime: lastStaminaRecoverTime.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -287,13 +391,18 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 增加修为
   function addCultivation(amount: number) {
-    cultivation.value = Math.min(cultivation.value + amount, maxCultivation.value)
+    cultivation.value += amount
 
-    // 炼气1-8层自动升级
-    if (realm.value === '炼气' && realmLevel.value < 9) {
-      if (cultivation.value >= maxCultivation.value) {
-        levelUp()
-      }
+    // 循环升级，支持一次性升多层
+    while (realmLevel.value < 9 && cultivation.value >= maxCultivation.value) {
+      const excess = cultivation.value - maxCultivation.value
+      levelUp()
+      cultivation.value = excess
+    }
+
+    // 9层时修为不能超过最大值
+    if (realmLevel.value === 9 && cultivation.value > maxCultivation.value) {
+      cultivation.value = maxCultivation.value
     }
   }
 
@@ -305,6 +414,11 @@ export const usePlayerStore = defineStore('player', () => {
       // 每层突破所需修为增加
       maxCultivation.value = Math.floor(maxCultivation.value * 1.2)
       recalculateStats()
+
+      // 每3层获得1个技能点
+      if (realmLevel.value % 3 === 0) {
+        skillPoints.value++
+      }
     }
   }
 
@@ -321,7 +435,18 @@ export const usePlayerStore = defineStore('player', () => {
     maxCultivation.value = Math.floor(maxCultivation.value * 1.5)
 
     recalculateStats()
+
+    // 突破境界时获得技能点（境界越高获得越多）
+    const realmIndex = REALM_ORDER.indexOf(next)
+    const pointsGained = Math.max(1, realmIndex) // 筑基1点，金丹2点，元婴3点...
+    skillPoints.value += pointsGained
+
     return true
+  }
+
+  // 增加技能点
+  function addSkillPoints(amount: number) {
+    skillPoints.value += amount
   }
 
   // 重新计算属性
@@ -575,8 +700,8 @@ export const usePlayerStore = defineStore('player', () => {
     const elapsed = now - idleStartTime.value
     const seconds = Math.floor(elapsed / 1000)
 
-    // 每秒获得5点修为
-    const gains = seconds * 5
+    // 使用当前境界的修为获取速度
+    const gains = seconds * cultivationPerSecond.value
 
     idleStartTime.value = now
     return gains
@@ -587,8 +712,157 @@ export const usePlayerStore = defineStore('player', () => {
     gold.value += amount
   }
 
+  // ====== 技能系统方法 ======
+
+  // 检查是否已学习某技能
+  function hasLearnedSkill(skillId: string): boolean {
+    return learnedSkills.value.some(ls => ls.id === skillId)
+  }
+
+  // 获得已学习的技能
+  function getLearnedSkill(skillId: string): LearnedSkill | undefined {
+    return learnedSkills.value.find(ls => ls.id === skillId)
+  }
+
+  // 检查是否可以学习某技能
+  function canLearnSkill(skillId: string): boolean {
+    const definition = getSkillDefinition(skillId)
+    if (!definition) return false
+
+    // 已学习则不能再次学习
+    if (hasLearnedSkill(skillId)) return false
+
+    // 检查技能点是否足够
+    if (skillPoints.value < 1) return false
+
+    // 检查前置技能
+    if (definition.prerequisites) {
+      for (const prereq of definition.prerequisites) {
+        if (!hasLearnedSkill(prereq)) return false
+      }
+    }
+
+    // 检查境界要求
+    if (definition.unlockRealm) {
+      const currentRealmIndex = REALM_ORDER.indexOf(realm.value)
+      const requiredRealmIndex = REALM_ORDER.indexOf(definition.unlockRealm as Realm)
+      if (currentRealmIndex < requiredRealmIndex) return false
+    }
+
+    return true
+  }
+
+  // 学习技能
+  function learnSkill(skillId: string): boolean {
+    if (!canLearnSkill(skillId)) return false
+
+    const newSkill = createLearnedSkill(skillId)
+    if (!newSkill) return false
+
+    learnedSkills.value.push(newSkill)
+    skillPoints.value--
+
+    // 重新计算技能被动加成
+    recalculateSkillBonuses()
+
+    return true
+  }
+
+  // 升级技能
+  function upgradeSkill(skillId: string): boolean {
+    const learnedSkill = getLearnedSkill(skillId)
+    const definition = getSkillDefinition(skillId)
+
+    if (!learnedSkill || !definition) return false
+
+    // 检查是否达到最大等级
+    if (learnedSkill.level >= definition.maxLevel) return false
+
+    // 检查技能点是否足够
+    if (skillPoints.value < 1) return false
+
+    learnedSkill.level++
+    learnedSkill.maxExp = calculateSkillExpRequired(learnedSkill.level)
+    learnedSkill.exp = 0
+    skillPoints.value--
+
+    // 重新计算技能被动加成
+    recalculateSkillBonuses()
+
+    return true
+  }
+
+  // 增加技能经验
+  function addSkillExp(skillId: string, exp: number): boolean {
+    const learnedSkill = getLearnedSkill(skillId)
+    if (!learnedSkill) return false
+
+    learnedSkill.exp += exp
+
+    // 检查是否可以自动升级
+    const definition = getSkillDefinition(skillId)
+    if (definition && learnedSkill.exp >= learnedSkill.maxExp && learnedSkill.level < definition.maxLevel) {
+      learnedSkill.level++
+      learnedSkill.exp = 0
+      learnedSkill.maxExp = calculateSkillExpRequired(learnedSkill.level)
+
+      // 重新计算技能被动加成
+      recalculateSkillBonuses()
+
+      return true
+    }
+
+    return false
+  }
+
+  // 重新计算技能被动加成
+  function recalculateSkillBonuses() {
+    const bonuses: Partial<UnitStats> = {}
+
+    for (const learnedSkill of learnedSkills.value) {
+      if (!learnedSkill.enabled) continue
+
+      const definition = getSkillDefinition(learnedSkill.id)
+      if (!definition?.passiveBonus) continue
+
+      const bonusValue = definition.passiveBonus.valuePerLevel * learnedSkill.level
+      const stat = definition.passiveBonus.stat
+
+      bonuses[stat] = (bonuses[stat] || 0) + bonusValue
+    }
+
+    skillBonuses.value = bonuses
+  }
+
+  // 切换技能启用状态
+  function toggleSkillEnabled(skillId: string): boolean {
+    const learnedSkill = getLearnedSkill(skillId)
+    if (!learnedSkill) return false
+
+    learnedSkill.enabled = !learnedSkill.enabled
+
+    // 重新计算技能被动加成
+    recalculateSkillBonuses()
+
+    return true
+  }
+
+  // 获取技能定义列表
+  function getAvailableSkills(): SkillDefinition[] {
+    return Object.values(SKILL_DEFINITIONS)
+  }
+
+  // 获取技能树某分支的技能
+  function getSkillTreeBranch(branch: SkillBranch): SkillDefinition[] {
+    const nodeSkillIds = SKILL_TREE[branch].map(node => node.skillId)
+    return nodeSkillIds.map(id => SKILL_DEFINITIONS[id]).filter((s): s is SkillDefinition => s !== undefined)
+  }
+
   // 转换为战斗单位
   function toBattleUnit(): Unit {
+    // 获取已学习技能的ID列表
+    const skillIds = learnedSkills.value.map(ls => ls.id)
+
     return {
       id: id.value,
       name: name.value,
@@ -599,11 +873,114 @@ export const usePlayerStore = defineStore('player', () => {
       quality: quality.value,
       level: level.value,
       stats: { ...totalStats.value },
-      skills: [...skills.value],
+      skills: skillIds,
       statusEffects: [...temporaryBuffs.value],
       isAlive: true,
       icon: icon.value
     }
+  }
+
+  // ====== 体力值系统方法 ======
+
+  // 恢复体力（基于时间）
+  function recoverStamina() {
+    const now = Date.now()
+    const elapsed = (now - lastStaminaRecoverTime.value) / 1000 // 秒
+    const pointsToRecover = Math.floor(elapsed / staminaRecoverSeconds.value)
+
+    if (pointsToRecover > 0 && stamina.value < maxStamina.value) {
+      const newStamina = Math.min(maxStamina.value, stamina.value + pointsToRecover)
+      const actualRecovered = newStamina - stamina.value
+      stamina.value = newStamina
+      // 更新恢复时间，保留不足恢复一点的时间
+      lastStaminaRecoverTime.value = now - ((pointsToRecover - actualRecovered) * staminaRecoverSeconds.value * 1000)
+      if (stamina.value >= maxStamina.value) {
+        lastStaminaRecoverTime.value = now
+      }
+    }
+  }
+
+  // 消耗体力
+  function consumeStamina(amount: number): boolean {
+    recoverStamina() // 先尝试恢复
+    if (stamina.value < amount) return false
+    stamina.value -= amount
+    return true
+  }
+
+  // 购买体力（消耗灵石）
+  function buyStamina(cost: number, amount: number): { success: boolean; message: string } {
+    if (gold.value < cost) {
+      return { success: false, message: '灵石不足' }
+    }
+    if (stamina.value >= maxStamina.value) {
+      return { success: false, message: '体力已满' }
+    }
+    gold.value -= cost
+    stamina.value = Math.min(maxStamina.value, stamina.value + amount)
+    lastStaminaRecoverTime.value = Date.now()
+    return { success: true, message: `恢复了${amount}点体力` }
+  }
+
+  // ====== 历练区域进度方法 ======
+
+  // 获取区域进度
+  function getAreaProgress(areaId: string): AreaProgress | undefined {
+    return areaProgress.value.find(p => p.areaId === areaId)
+  }
+
+  // 更新区域进度
+  function updateAreaProgress(areaId: string, updates: Partial<AreaProgress>): void {
+    const index = areaProgress.value.findIndex(p => p.areaId === areaId)
+    if (index >= 0) {
+      const existing = areaProgress.value[index]
+      if (existing) {
+        areaProgress.value[index] = { ...existing, ...updates }
+      }
+    } else {
+      areaProgress.value.push({
+        areaId: areaId,
+        cleared: updates.cleared ?? false,
+        clearCount: updates.clearCount ?? 0,
+        stars: updates.stars ?? 0,
+        unlocked: updates.unlocked ?? false,
+        fastestTime: updates.fastestTime
+      })
+    }
+  }
+
+  // 标记区域通关
+  function clearArea(areaId: string, timeUsed: number, stars: number): void {
+    const progress = getAreaProgress(areaId)
+    if (progress) {
+      progress.cleared = true
+      progress.clearCount++
+      if (!progress.fastestTime || timeUsed < progress.fastestTime) {
+        progress.fastestTime = timeUsed
+      }
+      if (stars > progress.stars) {
+        progress.stars = stars
+      }
+    } else {
+      updateAreaProgress(areaId, {
+        cleared: true,
+        clearCount: 1,
+        fastestTime: timeUsed,
+        stars,
+        unlocked: true
+      })
+    }
+  }
+
+  // 解锁区域
+  function unlockArea(areaId: string): void {
+    updateAreaProgress(areaId, { unlocked: true })
+  }
+
+  // 检查区域是否解锁
+  function isAreaUnlockedByPlayer(areaId: string): boolean {
+    const progress = getAreaProgress(areaId)
+    return progress?.unlocked ?? false
   }
 
   // 监听变化自动保存
@@ -620,11 +997,22 @@ export const usePlayerStore = defineStore('player', () => {
     equippedWeapon, equippedArmor, equippedAccessory1, equippedAccessory2,
     allEquipped,
     inventory, maxInventorySlots, isInventoryFull,
-    skills, temporaryBuffs,
+    learnedSkills, skillPoints, skillBonuses,
+    temporaryBuffs,
     idleStartTime, isIdling,
+    areaProgress,
+
+    // 体力值系统
+    stamina, maxStamina, lastStaminaRecoverTime,
+    staminaRecoverRate, staminaRecoverSeconds, staminaPercent, nextRecoverCountdown,
 
     // 计算属性
-    realmInfo, cultivationProgress, canBreakthrough, nextRealm,
+    realmInfo, cultivationProgress, canBreakthrough, nextRealm, isMaxRealm, realmColor, realmPrimaryColor, cultivationPerSecond,
+
+    // 技能系统方法
+    hasLearnedSkill, getLearnedSkill, canLearnSkill, learnSkill, upgradeSkill, addSkillExp,
+    toggleSkillEnabled, getAvailableSkills, getSkillTreeBranch, recalculateSkillBonuses,
+    addSkillPoints,
 
     // 方法
     addCultivation, levelUp, breakthrough,
@@ -633,6 +1021,12 @@ export const usePlayerStore = defineStore('player', () => {
     addBuff, removeBuff, clearBuffs,
     startIdle, stopIdle, calculateOfflineGains,
     addGold,
-    toBattleUnit, saveToStorage
+    toBattleUnit, saveToStorage,
+
+    // 体力值系统方法
+    recoverStamina, consumeStamina, buyStamina,
+
+    // 历练区域方法
+    getAreaProgress, updateAreaProgress, clearArea, unlockArea, isAreaUnlockedByPlayer
   }
 })

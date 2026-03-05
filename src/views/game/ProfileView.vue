@@ -98,17 +98,23 @@
 
     <!-- 技能列表 -->
     <div class="panel skills-panel">
-      <h3 class="panel-title">已学技能</h3>
-      <div class="skills-grid">
-        <div v-for="skillId in playerStore.skills" :key="skillId" class="skill-item">
-          <div class="skill-icon" :style="{ backgroundColor: `${getSkillElementColor(skillId)}33` }">
-            {{ getSkillIcon(skillId) }}
+      <div class="panel-header" @click="toggleSkillsExpand">
+        <h3 class="panel-title">已学技能 ({{ playerStore.learnedSkills.length }})</h3>
+        <span class="expand-toggle">{{ skillsExpanded ? '收起' : '展开' }}</span>
+      </div>
+      <div class="skills-grid" :class="{ collapsed: !skillsExpanded && playerStore.learnedSkills.length > 4 }">
+        <div v-for="learnedSkill in displayedSkills" :key="learnedSkill.id" class="skill-item">
+          <div class="skill-icon" :style="{ backgroundColor: `${getSkillElementColor(learnedSkill.id)}33` }">
+            {{ getSkillIcon(learnedSkill.id) }}
           </div>
           <div class="skill-info">
-            <div class="skill-name">{{ getSkillName(skillId) }}</div>
-            <div class="skill-cost">MP: {{ getSkillCost(skillId) }}</div>
+            <div class="skill-name">{{ getSkillName(learnedSkill.id) }} (Lv.{{ learnedSkill.level }})</div>
+            <div class="skill-cost">MP: {{ getSkillCost(learnedSkill.id, learnedSkill.level) }}</div>
           </div>
         </div>
+      </div>
+      <div v-if="playerStore.learnedSkills.length > 4" class="skills-toggle-btn" @click="toggleSkillsExpand">
+        <span>{{ skillsExpanded ? '收起技能' : `查看全部 ${playerStore.learnedSkills.length} 个技能` }}</span>
       </div>
     </div>
 
@@ -193,7 +199,7 @@
 import { ref, computed } from 'vue'
 import { usePlayerStore, type InventoryItem } from '@/stores/playerStore'
 import { ELEMENT_COLORS, QUALITY_COLORS } from '@/types/unit'
-import { getSkillById } from '@/types/skill'
+import { getSkillById, calculateSkillMpCost } from '@/types/skill'
 import type { Equipment } from '@/types/equipment'
 import { getEquipmentById } from '@/types/equipment'
 
@@ -202,6 +208,7 @@ const playerStore = usePlayerStore()
 const showEquipModal = ref(false)
 const selectedSlot = ref<'weapon' | 'armor' | 'accessory1' | 'accessory2' | null>(null)
 const previewEquip = ref<Equipment | null | undefined>(null)
+const skillsExpanded = ref(false)
 
 interface StatItem {
   key: string
@@ -254,6 +261,19 @@ const availableEquips = computed(() => {
   })
 })
 
+// 技能展示：默认只显示4个，展开后显示全部
+const displayedSkills = computed(() => {
+  const allSkills = playerStore.learnedSkills
+  if (skillsExpanded.value || allSkills.length <= 4) {
+    return allSkills
+  }
+  return allSkills.slice(0, 4)
+})
+
+function toggleSkillsExpand() {
+  skillsExpanded.value = !skillsExpanded.value
+}
+
 function getEquipmentFromItem(item: InventoryItem): Equipment | undefined {
   if (item.equipmentData) return item.equipmentData
   if (item.equipmentId) return getEquipmentById(item.equipmentId)
@@ -285,9 +305,10 @@ function getSkillIcon(skillId: string): string {
   return skill?.icon || '?'
 }
 
-function getSkillCost(skillId: string): number {
+function getSkillCost(skillId: string, level: number = 1): number {
   const skill = getSkillById(skillId)
-  return skill?.mpCost || 0
+  if (!skill) return 0
+  return calculateSkillMpCost(skill, level)
 }
 
 function getSkillElementColor(skillId: string): string {
@@ -631,10 +652,52 @@ function handleUnequip() {
 }
 
 /* 技能面板 */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.panel-header .panel-title {
+  margin: 0;
+}
+
+.expand-toggle {
+  font-size: 0.6875rem;
+  color: var(--color-accent);
+  padding: 2px 8px;
+  background: rgba(126, 184, 218, 0.1);
+  border-radius: 4px;
+}
+
 .skills-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  transition: max-height 0.3s ease;
+}
+
+.skills-grid.collapsed {
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.skills-toggle-btn {
+  margin-top: 12px;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  background: rgba(126, 184, 218, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skills-toggle-btn:hover {
+  background: rgba(126, 184, 218, 0.2);
 }
 
 .skill-item {
@@ -857,5 +920,73 @@ function handleUnequip() {
 
 .action-btn.cancel:hover {
   background: rgba(107, 114, 128, 0.3);
+}
+
+/* 响应式适配 */
+@media (min-width: 768px) {
+  .profile-view {
+    max-width: 600px;
+    gap: 16px;
+  }
+
+  .character-card {
+    padding: 20px;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .name {
+    font-size: 1.25rem;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .panel-title {
+    font-size: 1rem;
+  }
+
+  .skills-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .skill-item {
+    padding: 10px;
+  }
+
+  .skill-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.125rem;
+  }
+
+  .skill-name {
+    font-size: 0.875rem;
+  }
+
+  .modal-content {
+    max-width: 420px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-view {
+    max-width: 700px;
+  }
+
+  .equipment-slots {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .skills-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 </style>

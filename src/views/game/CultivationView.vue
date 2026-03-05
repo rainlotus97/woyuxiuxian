@@ -18,18 +18,19 @@
         </div>
 
         <div class="realm-info">
-          <span class="realm-name">{{ playerStore.realmInfo.fullName }}</span>
-          <span v-if="playerStore.realmLevel === 9" class="realm-max">满层</span>
+          <span class="realm-name"
+            :style="{ background: playerStore.realmColor, '-webkit-background-clip': 'text', '-webkit-text-fill-color': 'transparent', 'background-clip': 'text' }">{{
+              playerStore.realmInfo.fullName }}</span>
         </div>
 
         <div class="progress-section">
           <div class="progress-label">
             <span>修为</span>
-            <span>{{ playerStore.cultivation }} / {{ playerStore.maxCultivation }}</span>
+            <span v-if="playerStore.realmLevel === 9">{{ playerStore.cultivation }}</span>
+            <span v-else>{{ playerStore.cultivation }} / {{ playerStore.maxCultivation }}</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill cultivation"
-              :style="{ width: `${playerStore.cultivationProgress}%` }"></div>
+            <div class="progress-fill cultivation" :style="{ width: `${playerStore.cultivationProgress}%` }"></div>
           </div>
         </div>
 
@@ -48,25 +49,23 @@
         <GameButton @click="handleMeditate" :disabled="playerStore.isIdling">
           打坐修炼
         </GameButton>
-        <GameButton
-          @click="handleBreakthrough"
-          :disabled="!playerStore.canBreakthrough"
-          :class="{ 'can-breakthrough': playerStore.canBreakthrough }"
-        >
+        <GameButton @click="handleBreakthrough" :disabled="!playerStore.canBreakthrough"
+          :class="{ 'can-breakthrough': playerStore.canBreakthrough }">
           突破境界
         </GameButton>
       </div>
 
       <!-- 挂机说明 -->
       <div class="idle-info">
-        <p v-if="playerStore.realm === '炼气' && playerStore.realmLevel < 9">
-          💡 挂机中每秒自动获得 {{ CULTIVATION_PER_TICK }} 修为，炼气{{ playerStore.realmLevel }}层满后自动升至{{ playerStore.realmLevel + 1 }}层
+        <p v-if="playerStore.isMaxRealm && playerStore.realmLevel === 9">
+          💡 已达最高境界
         </p>
         <p v-else-if="playerStore.realmLevel === 9">
-          💡 炼气九层修为满后需要手动突破至筑基
+          💡 {{ playerStore.realm }}九层修为满后需要手动突破至{{ playerStore.nextRealm }}
         </p>
         <p v-else>
-          💡 挂机中每秒自动获得 {{ CULTIVATION_PER_TICK }} 修为
+          💡 挂机中每秒自动获得 {{ CULTIVATION_PER_TICK }} 修为，{{ playerStore.realm }}{{ playerStore.realmLevel }}层满后自动升至{{
+            playerStore.realmLevel + 1 }}层
         </p>
       </div>
     </div>
@@ -74,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useToast } from '@/composables/useToast'
 import { useAudio, sfxMeditate, sfxBreakthrough } from '@/composables/useAudio'
@@ -88,7 +87,9 @@ const { showItemAcquire } = useModal()
 
 // 挂机配置
 const IDLE_INTERVAL = 1000 // 1秒
-const CULTIVATION_PER_TICK = 5 // 每秒修为
+// 每秒修为获取量由 playerStore.cultivationPerSecond 提供
+
+const CULTIVATION_PER_TICK = computed(() => playerStore.cultivationPerSecond)
 
 // 离线收益
 const offlineGains = ref(0)
@@ -142,16 +143,15 @@ function startIdle() {
 // 开始挂机循环
 function startIdleLoop() {
   idleTimer = window.setInterval(() => {
-    // 炼气9层且修为满，停止增长
-    if (playerStore.realm === '炼气' && playerStore.realmLevel === 9) {
+    // 非最高境界的9层且修为满，停止增长（等待手动突破）
+    if (playerStore.realmLevel === 9 && !playerStore.isMaxRealm) {
       if (playerStore.cultivation >= playerStore.maxCultivation) {
-        // 停止挂机，等待手动突破
         return
       }
     }
 
     // 增加修为
-    playerStore.addCultivation(CULTIVATION_PER_TICK)
+    playerStore.addCultivation(CULTIVATION_PER_TICK.value)
   }, IDLE_INTERVAL)
 }
 
@@ -179,9 +179,9 @@ function handleMeditate() {
 
   sfxMeditate()
 
-  // 检查是否已满
-  if (playerStore.cultivation >= playerStore.maxCultivation) {
-    if (playerStore.realm === '炼气' && playerStore.realmLevel === 9) {
+  // 检查是否已满（最高境界可以无限累加）
+  if (!playerStore.isMaxRealm && playerStore.cultivation >= playerStore.maxCultivation) {
+    if (playerStore.realmLevel === 9) {
       warning('修为已满，请突破境界')
     } else {
       warning('修为已满')
@@ -189,8 +189,9 @@ function handleMeditate() {
     return
   }
 
-  playerStore.addCultivation(15)
-  success('修为 +15')
+  const gain = 15 * Math.floor(playerStore.cultivationPerSecond / 15)
+  playerStore.addCultivation(gain) // 手动打坐一次相当于15秒的挂机收益
+  success(`修为 +${gain}`)
 }
 
 // 突破境界
@@ -276,9 +277,12 @@ function handleBreakthrough() {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
   }
@@ -309,9 +313,12 @@ function handleBreakthrough() {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -327,15 +334,6 @@ function handleBreakthrough() {
   font-size: 1rem;
   color: var(--color-success);
   font-weight: 500;
-}
-
-.realm-max {
-  font-size: 0.625rem;
-  padding: 2px 6px;
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 4px;
-  color: #f59e0b;
 }
 
 .progress-section {
@@ -412,9 +410,12 @@ function handleBreakthrough() {
 }
 
 @keyframes pulse-breakthrough {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(251, 191, 36, 0.3);
   }
+
   50% {
     box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
   }

@@ -194,19 +194,26 @@ function handleUse() {
 /* 筛选标签 */
 .filter-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 0 2px;
 }
 
 .tab {
   flex: 1;
-  padding: 5px 4px;
+  padding: 8px 6px;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(107, 114, 128, 0.25);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--color-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: rgba(126, 184, 218, 0.1);
 }
 
 .tab.active {
@@ -219,8 +226,21 @@ function handleUse() {
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 5px;
+  gap: 6px;
   flex: 1;
+  padding: 0 2px 8px 0;
+  overflow-y: auto;
+  align-content: start;
+  box-sizing: border-box;
+}
+
+/* 隐藏滚动条 */
+.inventory-grid::-webkit-scrollbar {
+  display: none;
+}
+.inventory-grid {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .item-slot {
@@ -233,6 +253,7 @@ function handleUse() {
   position: relative;
   cursor: pointer;
   border: 1px solid transparent;
+  min-width: 0;
 }
 
 .item-slot.empty {
@@ -252,7 +273,7 @@ function handleUse() {
 .item-slot.q-legendary { border-color: rgba(255, 105, 180, 0.5); background: rgba(255, 105, 180, 0.1); }
 
 .icon {
-  font-size: 1rem;
+  font-size: 1.125rem;
 }
 
 .qty {
@@ -260,11 +281,12 @@ function handleUse() {
   bottom: 1px;
   right: 2px;
   font-size: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 0 3px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 1px 3px;
   border-radius: 2px;
   color: #fff;
   line-height: 1.2;
+  font-weight: 500;
 }
 
 /* 遮罩 */
@@ -426,5 +448,44 @@ function handleUse() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 小屏幕适配 */
+@media (max-width: 360px) {
+  .inventory-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .icon {
+    font-size: 1.125rem;
+  }
+
+  .tab {
+    font-size: 0.625rem;
+    padding: 4px 2px;
+  }
+}
+
+/* 平板和桌面端适配 */
+@media (min-width: 768px) {
+  .inventory-view {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  .icon {
+    font-size: 1.5rem;
+  }
+
+  .qty {
+    font-size: 0.625rem;
+    padding: 2px 5px;
+  }
 }
 </style>

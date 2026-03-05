@@ -16,6 +16,42 @@ export const REALM_MULTIPLIER: Record<Realm, number> = {
   '仙人': 10.0
 }
 
+// 境界颜色（修仙意境渐变，从凡俗到超脱，色调柔和统一）
+export const REALM_COLORS: Record<Realm, string> = {
+  '炼气': 'linear-gradient(135deg, #94a3b8, #cbd5e1)',     // 银灰 - 凡人起步，朴素无华
+  '筑基': 'linear-gradient(135deg, #64748b, #a1c4fd)',    // 灰蓝 - 筑基凝气，初入仙途
+  '金丹': 'linear-gradient(135deg, #d4a574, #f5deb3)',    // 暖金 - 金丹初成，温润如玉
+  '元婴': 'linear-gradient(135deg, #b794f6, #ddd6fe)',    // 淡紫 - 元婴凝聚，紫气氤氲
+  '化神': 'linear-gradient(135deg, #818cf8, #c7d2fe)',    // 蓝紫 - 神识化形，空灵深邃
+  '渡劫': 'linear-gradient(135deg, #c084fc, #fecdd3)',    // 紫粉 - 渡劫蜕变，劫后新生
+  '大乘': 'linear-gradient(135deg, #a5b4fc, #e0e7ff)',    // 淡蓝紫 - 大乘圆满，返璞归真
+  '仙人': 'linear-gradient(135deg, #fef3c7, #fffbeb)'     // 纯净金白 - 超脱凡尘，羽化登仙
+}
+
+// 境界主色调（用于文字等单色场景）
+export const REALM_PRIMARY_COLOR: Record<Realm, string> = {
+  '炼气': '#94a3b8',   // 银灰
+  '筑基': '#7dd3fc',   // 天蓝
+  '金丹': '#d4a574',   // 暖金
+  '元婴': '#b794f6',   // 淡紫
+  '化神': '#818cf8',   // 蓝紫
+  '渡劫': '#c084fc',   // 紫粉
+  '大乘': '#a5b4fc',   // 淡蓝紫
+  '仙人': '#fde68a'    // 金白
+}
+
+// 境界每秒修为基础值
+export const REALM_CULTIVATION_PER_SECOND: Record<Realm, number> = {
+  '炼气': 5,
+  '筑基': 8,
+  '金丹': 15,
+  '元婴': 28,
+  '化神': 50,
+  '渡劫': 90,
+  '大乘': 160,
+  '仙人': 300
+}
+
 // ====== 品质系统 ======
 export type Quality = '凡品' | '灵品' | '玄品' | '仙品' | '神品'
 
@@ -36,14 +72,15 @@ export const QUALITY_COLORS: Record<Quality, string> = {
 }
 
 // ====== 五行系统 ======
-export type Element = '金' | '木' | '水' | '火' | '土'
+export type Element = '金' | '木' | '水' | '火' | '土' | '雷'
 
 export const ELEMENT_COLORS: Record<Element, string> = {
   '金': '#d4af37',
   '木': '#4a9e5f',
   '水': '#4c8a9e',
   '火': '#c35050',
-  '土': '#8b7355'
+  '土': '#8b7355',
+  '雷': '#9f7fef'
 }
 
 // 五行克制关系：key 克制 value
@@ -52,7 +89,8 @@ export const ELEMENT_COUNTER: Record<Element, Element> = {
   '木': '土',  // 木克土
   '水': '火',  // 水克火
   '火': '金',  // 火克金
-  '土': '水'   // 土克水
+  '土': '水',  // 土克水
+  '雷': '水'   // 雷克水
 }
 
 // ====== 状态效果 ======

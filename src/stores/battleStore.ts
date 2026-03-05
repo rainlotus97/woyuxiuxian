@@ -10,7 +10,7 @@ import { getSkillById, getSkillsByIds, isSkillAvailable } from '@/types/skill'
 // 战斗模式
 export type BattleMode = 'pve' | 'pvp'
 
-// 敌人行动��式
+// 敌人行动模式
 export type EnemyActionMode = 'auto' | 'manual'
 
 // 战斗速度

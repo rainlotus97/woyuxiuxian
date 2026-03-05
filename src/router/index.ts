@@ -47,13 +47,15 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/game/SettingsView.vue')
-        },
-        {
-          path: 'battle',
-          name: 'battle',
-          component: () => import('@/views/game/BattleView.vue')
         }
       ]
+    },
+    // 战斗页面独立，全屏显示
+    {
+      path: '/game/battle',
+      name: 'battle',
+      component: () => import('@/views/game/BattleView.vue'),
+      meta: { fullScreen: true }
     }
   ]
 })

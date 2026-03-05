@@ -270,17 +270,27 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useBattleStore } from '@/stores/battleStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { createUnit, type Unit, ELEMENT_COLORS, QUALITY_COLORS } from '@/types/unit'
-import { getSkillById, BASIC_SKILLS, type Skill } from '@/types/skill'
+import { getSkillById, getSkillsByIds, type Skill } from '@/types/skill'
+import { getAreaById, ENEMIES, rollDrops, rollReward, type AreaDefinition, type DropItem } from '@/types/adventure'
 import UnitSlot from '@/components/battle/UnitSlot.vue'
 import ActionOrderBar from '@/components/battle/ActionOrderBar.vue'
 
 const router = useRouter()
+const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+
+// 当前区域配置
+const currentArea = ref<AreaDefinition | null>(null)
+const currentWave = ref(1)
+const totalWaves = ref(3)
+const accumulatedDrops = ref<Map<string, { item: DropItem; quantity: number }>>(new Map())
+const accumulatedExp = ref(0)
+const accumulatedGold = ref(0)
 
 // 本地状态
 const battleLoopId = ref<number>(0)
@@ -320,15 +330,22 @@ const availableActions = [
   { type: 'flee' as const, name: '逃跑', icon: '🏃' }
 ]
 
-// 可用技能
+// 可用技能（使用玩家已学习的技能）
 const availableSkills = computed(() => {
   const unit = battleStore.currentActingUnit
   if (!unit) return []
 
-  return BASIC_SKILLS.filter(skill => {
+  // 获取玩家已学习的技能ID列表
+  const skillIds = unit.skills || []
+  if (skillIds.length === 0) return []
+
+  // 根据技能ID获取技能定义
+  const skills = getSkillsByIds(skillIds)
+
+  return skills.filter(skill => {
     // 检查 MP 是否足够
     if (unit.stats.currentMp < skill.mpCost) return false
-    // 检查冷却
+    // 检查冷却时间
     if (skill.currentCooldown > 0) return false
     return true
   })
@@ -384,60 +401,160 @@ const canTargetAlly = computed(() => {
 // 最近的战斗日志
 const recentLogs = computed(() => battleLog.value.slice(-6).reverse())
 
-// 初始化战斗数据（使用 playerStore 的主角数据）
+// 根据敌人ID获取敌人定义
+function getEnemyDefinition(enemyId: string) {
+  return ENEMIES[enemyId]
+}
+
+// 根据波次生成敌人
+function generateEnemiesForWave(wave: number): Unit[] {
+  if (!currentArea.value) return []
+
+  const area = currentArea.value
+  const enemyIds = area.enemies
+  const enemies: Unit[] = []
+
+  // 根据波次决定敌人数量和类型
+  let enemyCount = 1
+  let useElite = false
+  let useBoss = false
+
+  if (wave === 1) {
+    enemyCount = 2 // 第一波：2只普通怪
+  } else if (wave === 2) {
+    enemyCount = 1
+    useElite = true // 第二波：1只精英怪
+  } else if (wave === 3) {
+    enemyCount = 1
+    useBoss = true // 第三波：1只Boss
+  }
+
+  for (let i = 0; i < enemyCount; i++) {
+    // 随机选择一个敌人ID
+    const randomIndex = Math.floor(Math.random() * enemyIds.length)
+    const enemyId = enemyIds[randomIndex]
+    if (!enemyId) continue
+
+    const enemyDef = getEnemyDefinition(enemyId)
+    if (!enemyDef) continue
+
+    // 计算属性倍率
+    let statMultiplier = 1
+    if (useElite) statMultiplier = 1.5
+    if (useBoss) statMultiplier = 2.5
+
+    // 波次加成
+    statMultiplier *= (1 + (wave - 1) * 0.2)
+
+    enemies.push(createUnit({
+      id: `enemy_${wave}_${i}`,
+      name: useBoss ? `[BOSS]${enemyDef.name}` : useElite ? `[精��]${enemyDef.name}` : enemyDef.name,
+      type: 'enemy',
+      element: '金', // 默认元素
+      realm: enemyDef.realm,
+      realmLevel: enemyDef.realmLevel,
+      quality: useBoss ? '仙品' : useElite ? '玄品' : '凡品',
+      level: enemyDef.realmLevel + wave * 2,
+      icon: enemyDef.icon,
+      stats: {
+        maxHp: Math.floor(enemyDef.baseStats.maxHp * statMultiplier),
+        currentHp: Math.floor(enemyDef.baseStats.maxHp * statMultiplier),
+        maxMp: 50,
+        currentMp: 50,
+        attack: Math.floor(enemyDef.baseStats.attack * statMultiplier),
+        defense: Math.floor(enemyDef.baseStats.defense * statMultiplier),
+        speed: enemyDef.baseStats.speed,
+        critRate: 0.05 + (useBoss ? 0.1 : useElite ? 0.05 : 0),
+        critDamage: 1.5 + (useBoss ? 0.3 : useElite ? 0.15 : 0)
+      },
+      skills: enemyDef.skills
+    }))
+  }
+
+  return enemies
+}
+
+// 初始化战斗数据
 function initBattle() {
-  // 使用 playerStore 的主角数据
+  // 从路由参数获取区域ID
+  const areaId = route.query.areaId as string
+
+  // 如果有区域ID，加载区域配置
+  if (areaId) {
+    const area = getAreaById(areaId)
+    if (area) {
+      currentArea.value = area
+      currentWave.value = 1
+      totalWaves.value = 3
+      accumulatedDrops.value.clear()
+      accumulatedExp.value = 0
+      accumulatedGold.value = 0
+    }
+  }
+
+  // 恢复玩家满生命值和灵力
+  playerStore.baseStats.currentHp = playerStore.totalStats.maxHp
+  playerStore.baseStats.currentMp = playerStore.totalStats.maxMp
+
+  // 使用 playerStore 的主角数据（已恢复满状态）
   const protagonist = playerStore.toBattleUnit()
   const allies: Unit[] = [protagonist]
 
-  // 根据主角等级生成敌人
-  const playerLevel = playerStore.level
-  const enemies: Unit[] = [
-    createUnit({
-      id: 'enemy1',
-      name: '妖狼',
-      type: 'enemy',
-      element: '木',
-      realm: '炼气',
-      quality: '凡品',
-      level: Math.max(1, playerLevel - 2),
-      icon: '狼',
-      stats: {
-        maxHp: 60 + playerLevel * 10,
-        currentHp: 60 + playerLevel * 10,
-        maxMp: 20 + playerLevel * 5,
-        currentMp: 20 + playerLevel * 5,
-        attack: 10 + playerLevel * 3,
-        defense: 5 + playerLevel * 2,
-        speed: 90 + playerLevel * 2,
-        critRate: 0.05,
-        critDamage: 1.5
-      },
-      skills: ['ice_spike']
-    }),
-    createUnit({
-      id: 'enemy2',
-      name: '妖蛇',
-      type: 'enemy',
-      element: '水',
-      realm: '炼气',
-      quality: '凡品',
-      level: Math.max(1, playerLevel - 1),
-      icon: '蛇',
-      stats: {
-        maxHp: 50 + playerLevel * 8,
-        currentHp: 50 + playerLevel * 8,
-        maxMp: 30 + playerLevel * 5,
-        currentMp: 30 + playerLevel * 5,
-        attack: 8 + playerLevel * 2,
-        defense: 4 + playerLevel * 1,
-        speed: 85 + playerLevel * 2,
-        critRate: 0.05,
-        critDamage: 1.5
-      },
-      skills: ['poison_fog', 'ice_spike']
-    })
-  ]
+  // 生成第一波敌人
+  let enemies: Unit[]
+
+  if (currentArea.value) {
+    enemies = generateEnemiesForWave(currentWave.value)
+  } else {
+    // 没有区域配置时使用默认敌人
+    const playerLevel = playerStore.level
+    enemies = [
+      createUnit({
+        id: 'enemy1',
+        name: '妖狼',
+        type: 'enemy',
+        element: '木',
+        realm: '炼气',
+        quality: '凡品',
+        level: Math.max(1, playerLevel - 2),
+        icon: '🐺',
+        stats: {
+          maxHp: 60 + playerLevel * 10,
+          currentHp: 60 + playerLevel * 10,
+          maxMp: 20 + playerLevel * 5,
+          currentMp: 20 + playerLevel * 5,
+          attack: 10 + playerLevel * 3,
+          defense: 5 + playerLevel * 2,
+          speed: 90 + playerLevel * 2,
+          critRate: 0.05,
+          critDamage: 1.5
+        },
+        skills: ['ice_spike']
+      }),
+      createUnit({
+        id: 'enemy2',
+        name: '妖蛇',
+        type: 'enemy',
+        element: '水',
+        realm: '炼气',
+        quality: '凡品',
+        level: Math.max(1, playerLevel - 1),
+        icon: '🐍',
+        stats: {
+          maxHp: 50 + playerLevel * 8,
+          currentHp: 50 + playerLevel * 8,
+          maxMp: 30 + playerLevel * 5,
+          currentMp: 30 + playerLevel * 5,
+          attack: 8 + playerLevel * 2,
+          defense: 4 + playerLevel * 1,
+          speed: 85 + playerLevel * 2,
+          critRate: 0.05,
+          critDamage: 1.5
+        },
+        skills: ['poison_fog', 'ice_spike']
+      })
+    ]
+  }
 
   battleStore.initBattle(allies, enemies)
 }
@@ -529,8 +646,12 @@ function executeEnemyTurn(enemy: Unit) {
 function executeAutoBattle(unit: Unit) {
   if (battleEnded.value || !unit.isAlive) return
 
+  // 获取单位可用的技能
+  const skillIds = unit.skills || []
+  const allSkills = skillIds.length > 0 ? getSkillsByIds(skillIds) : []
+
   // 优先使用技能
-  const usableSkills = BASIC_SKILLS.filter(skill => {
+  const usableSkills = allSkills.filter(skill => {
     if (unit.stats.currentMp < skill.mpCost) return false
     if (skill.currentCooldown > 0) return false
     return true
@@ -588,7 +709,36 @@ function selectAction(actionType: typeof availableActions[number]['type']) {
 
 // 选择技能
 function onSkillSelect(skillId: string) {
+  const skill = getSkillById(skillId)
+  if (!skill) return
+
+  const unit = battleStore.currentActingUnit
+  if (!unit) return
+
   battleStore.selectSkill(skillId)
+
+  // 获取技能目标类型
+  const targetType = skill.effects[0]?.targetType
+
+  // 如果是单体友方技能（治疗等），检查友方数量
+  if (targetType === 'single_ally') {
+    const allies = battleStore.aliveAllies
+    if (allies.length === 1) {
+      // 只有一个友方，自动选中并执行
+      battleStore.selectTarget(allies[0]!.id)
+      battleStore.confirmAction()
+    }
+    // 多个友方时，等待玩家手动选择
+  }
+  // 如果是自身技能，selectSkill 已经设置了目标，直接确认
+  else if (targetType === 'self') {
+    battleStore.confirmAction()
+  }
+  // 如果是全体敌人/全体友方技能，selectSkill 已经设置了目标，直接确认
+  else if (targetType === 'all_enemies' || targetType === 'all_allies') {
+    battleStore.confirmAction()
+  }
+  // 单体敌人技能需要等待选择目标
 }
 
 // 取消技能选择
@@ -609,12 +759,16 @@ function cancelSelection() {
 function onEnemyTargetClick(targetId: string) {
   if (!canSelectEnemyTarget.value) return
   battleStore.selectTarget(targetId)
+  // 选择目标后直接执行行动，不需要额外确认
+  battleStore.confirmAction()
 }
 
 // 点击友方目标
 function onAllyTargetClick(targetId: string) {
   if (!canSelectAllyTarget.value) return
   battleStore.selectTarget(targetId)
+  // 选择目标后直接执行行动，不需要额外确认
+  battleStore.confirmAction()
 }
 
 // 确认行动
@@ -645,7 +799,41 @@ function exitBattle() {
   }
 
   // 发放奖励
-  if (result.value === 'victory' && rewards.value) {
+  if (result.value === 'victory' && currentArea.value) {
+    // 使用历练区域的奖励配置
+    const area = currentArea.value
+
+    // 计算修为和灵石奖励
+    const totalExp = accumulatedExp.value > 0 ? accumulatedExp.value : rollReward(area.expReward)
+    const totalGold = accumulatedGold.value > 0 ? accumulatedGold.value : rollReward(area.goldReward)
+
+    playerStore.addCultivation(totalExp)
+    playerStore.addGold(totalGold)
+
+    // 发放掉落物品
+    const drops = accumulatedDrops.value.size > 0
+      ? Array.from(accumulatedDrops.value.values())
+      : rollDrops(area.drops).map(d => ({ item: d.item, quantity: d.quantity }))
+
+    for (const drop of drops) {
+      const added = playerStore.addToInventory({
+        id: `drop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name: drop.item.name,
+        icon: drop.item.icon,
+        type: drop.item.type === 'equipment' ? 'equipment' : 'material',
+        quality: drop.item.quality,
+        quantity: drop.quantity,
+        description: drop.item.description
+      })
+      if (!added) {
+        console.warn(`背包已满，无法添加 ${drop.item.name}`)
+      }
+    }
+
+    // 更新区域通关记录
+    playerStore.clearArea(area.id, 0, 3) // 简化处理，给3星
+  } else if (result.value === 'victory' && rewards.value) {
+    // 兼容旧的战斗模式
     playerStore.addCultivation(rewards.value.cultivation)
     playerStore.addGold(rewards.value.gold)
   }

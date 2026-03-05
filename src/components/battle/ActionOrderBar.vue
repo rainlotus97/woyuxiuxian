@@ -17,7 +17,7 @@
           {{ item.turnsUntilAction }}
         </div>
 
-        <!-- 单位��标 -->
+        <!-- 单位图标 -->
         <div
           class="unit-icon"
           :style="{ borderColor: getElementColor(item.unit.element), backgroundColor: `${getElementColor(item.unit.element)}33` }"

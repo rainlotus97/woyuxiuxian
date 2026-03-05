@@ -9,14 +9,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="我欲修仙" />
 
-    <!-- iOS 图标 (使用 SVG，后续可替换为 PNG) -->
+    <!-- Android PWA 配置 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="我欲修仙" />
+
+    <!-- iOS 图标 -->
     <link rel="apple-touch-icon" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon.svg" />
 
-    <!-- 主题色 -->
-    <meta name="theme-color" content="#14161e" />
+    <!-- 主题色 (Android Chrome 地址栏颜色) -->
+    <meta name="theme-color" content="#14161e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#14161e" media="(prefers-color-scheme: light)" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -28,6 +33,17 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
     <title>我欲修仙</title>
+
+    <!-- GitHub Pages SPA hack: 处理 404 重定向 -->
+    <script>
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== '/') {
+          history.replaceState(null, null, redirect);
+        }
+      })();
+    </script>
   </head>
   <body class="no-select">
     <div id="app"></div>
