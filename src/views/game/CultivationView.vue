@@ -189,8 +189,8 @@ function handleMeditate() {
     return
   }
 
-  const gain = 15 * Math.floor(playerStore.cultivationPerSecond / 15)
-  playerStore.addCultivation(gain) // 手动打坐一次相当于15秒的挂机收益
+  const gain = playerStore.cultivationPerSecond * 15 // 手动打坐一次相当于15秒的挂机收益
+  playerStore.addCultivation(gain)
   success(`修为 +${gain}`)
 }
 

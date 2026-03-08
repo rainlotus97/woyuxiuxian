@@ -89,8 +89,12 @@ const isMenuExpanded = ref(false)
 // 菜单项配置
 const menuItems = [
   { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '闭关修炼，提升境界', icon: '🧘' },
+  { path: '/game/story', name: '故事', shortName: '故事', desc: '体验剧情故事', icon: '📖' },
   { path: '/game/adventure', name: '历险', shortName: '历险', desc: '探索世界、历练战斗', icon: '⚔️' },
-  { path: '/game/skills', name: '功法', shortName: '功法', desc: '学习功法技能', icon: '📖' },
+  { path: '/game/map', name: '地图', shortName: '地图', desc: '探索四大界域', icon: '🗺️' },
+  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '加入宗门修行', icon: '🏛️' },
+  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '招募培养伙伴', icon: '👥' },
+  { path: '/game/skills', name: '功法', shortName: '功法', desc: '学习功法技能', icon: '📜' },
   { path: '/game/inventory', name: '背包', shortName: '背包', desc: '管理物品装备', icon: '🎒' },
   { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '购买所需物品', icon: '🏪' },
   { path: '/game/profile', name: '角色', shortName: '角色', desc: '查看角色属性', icon: '👤' },
@@ -180,11 +184,13 @@ function handleMenuClick() {
   overscroll-behavior: none;
 }
 
-/* 顶部状态栏 */
+/* ��部状态栏 */
 .status-bar {
   background: linear-gradient(145deg, rgb(35 38 52) 0%, rgba(30, 32, 48, 0.95) 100%);
   border-bottom: 1px solid rgba(200, 164, 92, 0.2);
   padding: 10px 16px;
+  padding-left: max(16px, calc(16px + env(safe-area-inset-left, 0px)));
+  padding-right: max(16px, calc(16px + env(safe-area-inset-right, 0px)));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -243,6 +249,8 @@ function handleMenuClick() {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;
+  padding-left: calc(12px + env(safe-area-inset-left));
+  padding-right: calc(12px + env(safe-area-inset-right));
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -258,10 +266,13 @@ function handleMenuClick() {
 
 /* 底部导航 */
 .bottom-nav {
-  background: linear-gradient(180deg, rgba(35, 38, 52, 0.95) 0%, rgb(25 27 38) 100%);
+  background: linear-gradient(180deg, rgba(35, 38, 52, 0.98) 0%, rgb(20 22 30) 100%);
   border-top: 1px solid rgba(200, 164, 92, 0.15);
   padding: 8px 12px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  /* 底部padding = 基础8px + 安全区域（iPhone上有34px，普通浏览器为0） */
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(12px + env(safe-area-inset-left, 0px));
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
   flex-shrink: 0;
 }
 
@@ -324,7 +335,7 @@ function handleMenuClick() {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding-top: 12px;
+  padding: 8px 0;
 }
 
 .menu-item {
@@ -391,7 +402,7 @@ function handleMenuClick() {
 .quick-access {
   display: flex;
   justify-content: space-around;
-  padding-top: 8px;
+  padding: 8px 0;
 }
 
 .quick-item {
@@ -413,8 +424,9 @@ function handleMenuClick() {
 }
 
 .quick-label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--color-muted);
+  line-height: 1.2;
 }
 
 .quick-item.active .quick-label {
@@ -449,10 +461,21 @@ function handleMenuClick() {
 
   .status-bar {
     padding: 12px 20px;
+    padding-top: max(14px, calc(12px + env(safe-area-inset-top)));
+    padding-left: max(20px, calc(20px + env(safe-area-inset-left)));
+    padding-right: max(20px, calc(20px + env(safe-area-inset-right)));
   }
 
   .main-content {
     padding: 16px;
+    padding-left: max(16px, calc(16px + env(safe-area-inset-left)));
+    padding-right: max(16px, calc(16px + env(safe-area-inset-right)));
+  }
+
+  .bottom-nav {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(20px, calc(20px + env(safe-area-inset-left, 0px)));
+    padding-right: max(20px, calc(20px + env(safe-area-inset-right, 0px)));
   }
 
   .menu-grid {
@@ -484,6 +507,15 @@ function handleMenuClick() {
 
   .status-bar {
     padding: 14px 24px;
+    padding-top: max(16px, calc(14px + env(safe-area-inset-top, 0px)));
+    padding-left: max(24px, calc(24px + env(safe-area-inset-left, 0px)));
+    padding-right: max(24px, calc(24px + env(safe-area-inset-right, 0px)));
+  }
+
+  .bottom-nav {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(24px, calc(24px + env(safe-area-inset-left, 0px)));
+    padding-right: max(24px, calc(24px + env(safe-area-inset-right, 0px)));
   }
 
   .realm {
@@ -504,6 +536,8 @@ function handleMenuClick() {
 
   .main-content {
     padding: 20px;
+    padding-left: max(20px, calc(20px + env(safe-area-inset-left)));
+    padding-right: max(20px, calc(20px + env(safe-area-inset-right)));
   }
 }
 
@@ -512,6 +546,8 @@ function handleMenuClick() {
   /* 状态栏紧凑 */
   .status-bar {
     padding: 4px 12px;
+    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px)));
+    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px)));
   }
 
   .realm, .name {
@@ -529,12 +565,16 @@ function handleMenuClick() {
   /* 主内容区紧凑 */
   .main-content {
     padding: 6px 8px;
+    padding-left: max(16px, calc(8px + env(safe-area-inset-left, 0px)));
+    padding-right: max(16px, calc(8px + env(safe-area-inset-right, 0px)));
   }
 
   /* 底部导航紧凑 */
   .bottom-nav {
     padding: 4px 12px;
-    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
   }
 
   .menu-toggle {
@@ -549,7 +589,7 @@ function handleMenuClick() {
   .menu-items {
     grid-template-columns: repeat(2, 1fr);
     gap: 4px;
-    padding-top: 6px;
+    padding-top: 4px;
   }
 
   .menu-item {
@@ -572,22 +612,23 @@ function handleMenuClick() {
   }
 
   .quick-access {
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 4px;
     padding-top: 4px;
     align-items: center;
   }
 
   .quick-item {
-    padding: 1px 4px;
+    padding: 4px 8px;
   }
 
   .quick-icon {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
 
   .quick-label {
-    font-size: 0.4375rem;
+    font-size: 0.5625rem;
   }
 }
 </style>

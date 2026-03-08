@@ -79,7 +79,7 @@ export interface FullEnemyDefinition extends EnemyDefinition {
 }
 
 // 区域难度
-export type AreaDifficulty = 'easy' | 'normal' | 'hard' | 'nightmare'
+export type AreaDifficulty = 'easy' | 'normal' | 'hard' | 'nightmare' | 'extreme'
 
 // 区域定义
 export interface AreaDefinition {
@@ -98,6 +98,8 @@ export interface AreaDefinition {
   recommendedPower: number
   // 敌人列表
   enemies: string[]
+  // 战斗波次数量
+  waves: number
   // 可能的掉落
   drops: DropItem[]
   // 经验奖励范围
@@ -147,11 +149,21 @@ export interface SweepResult {
 }
 
 // 难度显示配置
-export const DIFFICULTY_CONFIG: Record<AreaDifficulty, { label: string; color: string; multiplier: number }> = {
-  'easy': { label: '简单', color: '#4ade80', multiplier: 0.8 },
-  'normal': { label: '普通', color: '#7eb8da', multiplier: 1.0 },
-  'hard': { label: '困难', color: '#fbbf24', multiplier: 1.5 },
-  'nightmare': { label: '噩梦', color: '#f472b6', multiplier: 2.0 }
+export const DIFFICULTY_CONFIG: Record<AreaDifficulty, {
+  label: string
+  color: string
+  multiplier: number
+  waves: number           // 该难度的波次数
+  enemyStatMult: number   // 敌人属性倍率
+  enemiesPerWave: number[] // 每波的敌人数量配置
+  bossStatMult?: number   // Boss额外属性倍率（仅噩梦和超绝）
+  isRaid?: boolean        // 是否是全服挑战模式
+}> = {
+  'easy': { label: '简单', color: '#4ade80', multiplier: 0.8, waves: 1, enemyStatMult: 0.8, enemiesPerWave: [3] },
+  'normal': { label: '普通', color: '#7eb8da', multiplier: 1.0, waves: 3, enemyStatMult: 1.0, enemiesPerWave: [3, 3, 3] },
+  'hard': { label: '困难', color: '#fbbf24', multiplier: 1.5, waves: 4, enemyStatMult: 1.3, enemiesPerWave: [5, 3, 3, 1] },
+  'nightmare': { label: '噩梦', color: '#f472b6', multiplier: 2.0, waves: 1, enemyStatMult: 2.0, enemiesPerWave: [5], bossStatMult: 3.0 },
+  'extreme': { label: '超绝', color: '#ef4444', multiplier: 3.0, waves: 1, enemyStatMult: 1.0, enemiesPerWave: [1], bossStatMult: 10.0, isRaid: true }
 }
 
 // 区域定义数据
@@ -167,6 +179,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'easy',
     recommendedPower: 100,
     enemies: ['slime', 'wild_wolf', 'forest_spider'],
+    waves: 3,
     drops: [
       { id: 'herb_grass', name: '灵草', icon: '🌿', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.6, description: '常见的灵草，可用于炼丹' },
       { id: 'wolf_fang', name: '狼牙', icon: '🦷', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '野狼的牙齿，可用于锻造' },
@@ -188,6 +201,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'normal',
     recommendedPower: 300,
     enemies: ['cave_bat', 'rock_golem', 'shadow_snake'],
+    waves: 3,
     drops: [
       { id: 'iron_ore', name: '铁矿石', icon: '🪨', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '普通的铁矿石' },
       { id: 'bat_wing', name: '蝙蝠翅膀', icon: '🦇', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '可用于炼制飞行丹药' },
@@ -210,6 +224,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'normal',
     recommendedPower: 600,
     enemies: ['sand_worm', 'desert_scorpion', 'mummy_warrior'],
+    waves: 3,
     drops: [
       { id: 'sand_crystal', name: '沙晶', icon: '🔶', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.5, description: '沙漠中形成的晶体' },
       { id: 'scorpion_tail', name: '蝎尾', icon: '🦂', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '带有剧毒的蝎尾' },
@@ -232,6 +247,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'hard',
     recommendedPower: 1000,
     enemies: ['ice_wolf', 'frost_giant', 'snow_demon'],
+    waves: 3,
     drops: [
       { id: 'ice_crystal', name: '冰晶', icon: '💠', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '纯净的冰晶' },
       { id: 'frost_essence', name: '寒霜精华', icon: '🧊', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '蕴含寒冰之力的精华' },
@@ -254,6 +270,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'hard',
     recommendedPower: 2000,
     enemies: ['fire_elemental', 'lava_golem', 'phoenix_chick'],
+    waves: 3,
     drops: [
       { id: 'fire_stone', name: '火灵石', icon: '🔴', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '蕴含火属性灵气的石头' },
       { id: 'lava_core', name: '熔岩核心', icon: '🟠', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '凝固的熔岩精华' },
@@ -276,6 +293,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'nightmare',
     recommendedPower: 4000,
     enemies: ['ancient_guardian', 'spirit_wraith', 'celestial_beast'],
+    waves: 3,
     drops: [
       { id: 'celestial_jade', name: '天界玉', icon: '💚', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.3, description: '来自仙界的玉石' },
       { id: 'spirit_essence', name: '灵魄精华', icon: '👻', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '纯净的灵魄凝聚物' },
@@ -298,6 +316,7 @@ export const AREAS: AreaDefinition[] = [
     difficulty: 'nightmare',
     recommendedPower: 8000,
     enemies: ['demon_lord', 'void_walker', 'chaos_serpent'],
+    waves: 3,
     drops: [
       { id: 'demon_blood', name: '魔血', icon: '🩸', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.35, description: '蕴含魔气的血液' },
       { id: 'void_crystal', name: '虚空晶', icon: '💜', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.12, description: '从虚空中凝聚的晶体' },
@@ -387,7 +406,204 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     expReward: 18,
     goldReward: { min: 8, max: 18 }
   },
-  // ... 其他敌人可以后续添加
+  // 荒芜沙漠敌人
+  sand_worm: {
+    id: 'sand_worm',
+    name: '沙虫',
+    icon: '🐛',
+    realm: '筑基',
+    realmLevel: 2,
+    baseStats: { maxHp: 120, attack: 22, defense: 8, speed: 85 },
+    skills: ['sand_blast', 'burrow'],
+    drops: ['sand_crystal'],
+    expReward: 25,
+    goldReward: { min: 15, max: 25 }
+  },
+  desert_scorpion: {
+    id: 'desert_scorpion',
+    name: '沙漠巨蝎',
+    icon: '🦂',
+    realm: '筑基',
+    realmLevel: 3,
+    baseStats: { maxHp: 100, attack: 28, defense: 12, speed: 95 },
+    skills: ['poison_sting', 'pincer_attack'],
+    drops: ['scorpion_tail'],
+    expReward: 30,
+    goldReward: { min: 18, max: 30 }
+  },
+  mummy_warrior: {
+    id: 'mummy_warrior',
+    name: '木乃伊战士',
+    icon: '🧟',
+    realm: '筑基',
+    realmLevel: 5,
+    baseStats: { maxHp: 180, attack: 32, defense: 15, speed: 70 },
+    skills: ['wrap', 'ancient_curse'],
+    drops: ['mummy_bandage', 'ancient_relic'],
+    expReward: 45,
+    goldReward: { min: 25, max: 40 }
+  },
+  // 冰封雪原敌人
+  ice_wolf: {
+    id: 'ice_wolf',
+    name: '冰狼',
+    icon: '🐺',
+    realm: '筑基',
+    realmLevel: 5,
+    baseStats: { maxHp: 150, attack: 30, defense: 10, speed: 110 },
+    skills: ['frost_bite', 'howling_blizzard'],
+    drops: ['wolf_pelt', 'ice_crystal'],
+    expReward: 40,
+    goldReward: { min: 22, max: 35 }
+  },
+  frost_giant: {
+    id: 'frost_giant',
+    name: '霜巨人',
+    icon: '🧊',
+    realm: '筑基',
+    realmLevel: 7,
+    baseStats: { maxHp: 250, attack: 40, defense: 20, speed: 60 },
+    skills: ['ice_crush', 'frozen_armor'],
+    drops: ['frost_essence'],
+    expReward: 60,
+    goldReward: { min: 35, max: 50 }
+  },
+  snow_demon: {
+    id: 'snow_demon',
+    name: '雪魔',
+    icon: '👹',
+    realm: '金丹',
+    realmLevel: 1,
+    baseStats: { maxHp: 300, attack: 50, defense: 18, speed: 90 },
+    skills: ['blizzard', 'ice_prison'],
+    drops: ['frozen_heart'],
+    expReward: 80,
+    goldReward: { min: 50, max: 70 }
+  },
+  // 深渊之座敌人
+  void_walker: {
+    id: 'void_walker',
+    name: '虚空行者',
+    icon: '👁️',
+    realm: '金丹',
+    realmLevel: 3,
+    baseStats: { maxHp: 350, attack: 55, defense: 22, speed: 100 },
+    skills: ['void_strike', 'phase_shift'],
+    drops: ['void_essence'],
+    expReward: 100,
+    goldReward: { min: 60, max: 90 }
+  },
+  demon_lord: {
+    id: 'demon_lord',
+    name: '恶魔领主',
+    icon: '👿',
+    realm: '金丹',
+    realmLevel: 5,
+    baseStats: { maxHp: 500, attack: 70, defense: 30, speed: 85 },
+    skills: ['hellfire', 'demon_summon'],
+    drops: ['demon_heart'],
+    expReward: 150,
+    goldReward: { min: 100, max: 150 }
+  },
+  abyss_dragon: {
+    id: 'abyss_dragon',
+    name: '深渊魔龙',
+    icon: '🐉',
+    realm: '元婴',
+    realmLevel: 1,
+    baseStats: { maxHp: 800, attack: 100, defense: 45, speed: 95 },
+    skills: ['abyss_breath', 'dragon_roar', 'shadow_slash'],
+    drops: ['dragon_scale', 'abyss_essence'],
+    expReward: 300,
+    goldReward: { min: 200, max: 300 }
+  },
+  // 熔岩火山敌人
+  fire_elemental: {
+    id: 'fire_elemental',
+    name: '火焰元素',
+    icon: '🔥',
+    realm: '金丹',
+    realmLevel: 3,
+    baseStats: { maxHp: 280, attack: 60, defense: 15, speed: 105 },
+    skills: ['fireball', 'flame_burst'],
+    drops: ['fire_essence'],
+    expReward: 90,
+    goldReward: { min: 55, max: 80 }
+  },
+  lava_golem: {
+    id: 'lava_golem',
+    name: '熔岩魔像',
+    icon: '🗿',
+    realm: '金丹',
+    realmLevel: 5,
+    baseStats: { maxHp: 400, attack: 55, defense: 35, speed: 65 },
+    skills: ['lava_throw', 'molten_armor'],
+    drops: ['lava_core'],
+    expReward: 120,
+    goldReward: { min: 70, max: 100 }
+  },
+  phoenix_chick: {
+    id: 'phoenix_chick',
+    name: '幼凤',
+    icon: '🕊️',
+    realm: '金丹',
+    realmLevel: 7,
+    baseStats: { maxHp: 350, attack: 75, defense: 20, speed: 120 },
+    skills: ['phoenix_flame', 'rebirth'],
+    drops: ['phoenix_feather'],
+    expReward: 150,
+    goldReward: { min: 90, max: 130 }
+  },
+  // 仙界遗迹敌人
+  ancient_guardian: {
+    id: 'ancient_guardian',
+    name: '上古守卫',
+    icon: '🗿',
+    realm: '元婴',
+    realmLevel: 2,
+    baseStats: { maxHp: 600, attack: 80, defense: 40, speed: 75 },
+    skills: ['stone_fist', 'ancient_seal'],
+    drops: ['ancient_core'],
+    expReward: 200,
+    goldReward: { min: 120, max: 180 }
+  },
+  spirit_wraith: {
+    id: 'spirit_wraith',
+    name: '灵体幽魂',
+    icon: '👻',
+    realm: '元婴',
+    realmLevel: 4,
+    baseStats: { maxHp: 450, attack: 95, defense: 25, speed: 110 },
+    skills: ['spirit_attack', 'soul_drain'],
+    drops: ['spirit_essence'],
+    expReward: 250,
+    goldReward: { min: 150, max: 220 }
+  },
+  celestial_beast: {
+    id: 'celestial_beast',
+    name: '天界神兽',
+    icon: '🦁',
+    realm: '元婴',
+    realmLevel: 6,
+    baseStats: { maxHp: 700, attack: 110, defense: 35, speed: 90 },
+    skills: ['divine_roar', 'celestial_strike'],
+    drops: ['celestial_gem'],
+    expReward: 350,
+    goldReward: { min: 200, max: 300 }
+  },
+  // 深渊之座额外敌人
+  chaos_serpent: {
+    id: 'chaos_serpent',
+    name: '混沌巨蛇',
+    icon: '🐍',
+    realm: '元婴',
+    realmLevel: 8,
+    baseStats: { maxHp: 900, attack: 120, defense: 50, speed: 100 },
+    skills: ['chaos_bite', 'void_poison'],
+    drops: ['chaos_venom'],
+    expReward: 400,
+    goldReward: { min: 250, max: 350 }
+  }
 }
 
 // 获取区域

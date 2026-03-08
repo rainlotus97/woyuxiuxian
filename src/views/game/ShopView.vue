@@ -417,16 +417,18 @@ function confirmBuy() {
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-auto-rows: min-content;
+  gap: 10px;
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
   min-height: 0;
-  padding: 0 2px 8px 0;
+  padding: 2px;
+  padding-bottom: 12px;
   -webkit-overflow-scrolling: touch;
-  align-items: start;
-  align-content: start;
   box-sizing: border-box;
+  align-content: start;
+  justify-items: stretch;
 }
 
 /* 隐藏滚动条 */
@@ -447,11 +449,23 @@ function confirmBuy() {
   padding: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 76px;
+  min-height: 80px;
+  height: auto;
   align-items: center;
   box-sizing: border-box;
-  max-width: 100%;
-  overflow: hidden;
+  width: 100%;
+}
+
+.shop-item.unaffordable {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.shop-item.unaffordable:hover {
+  transform: none;
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(126, 184, 218, 0.15);
 }
 
 .shop-item.affordable:hover {
@@ -490,6 +504,7 @@ function confirmBuy() {
   flex-direction: column;
   justify-content: flex-start;
   padding-top: 2px;
+  overflow: hidden;
 }
 
 .item-name {
@@ -500,6 +515,7 @@ function confirmBuy() {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+  width: 100%;
 }
 
 .item-name.fine { color: #d4976a; }
@@ -643,8 +659,8 @@ function confirmBuy() {
   background: rgba(74, 222, 128, 0.3);
 }
 
-/* 小屏幕适配 */
-@media (max-width: 380px) {
+/* 小屏幕适配 - 手机端使用单列布局 */
+@media (max-width: 480px) {
   .shop-grid {
     grid-template-columns: 1fr;
     gap: 10px;

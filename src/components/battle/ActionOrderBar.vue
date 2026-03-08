@@ -101,27 +101,35 @@ function getElementColor(element: string): string {
   border-radius: 8px;
   padding: 6px;
   backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .order-title {
   padding-bottom: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 4px;
+  width: 100%;
+  text-align: center;
 }
 
 .order-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  align-items: center;
 }
 
 .order-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 2px;
+  padding: 2px 4px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  min-width: 40px;
 }
 
 .order-item.is-current {
@@ -136,13 +144,16 @@ function getElementColor(element: string): string {
 .turns-indicator {
   font-size: 0.5rem;
   color: #9ca3af;
-  width: 12px;
+  width: 10px;
+  min-width: 10px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .unit-icon {
   width: 20px;
   height: 20px;
+  min-width: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -155,12 +166,14 @@ function getElementColor(element: string): string {
 
 .speed-bar-mini {
   width: 4px;
+  min-width: 4px;
   height: 24px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
   display: flex;
   flex-direction: column-reverse;
+  flex-shrink: 0;
 }
 
 .speed-fill {

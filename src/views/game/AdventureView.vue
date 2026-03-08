@@ -72,10 +72,16 @@
           <span v-for="i in 3" :key="i" class="star" :class="{ filled: i <= getAreaStars(area.id) }">★</span>
         </div>
 
-        <!-- 体力消耗 -->
-        <div class="area-cost">
-          <span class="cost-icon">⚡</span>
-          <span class="cost-value">{{ area.staminaCost }}</span>
+        <!-- 体力消耗和波次 -->
+        <div class="area-meta">
+          <div class="area-cost">
+            <span class="cost-icon">⚡</span>
+            <span class="cost-value">{{ area.staminaCost }}</span>
+          </div>
+          <div class="area-waves">
+            <span class="waves-icon">🌊</span>
+            <span class="waves-value">{{ getDifficultyWaves(area.difficulty) }}波</span>
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -208,6 +214,11 @@ function getDifficultyColor(difficulty: string): string {
 // 获取难度标签
 function getDifficultyLabel(difficulty: string): string {
   return DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG]?.label || difficulty
+}
+
+// 获取难度对应的波数
+function getDifficultyWaves(difficulty: string): number {
+  return DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG]?.waves || 1
 }
 
 // 检查区域是否解锁
@@ -552,17 +563,29 @@ onUnmounted(() => {
   color: #fbbf24;
 }
 
-.area-cost {
+.area-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.area-cost,
+.area-waves {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 0.6875rem;
   color: var(--color-muted);
-  margin-bottom: 10px;
 }
 
-.cost-icon {
+.cost-icon,
+.waves-icon {
   font-size: 0.75rem;
+}
+
+.area-waves {
+  color: #60a5fa;
 }
 
 .area-actions {

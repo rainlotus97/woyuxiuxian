@@ -82,7 +82,7 @@ html {
   -webkit-overflow-scrolling: auto;
 }
 
-/* 全局基础样式 */
+/* 全局基础样�� */
 body {
   margin: 0;
   background-color: rgb(var(--color-bg));
@@ -92,24 +92,35 @@ body {
   color: rgb(var(--color-text));
   font-family: var(--font-game);
   height: 100%;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
-  image-rendering: pixelated;
+  /* 字体平滑渲染 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   /* 禁止页面滚动 */
   overflow: hidden;
   overscroll-behavior: none;
   position: fixed;
   width: 100%;
-  /* iOS 安全区域 */
-  padding-top: var(--safe-area-top);
-  padding-left: var(--safe-area-left);
-  padding-right: var(--safe-area-right);
+  /* iOS 安全区域 - 只设置顶部和左右，底部由导航栏处理 */
+  padding: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* 图片和图标使用像素化渲染 */
+img, .pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 #app {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  /* 移除padding，由各组件自行控制边距 */
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0;
 }
 
 /* 移动端字体放大 */
@@ -128,18 +139,6 @@ body {
 button {
   background-color: transparent;
   background-image: none;
-}
-
-#app {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: var(--spacing-2);
-}
-
-@media (min-width: 768px) {
-  #app {
-    padding: var(--spacing-4);
-  }
 }
 
 /* 修仙风按钮 */
@@ -324,12 +323,6 @@ input[type='number'] {
 
 /* 平板端 (768px - 1024px) */
 @media (min-width: 768px) and (max-width: 1024px) {
-  #app {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: var(--spacing-4);
-  }
-
   .game-panel {
     padding: var(--spacing-4);
   }
@@ -369,12 +362,6 @@ input[type='number'] {
     font-size: 16px;
   }
 
-  #app {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: var(--spacing-6);
-  }
-
   .game-panel {
     padding: var(--spacing-6);
   }
@@ -399,10 +386,6 @@ input[type='number'] {
 
 /* 大屏幕 (1440px+) */
 @media (min-width: 1440px) {
-  #app {
-    max-width: 1000px;
-  }
-
   :root {
     font-size: 17px;
   }

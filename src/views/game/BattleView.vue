@@ -1,156 +1,195 @@
 <template>
-  <div class="battle-view min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-    <!-- 顶部信息栏 -->
-    <div class="top-bar px-4 py-2 bg-black/30">
-      <div class="flex justify-between items-center text-sm">
-        <div class="flex items-center gap-2">
-          <span class="text-gray-400">回合 {{ turnCount }}</span>
-          <span class="px-2 py-0.5 rounded text-xs"
-            :class="battleMode === 'pve' ? 'bg-blue-600/50 text-blue-300' : 'bg-purple-600/50 text-purple-300'">
-            {{ battleMode === 'pve' ? 'PvE' : 'PvP' }}
-          </span>
-          <!-- 自动战斗指示器 -->
-          <span v-if="autoBattle" class="px-2 py-0.5 rounded text-xs bg-green-600/50 text-green-300 pulse">
-            AUTO
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <!-- 速度按钮 -->
-          <button
-            class="px-2 py-1 rounded text-xs font-medium transition-all"
-            :class="battleSpeed === 1 ? 'bg-gray-600 text-gray-300' : battleSpeed === 2 ? 'bg-yellow-600 text-white' : 'bg-orange-600 text-white'"
-            @click="toggleBattleSpeed"
-          >
-            {{ battleSpeed }}x
-          </button>
-          <!-- 战斗模式切换 -->
-          <button
-            class="px-2 py-1 rounded text-xs font-medium transition-all"
-            :class="battleMode === 'pve' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'"
-            @click="toggleBattleMode"
-          >
-            {{ battleMode === 'pve' ? 'PvE' : 'PvP' }}
-          </button>
-          <button
-            class="px-3 py-1 rounded text-xs font-medium transition-all"
-            :class="autoBattle ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'"
-            @click="toggleAutoBattle"
-          >
-            {{ autoBattle ? '自动' : '手动' }}
-          </button>
-          <button
-            class="px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs font-medium hover:bg-gray-600 transition-all"
-            @click="exitBattle"
-          >
-            退出
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 速度条显示 -->
-    <div class="speed-bar-container px-4 py-2 border-b border-gray-700/50">
-      <div class="flex gap-3 overflow-x-auto pb-1">
-        <div
-          v-for="unit in allUnits"
-          :key="unit.id"
-          class="speed-bar-item flex-shrink-0 flex items-center gap-1"
-        >
-          <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs"
-            :style="{ backgroundColor: getElementColor(unit.element) }">
-            {{ unit.icon?.charAt(0) }}
-          </span>
-          <div class="w-12">
-            <div class="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                class="h-full transition-all duration-75"
-                :class="getSpeedBarColor(unit)"
-                :style="{ width: `${speedBar.get(unit.id) || 0}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 主角状态面板 -->
-    <div v-if="protagonist" class="protagonist-panel mx-4 mt-3 p-3 bg-black/40 rounded-lg border border-gray-700/50">
-      <div class="flex items-center gap-3">
-        <div class="avatar w-14 h-14 rounded-lg flex items-center justify-center text-2xl font-bold"
-          :style="{ borderColor: getElementColor(protagonist.element), borderWidth: '2px', borderStyle: 'solid', backgroundColor: `${getElementColor(protagonist.element)}22` }">
-          {{ protagonist.icon }}
-        </div>
-        <div class="flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-white font-medium">{{ protagonist.name }}</span>
-            <span class="text-xs px-1.5 py-0.5 rounded" :style="{ backgroundColor: `${getQualityColor(protagonist.quality)}33`, color: getQualityColor(protagonist.quality) }">
-              {{ protagonist.realm }}
-            </span>
-          </div>
-          <!-- HP 条 -->
-          <div class="mb-1">
-            <div class="flex justify-between text-xs mb-0.5">
-              <span class="text-gray-400">HP</span>
-              <span class="text-green-400">{{ protagonist.stats.currentHp }}/{{ protagonist.stats.maxHp }}</span>
-            </div>
-            <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-300"
-                :style="{ width: `${(protagonist.stats.currentHp / protagonist.stats.maxHp) * 100}%` }"></div>
-            </div>
-          </div>
-          <!-- MP 条 -->
-          <div>
-            <div class="flex justify-between text-xs mb-0.5">
-              <span class="text-gray-400">MP</span>
-              <span class="text-blue-400">{{ protagonist.stats.currentMp }}/{{ protagonist.stats.maxMp }}</span>
-            </div>
-            <div class="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-300"
-                :style="{ width: `${(protagonist.stats.currentMp / protagonist.stats.maxMp) * 100}%` }"></div>
-            </div>
-          </div>
-        </div>
-        <!-- 状态效果 -->
-        <div v-if="protagonist.statusEffects.length > 0" class="status-icons flex flex-col gap-1">
-          <span v-for="(effect, index) in protagonist.statusEffects.slice(0, 3)" :key="index"
-            class="w-6 h-6 text-xs flex items-center justify-center rounded"
-            :class="getStatusEffectClass(effect.type)">
-            {{ getStatusEffectIcon(effect.type) }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 战斗场地 -->
-    <div class="battle-arena px-4 py-6">
-      <!-- 敌方区域 -->
-      <div class="enemy-area mb-8">
-        <div class="text-center text-xs text-gray-500 mb-3">敌方</div>
-        <div class="flex justify-center gap-3 flex-wrap">
+  <div class="battle-view min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex flex-col">
+    <!-- 敌方区域（上方） -->
+    <div class="enemy-zone flex-1 flex flex-col justify-end pb-4 relative">
+      <!-- 敌方站位 -->
+      <div class="enemy-formation flex justify-center items-end gap-2 px-4">
+        <!-- 左侧敌人 -->
+        <div class="enemy-flank flex flex-col gap-2">
           <UnitSlot
-            v-for="enemy in aliveEnemies"
+            v-for="enemy in leftEnemies"
             :key="enemy.id"
             :unit="enemy"
             :is-selected="selectedTargetIds.includes(enemy.id)"
             :is-targetable="canSelectEnemyTarget"
+            :is-acting="currentActingUnitId === enemy.id"
+            :is-hurt="hurtUnitIds.includes(enemy.id)"
+            @click="onEnemyTargetClick(enemy.id)"
+          />
+        </div>
+
+        <!-- 中间C位（BOSS/精英） -->
+        <div class="enemy-center flex flex-col items-center gap-2 -mt-4">
+          <UnitSlot
+            v-for="enemy in centerEnemies"
+            :key="enemy.id"
+            :unit="enemy"
+            :is-selected="selectedTargetIds.includes(enemy.id)"
+            :is-targetable="canSelectEnemyTarget"
+            :is-acting="currentActingUnitId === enemy.id"
+            :is-hurt="hurtUnitIds.includes(enemy.id)"
+            :is-c-position="true"
+            @click="onEnemyTargetClick(enemy.id)"
+          />
+        </div>
+
+        <!-- 右侧敌人 -->
+        <div class="enemy-flank flex flex-col gap-2">
+          <UnitSlot
+            v-for="enemy in rightEnemies"
+            :key="enemy.id"
+            :unit="enemy"
+            :is-selected="selectedTargetIds.includes(enemy.id)"
+            :is-targetable="canSelectEnemyTarget"
+            :is-acting="currentActingUnitId === enemy.id"
+            :is-hurt="hurtUnitIds.includes(enemy.id)"
             @click="onEnemyTargetClick(enemy.id)"
           />
         </div>
       </div>
+    </div>
 
-      <!-- 我方区域（伙伴） -->
-      <div class="ally-area" v-if="aliveCompanions.length > 0">
-        <div class="text-center text-xs text-gray-500 mb-3">我方</div>
-        <div class="flex justify-center gap-3 flex-wrap">
+    <!-- 分隔线 -->
+    <div class="battle-divider relative h-12">
+      <div class="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
+      <!-- 回合信息 -->
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 px-3 py-1 rounded-full text-xs text-gray-400">
+        第 {{ turnCount }} 回合
+      </div>
+      <!-- 波次信息 -->
+      <div v-if="totalWaves > 1" class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+        {{ currentWave }}/{{ totalWaves }}波
+      </div>
+    </div>
+
+    <!-- 我方区域（下方） -->
+    <div class="ally-zone flex-1 flex flex-col justify-start pt-4 relative">
+      <!-- 我方站位 -->
+      <div class="ally-formation flex justify-center items-start gap-2 px-4">
+        <!-- 左侧伙伴 -->
+        <div class="ally-flank flex flex-col gap-2">
           <UnitSlot
-            v-for="ally in aliveCompanions"
-            :key="ally.id"
-            :unit="ally"
-            :is-selected="selectedTargetIds.includes(ally.id)"
+            v-for="companion in leftCompanions"
+            :key="companion.id"
+            :unit="companion"
+            :is-selected="selectedTargetIds.includes(companion.id)"
             :is-targetable="canSelectAllyTarget"
-            @click="onAllyTargetClick(ally.id)"
+            :is-acting="currentActingUnitId === companion.id"
+            :is-hurt="hurtUnitIds.includes(companion.id)"
+            @click="onAllyTargetClick(companion.id)"
           />
         </div>
+
+        <!-- 中间主角（C位） -->
+        <div class="ally-center flex flex-col items-center gap-2 mt-4">
+          <UnitSlot
+            v-if="protagonist"
+            :unit="protagonist"
+            :is-selected="selectedTargetIds.includes(protagonist.id)"
+            :is-targetable="canSelectAllyTarget"
+            :is-acting="currentActingUnitId === protagonist.id"
+            :is-hurt="hurtUnitIds.includes(protagonist.id)"
+            :is-c-position="true"
+            @click="onAllyTargetClick(protagonist.id)"
+          />
+        </div>
+
+        <!-- 右侧伙伴 -->
+        <div class="ally-flank flex flex-col gap-2">
+          <UnitSlot
+            v-for="companion in rightCompanions"
+            :key="companion.id"
+            :unit="companion"
+            :is-selected="selectedTargetIds.includes(companion.id)"
+            :is-targetable="canSelectAllyTarget"
+            :is-acting="currentActingUnitId === companion.id"
+            :is-hurt="hurtUnitIds.includes(companion.id)"
+            @click="onAllyTargetClick(companion.id)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部控制区 -->
+    <div class="control-bar fixed bottom-0 left-0 right-0 px-4 py-3 bg-gradient-to-t from-black/80 to-transparent">
+      <div class="flex items-center justify-between max-w-md mx-auto">
+        <!-- 左侧菜单按钮 -->
+        <div class="menu-buttons flex gap-2">
+          <button
+            class="menu-btn w-10 h-10 rounded-full bg-gray-700/80 flex items-center justify-center text-lg backdrop-blur border border-gray-600/50"
+            @click="exitBattle"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- 中间行动菜单 -->
+        <div v-if="showActionMenu" class="action-buttons flex gap-2">
+          <button
+            v-for="action in availableActions"
+            :key="action.type"
+            class="action-btn w-12 h-12 rounded-full flex flex-col items-center justify-center text-xs font-medium transition-all backdrop-blur border"
+            :class="getActionBtnClass(action.type)"
+            @click="selectAction(action.type)"
+          >
+            <span class="text-base">{{ action.icon }}</span>
+            <span class="text-[10px]">{{ action.name }}</span>
+          </button>
+        </div>
+
+        <!-- 确认按钮 -->
+        <div v-else-if="showConfirmButton" class="confirm-buttons flex gap-2">
+          <button
+            class="confirm-btn w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-sm font-medium backdrop-blur border border-gray-500/50"
+            @click="cancelSelection"
+          >
+            ✕
+          </button>
+          <button
+            class="confirm-btn w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-sm font-medium backdrop-blur border border-green-500/50"
+            @click="confirmAction"
+          >
+            ✓
+          </button>
+        </div>
+
+        <!-- 占位（当显示技能面板时） -->
+        <div v-else class="action-placeholder w-48"></div>
+
+        <!-- 右侧速度/自动按钮 -->
+        <button
+          class="speed-btn w-12 h-12 rounded-full flex flex-col items-center justify-center text-xs font-bold transition-all backdrop-blur border"
+          :class="getSpeedBtnClass()"
+          @click="cycleSpeedAndAuto"
+        >
+          <span class="text-sm">{{ getSpeedIcon() }}</span>
+          <span class="text-[10px]">{{ getSpeedLabel() }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 技能选择面板 -->
+    <div v-if="showSkillPanel" class="skill-panel fixed inset-x-0 bottom-20 bg-gray-900/95 border-t border-gray-700 p-4 max-h-60 overflow-y-auto rounded-t-xl">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-white font-medium text-sm">选择技能</span>
+        <button class="text-gray-400 hover:text-white text-sm" @click="cancelSkillSelection">取消</button>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          v-for="skill in availableSkills"
+          :key="skill.id"
+          class="skill-btn p-2 rounded-lg text-center transition-all"
+          :class="getSkillBtnClass(skill)"
+          :disabled="!canUseSkill(skill)"
+          @click="onSkillSelect(skill.id)"
+        >
+          <div class="w-10 h-10 rounded-lg mx-auto mb-1 flex items-center justify-center text-lg"
+            :style="{ backgroundColor: `${getElementColor(skill.effects[0]?.element || protagonist?.element || '金')}33` }">
+            {{ skill.icon }}
+          </div>
+          <div class="text-white text-xs font-medium truncate">{{ skill.name }}</div>
+          <div class="text-[10px] text-gray-400">MP: {{ skill.mpCost }}</div>
+        </button>
       </div>
     </div>
 
@@ -161,86 +200,8 @@
       :current-acting-unit-id="currentActingUnitId"
     />
 
-    <!-- 技能选择面板 -->
-    <div v-if="showSkillPanel" class="skill-panel fixed inset-x-0 bottom-40 bg-gray-900/95 border-t border-gray-700 p-4 max-h-60 overflow-y-auto">
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-white font-medium">选择技能</span>
-        <button class="text-gray-400 hover:text-white text-sm" @click="cancelSkillSelection">取消</button>
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <button
-          v-for="skill in availableSkills"
-          :key="skill.id"
-          class="skill-btn p-3 rounded-lg text-left transition-all"
-          :class="getSkillBtnClass(skill)"
-          :disabled="!canUseSkill(skill)"
-          @click="onSkillSelect(skill.id)"
-        >
-          <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded flex items-center justify-center text-sm"
-              :style="{ backgroundColor: `${getElementColor(skill.effects[0]?.element || protagonist?.element || '金')}33` }">
-              {{ skill.icon }}
-            </span>
-            <div class="flex-1">
-              <div class="text-white text-sm font-medium">{{ skill.name }}</div>
-              <div class="text-xs text-gray-400">MP: {{ skill.mpCost }}</div>
-            </div>
-          </div>
-          <div class="text-xs text-gray-500 mt-1">{{ skill.description }}</div>
-        </button>
-      </div>
-    </div>
-
-    <!-- 行动菜单 -->
-    <div v-if="showActionMenu" class="action-menu fixed bottom-20 left-0 right-0 px-4">
-      <div class="bg-gray-800/95 rounded-xl p-3 backdrop-blur border border-gray-700/50">
-        <div class="grid grid-cols-4 gap-2">
-          <button
-            v-for="action in availableActions"
-            :key="action.type"
-            class="action-btn py-3 px-2 rounded-lg text-sm font-medium transition-all"
-            :class="getActionBtnClass(action.type)"
-            @click="selectAction(action.type)"
-          >
-            <div class="text-lg mb-1">{{ action.icon }}</div>
-            <div>{{ action.name }}</div>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 确认按钮 -->
-    <div v-if="showConfirmButton" class="confirm-btn fixed bottom-20 left-0 right-0 px-4">
-      <div class="flex gap-2">
-        <button
-          class="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
-          @click="cancelSelection"
-        >
-          取消
-        </button>
-        <button
-          class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium transition-all"
-          @click="confirmAction"
-        >
-          确认行动
-        </button>
-      </div>
-    </div>
-
-    <!-- 战斗日志 -->
-    <div class="battle-log fixed bottom-4 left-4 right-4 h-14 overflow-hidden">
-      <div class="bg-black/60 rounded-lg p-2 text-xs text-gray-300 h-full overflow-y-auto backdrop-blur">
-        <div v-for="(log, index) in recentLogs" :key="index" class="mb-0.5">
-          <span class="text-yellow-400">{{ log.actorName }}</span>
-          <span class="text-gray-400">{{ log.action }}</span>
-          <span v-if="log.targetName" class="text-cyan-400"> → {{ log.targetName }}</span>
-          <span v-if="log.result" class="text-green-400"> {{ log.result }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 战斗结果 -->
-    <div v-if="battleEnded" class="battle-result fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div v-if="battleEnded && !isTransitioning" class="battle-result fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div class="bg-gray-800 rounded-xl p-8 text-center mx-4 max-w-sm w-full">
         <h2 class="text-3xl font-bold mb-4" :class="result === 'victory' ? 'text-yellow-400' : result === 'defeat' ? 'text-red-400' : 'text-blue-400'">
           {{ result === 'victory' ? '战斗胜利!' : result === 'defeat' ? '战斗失败' : '成功逃跑' }}
@@ -265,6 +226,15 @@
         </button>
       </div>
     </div>
+
+    <!-- 多波战斗过渡提示 -->
+    <div v-if="isTransitioning" class="wave-transition fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div class="text-center">
+        <div class="text-4xl mb-4">⚔️</div>
+        <div class="text-2xl text-yellow-400 font-bold">第 {{ currentWave }} 波</div>
+        <div class="text-gray-400 mt-2">敌人来袭...</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -273,9 +243,11 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useBattleStore } from '@/stores/battleStore'
 import { usePlayerStore } from '@/stores/playerStore'
-import { createUnit, type Unit, ELEMENT_COLORS, QUALITY_COLORS } from '@/types/unit'
+import { useMapStore } from '@/stores/mapStore'
+import { useCompanionStore } from '@/stores/companionStore'
+import { createUnit, type Unit, ELEMENT_COLORS } from '@/types/unit'
 import { getSkillById, getSkillsByIds, type Skill } from '@/types/skill'
-import { getAreaById, ENEMIES, rollDrops, rollReward, type AreaDefinition, type DropItem } from '@/types/adventure'
+import { getAreaById, ENEMIES, rollDrops, rollReward, DIFFICULTY_CONFIG, type AreaDefinition, type DropItem } from '@/types/adventure'
 import UnitSlot from '@/components/battle/UnitSlot.vue'
 import ActionOrderBar from '@/components/battle/ActionOrderBar.vue'
 
@@ -283,6 +255,8 @@ const router = useRouter()
 const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+const mapStore = useMapStore()
+const companionStore = useCompanionStore()
 
 // 当前区域配置
 const currentArea = ref<AreaDefinition | null>(null)
@@ -291,6 +265,7 @@ const totalWaves = ref(3)
 const accumulatedDrops = ref<Map<string, { item: DropItem; quantity: number }>>(new Map())
 const accumulatedExp = ref(0)
 const accumulatedGold = ref(0)
+const isTransitioning = ref(false) // 是否正在过渡到下一波
 
 // 本地状态
 const battleLoopId = ref<number>(0)
@@ -307,20 +282,108 @@ const selectedAction = computed(() => battleStore.selectedAction)
 const selectedSkillId = computed(() => battleStore.selectedSkillId)
 const selectedTargetIds = computed(() => battleStore.selectedTargetIds)
 const speedBar = computed(() => battleStore.speedBar)
-const battleLog = computed(() => battleStore.battleLog)
 const result = computed(() => battleStore.result)
 const rewards = computed(() => battleStore.rewards)
 const battleSpeed = computed(() => battleStore.battleSpeed)
 const autoBattle = computed(() => battleStore.autoBattle)
 const shouldEnemyAutoAct = computed(() => battleStore.shouldEnemyAutoAct)
-const battleMode = computed(() => battleStore.battleMode)
 const currentActingUnitId = computed(() => battleStore.currentActingUnitId)
 
 // 主角
 const protagonist = computed(() => battleStore.allyUnits.find(u => u.type === 'protagonist'))
 
-// 伙伴（非主角）
-const aliveCompanions = computed(() => battleStore.allyUnits.filter(u => u.type !== 'protagonist' && u.isAlive))
+// 存活的伙伴（用于战斗区域显示）
+const aliveCompanions = computed(() => battleStore.allyUnits.filter(u => u.type === 'companion' && u.isAlive))
+
+// 受伤动画单位ID列表
+const hurtUnitIds = ref<string[]>([])
+
+// 敌人分组（左/中/右）
+const leftEnemies = computed(() => {
+  const enemies = aliveEnemies.value
+  return enemies.filter((_, i) => i % 3 === 0)
+})
+
+const centerEnemies = computed(() => {
+  const enemies = aliveEnemies.value
+  // BOSS/精英放在中间
+  const bossOrElite = enemies.filter(e => e.name.includes('[BOSS]') || e.name.includes('[精英]'))
+  if (bossOrElite.length > 0) return bossOrElite
+  return enemies.filter((_, i) => i % 3 === 1)
+})
+
+const rightEnemies = computed(() => {
+  const enemies = aliveEnemies.value
+  return enemies.filter((_, i) => i % 3 === 2)
+})
+
+// 伙伴分组（左/右）
+const leftCompanions = computed(() => {
+  const companions = aliveCompanions.value
+  return companions.filter((_, i) => i % 2 === 0)
+})
+
+const rightCompanions = computed(() => {
+  const companions = aliveCompanions.value
+  return companions.filter((_, i) => i % 2 === 1)
+})
+
+// 触发受伤动画
+function triggerHurtAnimation(unitId: string) {
+  hurtUnitIds.value.push(unitId)
+  setTimeout(() => {
+    const index = hurtUnitIds.value.indexOf(unitId)
+    if (index > -1) {
+      hurtUnitIds.value.splice(index, 1)
+    }
+  }, 300)
+}
+
+// 速度按钮样式
+function getSpeedBtnClass(): string {
+  if (autoBattle.value) {
+    return battleSpeed.value >= 3
+      ? 'bg-orange-500 text-white border-orange-400/50'
+      : battleSpeed.value >= 2
+        ? 'bg-yellow-500 text-white border-yellow-400/50'
+        : 'bg-green-500 text-white border-green-400/50'
+  }
+  return 'bg-gray-600 text-gray-200 border-gray-500/50'
+}
+
+// 速度图标
+function getSpeedIcon(): string {
+  if (autoBattle.value) {
+    return battleSpeed.value >= 3 ? '3x' : battleSpeed.value >= 2 ? '2x' : '1x'
+  }
+  return '手'
+}
+
+// 速度标签
+function getSpeedLabel(): string {
+  if (autoBattle.value) {
+    return '自动'
+  }
+  return '手动'
+}
+
+// 循环切换速度和自动模式
+function cycleSpeedAndAuto() {
+  if (!autoBattle.value) {
+    // 手动 -> 自动1x
+    battleStore.toggleAutoBattle()
+  } else if (battleSpeed.value === 1) {
+    // 自动1x -> 自动2x
+    battleStore.setBattleSpeed(2)
+  } else if (battleSpeed.value === 2) {
+    // 自动2x -> 自动3x
+    battleStore.setBattleSpeed(3)
+  } else {
+    // 自动3x -> 手动
+    battleStore.setBattleSpeed(1)
+    battleStore.toggleAutoBattle()
+  }
+}
 
 // 可用行动
 const availableActions = [
@@ -330,7 +393,7 @@ const availableActions = [
   { type: 'flee' as const, name: '逃跑', icon: '🏃' }
 ]
 
-// 可用技能（使用玩家已学习的技能）
+// 可用技能（使用玩家已学习的技能，过滤掉被动技能）
 const availableSkills = computed(() => {
   const unit = battleStore.currentActingUnit
   if (!unit) return []
@@ -343,6 +406,8 @@ const availableSkills = computed(() => {
   const skills = getSkillsByIds(skillIds)
 
   return skills.filter(skill => {
+    // 过滤掉被动技能（被动技能不能在战斗中主动使用）
+    if (skill.category === 'passive') return false
     // 检查 MP 是否足够
     if (unit.stats.currentMp < skill.mpCost) return false
     // 检查冷却时间
@@ -398,9 +463,6 @@ const canTargetAlly = computed(() => {
   return targetType === 'single_ally' || targetType === 'all_allies' || targetType === 'self'
 })
 
-// 最近的战斗日志
-const recentLogs = computed(() => battleLog.value.slice(-6).reverse())
-
 // 根据敌人ID获取敌人定义
 function getEnemyDefinition(enemyId: string) {
   return ENEMIES[enemyId]
@@ -413,21 +475,20 @@ function generateEnemiesForWave(wave: number): Unit[] {
   const area = currentArea.value
   const enemyIds = area.enemies
   const enemies: Unit[] = []
+  const difficulty = area.difficulty
+  const difficultyConfig = DIFFICULTY_CONFIG[difficulty]
 
-  // 根据波次决定敌人数量和类型
-  let enemyCount = 1
-  let useElite = false
-  let useBoss = false
+  // 根据难度配置获取每波敌人数量
+  // easy: [3], normal: [3,3,3], hard: [5,3,3,1], nightmare: [5], extreme: [1]
+  const enemiesPerWave = difficultyConfig.enemiesPerWave || [3]
+  const enemyCount = enemiesPerWave[wave - 1] || enemiesPerWave[enemiesPerWave.length - 1] || 3
 
-  if (wave === 1) {
-    enemyCount = 2 // 第一波：2只普通怪
-  } else if (wave === 2) {
-    enemyCount = 1
-    useElite = true // 第二波：1只精英怪
-  } else if (wave === 3) {
-    enemyCount = 1
-    useBoss = true // 第三波：1只Boss
-  }
+  // 是否是超绝模式（全服Boss挑战）
+  const isExtremeMode = difficulty === 'extreme'
+  // 是否是噩梦模式
+  const isNightmareMode = difficulty === 'nightmare'
+  // 是否是困难模式的Boss波
+  const isHardBossWave = difficulty === 'hard' && wave === 1
 
   for (let i = 0; i < enemyCount; i++) {
     // 随机选择一个敌人ID
@@ -438,22 +499,54 @@ function generateEnemiesForWave(wave: number): Unit[] {
     const enemyDef = getEnemyDefinition(enemyId)
     if (!enemyDef) continue
 
+    // 判断当前位置是否是C位（中间位置）
+    const isCenterPosition = (enemyCount === 3 && i === 1) || (enemyCount === 5 && i === 2)
+
     // 计算属性倍率
     let statMultiplier = 1
-    if (useElite) statMultiplier = 1.5
-    if (useBoss) statMultiplier = 2.5
+    let isEnemyElite = false
+    let isEnemyBoss = false
+
+    // 超绝模式：唯一的Boss，数值爆炸高
+    if (isExtremeMode) {
+      statMultiplier = difficultyConfig.bossStatMult || 10
+      isEnemyBoss = true
+    }
+    // 噩梦模式：中间位置是Boss，数值高
+    else if (isNightmareMode && isCenterPosition) {
+      statMultiplier = difficultyConfig.bossStatMult || 3
+      isEnemyBoss = true
+    }
+    // 困难模式第一波：中间位置是Boss
+    else if (isHardBossWave && isCenterPosition) {
+      statMultiplier = 2.5
+      isEnemyBoss = true
+    }
+    // 普通模式：中间位置是精英
+    else if (difficulty === 'normal' && isCenterPosition) {
+      statMultiplier = 1.5
+      isEnemyElite = true
+    }
+    // 困难模式其他波次：中间位置是精英
+    else if (difficulty === 'hard' && isCenterPosition && wave > 1) {
+      statMultiplier = 1.5
+      isEnemyElite = true
+    }
+
+    // 应用难度基础倍率
+    statMultiplier *= difficultyConfig.enemyStatMult
 
     // 波次加成
     statMultiplier *= (1 + (wave - 1) * 0.2)
 
     enemies.push(createUnit({
       id: `enemy_${wave}_${i}`,
-      name: useBoss ? `[BOSS]${enemyDef.name}` : useElite ? `[精��]${enemyDef.name}` : enemyDef.name,
+      name: isEnemyBoss ? `[BOSS]${enemyDef.name}` : isEnemyElite ? `[精英]${enemyDef.name}` : enemyDef.name,
       type: 'enemy',
       element: '金', // 默认元素
       realm: enemyDef.realm,
       realmLevel: enemyDef.realmLevel,
-      quality: useBoss ? '仙品' : useElite ? '玄品' : '凡品',
+      quality: isEnemyBoss ? '仙品' : isEnemyElite ? '玄品' : '凡品',
       level: enemyDef.realmLevel + wave * 2,
       icon: enemyDef.icon,
       stats: {
@@ -464,8 +557,8 @@ function generateEnemiesForWave(wave: number): Unit[] {
         attack: Math.floor(enemyDef.baseStats.attack * statMultiplier),
         defense: Math.floor(enemyDef.baseStats.defense * statMultiplier),
         speed: enemyDef.baseStats.speed,
-        critRate: 0.05 + (useBoss ? 0.1 : useElite ? 0.05 : 0),
-        critDamage: 1.5 + (useBoss ? 0.3 : useElite ? 0.15 : 0)
+        critRate: 0.05 + (isEnemyBoss ? 0.15 : isEnemyElite ? 0.08 : 0),
+        critDamage: 1.5 + (isEnemyBoss ? 0.5 : isEnemyElite ? 0.2 : 0)
       },
       skills: enemyDef.skills
     }))
@@ -485,7 +578,9 @@ function initBattle() {
     if (area) {
       currentArea.value = area
       currentWave.value = 1
-      totalWaves.value = 3
+      // 根据难度配置获取波次数：简单1轮/普通2轮/困难3轮/噩梦3轮
+      const difficultyConfig = DIFFICULTY_CONFIG[area.difficulty]
+      totalWaves.value = difficultyConfig.waves
       accumulatedDrops.value.clear()
       accumulatedExp.value = 0
       accumulatedGold.value = 0
@@ -499,6 +594,36 @@ function initBattle() {
   // 使用 playerStore 的主角数据（已恢复满状态）
   const protagonist = playerStore.toBattleUnit()
   const allies: Unit[] = [protagonist]
+
+  // 添加已上阵的伙伴到 allies 数组
+  const equippedCompanions = companionStore.equippedCompanions
+  for (const { owned, definition, stats } of equippedCompanions) {
+    if (!definition) continue
+
+    const companionUnit = createUnit({
+      id: `companion_${owned.definitionId}`,
+      name: definition.name,
+      type: 'companion',
+      element: definition.element,
+      realm: playerStore.realm, // 使用玩家当前境界
+      quality: definition.quality === '凡品' ? '凡品' : definition.quality === '灵品' ? '玄品' : definition.quality === '仙品' ? '仙品' : '神品',
+      level: owned.level,
+      icon: definition.icon,
+      stats: {
+        maxHp: stats.maxHp,
+        currentHp: stats.maxHp,
+        maxMp: stats.maxMp,
+        currentMp: stats.maxMp,
+        attack: stats.attack,
+        defense: stats.defense,
+        speed: stats.speed,
+        critRate: stats.critRate,
+        critDamage: stats.critDamage
+      },
+      skills: definition.skills || []
+    })
+    allies.push(companionUnit)
+  }
 
   // 生成第一波敌人
   let enemies: Unit[]
@@ -650,8 +775,10 @@ function executeAutoBattle(unit: Unit) {
   const skillIds = unit.skills || []
   const allSkills = skillIds.length > 0 ? getSkillsByIds(skillIds) : []
 
-  // 优先使用技能
+  // 优先使用技能（过滤掉被动技能）
   const usableSkills = allSkills.filter(skill => {
+    // 过滤掉被动技能
+    if (skill.category === 'passive') return false
     if (unit.stats.currentMp < skill.mpCost) return false
     if (skill.currentCooldown > 0) return false
     return true
@@ -776,22 +903,6 @@ function confirmAction() {
   battleStore.confirmAction()
 }
 
-// 切换自动战斗
-function toggleAutoBattle() {
-  battleStore.toggleAutoBattle()
-}
-
-// 切换战斗模式（PvE/PvP）
-function toggleBattleMode() {
-  const newMode = battleMode.value === 'pve' ? 'pvp' : 'pve'
-  battleStore.setBattleMode(newMode)
-}
-
-// 切换战斗速度
-function toggleBattleSpeed() {
-  battleStore.toggleBattleSpeed()
-}
-
 // 退出战斗
 function exitBattle() {
   if (battleLoopId.value) {
@@ -832,6 +943,12 @@ function exitBattle() {
 
     // 更新区域通关记录
     playerStore.clearArea(area.id, 0, 3) // 简化处理，给3星
+
+    // 如果来自地图挑战，攻占地图区域
+    const mapAreaId = route.query.mapAreaId as string
+    if (mapAreaId && !mapStore.isAreaConquered(mapAreaId)) {
+      mapStore.conquerArea(mapAreaId)
+    }
   } else if (result.value === 'victory' && rewards.value) {
     // 兼容旧的战斗模式
     playerStore.addCultivation(rewards.value.cultivation)
@@ -847,32 +964,19 @@ function getElementColor(element: string): string {
   return ELEMENT_COLORS[element as keyof typeof ELEMENT_COLORS] || '#666'
 }
 
-// 获取品质颜色
-function getQualityColor(quality: string): string {
-  return QUALITY_COLORS[quality as keyof typeof QUALITY_COLORS] || '#666'
-}
-
-// 获取速度条颜色
-function getSpeedBarColor(unit: Unit): string {
-  if (unit.type === 'enemy') {
-    return 'bg-red-500'
-  }
-  return 'bg-blue-500'
-}
-
 // 获取行动按钮样式
 function getActionBtnClass(actionType: string): string {
   switch (actionType) {
     case 'attack':
-      return 'bg-red-600/80 hover:bg-red-500 text-white'
+      return 'bg-red-500/80 hover:bg-red-400 text-white border-red-400/50'
     case 'skill':
-      return 'bg-blue-600/80 hover:bg-blue-500 text-white'
+      return 'bg-blue-500/80 hover:bg-blue-400 text-white border-blue-400/50'
     case 'defend':
-      return 'bg-green-600/80 hover:bg-green-500 text-white'
+      return 'bg-green-500/80 hover:bg-green-400 text-white border-green-400/50'
     case 'flee':
-      return 'bg-gray-600/80 hover:bg-gray-500 text-white'
+      return 'bg-gray-500/80 hover:bg-gray-400 text-white border-gray-400/50'
     default:
-      return 'bg-gray-600/80 hover:bg-gray-500 text-white'
+      return 'bg-gray-500/80 hover:bg-gray-400 text-white border-gray-400/50'
   }
 }
 
@@ -892,41 +996,20 @@ function canUseSkill(skill: Skill): boolean {
   return unit.stats.currentMp >= skill.mpCost && skill.currentCooldown === 0
 }
 
-// 状态效果样式
-function getStatusEffectClass(type: string): string {
-  const classes: Record<string, string> = {
-    poison: 'bg-purple-500 text-white',
-    burn: 'bg-orange-500 text-white',
-    freeze: 'bg-cyan-500 text-white',
-    stun: 'bg-yellow-500 text-black',
-    buff_atk: 'bg-red-500 text-white',
-    buff_def: 'bg-blue-500 text-white',
-    buff_spd: 'bg-green-500 text-white',
-    debuff_atk: 'bg-gray-500 text-white',
-    debuff_def: 'bg-gray-500 text-white',
-    shield: 'bg-gray-300 text-black',
-    invincible: 'bg-yellow-300 text-black'
-  }
-  return classes[type] || 'bg-gray-500 text-white'
-}
+// 记录上一次各单位HP，用于检测伤害
+const lastHpMap = ref<Map<string, number>>(new Map())
 
-// 状态效果图标
-function getStatusEffectIcon(type: string): string {
-  const icons: Record<string, string> = {
-    poison: '毒',
-    burn: '燃',
-    freeze: '冻',
-    stun: '晕',
-    buff_atk: '攻',
-    buff_def: '防',
-    buff_spd: '速',
-    debuff_atk: '弱',
-    debuff_def: '破',
-    shield: '盾',
-    invincible: '无'
+// ��听单位HP变化，触发受伤动画
+watch(allUnits, (units) => {
+  for (const unit of units) {
+    const lastHp = lastHpMap.value.get(unit.id)
+    if (lastHp !== undefined && unit.stats.currentHp < lastHp) {
+      // HP减少，触发受伤动画
+      triggerHurtAnimation(unit.id)
+    }
+    lastHpMap.value.set(unit.id, unit.stats.currentHp)
   }
-  return icons[type] || '?'
-}
+}, { deep: true })
 
 // 监听自动战斗状态
 watch(autoBattle, (newVal) => {
@@ -951,6 +1034,70 @@ watch(phase, (newPhase) => {
   }
 })
 
+// 监听 result 变化，处理多轮战斗
+watch(result, (newResult) => {
+  if (newResult === 'victory' && currentArea.value) {
+    // 胜利后检查是否还有下一波
+    if (currentWave.value < totalWaves.value) {
+      // 累计当前波次的奖励
+      const area = currentArea.value
+      const waveExp = rollReward(area.expReward)
+      const waveGold = rollReward(area.goldReward)
+      accumulatedExp.value += waveExp
+      accumulatedGold.value += waveGold
+
+      // 累计掉落
+      const drops = rollDrops(area.drops)
+      for (const drop of drops) {
+        const existing = accumulatedDrops.value.get(drop.item.id)
+        if (existing) {
+          existing.quantity += drop.quantity
+        } else {
+          accumulatedDrops.value.set(drop.item.id, { item: drop.item, quantity: drop.quantity })
+        }
+      }
+
+      // 进入下一波
+      currentWave.value++
+
+      // 设置过渡状态，隐藏结果弹窗
+      isTransitioning.value = true
+
+      battleStore.addBattleLog({
+        actorName: '系统',
+        action: `第 ${currentWave.value} 波敌人来袭！`
+      })
+
+      // 延迟后生成新一波敌人
+      setTimeout(() => {
+        const newEnemies = generateEnemiesForWave(currentWave.value)
+        if (newEnemies.length > 0) {
+          // 使用 store 方法开始新一波战斗
+          battleStore.startNextWave(newEnemies)
+
+          // 结束过渡状态
+          isTransitioning.value = false
+
+          // 恢复战斗循环
+          lastLoopTime = Date.now()
+          battleLoopId.value = requestAnimationFrame(battleLoop)
+        }
+      }, 1500) // 1.5秒后开始下一波
+    } else {
+      // 所有波次完成，设置累计奖励
+      if (accumulatedExp.value > 0 || accumulatedGold.value > 0) {
+        // 通过临时变量来设置奖励
+        const finalRewards = {
+          cultivation: accumulatedExp.value,
+          gold: accumulatedGold.value,
+          items: [] as { itemId: string; quantity: number }[]
+        }
+        battleStore.rewards = finalRewards
+      }
+    }
+  }
+})
+
 onMounted(() => {
   initBattle()
   startBattleLoop()
@@ -965,17 +1112,148 @@ onUnmounted(() => {
 
 <style scoped>
 .battle-view {
-  padding-bottom: 100px;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
 }
 
-.speed-bar-item {
-  min-width: 60px;
+/* 敌方区域 */
+.enemy-zone {
+  background: linear-gradient(to bottom, rgba(139, 0, 0, 0.1), transparent);
+}
+
+/* 我方区域 */
+.ally-zone {
+  background: linear-gradient(to top, rgba(0, 100, 0, 0.1), transparent);
+}
+
+/* 分隔线 */
+.battle-divider {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 敌方阵型 */
+.enemy-formation {
+  perspective: 500px;
+}
+
+.enemy-flank {
+  transform: translateZ(-20px);
+}
+
+.enemy-center {
+  transform: translateZ(0);
+  z-index: 10;
+}
+
+/* 我方阵型 */
+.ally-formation {
+  perspective: 500px;
+}
+
+.ally-flank {
+  transform: translateZ(-20px);
+}
+
+.ally-center {
+  transform: translateZ(0);
+  z-index: 10;
+}
+
+/* 控制栏 */
+.control-bar {
+  backdrop-filter: blur(10px);
+}
+
+/* 菜单按钮 */
+.menu-btn {
+  transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 行动按钮 */
+.action-btn {
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+/* 速度按钮 */
+.speed-btn {
+  transition: all 0.2s ease;
+}
+
+.speed-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 确认按钮 */
+.confirm-btn {
+  transition: all 0.2s ease;
+}
+
+.confirm-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 技能面板 */
+.skill-panel {
+  backdrop-filter: blur(10px);
+}
+
+.skill-btn {
+  transition: all 0.2s ease;
+}
+
+.skill-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .skill-btn:disabled {
   pointer-events: none;
+  opacity: 0.5;
 }
 
+/* 波次过渡动画 */
+.wave-transition {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.wave-transition .text-4xl {
+  animation: bounce 0.6s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 自动战斗脉冲 */
 .pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -987,5 +1265,39 @@ onUnmounted(() => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* 行动按钮样式 */
+.bg-red-500\/80 {
+  background-color: rgba(239, 68, 68, 0.8);
+}
+
+.bg-blue-500\/80 {
+  background-color: rgba(59, 130, 246, 0.8);
+}
+
+.bg-green-500\/80 {
+  background-color: rgba(34, 197, 94, 0.8);
+}
+
+.bg-gray-500\/80 {
+  background-color: rgba(107, 114, 128, 0.8);
+}
+
+/* 速度按钮颜色 */
+.bg-green-500 {
+  background-color: rgb(34, 197, 94);
+}
+
+.bg-yellow-500 {
+  background-color: rgb(234, 179, 8);
+}
+
+.bg-orange-500 {
+  background-color: rgb(249, 115, 22);
+}
+
+.bg-gray-600 {
+  background-color: rgb(75, 85, 99);
 }
 </style>

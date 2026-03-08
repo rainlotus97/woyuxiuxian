@@ -769,6 +769,25 @@ export const useBattleStore = defineStore('battle', () => {
     autoBattle.value = false
   }
 
+  // 开始新一波战斗（保留我方单位状态）
+  function startNextWave(newEnemies: Unit[]) {
+    enemyUnits.value = newEnemies.map(u => ({ ...u, isAlive: true }))
+    result.value = null
+    rewards.value = null
+    phase.value = 'speed_bar'
+
+    // 为新敌人初始化速度条
+    for (const enemy of newEnemies) {
+      speedBar.value.set(enemy.id, Math.random() * 30)
+    }
+
+    // 重置当前行动状态
+    currentActingUnitId.value = null
+    selectedAction.value = null
+    selectedSkillId.value = null
+    selectedTargetIds.value = []
+  }
+
   return {
     // 状态
     phase,
@@ -824,6 +843,12 @@ export const useBattleStore = defineStore('battle', () => {
     // 战斗速度
     battleSpeed,
     toggleBattleSpeed,
-    setBattleSpeed
+    setBattleSpeed,
+
+    // 日志
+    addBattleLog,
+
+    // 多波战斗
+    startNextWave
   }
 })
