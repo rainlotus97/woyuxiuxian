@@ -245,6 +245,7 @@ import { useBattleStore } from '@/stores/battleStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useCompanionStore } from '@/stores/companionStore'
+import { useSectStore } from '@/stores/sectStore'
 import { createUnit, type Unit, ELEMENT_COLORS } from '@/types/unit'
 import { getSkillById, getSkillsByIds, type Skill } from '@/types/skill'
 import { getAreaById, ENEMIES, rollDrops, rollReward, DIFFICULTY_CONFIG, type AreaDefinition, type DropItem } from '@/types/adventure'
@@ -257,6 +258,7 @@ const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const mapStore = useMapStore()
 const companionStore = useCompanionStore()
+const sectStore = useSectStore()
 
 // 当前区域配置
 const currentArea = ref<AreaDefinition | null>(null)
@@ -911,6 +913,10 @@ function exitBattle() {
 
   // 发放奖励
   if (result.value === 'victory' && currentArea.value) {
+    // 更新宗门任务进度
+    sectStore.updateTaskProgress('battle', 'monster')
+    sectStore.updateTaskProgress('explore', currentArea.value.id)
+
     // 使用历练区域的奖励配置
     const area = currentArea.value
 

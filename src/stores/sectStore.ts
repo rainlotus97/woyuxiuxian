@@ -18,6 +18,8 @@ import {
 } from '@/types/sect'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
+import { ALCHEMY_RECIPES, getAlchemyRecipeById, type AlchemyRecipe } from '@/types/alchemy'
+import { SEEDS, getSeedById, type PlantedCrop, type SeedDefinition } from '@/types/garden'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
 
@@ -37,6 +39,7 @@ interface SectState {
   facilityLevels: Record<string, number>
   lastTaskRefresh: number
   lastSalaryClaim: number
+  gardenSlots: (PlantedCrop | null)[]  // 药园槽位
 }
 
 // 默认宗门状态
@@ -55,7 +58,8 @@ function getDefaultSectState(): SectState {
     unlockedSects: [],
     facilityLevels: {},
     lastTaskRefresh: Date.now(),
-    lastSalaryClaim: 0
+    lastSalaryClaim: 0,
+    gardenSlots: [null, null, null]  // 默认3个药园槽位
   }
 }
 
@@ -102,6 +106,7 @@ export const useSectStore = defineStore('sect', () => {
   const facilityLevels = ref<Record<string, number>>(initialData.facilityLevels)
   const lastTaskRefresh = ref<number>(initialData.lastTaskRefresh)
   const lastSalaryClaim = ref<number>(initialData.lastSalaryClaim)
+  const gardenSlots = ref<(PlantedCrop | null)[]>(initialData.gardenSlots || [null, null, null])
 
   // ====== 计算属性 ======
 
@@ -181,7 +186,8 @@ export const useSectStore = defineStore('sect', () => {
         unlockedSects: toRaw(unlockedSects.value),
         facilityLevels: toRaw(facilityLevels.value),
         lastTaskRefresh: lastTaskRefresh.value,
-        lastSalaryClaim: lastSalaryClaim.value
+        lastSalaryClaim: lastSalaryClaim.value,
+        gardenSlots: toRaw(gardenSlots.value)
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -261,7 +267,7 @@ export const useSectStore = defineStore('sect', () => {
     reputation.value += amount
   }
 
-  // 完成任务进度
+  // 完成任务进度（手动触发特定任务）
   function completeTask(taskId: string): boolean {
     const task = tasks.value.find(t => t.id === taskId)
     if (!task || task.completed) return false
@@ -271,6 +277,32 @@ export const useSectStore = defineStore('sect', () => {
       task.completed = true
     }
     return true
+  }
+
+  // 更新任务进度（根据游戏行为自动触发）
+  // type: 任务类型 (battle, collect, craft, explore, contribution)
+  // target: 可选的目标标识 (如 'monster', 'patrol', 特定区域ID等)
+  function updateTaskProgress(
+    type: SectTask['requirements']['type'],
+    target?: string
+  ): void {
+    if (!joinedSectId.value) return
+
+    for (const task of tasks.value) {
+      // 跳过已完成或已领取的任务
+      if (task.completed || task.claimed) continue
+      // 检查任务类型是否匹配
+      if (task.requirements.type !== type) continue
+      // 如果指定了目标，检查目标是否匹配（'any' 表示任意目标）
+      if (target && task.requirements.target !== target && task.requirements.target !== 'any') continue
+
+      // 增加进度
+      task.progress++
+      // 检查是否完成
+      if (task.progress >= task.requirements.count) {
+        task.completed = true
+      }
+    }
   }
 
   // 领取任务奖励
@@ -514,6 +546,239 @@ export const useSectStore = defineStore('sect', () => {
     return now - lastSalaryClaim.value >= 24 * 60 * 60 * 1000
   })
 
+  // ====== 炼丹系统 ======
+
+  // 获取可用的炼丹配方
+  const availableAlchemyRecipes = computed(() => {
+    const furnaceLevel = getFacilityLevel('alchemy_furnace')
+    return ALCHEMY_RECIPES.filter(r => r.requiredFacilityLevel <= furnaceLevel)
+  })
+
+  // 炼丹
+  function craftAlchemy(recipeId: string): { success: boolean; message: string; item?: { name: string; icon: string; effects: { type: string; value: number }[] } } {
+    if (!joinedSectId.value) {
+      return { success: false, message: '未加入宗门' }
+    }
+
+    const recipe = getAlchemyRecipeById(recipeId)
+    if (!recipe) {
+      return { success: false, message: '配方不存在' }
+    }
+
+    const furnaceLevel = getFacilityLevel('alchemy_furnace')
+    if (furnaceLevel < recipe.requiredFacilityLevel) {
+      return { success: false, message: `炼丹炉等级不足，需要${recipe.requiredFacilityLevel}级` }
+    }
+
+    // 检查材料
+    const playerStore = usePlayerStore()
+    for (const material of recipe.materials) {
+      if (material.itemId === 'gold') {
+        if (playerStore.gold < material.quantity) {
+          return { success: false, message: `灵石不足，需要${material.quantity}灵石` }
+        }
+      } else {
+        const owned = playerStore.inventory.find(i => i.id === material.itemId || i.name === material.itemId)
+        if (!owned || owned.quantity < material.quantity) {
+          return { success: false, message: `材料不足：${material.itemId}` }
+        }
+      }
+    }
+
+    // 消耗材料
+    for (const material of recipe.materials) {
+      if (material.itemId === 'gold') {
+        playerStore.addGold(-material.quantity)
+      } else {
+        const owned = playerStore.inventory.find(i => i.id === material.itemId || i.name === material.itemId)
+        if (owned) {
+          owned.quantity -= material.quantity
+          if (owned.quantity <= 0) {
+            const index = playerStore.inventory.indexOf(owned)
+            if (index > -1) {
+              playerStore.inventory.splice(index, 1)
+            }
+          }
+        }
+      }
+    }
+
+    // 计算成功率 = 基础成功率 + 设施加成(每级+5%)
+    const successRate = recipe.baseSuccessRate + furnaceLevel * 0.05
+    const success = Math.random() < successRate
+
+    if (success) {
+      // 产出丹药
+      const pillItem = {
+        id: `pill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name: recipe.output.name,
+        icon: recipe.output.icon,
+        type: 'consumable' as const,
+        quality: recipe.quality,
+        quantity: 1,
+        description: recipe.description,
+        effects: recipe.output.effects
+      }
+      playerStore.addToInventory(pillItem)
+
+      // 更新任务进度
+      updateTaskProgress('craft', 'alchemy')
+
+      return { success: true, message: '炼制成功！', item: recipe.output }
+    } else {
+      return { success: false, message: '炼制失败，材料已消耗' }
+    }
+  }
+
+  // ====== 药园系统 ======
+
+  // 获取药园槽位数量（基于药园等级）
+  const gardenSlotCount = computed(() => {
+    const gardenLevel = getFacilityLevel('medicine_garden')
+    return Math.min(3, 1 + Math.floor(gardenLevel / 2))  // 1级1槽位，3级2槽位，5级3槽位
+  })
+
+  // 获取可用的种子
+  const availableSeeds = computed(() => {
+    const gardenLevel = getFacilityLevel('medicine_garden')
+    return SEEDS.filter(s => s.requiredGardenLevel <= gardenLevel)
+  })
+
+  // 种植
+  function plantSeed(seedId: string, slotIndex: number): { success: boolean; message: string } {
+    if (!joinedSectId.value) {
+      return { success: false, message: '未加入宗门' }
+    }
+
+    const gardenLevel = getFacilityLevel('medicine_garden')
+    const seed = getSeedById(seedId)
+    if (!seed) {
+      return { success: false, message: '种子不存在' }
+    }
+
+    if (gardenLevel < seed.requiredGardenLevel) {
+      return { success: false, message: `药园等级不足，需要${seed.requiredGardenLevel}级` }
+    }
+
+    if (slotIndex < 0 || slotIndex >= gardenSlotCount.value) {
+      return { success: false, message: '无效的槽位' }
+    }
+
+    if (gardenSlots.value[slotIndex]) {
+      return { success: false, message: '该槽位已有作物' }
+    }
+
+    // 检查并消耗灵石
+    const playerStore = usePlayerStore()
+    if (playerStore.gold < seed.buyPrice) {
+      return { success: false, message: `灵石不足，需要${seed.buyPrice}灵石` }
+    }
+    playerStore.addGold(-seed.buyPrice)
+
+    // 种植
+    const now = Date.now()
+    gardenSlots.value[slotIndex] = {
+      seedId,
+      plantedAt: now,
+      readyAt: now + seed.growTime * 60 * 1000,
+      slotIndex
+    }
+
+    return { success: true, message: `种植成功，${seed.growTime}分钟后可收获` }
+  }
+
+  // 收获
+  function harvestCrop(slotIndex: number): { success: boolean; message: string; quantity?: number; item?: { name: string; icon: string } } {
+    if (!joinedSectId.value) {
+      return { success: false, message: '未加入宗门' }
+    }
+
+    if (slotIndex < 0 || slotIndex >= gardenSlotCount.value) {
+      return { success: false, message: '无效的槽位' }
+    }
+
+    const crop = gardenSlots.value[slotIndex]
+    if (!crop) {
+      return { success: false, message: '该槽位没有作物' }
+    }
+
+    const now = Date.now()
+    if (now < crop.readyAt) {
+      const remainingMinutes = Math.ceil((crop.readyAt - now) / 60000)
+      return { success: false, message: `作物尚未成熟，还需${remainingMinutes}分钟` }
+    }
+
+    const seed = getSeedById(crop.seedId)
+    if (!seed) {
+      return { success: false, message: '种子数据异常' }
+    }
+
+    const gardenLevel = getFacilityLevel('medicine_garden')
+
+    // 计算产量 = 基础产量 + 设施加成(每级+10%)
+    const baseQuantity = Math.floor(
+      Math.random() * (seed.harvest.maxQuantity - seed.harvest.minQuantity + 1)
+    ) + seed.harvest.minQuantity
+    const bonus = Math.floor(baseQuantity * gardenLevel * 0.1)
+    const totalQuantity = baseQuantity + bonus
+
+    // 添加到背包
+    const playerStore = usePlayerStore()
+    const harvestedItem = {
+      id: `${seed.harvest.itemId}_${Date.now()}`,
+      name: seed.harvest.itemName,
+      icon: seed.harvest.icon,
+      type: 'material' as const,
+      quality: seed.quality,
+      quantity: totalQuantity,
+      description: `从药园收获的${seed.harvest.itemName}`
+    }
+    playerStore.addToInventory(harvestedItem)
+
+    // 清空槽位
+    gardenSlots.value[slotIndex] = null
+
+    // 更新任务进度
+    updateTaskProgress('collect', 'herb')
+
+    return {
+      success: true,
+      message: `收获成功，获得${seed.harvest.itemName}x${totalQuantity}`,
+      quantity: totalQuantity,
+      item: { name: seed.harvest.itemName, icon: seed.harvest.icon }
+    }
+  }
+
+  // 加速成熟（消耗灵石）
+  function accelerateCrop(slotIndex: number): { success: boolean; message: string } {
+    if (!joinedSectId.value) {
+      return { success: false, message: '未加入宗门' }
+    }
+
+    const crop = gardenSlots.value[slotIndex]
+    if (!crop) {
+      return { success: false, message: '该槽位没有作物' }
+    }
+
+    if (Date.now() >= crop.readyAt) {
+      return { success: false, message: '作物已成熟，请直接收获' }
+    }
+
+    // 计算加速费用（每分钟10灵石）
+    const remainingMinutes = Math.ceil((crop.readyAt - Date.now()) / 60000)
+    const cost = remainingMinutes * 10
+
+    const playerStore = usePlayerStore()
+    if (playerStore.gold < cost) {
+      return { success: false, message: `灵石不足，需要${cost}灵石` }
+    }
+
+    playerStore.addGold(-cost)
+    crop.readyAt = Date.now()
+
+    return { success: true, message: '加速成功，作物已成熟' }
+  }
+
   // 监听变化自动保存
   watchEffect(() => {
     saveToStorage()
@@ -535,6 +800,7 @@ export const useSectStore = defineStore('sect', () => {
     facilityLevels,
     lastTaskRefresh,
     lastSalaryClaim,
+    gardenSlots,
 
     // 计算属性
     currentSect,
@@ -548,6 +814,9 @@ export const useSectStore = defineStore('sect', () => {
     weeklyTasks,
     completedTasks,
     canClaimSalary,
+    availableAlchemyRecipes,
+    gardenSlotCount,
+    availableSeeds,
 
     // 方法
     joinSect,
@@ -556,6 +825,7 @@ export const useSectStore = defineStore('sect', () => {
     addContribution,
     addReputation,
     completeTask,
+    updateTaskProgress,
     claimTaskReward,
     generateTasks,
     refreshTasks,
@@ -569,6 +839,12 @@ export const useSectStore = defineStore('sect', () => {
     unlockSect,
     checkUnlockedSects,
     claimDailySalary,
+    // 炼丹
+    craftAlchemy,
+    // 药园
+    plantSeed,
+    harvestCrop,
+    accelerateCrop,
     saveToStorage
   }
 })

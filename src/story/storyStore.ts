@@ -13,9 +13,15 @@ import type {
   StoryTermination,
   VolumeCompletion,
   StorySessionState,
+  TriggerType,
 } from './types'
 import { storyCache } from './loader/cacheManager'
 import { volumeLoader } from './loader/volumeLoader'
+import { storyEventBus } from './eventBus'
+// 以下模块待后续集成
+// import { extensionManager } from './extensionManager'
+// import { gameplayBridge } from './gameplayBridge'
+// import { dictionaryParser } from './dictionaryParser'
 
 // ============ 侧线任务信息 ============
 export interface SideQuestInfo {
@@ -23,7 +29,7 @@ export interface SideQuestInfo {
   name: string
   characterId: string
   characterName: string
-  triggerType: string
+  triggerType: TriggerType
   priority: number
   prerequisites: Prerequisite[]
   isAvailable: boolean
@@ -131,9 +137,27 @@ export const useStoryStore = defineStore('story', () => {
       return
     }
 
+    // 发射离开节点事件
+    if (currentNodeId.value) {
+      await storyEventBus.emit({
+        type: 'node:leave',
+        data: { nodeId: currentNodeId.value },
+        nodeId: currentNodeId.value,
+        volumeNumber: currentVolume.value
+      })
+    }
+
     currentNodeId.value = nodeId
     triggeredEventsThisLoop.value.add(nodeId)
     triggeredEventsAllTime.value.add(nodeId)
+
+    // 发射进入节点事件
+    await storyEventBus.emit({
+      type: 'node:enter',
+      data: { node },
+      nodeId,
+      volumeNumber: currentVolume.value
+    })
 
     // 执行节点效果
     if (node.content.effects.length > 0) {
@@ -141,7 +165,15 @@ export const useStoryStore = defineStore('story', () => {
     }
 
     // 检查支线任务
-    checkAvailableSideQuests()
+    const availableQuests = checkAvailableSideQuests()
+    if (availableQuests.length > 0) {
+      await storyEventBus.emit({
+        type: 'sidequest:available',
+        data: { quests: availableQuests },
+        nodeId,
+        volumeNumber: currentVolume.value
+      })
+    }
   }
 
   async function makeChoice(choiceIndex: number) {

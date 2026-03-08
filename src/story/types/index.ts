@@ -80,6 +80,7 @@ export interface StoryContent {
   choices: StoryChoice[]
   effects: Effect[]
   innerMonologue?: string
+  gameplayTrigger?: GameplayTrigger
 }
 
 // ============ 效果 ============
@@ -210,4 +211,224 @@ export interface StorySuspendPoint {
   loopNumber: number
   suspendedAt: number
   reason: 'user_action' | 'volume_transition'
+}
+
+// ============ 事件系统类型 ============
+
+/** 故事事件类型 */
+export type StoryEventType =
+  | 'node:enter'          // 进入节点
+  | 'node:leave'          // 离开节点
+  | 'choice:make'         // 做出选择
+  | 'effect:execute'      // 执行效果
+  | 'item:gain'           // 获得物品
+  | 'item:lose'           // 失去物品
+  | 'clue:unlock'         // 解锁线索
+  | 'favor:change'        // 好感度变化
+  | 'route:change'        // 路线变更
+  | 'ending:unlock'       // 解锁结局
+  | 'volume:complete'     // 卷完成
+  | 'volume:transition'   // 卷过渡
+  | 'story:suspend'       // 故事中断
+  | 'story:resume'        // 故事恢复
+  | 'sidequest:available' // 支线可用
+  | 'sidequest:complete'  // 支线完成
+  | 'gameplay:trigger'    // 游戏玩法触发
+  | 'gameplay:complete'   // 游戏玩法完成
+
+/** 事件回调函数类型 */
+export type StoryEventCallback<T = unknown> = (event: StoryEvent<T>) => void | Promise<void>
+
+/** 故事事件 */
+export interface StoryEvent<T = unknown> {
+  type: StoryEventType
+  timestamp: number
+  data: T
+  nodeId?: string
+  volumeNumber?: number
+}
+
+/** 事件订阅器 */
+export interface StoryEventSubscription {
+  id: string
+  eventType: StoryEventType | '*'
+  callback: StoryEventCallback
+  once: boolean
+}
+
+// ============ 扩展系统类型 ============
+
+/** 效果处理器 */
+export type EffectHandler = (effect: Effect, context: EffectContext) => void | Promise<void>
+
+/** 效果执行上下文 */
+export interface EffectContext {
+  nodeId: string
+  choiceIndex?: number
+  source: 'node' | 'choice'
+}
+
+/** 条件检查器 */
+export type ConditionChecker = (prerequisite: Prerequisite) => boolean
+
+/** 故事扩展 */
+export interface StoryExtension {
+  id: string
+  name: string
+  version: string
+  description?: string
+  /** 扩展初始化 */
+  init?: (api: StoryPublicAPI) => void | Promise<void>
+  /** 扩展销毁 */
+  destroy?: () => void
+  /** 自定义效果处理器 */
+  effectHandlers?: Record<string, EffectHandler>
+  /** 自定义条件检查器 */
+  conditionCheckers?: Record<string, ConditionChecker>
+  /** 事件钩子 */
+  hooks?: Partial<Record<StoryEventType, StoryEventCallback>>
+}
+
+// ============ 玩法系统类型 ============
+
+/** 玩法类型 */
+export type GameplayType =
+  | 'battle'        // 战斗
+  | 'collect'       // 收集
+  | 'upgrade'       // 升级/突破
+  | 'explore'       // 探索
+  | 'dialog'        // 对话挑战
+  | 'puzzle'        // 解谜
+  | 'custom'        // 自定义玩法
+
+/** 玩法触发配置 */
+export interface GameplayTrigger {
+  type: GameplayType
+  /** 玩法ID（如boss_id、任务id等） */
+  targetId: string
+  /** 玩法参数 */
+  params?: Record<string, unknown>
+  /** 完成后继续的目标节点（可选，不填则返回当前节点继续） */
+  continueNodeId?: string
+  /** 完成条件（可选） */
+  completionCondition?: Prerequisite[]
+  /** 失败处理 */
+  onFailure?: 'retry' | 'skip' | 'gameover' | 'goto'
+  /** 失败跳转节点 */
+  failureNodeId?: string
+}
+
+/** 玩法结果 */
+export interface GameplayResult {
+  success: boolean
+  gameplayType: GameplayType
+  targetId: string
+  /** 结果数据（如战斗获得的奖励等） */
+  data?: Record<string, unknown>
+  /** 耗时（秒） */
+  duration?: number
+}
+
+/** 玩法暂停状态 */
+export interface GameplaySuspendState {
+  type: 'gameplay'
+  gameplayTrigger: GameplayTrigger
+  previousNodeId: string
+  suspendedAt: number
+  retryCount: number
+}
+
+// ============ 扩展效果类型 ============
+
+/** 扩展效果类型（在原有基础上增加玩法触发） */
+export type ExtendedEffectType = EffectType | 'trigger_gameplay'
+
+/** 扩展效果接口 */
+export interface ExtendedEffect extends Omit<Effect, 'type'> {
+  type: ExtendedEffectType
+  /** 玩法触发配置（当type为trigger_gameplay时） */
+  gameplay?: GameplayTrigger
+}
+
+// ============ 公共API类型 ============
+
+/** 故事进度信息 */
+export interface StoryProgress {
+  currentVolume: number
+  currentNodeId: string | null
+  currentLoop: number
+  completedNodes: string[]
+  completedCount: number
+  totalNodes: number
+  percentage: number
+}
+
+/** 支线任务详情 */
+export interface SideQuestDetail {
+  id: string
+  name: string
+  characterName: string
+  triggerType: TriggerType
+  prerequisites: Prerequisite[]
+  isCompleted: boolean
+  description?: string
+  rewards?: Effect[]
+}
+
+/** 物品详情（从dictionary解析） */
+export interface StoryItemDetail {
+  id: string
+  name: string
+  type: '道具' | '消耗品'
+  category: string
+  inheritRule: string
+  description?: string
+}
+
+/** 公共API接口 */
+export interface StoryPublicAPI {
+  // 状态查询
+  getProgress(): StoryProgress
+  getCurrentNode(): StoryNode | null
+  getNodeById(id: string): StoryNode | null
+  getSideQuests(): SideQuestDetail[]
+  getCompletedSideQuests(): SideQuestDetail[]
+  getAvailableSideQuests(): SideQuestDetail[]
+  getItemDetail(itemId: string): StoryItemDetail | null
+  getAllItems(): StoryItemDetail[]
+  getClueDetail(clueId: string): { id: string; name: string } | null
+  getUnlockedClues(): { id: string; name: string }[]
+  getFavorability(characterId: string): number
+  getAllFavorability(): Map<string, number>
+  getEndingStatus(endingId: string): (EndingInfo & { unlocked: boolean }) | null
+  getAllEndings(): (EndingInfo & { unlocked: boolean })[]
+
+  // 导航控制
+  goToNode(nodeId: string): Promise<void>
+  makeChoice(choiceIndex: number): Promise<void>
+  startSideQuest(eventId: string): Promise<boolean>
+
+  // 卷控制
+  transitionToVolume(volumeNumber: number): Promise<boolean>
+
+  // 事件订阅
+  on<T = unknown>(eventType: StoryEventType, callback: StoryEventCallback<T>): () => void
+  once<T = unknown>(eventType: StoryEventType, callback: StoryEventCallback<T>): () => void
+  off(subscriptionId: string): void
+
+  // 扩展注册
+  registerExtension(extension: StoryExtension): void
+  unregisterExtension(extensionId: string): void
+
+  // 调试API
+  debug: {
+    getState(): Record<string, unknown>
+    setNode(nodeId: string): void
+    addItem(itemId: string, count: number): void
+    removeItem(itemId: string, count: number): void
+    setFavorability(characterId: string, value: number): void
+    unlockClue(clueId: string): void
+    triggerEvent(eventId: string): void
+    reset(): void
+  }
 }

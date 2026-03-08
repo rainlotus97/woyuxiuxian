@@ -13,6 +13,7 @@ import type {
   TriggerRule,
   Perspective,
   TriggerType,
+  GameplayTrigger,
 } from '../types'
 
 const METADATA_BLOCK = /---\n([\s\S]*?)\n---/
@@ -134,6 +135,7 @@ export class StoryParser {
       npcDialogs: this.parseNpcDialogs(contentBlock),
       choices: this.parseChoices(contentBlock),
       effects: this.parseEffects(contentBlock),
+      gameplayTrigger: this.parseGameplayTrigger(contentBlock),
     }
   }
 
@@ -263,6 +265,100 @@ export class StoryParser {
     }
 
     return null
+  }
+
+  /**
+   * 解析玩法触发配置
+   * 格式：
+   * 触发玩法：类型：目标ID
+   *   参数：key=value
+   *   失败：retry|skip|gameover
+   *   失败跳转：nodeId
+   */
+  private parseGameplayTrigger(content: string): GameplayTrigger | undefined {
+    const section = this.extractSection(content, '效果')
+    if (!section) return undefined
+
+    const lines = section.split('\n')
+    let trigger: GameplayTrigger | undefined
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i]
+      if (!rawLine) continue
+      const line = rawLine.trim()
+
+      // 匹配：触发玩法：类型：目标ID
+      const triggerMatch = line.match(/^触发玩法[：:]\s*(战斗|收集|升级|探索|对话|解谜|自定义)[：:]\s*(.+)$/)
+      if (triggerMatch && triggerMatch[1] && triggerMatch[2]) {
+        const typeMap: Record<string, string> = {
+          '战斗': 'battle',
+          '收集': 'collect',
+          '升级': 'upgrade',
+          '探索': 'explore',
+          '对话': 'dialog',
+          '解谜': 'puzzle',
+          '自定义': 'custom',
+        }
+
+        trigger = {
+          type: typeMap[triggerMatch[1]] as GameplayTrigger['type'],
+          targetId: triggerMatch[2].trim(),
+        }
+
+        // 解析后续的参数行（缩进的行）
+        for (let j = i + 1; j < lines.length; j++) {
+          const rawParamLine = lines[j]
+          if (!rawParamLine) continue
+          const paramLine = rawParamLine.trim()
+
+          // 如果遇到新的效果行，停止解析参数
+          if (paramLine && !paramLine.startsWith(' ') && !paramLine.startsWith('\t')) {
+            if (/^(获得|失去|解锁|路线|境界|触发玩法)/.test(paramLine)) break
+          }
+
+          // 参数：key=value
+          const paramMatch = paramLine.match(/^参数[：:]\s*(.+)$/)
+          if (paramMatch && paramMatch[1] && trigger) {
+            trigger.params = trigger.params || {}
+            const params = paramMatch[1].split(',')
+            for (const param of params) {
+              const [key, value] = param.split('=').map(s => s.trim())
+              if (key && value !== undefined) {
+                trigger.params[key] = isNaN(Number(value)) ? value : Number(value)
+              }
+            }
+          }
+
+          // 失败处理
+          const failMatch = paramLine.match(/^失败[：:]\s*(重试|跳过|结束|跳转)$/)
+          if (failMatch && failMatch[1] && trigger) {
+            const failMap: Record<string, string> = {
+              '重试': 'retry',
+              '跳过': 'skip',
+              '结束': 'gameover',
+              '跳转': 'goto',
+            }
+            trigger.onFailure = failMap[failMatch[1]] as GameplayTrigger['onFailure']
+          }
+
+          // 失败跳转节点
+          const failNodeMatch = paramLine.match(/^失败跳转[：:]\s*(.+)$/)
+          if (failNodeMatch && failNodeMatch[1] && trigger) {
+            trigger.failureNodeId = failNodeMatch[1].trim()
+          }
+
+          // 完成后跳转节点
+          const continueMatch = paramLine.match(/^完成后跳转[：:]\s*(.+)$/)
+          if (continueMatch && continueMatch[1] && trigger) {
+            trigger.continueNodeId = continueMatch[1].trim()
+          }
+        }
+
+        break
+      }
+    }
+
+    return trigger
   }
 
   private parsePerspective(value: string): Perspective {

@@ -4,23 +4,33 @@
       <h2 class="panel-title">坊市</h2>
       <p class="panel-desc">购买修炼所需物品</p>
 
-      <!-- 分类标签 -->
+      <!-- 分类标签 - 立即响应 -->
       <div class="category-tabs">
         <button
           v-for="cat in categories"
           :key="cat.id"
-          :class="['tab', { active: currentCategory === cat.id }]"
-          @click="currentCategory = cat.id"
+          :class="['tab', { active: activeTab === cat.id }]"
+          @click="handleTabClick(cat.id)"
         >
           {{ cat.name }}
         </button>
       </div>
 
-      <!-- 商品列表 -->
-      <div class="shop-grid">
+      <!-- Loading状态 -->
+      <div v-show="isLoading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+      </div>
+
+      <!-- 商品列表 - 使用v-show缓存DOM -->
+      <div
+        v-show="!isLoading"
+        class="shop-grid"
+        :key="displayCategory"
+      >
         <div
-          v-for="item in filteredItems"
+          v-for="item in currentItems"
           :key="item.id"
+          v-memo="[item.id, canAfford(item)]"
           class="shop-item"
           :class="{ 'affordable': canAfford(item), 'unaffordable': !canAfford(item) }"
           @click="handleBuy(item)"
@@ -59,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, shallowRef } from 'vue'
 import { usePlayerStore, type InventoryItem } from '@/stores/playerStore'
 import { useToast } from '@/composables/useToast'
 import { useAudio, sfxSpiritStone } from '@/composables/useAudio'
@@ -75,9 +85,12 @@ onMounted(() => {
   startShopBgm()
 })
 
-const currentCategory = ref('all')
+// UI状态
+const activeTab = ref('all')          // 当前激活的tab（立即响应）
+const displayCategory = ref('all')    // 当前显示的分类（延迟更新）
+const isLoading = ref(false)          // loading状态
 const showConfirm = ref(false)
-const selectedItem = ref<ShopItem | null>(null)
+const selectedItem = shallowRef<ShopItem | null>(null)
 
 interface ShopItem {
   id: string
@@ -100,7 +113,8 @@ const categories = [
   { id: 'material', name: '材料' }
 ]
 
-const shopItems = ref<ShopItem[]>([
+// 使用shallowRef避免深层响应式追踪
+const shopItems = shallowRef<ShopItem[]>([
   // ========== 装备 ==========
   {
     id: 'shop_weapon_001',
@@ -279,10 +293,57 @@ const shopItems = ref<ShopItem[]>([
   }
 ])
 
-const filteredItems = computed(() => {
-  if (currentCategory.value === 'all') return shopItems.value
-  return shopItems.value.filter(item => item.category === currentCategory.value)
+// 预计算每个分类的商品列表，避免每次切换重新计算
+const itemsByCategory = computed(() => {
+  const result: Record<string, ShopItem[]> = {
+    all: shopItems.value
+  }
+  for (const cat of categories) {
+    if (cat.id !== 'all') {
+      result[cat.id] = shopItems.value.filter(item => item.category === cat.id)
+    }
+  }
+  return result
 })
+
+// 当前显示的商品列表
+const currentItems = computed(() => {
+  return itemsByCategory.value[displayCategory.value] || []
+})
+
+// Tab点击处理 - 立即响应tab样式，延迟加载内容
+let loadingTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleTabClick(categoryId: string) {
+  // 如果点击的是当前显示的分类，直接返回
+  if (categoryId === displayCategory.value) {
+    activeTab.value = categoryId
+    return
+  }
+
+  // 立即更新tab激活状态
+  activeTab.value = categoryId
+
+  // 清除之前的timer
+  if (loadingTimer) {
+    clearTimeout(loadingTimer)
+  }
+
+  // 显示loading
+  isLoading.value = true
+
+  // 使用requestAnimationFrame + setTimeout实现平滑过渡
+  loadingTimer = setTimeout(() => {
+    displayCategory.value = categoryId
+    // 使用requestAnimationFrame确保DOM更新后再隐藏loading
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isLoading.value = false
+      })
+    })
+    loadingTimer = null
+  }, 80) // 80ms的loading时间，让用户感知到切换
+}
 
 function canAfford(item: ShopItem): boolean {
   return playerStore.gold >= item.price
@@ -359,6 +420,7 @@ function confirmBuy() {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 .panel-title {
@@ -386,6 +448,8 @@ function confirmBuy() {
   padding: 4px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
+  /* 硬件加速 */
+  transform: translateZ(0);
 }
 
 .tab {
@@ -397,10 +461,15 @@ function confirmBuy() {
   color: var(--color-muted);
   font-size: 0.8125rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 精简transition */
+  transition: background-color 0.1s ease, color 0.1s ease;
   white-space: nowrap;
   text-align: center;
   line-height: 1.3;
+  /* 硬件加速 */
+  transform: translateZ(0);
+  /* CSS隔离 */
+  contain: layout style;
 }
 
 .tab:hover {
@@ -411,6 +480,31 @@ function confirmBuy() {
   background: rgba(200, 164, 92, 0.2);
   color: var(--color-accent-warm);
   font-weight: 500;
+}
+
+/* Loading状态 */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  top: 100px; /* 避开标题和tab区域 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(126, 184, 218, 0.2);
+  border-top-color: var(--color-accent-warm);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 商品网格 */
@@ -429,6 +523,17 @@ function confirmBuy() {
   box-sizing: border-box;
   align-content: start;
   justify-items: stretch;
+  /* 硬件加速 */
+  transform: translateZ(0);
+  /* CSS隔离 */
+  contain: layout style;
+  /* 淡入动画 */
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
 }
 
 /* 隐藏滚动条 */
@@ -448,22 +553,25 @@ function confirmBuy() {
   border-radius: 10px;
   padding: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 精简transition */
+  transition: border-color 0.1s ease, background-color 0.1s ease;
   min-height: 80px;
   height: auto;
   align-items: center;
   box-sizing: border-box;
   width: 100%;
+  /* 硬件加速 */
+  transform: translateZ(0);
+  /* CSS隔离 */
+  contain: layout style;
 }
 
 .shop-item.unaffordable {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .shop-item.unaffordable:hover {
-  transform: none;
   background: rgba(0, 0, 0, 0.25);
   border-color: rgba(126, 184, 218, 0.15);
 }
@@ -471,12 +579,10 @@ function confirmBuy() {
 .shop-item.affordable:hover {
   border-color: rgba(126, 184, 218, 0.4);
   background: rgba(0, 0, 0, 0.35);
-  transform: translateY(-1px);
 }
 
-.shop-item.unaffordable {
-  opacity: 0.5;
-  cursor: not-allowed;
+.shop-item.affordable:active {
+  transform: scale(0.98);
 }
 
 .item-icon {
@@ -490,6 +596,8 @@ function confirmBuy() {
   justify-content: center;
   font-size: 1.375rem;
   flex-shrink: 0;
+  /* 硬件加速 */
+  transform: translateZ(0);
 }
 
 .item-icon.common { border-color: #6b7280; }
@@ -635,7 +743,7 @@ function confirmBuy() {
   border-radius: 10px;
   font-size: 0.9375rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease;
   font-weight: 500;
 }
 
@@ -761,7 +869,7 @@ function confirmBuy() {
     min-height: 100px;
   }
 
-  .shop-item:hover {
+  .shop-item.affordable:hover {
     transform: translateY(-2px);
   }
 
@@ -804,6 +912,10 @@ function confirmBuy() {
   .tab {
     padding: 4px 6px;
     font-size: 0.6875rem;
+  }
+
+  .loading-overlay {
+    top: 70px;
   }
 
   .shop-grid {

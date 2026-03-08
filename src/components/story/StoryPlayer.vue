@@ -96,6 +96,27 @@
       @continue="handleContinueNextVolume"
       @returnToMenu="handleReturnToMenu"
     />
+
+    <!-- 支线任务面板 -->
+    <SideQuestPanel
+      :visible="showSideQuestPanel && !showEnding && !showVolumeEnd && !showGameplay"
+      @trigger="onSideQuestTrigger"
+      @close="showSideQuestPanel = false"
+    />
+
+    <!-- 玩法内嵌组件 -->
+    <GameplayEmbed
+      v-if="showGameplay && currentGameplayTrigger"
+      :gameplay-type="currentGameplayTrigger.type"
+      :target-id="currentGameplayTrigger.targetId"
+      :params="currentGameplayTrigger.params"
+      :can-skip="currentGameplayTrigger.onFailure === 'skip'"
+      @complete="onGameplayComplete"
+      @skip="onGameplaySkip"
+    />
+
+    <!-- 效果反馈组件 -->
+    <EffectFeedback />
   </div>
 </template>
 
@@ -105,7 +126,11 @@ import { useStoryStore } from '@/story/storyStore'
 import TypewriterText from './TypewriterText.vue'
 import EndingDisplay from './EndingDisplay.vue'
 import VolumeEndDisplay from './VolumeEndDisplay.vue'
-import type { StoryTermination } from '@/story/types'
+import SideQuestPanel from './SideQuestPanel.vue'
+import EffectFeedback from './EffectFeedback.vue'
+import GameplayEmbed from './GameplayEmbed.vue'
+import { gameplayBridge } from '@/story/gameplayBridge'
+import type { StoryTermination, GameplayTrigger, GameplayResult } from '@/story/types'
 
 const emit = defineEmits<{
   back: []
@@ -127,6 +152,13 @@ const dialogsViewed = ref(false)
 const showEnding = ref(false)
 const showVolumeEnd = ref(false)
 const currentTermination = ref<StoryTermination | null>(null)
+
+// 玩法内嵌状态
+const showGameplay = ref(false)
+const currentGameplayTrigger = ref<GameplayTrigger | null>(null)
+
+// 支线面板状态
+const showSideQuestPanel = ref(true)
 
 // 计算属性
 const perspectiveText = computed(() => {
@@ -160,6 +192,13 @@ function onTextComplete() {
   console.log('[StoryPlayer] onTextComplete called')
   textComplete.value = true
   console.log('[StoryPlayer] textComplete is now:', textComplete.value)
+
+  // 检查是否有玩法触发
+  const gameplayTrigger = currentNode.value?.content.gameplayTrigger
+  if (gameplayTrigger && !showGameplay.value) {
+    console.log('[StoryPlayer] Found gameplay trigger:', gameplayTrigger)
+    triggerGameplay(gameplayTrigger)
+  }
 }
 
 function showNextDialog(index: number) {
@@ -234,6 +273,53 @@ function handleViewEndingGallery() {
   console.log('View ending gallery')
 }
 
+// 玩法相关方法
+async function triggerGameplay(trigger: GameplayTrigger) {
+  currentGameplayTrigger.value = trigger
+  showGameplay.value = true
+
+  const success = await gameplayBridge.trigger(trigger, currentNode.value?.id || '')
+  if (!success) {
+    // 没有注册处理器，显示通用玩法界面
+    console.log('[StoryPlayer] No gameplay handler registered, showing generic UI')
+  }
+}
+
+async function onGameplayComplete(result: GameplayResult) {
+  const { continueNodeId, shouldRetry } = await gameplayBridge.onComplete(result)
+
+  if (shouldRetry) {
+    // 重试
+    return
+  }
+
+  showGameplay.value = false
+  currentGameplayTrigger.value = null
+
+  if (continueNodeId) {
+    await store.goToNode(continueNodeId)
+  }
+
+  // 重置状态
+  textComplete.value = false
+  currentDialogIndex.value = 0
+  dialogsViewed.value = false
+}
+
+function onGameplaySkip() {
+  gameplayBridge.skip()
+  showGameplay.value = false
+  currentGameplayTrigger.value = null
+}
+
+// 支线任务触发
+async function onSideQuestTrigger(questId: string) {
+  const success = await store.executeSideQuest(questId)
+  if (success) {
+    console.log('[StoryPlayer] Side quest triggered:', questId)
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   if (!store.currentNode) {
@@ -249,6 +335,11 @@ watch(currentNode, (newNode, oldNode) => {
   textComplete.value = false
   currentDialogIndex.value = 0
   dialogsViewed.value = false
+})
+
+// 暴露给外部使用的API
+defineExpose({
+  triggerGameplay
 })
 </script>
 

@@ -168,6 +168,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useSectStore } from '@/stores/sectStore'
 import { useToast } from '@/composables/useToast'
 import {
   AREAS,
@@ -184,6 +185,7 @@ import {
 
 const router = useRouter()
 const playerStore = usePlayerStore()
+const sectStore = useSectStore()
 const { info, warning, success } = useToast()
 
 const showBuyStaminaModal = ref(false)
@@ -316,6 +318,12 @@ function handleSweep(area: AreaDefinition) {
   success(`扫荡完成！获得 ${totalExp} 修为, ${totalGold} 灵石`)
   if (dropMessages.length > 0) {
     info('获得物品: ' + dropMessages.slice(0, 3).join(', ') + (dropMessages.length > 3 ? '...' : ''))
+  }
+
+  // 更新宗门任务进度（扫荡3次）
+  for (let i = 0; i < 3; i++) {
+    sectStore.updateTaskProgress('battle', 'monster')
+    sectStore.updateTaskProgress('explore', area.id)
   }
 }
 

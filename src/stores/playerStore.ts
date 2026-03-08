@@ -592,12 +592,29 @@ export const usePlayerStore = defineStore('player', () => {
       const existing = inventory.value.find(i => i.name === item.name && i.type === item.type)
       if (existing) {
         existing.quantity += item.quantity
+        // 更新宗门采集任务进度
+        updateCollectTaskProgress(item)
         return true
       }
     }
 
     inventory.value.push(item)
+    // 更新宗门采集任务进度
+    updateCollectTaskProgress(item)
     return true
+  }
+
+  // 更新采集任务进度（避免循环依赖的辅助函数）
+  function updateCollectTaskProgress(item: InventoryItem) {
+    // 使用动态导入避免循环依赖
+    import('@/stores/sectStore').then(({ useSectStore }) => {
+      const sectStore = useSectStore()
+      if (item.type === 'material') {
+        sectStore.updateTaskProgress('collect', 'material')
+      }
+    }).catch(() => {
+      // 忽略错误（可能未加入宗门）
+    })
   }
 
   // 从背包移除物品

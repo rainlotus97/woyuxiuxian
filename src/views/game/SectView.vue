@@ -160,13 +160,24 @@
               <div class="facility-level">Lv.{{ sectStore.getFacilityLevel(facility.id) }}/{{ facility.maxLevel }}</div>
               <div class="facility-desc">{{ facility.description }}</div>
             </div>
-            <button
-              v-if="sectStore.positionLevel >= facility.unlockPosition && sectStore.getFacilityLevel(facility.id) < facility.maxLevel"
-              class="upgrade-btn"
-              @click="handleUpgradeFacility(facility.id)"
-            >
-              升级
-            </button>
+            <div class="facility-actions">
+              <!-- 使用按钮（炼丹炉和药园） -->
+              <button
+                v-if="canUseFacility(facility.id)"
+                class="use-btn"
+                @click="handleUseFacility(facility.id)"
+              >
+                使用
+              </button>
+              <!-- 升级按钮 -->
+              <button
+                v-if="sectStore.positionLevel >= facility.unlockPosition && sectStore.getFacilityLevel(facility.id) < facility.maxLevel"
+                class="upgrade-btn"
+                @click="handleUpgradeFacility(facility.id)"
+              >
+                升级
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -199,6 +210,13 @@
         退出宗门
       </button>
     </template>
+
+    <!-- 设施功能模态框 -->
+    <FacilityModal
+      :visible="showFacilityModal"
+      :facility-id="selectedFacilityId"
+      @close="closeFacilityModal"
+    />
   </div>
 </template>
 
@@ -207,11 +225,14 @@ import { ref } from 'vue'
 import { useSectStore } from '@/stores/sectStore'
 import { SECT_FACILITIES, type SectDefinition } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
+import FacilityModal from '@/components/sect/FacilityModal.vue'
 
 const sectStore = useSectStore()
 const { success, warning, info } = useToast()
 
 const activeTab = ref<'tasks' | 'facilities' | 'salary'>('tasks')
+const showFacilityModal = ref(false)
+const selectedFacilityId = ref('')
 
 const tabs = [
   { id: 'tasks' as const, name: '任务', icon: '📋' },
@@ -273,6 +294,23 @@ function handleLeaveSect() {
     sectStore.leaveSect()
     info('已退出宗门')
   }
+}
+
+// 判断设施是否可以使用（炼丹炉和药园）
+function canUseFacility(facilityId: string): boolean {
+  return facilityId === 'alchemy_furnace' || facilityId === 'medicine_garden'
+}
+
+// 打开设施使用界面
+function handleUseFacility(facilityId: string) {
+  selectedFacilityId.value = facilityId
+  showFacilityModal.value = true
+}
+
+// 关闭设施模态框
+function closeFacilityModal() {
+  showFacilityModal.value = false
+  selectedFacilityId.value = ''
 }
 </script>
 
@@ -621,6 +659,21 @@ function handleLeaveSect() {
   color: #7eb8da;
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+.use-btn {
+  padding: 6px 12px;
+  background: rgba(74, 222, 128, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 6px;
+  color: #4ade80;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.facility-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* 俸禄面板 */
