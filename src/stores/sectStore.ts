@@ -18,8 +18,8 @@ import {
 } from '@/types/sect'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
-import { ALCHEMY_RECIPES, getAlchemyRecipeById, type AlchemyRecipe } from '@/types/alchemy'
-import { SEEDS, getSeedById, type PlantedCrop, type SeedDefinition } from '@/types/garden'
+import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
+import { SEEDS, getSeedById, type PlantedCrop } from '@/types/garden'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
 

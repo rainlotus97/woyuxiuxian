@@ -175,12 +175,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useSectStore } from '@/stores/sectStore'
 import { usePlayerStore } from '@/stores/playerStore'
-import { SECT_FACILITIES, type SectFacility } from '@/types/sect'
+import { SECT_FACILITIES } from '@/types/sect'
 import { ALCHEMY_RECIPES, type AlchemyRecipe } from '@/types/alchemy'
-import { SEEDS, type SeedDefinition, type PlantedCrop } from '@/types/garden'
+import { SEEDS, type PlantedCrop, type SeedDefinition } from '@/types/garden'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{
@@ -305,10 +305,10 @@ const slotCount = computed(() => {
   return 1
 })
 
-const displaySlots = computed(() => {
+const displaySlots = computed<(PlantedCrop | null)[]>(() => {
   return [0, 1, 2].map(i => {
     if (i < sectStore.gardenSlots.length) {
-      return sectStore.gardenSlots[i]
+      return sectStore.gardenSlots[i] ?? null
     }
     return null
   })
