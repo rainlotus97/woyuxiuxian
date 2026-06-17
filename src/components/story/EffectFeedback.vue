@@ -104,7 +104,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       id,
       type: 'success',
       icon: '❤️',
-      text: `${effect.target || ''}好感`,
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}好感`,
       value: `+${effect.value || 1}`,
       valueClass: 'positive',
       animating: false
@@ -114,7 +114,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       id,
       type: 'warning',
       icon: '💔',
-      text: `${effect.target || ''}好感`,
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}好感`,
       value: `-${effect.value || 1}`,
       valueClass: 'negative',
       animating: false

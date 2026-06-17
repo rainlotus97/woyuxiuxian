@@ -4,6 +4,7 @@ import type {
   IdleMode,
   NpcDefinition,
   NpcRuntimeState,
+  RelationshipState,
   WorldClock,
   WorldLogEntry,
   WorldWeather
@@ -118,6 +119,25 @@ function getDefaultWorldState(): WorldState {
 function seededRoll(seed: number): number {
   const x = Math.sin(seed) * 10000
   return x - Math.floor(x)
+}
+
+function createDefaultRelationshipState(): RelationshipState {
+  return {
+    favor: 0,
+    hatred: 0,
+    fear: 0,
+    debt: 0,
+    bond: 'stranger'
+  }
+}
+
+function resolveBondFromFavor(favor: number): RelationshipState['bond'] {
+  if (favor >= 90) return 'lover'
+  if (favor >= 70) return 'companion'
+  if (favor >= 45) return 'friend'
+  if (favor <= -60) return 'enemy'
+  if (favor <= -25) return 'rival'
+  return 'stranger'
 }
 
 export const useWorldStore = defineStore('world', () => {
@@ -374,6 +394,53 @@ export const useWorldStore = defineStore('world', () => {
     return unlockedNpcIds.value.includes(npcId)
   }
 
+  function getRelationshipState(npcId: string, subjectId: string = 'player'): RelationshipState {
+    const npc = npcStates.value.find(item => item.id === npcId)
+    if (!npc) return createDefaultRelationshipState()
+    const relationship = npc.relationships[subjectId]
+    if (!relationship) {
+      const created = createDefaultRelationshipState()
+      npc.relationships[subjectId] = created
+      return created
+    }
+    return relationship
+  }
+
+  function applyStoryRelationshipChange(
+    npcId: string,
+    input: {
+      favorDelta?: number
+      hatredDelta?: number
+      fearDelta?: number
+      debtDelta?: number
+      title?: string
+      text?: string
+      subjectId?: string
+    }
+  ) {
+    const definition = npcDefinitions.value.find(item => item.id === npcId)
+    const npc = npcStates.value.find(item => item.id === npcId)
+    if (!definition || !npc) return false
+
+    const subjectId = input.subjectId || 'player'
+    const relationship = getRelationshipState(npcId, subjectId)
+    relationship.favor += input.favorDelta || 0
+    relationship.hatred += input.hatredDelta || 0
+    relationship.fear += input.fearDelta || 0
+    relationship.debt += input.debtDelta || 0
+    relationship.bond = resolveBondFromFavor(relationship.favor)
+
+    addLog(
+      'npc',
+      Math.abs(input.favorDelta || 0) >= 10 ? 'major' : 'normal',
+      input.title || `${definition.name}态度变化`,
+      input.text || `${definition.name}对你的态度出现了新的波动。`,
+      [npcId],
+      ['story', 'relationship', relationship.bond]
+    )
+    return true
+  }
+
   function addWorldFlag(flag: string, title?: string, text?: string) {
     if (!worldFlags.value.includes(flag)) {
       worldFlags.value.push(flag)
@@ -419,6 +486,8 @@ export const useWorldStore = defineStore('world', () => {
     getIdleModeLabel,
     unlockNpc,
     isNpcUnlocked,
+    getRelationshipState,
+    applyStoryRelationshipChange,
     addWorldFlag,
     hasWorldFlag
   }

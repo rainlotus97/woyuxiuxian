@@ -40,6 +40,10 @@ export {
   describeStoryCharacterTarget,
   validateStoryCharacterBindings
 } from './runtime/storyCharacterRegistry'
+export {
+  syncStoryFavorToWorld,
+  formatStoryFavorLabel
+} from './runtime/storyFavorSync'
 
 // 导出字典解析器
 export { dictionaryParser, DictionaryParser } from './dictionaryParser'

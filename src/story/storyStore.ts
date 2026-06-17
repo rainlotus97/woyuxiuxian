@@ -23,6 +23,7 @@ import { storyEventBus } from './eventBus'
 import { prerequisiteExpressionToText } from './parser'
 import { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
 import { describeStoryCharacterTarget } from './runtime/storyCharacterRegistry'
+import { formatStoryFavorLabel, syncStoryFavorToWorld } from './runtime/storyFavorSync'
 // 以下模块待后续集成
 // import { extensionManager } from './extensionManager'
 // import { gameplayBridge } from './gameplayBridge'
@@ -314,13 +315,13 @@ export const useStoryStore = defineStore('story', () => {
         case 'favor_up':
           if (effect.target && typeof effect.value === 'number') {
             addFavorability(effect.target, effect.value)
-            showNotification(`${effect.target}好感度 +${effect.value}`, 'success')
+            showNotification(`${formatStoryFavorLabel(effect.target)}好感度 +${effect.value}`, 'success')
           }
           break
         case 'favor_down':
           if (effect.target && typeof effect.value === 'number') {
             addFavorability(effect.target, -effect.value)
-            showNotification(`${effect.target}好感度 -${effect.value}`, 'warning')
+            showNotification(`${formatStoryFavorLabel(effect.target)}好感度 -${effect.value}`, 'warning')
           }
           break
         case 'gain_clue':
@@ -496,6 +497,7 @@ export const useStoryStore = defineStore('story', () => {
   function addFavorability(characterId: string, amount: number) {
     const current = favorability.value.get(characterId) || 0
     favorability.value.set(characterId, current + amount)
+    syncStoryFavorToWorld(characterId, amount)
   }
 
   function addItem(itemId: string, count: number = 1) {

@@ -99,7 +99,8 @@
   - 已修复节点效果在 `makeChoice()` / `goToNode()` 间重复执行的问题，避免剧情效果双重结算
   - 已建立 `storyCharacterRegistry`，支持故事角色 ID / 角色名到 world npc / companion definition 的单点映射
   - 已让 `unlock_npc / unlock_companion` 优先消费 story 角色标识，而不是直接依赖底层 gameplay id
-  - 待补：好感数值与 NPC 关系系统的真实联动，更多角色映射与自动校验
+  - 已让 `favor_up / favor_down` 同步写入 world NPC relationship state，并产生日志
+  - 待补：更多角色映射与自动校验，更复杂的仇恨/债务/恐惧联动
 - [~] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
   - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
   - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
@@ -118,6 +119,10 @@
   - 性格权重
   - 命运标签
 - [ ] 建立 NPC 关系网
+- [~] 建立 NPC 关系网
+  - 已建立 world NPC relationship state 的 story favor 同步入口
+  - 已支持 favor -> bond 的基础映射（stranger / friend / companion / rival / enemy / lover）
+  - 待补：NPC 与 NPC 之间的关系边、关系驱动的自主行动与事件分发
 - [ ] 实现 NPC 自主行动结果写回世界日志
 - [ ] 实现重要 NPC 的“故事化事件记录”
 - [ ] 增加主角挂机日志与奇遇日志
@@ -207,3 +212,7 @@
   - 已新增 `storyCharacterRegistry`，统一维护 `Cxxx -> world npc / companion` 绑定
   - 已让 story effect runtime、通知文案、反馈浮层优先显示故事角色名而不是内部 gameplay id
   - 已更新剧情规则文档，允许 `解锁NPC / 解锁伙伴` 直接使用故事角色 ID 或角色名
+- [x] 打通剧情好感到 world NPC 关系状态的基础同步
+  - 已新增 `storyFavorSync`，统一处理 story favor 变化到 world relationship 的桥接
+  - 已为 `worldStore` 增加 relationship state API，并写入世界日志
+  - 已让剧情好感通知与反馈浮层统一显示故事角色名
