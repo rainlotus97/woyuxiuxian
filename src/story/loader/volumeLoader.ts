@@ -5,7 +5,16 @@
 
 import { storyParser } from '../parser'
 import { storyCache } from './cacheManager'
-import type { Perspective, VolumeContent, StoryNode, CharacterEvent, TriggerRule } from '../types'
+import type {
+  CharacterEvent,
+  CharacterInfo,
+  Perspective,
+  StoryManifestFile,
+  StoryNode,
+  TriggerRule,
+  VolumeContent
+} from '../types'
+import { normalizeCharacterFileId } from '../parser/shared'
 
 // 故事文件路径映射
 const STORY_PATHS = {
@@ -18,6 +27,22 @@ export class VolumeLoader {
   private loadedVolumes = new Set<number>()
   private currentVolume = 0
 
+  private cacheVolumeContent(
+    volume: number,
+    mainNodes: StoryNode[],
+    commonNodes: StoryNode[],
+    triggerRules: TriggerRule[],
+    characterInfos: CharacterInfo[],
+    characterEvents: CharacterEvent[]
+  ) {
+    storyCache.clearVolume(volume)
+    storyCache.cacheNodes(mainNodes, volume)
+    storyCache.cacheNodes(commonNodes, volume)
+    storyCache.cacheTriggerRules(triggerRules, volume)
+    storyCache.cacheCharacterInfos(characterInfos, volume)
+    storyCache.cacheEvents(characterEvents, volume)
+  }
+
   /**
    * 加载指定卷的所有内容
    */
@@ -26,84 +51,118 @@ export class VolumeLoader {
       this.currentVolume = volume
     }
 
-    const mainNodes = await this.loadMainStory(volume, perspective)
-    const commonNodes = await this.loadCommonStory(volume)
-    const triggerRules = await this.loadTriggerRules(volume)
-    const characterEvents = await this.loadCharacterEvents(volume, triggerRules)
+    const mainStory = await this.loadMainStory(volume, perspective)
+    const commonStory = await this.loadCommonStory(volume)
+    const triggerRuleResult = await this.loadTriggerRules(volume)
+    const characterResult = await this.loadCharacterEvents(volume, triggerRuleResult.rules)
+
+    const manifestFiles: StoryManifestFile[] = [
+      { path: `volume-${volume}/${STORY_PATHS[perspective] || STORY_PATHS.male}`, kind: 'main', ids: mainStory.nodes.map(node => node.id) },
+      { path: `volume-${volume}/common.md`, kind: 'common', ids: commonStory.nodes.map(node => node.id) },
+      { path: `links/link-volume-${volume}.md`, kind: 'link', ids: triggerRuleResult.rules.map(rule => rule.eventId) },
+      ...characterResult.files
+    ]
+
+    const manifest = storyParser.buildManifest({
+      volume,
+      perspective,
+      files: manifestFiles,
+      mainNodes: mainStory.nodes,
+      commonNodes: commonStory.nodes,
+      characterInfos: characterResult.characterInfos,
+      characterEvents: characterResult.events,
+      triggerRules: triggerRuleResult.rules,
+    })
+
+    if (manifest.hasErrors) {
+      console.error(`Story manifest validation failed for volume ${volume}`, manifest.diagnostics)
+      throw new Error(`Story manifest validation failed for volume ${volume}`)
+    }
+
+    this.cacheVolumeContent(
+      volume,
+      mainStory.nodes,
+      commonStory.nodes,
+      triggerRuleResult.rules,
+      characterResult.characterInfos,
+      characterResult.events
+    )
 
     this.loadedVolumes.add(volume)
 
     return {
-      mainNodes,
-      commonNodes,
-      characterEvents,
-      triggerRules,
+      mainNodes: mainStory.nodes,
+      commonNodes: commonStory.nodes,
+      characterEvents: characterResult.events,
+      triggerRules: triggerRuleResult.rules,
+      characterInfos: characterResult.characterInfos,
+      manifest,
     }
   }
 
   /**
    * 加载主线故事
    */
-  private async loadMainStory(volume: number, perspective: Perspective): Promise<StoryNode[]> {
+  private async loadMainStory(volume: number, perspective: Perspective): Promise<{ nodes: StoryNode[]; filePath: string }> {
     try {
       const filename = STORY_PATHS[perspective] || STORY_PATHS.male
-      const content = await this.readStoryFile(`volume-${volume}/${filename}`)
+      const filePath = `volume-${volume}/${filename}`
+      const content = await this.readStoryFile(filePath)
 
       if (!content) {
         console.warn(`No main story file found for volume ${volume}`)
-        return []
+        return { nodes: [], filePath }
       }
 
       const nodes = storyParser.parseMainStory(content)
-      storyCache.cacheNodes(nodes, volume)
 
       console.log(`Loaded ${nodes.length} main story nodes for volume ${volume}`)
-      return nodes
+      return { nodes, filePath }
     } catch (error) {
       console.error(`Failed to load main story for volume ${volume}:`, error)
-      return []
+      return { nodes: [], filePath: `volume-${volume}/${STORY_PATHS[perspective] || STORY_PATHS.male}` }
     }
   }
 
   /**
    * 加载共同事件
    */
-  private async loadCommonStory(volume: number): Promise<StoryNode[]> {
+  private async loadCommonStory(volume: number): Promise<{ nodes: StoryNode[]; filePath: string }> {
     try {
-      const content = await this.readStoryFile(`volume-${volume}/common.md`)
+      const filePath = `volume-${volume}/common.md`
+      const content = await this.readStoryFile(filePath)
 
       if (!content) {
-        return []
+        return { nodes: [], filePath }
       }
 
       const nodes = storyParser.parseCommonStory(content)
-      storyCache.cacheNodes(nodes, volume)
 
-      return nodes
+      return { nodes, filePath }
     } catch (error) {
       console.error(`Failed to load common story for volume ${volume}:`, error)
-      return []
+      return { nodes: [], filePath: `volume-${volume}/common.md` }
     }
   }
 
   /**
    * 加载触发规则表
    */
-  private async loadTriggerRules(volume: number): Promise<TriggerRule[]> {
+  private async loadTriggerRules(volume: number): Promise<{ rules: TriggerRule[]; filePath: string }> {
     try {
-      const content = await this.readStoryFile(`links/link-volume-${volume}.md`)
+      const filePath = `links/link-volume-${volume}.md`
+      const content = await this.readStoryFile(filePath)
 
       if (!content) {
-        return []
+        return { rules: [], filePath }
       }
 
       const rules = storyParser.parseTriggerTable(content)
-      storyCache.cacheTriggerRules(rules, volume)
 
-      return rules
+      return { rules, filePath }
     } catch (error) {
       console.error(`Failed to load trigger rules for volume ${volume}:`, error)
-      return []
+      return { rules: [], filePath: `links/link-volume-${volume}.md` }
     }
   }
 
@@ -113,7 +172,7 @@ export class VolumeLoader {
   private async loadCharacterEvents(
     volume: number,
     triggerRules: TriggerRule[]
-  ): Promise<CharacterEvent[]> {
+  ): Promise<{ events: CharacterEvent[]; characterInfos: CharacterInfo[]; files: StoryManifestFile[] }> {
     const characterIds = new Set<string>()
 
     for (const rule of triggerRules) {
@@ -123,33 +182,53 @@ export class VolumeLoader {
     }
 
     const allEvents: CharacterEvent[] = []
+    const characterInfos: CharacterInfo[] = []
+    const files: StoryManifestFile[] = []
 
     for (const characterId of characterIds) {
-      const events = await this.loadCharacterFile(characterId, volume)
-      allEvents.push(...events)
+      const result = await this.loadCharacterFile(characterId, volume)
+      allEvents.push(...result.events)
+      if (result.info) {
+        characterInfos.push(result.info)
+      }
+      files.push({
+        path: result.filePath,
+        kind: 'character',
+        ids: [
+          ...result.events.map(event => event.id),
+          ...(result.info ? [result.info.id] : [])
+        ]
+      })
     }
 
-    return allEvents
+    return { events: allEvents, characterInfos, files }
   }
 
   /**
    * 加载单个角色文件
    */
-  private async loadCharacterFile(characterId: string, volume: number): Promise<CharacterEvent[]> {
+  private async loadCharacterFile(
+    characterId: string,
+    _volume: number
+  ): Promise<{ info: CharacterInfo | null; events: CharacterEvent[]; filePath: string }> {
     try {
-      const content = await this.readStoryFile(`characters/char-${characterId.replace('C', '')}.md`)
+      const filePath = `characters/char-${normalizeCharacterFileId(characterId)}.md`
+      const content = await this.readStoryFile(filePath)
 
       if (!content) {
-        return []
+        return { info: null, events: [], filePath }
       }
 
-      const { events } = storyParser.parseCharacterStory(content)
-      storyCache.cacheEvents(events, volume)
+      const { info, events } = storyParser.parseCharacterStory(content)
 
-      return events
+      return { info, events, filePath }
     } catch (error) {
       console.error(`Failed to load character file ${characterId}:`, error)
-      return []
+      return {
+        info: null,
+        events: [],
+        filePath: `characters/char-${normalizeCharacterFileId(characterId)}.md`
+      }
     }
   }
 

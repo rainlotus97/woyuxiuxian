@@ -79,13 +79,18 @@
 
 ## P1 剧情系统
 
-- [ ] 拆分 `src/story/parser/index.ts`
+- [~] 拆分 `src/story/parser/index.ts`
   - `metadataParser.ts`
   - `contentParser.ts`
   - `effectParser.ts`
   - `triggerParser.ts`
   - `storyValidator.ts`
-- [ ] 生成 story manifest，启动时先校验再加载
+  - 已拆出 `shared.ts`、`prerequisiteParser.ts`，将节点/事件/trigger 表解析从单文件拆为模块
+  - 已支持角色头信息、视角专属正文、内心独白、选项特有效果、trigger 表解析
+- [~] 生成 story manifest，启动时先校验再加载
+  - 已让 `volumeLoader` 在缓存前构建 manifest / diagnostics
+  - 已把角色信息接入 cache，支线任务可通过 `storyCache.getCharacterInfo()` 获取角色名
+  - 已让前置条件支持 AND / OR / 括号表达式，并在 `storyStore` 中按表达式执行
 - [ ] 补足剧情效果类型：
   - NPC 解锁
   - 宗门声望

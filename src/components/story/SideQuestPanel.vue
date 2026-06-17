@@ -38,7 +38,7 @@
               <div class="prerequisites" v-if="selectedQuest.prerequisites.length > 0">
                 <h4>前置条件</h4>
                 <ul>
-                  <li v-for="(pre, idx) in formatPrerequisites(selectedQuest.prerequisites)" :key="idx">
+                  <li v-for="(pre, idx) in formatPrerequisites()" :key="idx">
                     {{ pre }}
                   </li>
                 </ul>
@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStoryStore } from '@/story/storyStore'
-import type { SideQuestDetail, Prerequisite, Effect, TriggerType } from '@/story/types'
+import type { SideQuestDetail, Effect, TriggerType } from '@/story/types'
 
 defineProps<{
   visible: boolean
@@ -106,29 +106,9 @@ function triggerTypeLabel(type: TriggerType): string {
   return labels[type] || type
 }
 
-function formatPrerequisites(prerequisites: Prerequisite[]): string[] {
-  return prerequisites.map(pre => {
-    switch (pre.type) {
-      case 'loop':
-        return `周目 >= ${pre.value}`
-      case 'node_complete':
-        return `完成节点 ${pre.nodeId}`
-      case 'event_triggered':
-        return `已触发 ${pre.value}`
-      case 'favor':
-        return `${pre.characterId} 好感 >= ${pre.value}`
-      case 'item':
-        return `持有 ${pre.itemId}`
-      case 'clue':
-        return `解锁线索 ${pre.clueId}`
-      case 'route':
-        return `当前路线: ${pre.routeId}`
-      case 'choice':
-        return `选择记录: ${pre.value}`
-      default:
-        return JSON.stringify(pre)
-    }
-  })
+function formatPrerequisites() {
+  if (!selectedQuest.value) return []
+  return store.formatPrerequisiteSummary(selectedQuest.value.prerequisites)
 }
 
 function formatRewards(rewards: Effect[]): string[] {

@@ -118,6 +118,12 @@ export class StoryCacheManager {
     })
   }
 
+  cacheCharacterInfos(infos: CharacterInfo[], volume: number): void {
+    for (const info of infos) {
+      this.cacheCharacterInfo(info, volume)
+    }
+  }
+
   getCharacterInfo(id: string): CharacterInfo | null {
     const entry = this.characterInfoCache.get(id)
     if (entry) {
@@ -167,6 +173,12 @@ export class StoryCacheManager {
     }
     // 清理触发规则
     this.triggerRuleCache.delete(volume)
+    // 清理角色信息
+    for (const [id, entry] of this.characterInfoCache.entries()) {
+      if (entry.volume === volume) {
+        this.characterInfoCache.delete(id)
+      }
+    }
   }
 
   clearAll(): void {

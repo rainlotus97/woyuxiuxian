@@ -9,6 +9,7 @@ import type {
   StoryNode,
   Effect,
   Prerequisite,
+  PrerequisiteExpression,
   EndingInfo,
   StoryTermination,
   VolumeCompletion,
@@ -18,6 +19,7 @@ import type {
 import { storyCache } from './loader/cacheManager'
 import { volumeLoader } from './loader/volumeLoader'
 import { storyEventBus } from './eventBus'
+import { prerequisiteExpressionToText } from './parser'
 // 以下模块待后续集成
 // import { extensionManager } from './extensionManager'
 // import { gameplayBridge } from './gameplayBridge'
@@ -255,7 +257,7 @@ export const useStoryStore = defineStore('story', () => {
       if (event.unlockLoop > currentLoop.value) continue
 
       // 检查前置条件
-      if (!checkPrerequisites(event.prerequisites)) continue
+      if (!checkPrerequisites(event.prerequisites, event.prerequisiteExpression)) continue
 
       const isCompleted = triggeredEventsAllTime.value.has(event.id)
 
@@ -280,7 +282,7 @@ export const useStoryStore = defineStore('story', () => {
     const event = storyCache.getEvent(eventId)
     if (!event) return false
 
-    if (!checkPrerequisites(event.prerequisites)) return false
+    if (!checkPrerequisites(event.prerequisites, event.prerequisiteExpression)) return false
 
     triggeredEventsThisLoop.value.add(eventId)
     triggeredEventsAllTime.value.add(eventId)
@@ -359,44 +361,85 @@ export const useStoryStore = defineStore('story', () => {
   }
 
   // ============ 条件检查 ============
-  function checkPrerequisites(prerequisites: Prerequisite[]): boolean {
-    if (!prerequisites || prerequisites.length === 0) return true
-
-    return prerequisites.every(p => {
-      switch (p.type) {
-        case 'loop': {
-          const value = p.value as number
-          const op = p.operator || '>='
-          if (op === '>=') return currentLoop.value >= value
-          if (op === '<=') return currentLoop.value <= value
-          if (op === '=') return currentLoop.value === value
-          return currentLoop.value < value
-        }
-        case 'node_complete':
-          return p.nodeId ? completedNodes.value.has(p.nodeId) : false
-        case 'event_triggered':
-          return triggeredEventsAllTime.value.has(p.value as string)
-        case 'favor': {
-          if (!p.characterId) return false
-          const favor = favorability.value.get(p.characterId) || 0
-          return favor >= (p.value as number)
-        }
-        case 'item': {
-          if (!p.itemId) return false
-          const count = storyItems.value.get(p.itemId) || 0
-          if (p.operator === '>=') return count >= (p.value as number)
-          return count > 0
-        }
-        case 'clue':
-          return p.clueId ? unlockedClues.value.has(p.clueId) : false
-        case 'route':
-          return currentRoute.value === p.routeId
-        case 'choice':
-          return p.choiceRef ? choiceHistory.value.has(p.choiceRef) : false
-        default:
-          return true
+  function checkSinglePrerequisite(prerequisite: Prerequisite): boolean {
+    switch (prerequisite.type) {
+      case 'loop': {
+        const value = prerequisite.value as number
+        const op = prerequisite.operator || '>='
+        if (op === '>=') return currentLoop.value >= value
+        if (op === '<=') return currentLoop.value <= value
+        if (op === '=') return currentLoop.value === value
+        if (op === '>') return currentLoop.value > value
+        return currentLoop.value < value
       }
-    })
+      case 'node_complete':
+        return prerequisite.nodeId ? completedNodes.value.has(prerequisite.nodeId) : false
+      case 'event_triggered':
+        return triggeredEventsAllTime.value.has(prerequisite.value as string)
+      case 'favor': {
+        if (!prerequisite.characterId) return false
+        const favor = favorability.value.get(prerequisite.characterId) || 0
+        const target = Number(prerequisite.value || 0)
+        if (prerequisite.operator === '<') return favor < target
+        if (prerequisite.operator === '<=') return favor <= target
+        if (prerequisite.operator === '=') return favor === target
+        if (prerequisite.operator === '>') return favor > target
+        return favor >= target
+      }
+      case 'item': {
+        if (!prerequisite.itemId) return false
+        const count = storyItems.value.get(prerequisite.itemId) || 0
+        const target = Number(prerequisite.value || 0)
+        if (prerequisite.operator === '>=') return count >= target
+        if (prerequisite.operator === '<=') return count <= target
+        if (prerequisite.operator === '=') return count === target
+        if (prerequisite.operator === '<') return count < target
+        if (prerequisite.operator === '>') return count > target
+        return count > 0
+      }
+      case 'clue':
+        return prerequisite.clueId ? unlockedClues.value.has(prerequisite.clueId) : false
+      case 'route':
+        return currentRoute.value === prerequisite.routeId
+      case 'choice': {
+        if (!prerequisite.choiceRef) return false
+        const choiceValue = choiceHistory.value.get(prerequisite.choiceRef)
+        if (choiceValue === undefined) return false
+        if (typeof prerequisite.value === 'number') {
+          return choiceValue === prerequisite.value - 1
+        }
+        return true
+      }
+      default:
+        return true
+    }
+  }
+
+  function evaluatePrerequisiteExpression(expression: PrerequisiteExpression | null | undefined): boolean {
+    if (!expression) return true
+    if (expression.type === 'condition') return checkSinglePrerequisite(expression.condition)
+    if (expression.type === 'and') {
+      return expression.conditions.every(condition => evaluatePrerequisiteExpression(condition))
+    }
+    return expression.conditions.some(condition => evaluatePrerequisiteExpression(condition))
+  }
+
+  function checkPrerequisites(
+    prerequisites: Prerequisite[],
+    expression?: PrerequisiteExpression | null
+  ): boolean {
+    if (expression) return evaluatePrerequisiteExpression(expression)
+    if (!prerequisites || prerequisites.length === 0) return true
+    return prerequisites.every(checkSinglePrerequisite)
+  }
+
+  function formatPrerequisiteSummary(
+    prerequisites: Prerequisite[],
+    expression?: PrerequisiteExpression | null
+  ): string[] {
+    if (expression) return prerequisiteExpressionToText(expression)
+    if (!prerequisites || prerequisites.length === 0) return []
+    return prerequisites.map(pre => pre.rawText || JSON.stringify(pre))
   }
 
   // ============ 状态操作 ============
@@ -803,6 +846,8 @@ export const useStoryStore = defineStore('story', () => {
       perspective: 'male',
       map: '青阳城·乱葬岗',
       prerequisites: [],
+      prerequisiteExpression: null,
+      rawPrerequisiteText: null,
       unlockLoop: 1,
       fallbackNode: null,
       content: {
@@ -875,6 +920,7 @@ export const useStoryStore = defineStore('story', () => {
     executeSideQuest,
     checkAvailableSideQuests,
     checkPrerequisites,
+    formatPrerequisiteSummary,
     executeEffects,
     getFavorability,
     addFavorability,

@@ -39,7 +39,7 @@ export type PrerequisiteType =
 // ============ 前置条件 ============
 export interface Prerequisite {
   type: PrerequisiteType
-  operator?: '>=' | '<=' | '=' | '<'
+  operator?: '>=' | '<=' | '=' | '<' | '>'
   value?: number | string
   characterId?: string
   nodeId?: string
@@ -47,14 +47,23 @@ export interface Prerequisite {
   clueId?: string
   routeId?: string
   choiceRef?: string
+  rawText?: string
 }
 
-// ============ 效果 ============
-export interface Effect {
-  type: EffectType
-  target?: string
-  value?: number | string
+// ============ 前置条件表达式 ============
+export interface PrerequisiteConditionExpression {
+  type: 'condition'
+  condition: Prerequisite
 }
+
+export interface PrerequisiteGroupExpression {
+  type: 'and' | 'or'
+  conditions: PrerequisiteExpression[]
+}
+
+export type PrerequisiteExpression =
+  | PrerequisiteConditionExpression
+  | PrerequisiteGroupExpression
 
 // ============ NPC对话 ============
 export interface NpcDialog {
@@ -97,6 +106,8 @@ export interface StoryNode {
   perspective: Perspective
   map: string
   prerequisites: Prerequisite[]
+  prerequisiteExpression?: PrerequisiteExpression | null
+  rawPrerequisiteText?: string | null
   unlockLoop: number
   fallbackNode: string | null
   content: StoryContent
@@ -112,6 +123,8 @@ export interface CharacterEvent {
   priority: number
   unlockLoop: number
   prerequisites: Prerequisite[]
+  prerequisiteExpression?: PrerequisiteExpression | null
+  rawPrerequisiteText?: string | null
   fallbackNode: string | null
   baseProbability?: number
   loopIncrement?: number
@@ -133,7 +146,7 @@ export interface CharacterInfo {
 // ============ 触发规则 ============
 export interface TriggerRule {
   mainNodeId: string
-  characterId: string
+  characterId: string | null
   eventId: string
   triggerType: TriggerType
   baseValue: number
@@ -152,6 +165,46 @@ export interface VolumeContent {
   commonNodes: StoryNode[]
   characterEvents: CharacterEvent[]
   triggerRules: TriggerRule[]
+  characterInfos?: CharacterInfo[]
+  manifest?: StoryManifest
+}
+
+// ============ 加载/校验 manifest ============
+export type StoryManifestDiagnosticSeverity = 'warning' | 'error'
+export type StoryManifestFileKind = 'main' | 'common' | 'character' | 'link'
+
+export interface StoryManifestDiagnostic {
+  severity: StoryManifestDiagnosticSeverity
+  code: string
+  message: string
+  volume: number
+  filePath: string
+  nodeId?: string
+  eventId?: string
+  characterId?: string
+}
+
+export interface StoryManifestFile {
+  path: string
+  kind: StoryManifestFileKind
+  ids: string[]
+}
+
+export interface StoryManifestSummary {
+  mainNodeCount: number
+  commonNodeCount: number
+  characterEventCount: number
+  characterInfoCount: number
+  triggerRuleCount: number
+}
+
+export interface StoryManifest {
+  volume: number
+  perspective: Perspective
+  files: StoryManifestFile[]
+  diagnostics: StoryManifestDiagnostic[]
+  summary: StoryManifestSummary
+  hasErrors: boolean
 }
 
 // ============ 结局系�� ============
