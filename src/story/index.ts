@@ -44,6 +44,10 @@ export {
   syncStoryFavorToWorld,
   formatStoryFavorLabel
 } from './runtime/storyFavorSync'
+export {
+  syncStoryRelationshipMetric,
+  formatStoryRelationshipLabel
+} from './runtime/storyRelationshipSync'
 
 // 导出字典解析器
 export { dictionaryParser, DictionaryParser } from './dictionaryParser'

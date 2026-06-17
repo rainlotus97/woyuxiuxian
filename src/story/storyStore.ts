@@ -24,6 +24,7 @@ import { prerequisiteExpressionToText } from './parser'
 import { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
 import { describeStoryCharacterTarget } from './runtime/storyCharacterRegistry'
 import { formatStoryFavorLabel, syncStoryFavorToWorld } from './runtime/storyFavorSync'
+import { formatStoryRelationshipLabel, syncStoryRelationshipMetric } from './runtime/storyRelationshipSync'
 // 以下模块待后续集成
 // import { extensionManager } from './extensionManager'
 // import { gameplayBridge } from './gameplayBridge'
@@ -322,6 +323,42 @@ export const useStoryStore = defineStore('story', () => {
           if (effect.target && typeof effect.value === 'number') {
             addFavorability(effect.target, -effect.value)
             showNotification(`${formatStoryFavorLabel(effect.target)}好感度 -${effect.value}`, 'warning')
+          }
+          break
+        case 'hatred_up':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'hatred', effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'hatred')} +${effect.value}`, 'warning')
+          }
+          break
+        case 'hatred_down':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'hatred', -effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'hatred')} -${effect.value}`, 'info')
+          }
+          break
+        case 'debt_up':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'debt', effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'debt')} +${effect.value}`, 'success')
+          }
+          break
+        case 'debt_down':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'debt', -effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'debt')} -${effect.value}`, 'info')
+          }
+          break
+        case 'fear_up':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'fear', effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'fear')} +${effect.value}`, 'warning')
+          }
+          break
+        case 'fear_down':
+          if (effect.target && typeof effect.value === 'number') {
+            syncStoryRelationshipMetric(effect.target, 'fear', -effect.value)
+            showNotification(`${formatStoryRelationshipLabel(effect.target, 'fear')} -${effect.value}`, 'info')
           }
           break
         case 'gain_clue':

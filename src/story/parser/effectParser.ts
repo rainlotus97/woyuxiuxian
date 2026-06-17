@@ -30,6 +30,36 @@ export function parseEffectLine(line: string): Effect | null {
     return { type: 'favor_down', target: match[1].trim(), value: Number(match[2]) }
   }
 
+  match = line.match(/^(.+?)仇恨\s*\+\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'hatred_up', target: match[1].trim(), value: Number(match[2]) }
+  }
+
+  match = line.match(/^(.+?)仇恨\s*-\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'hatred_down', target: match[1].trim(), value: Number(match[2]) }
+  }
+
+  match = line.match(/^(.+?)恩情\s*\+\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'debt_up', target: match[1].trim(), value: Number(match[2]) }
+  }
+
+  match = line.match(/^(.+?)恩情\s*-\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'debt_down', target: match[1].trim(), value: Number(match[2]) }
+  }
+
+  match = line.match(/^(.+?)畏惧\s*\+\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'fear_up', target: match[1].trim(), value: Number(match[2]) }
+  }
+
+  match = line.match(/^(.+?)畏惧\s*-\s*(\d+)$/)
+  if (match?.[1] && match[2]) {
+    return { type: 'fear_down', target: match[1].trim(), value: Number(match[2]) }
+  }
+
   match = line.match(/^(获得|解锁)线索[：:]\s*(.+)$/)
   if (match?.[2]) return { type: 'unlock_clue', target: match[2].trim() }
 

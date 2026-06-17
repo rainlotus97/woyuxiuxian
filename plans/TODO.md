@@ -100,7 +100,8 @@
   - 已建立 `storyCharacterRegistry`，支持故事角色 ID / 角色名到 world npc / companion definition 的单点映射
   - 已让 `unlock_npc / unlock_companion` 优先消费 story 角色标识，而不是直接依赖底层 gameplay id
   - 已让 `favor_up / favor_down` 同步写入 world NPC relationship state，并产生日志
-  - 待补：更多角色映射与自动校验，更复杂的仇恨/债务/恐惧联动
+  - 已扩展 `hatred / debt / fear` 关系效果，并同步进入 world relationship state
+  - 待补：更多角色映射与自动校验，关系值对世界自主行动的真实影响
 - [~] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
   - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
   - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
@@ -122,6 +123,7 @@
 - [~] 建立 NPC 关系网
   - 已建立 world NPC relationship state 的 story favor 同步入口
   - 已支持 favor -> bond 的基础映射（stranger / friend / companion / rival / enemy / lover）
+  - 已支持 hatred / debt / fear 由剧情效果写入 relationship state
   - 待补：NPC 与 NPC 之间的关系边、关系驱动的自主行动与事件分发
 - [ ] 实现 NPC 自主行动结果写回世界日志
 - [ ] 实现重要 NPC 的“故事化事件记录”
@@ -216,3 +218,7 @@
   - 已新增 `storyFavorSync`，统一处理 story favor 变化到 world relationship 的桥接
   - 已为 `worldStore` 增加 relationship state API，并写入世界日志
   - 已让剧情好感通知与反馈浮层统一显示故事角色名
+- [x] 扩展剧情关系效果到 hatred / debt / fear
+  - 已新增 `storyRelationshipSync`，统一处理 story relationship metric 到 world relationship 的桥接
+  - 已支持 `仇恨/恩情/畏惧 ±N` 解析、通知与反馈浮层展示
+  - 已更新剧情规则文档，明确这些关系效果会同步进入 world relationship state

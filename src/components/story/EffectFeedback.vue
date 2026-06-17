@@ -120,6 +120,66 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       animating: false
     }),
 
+    hatred_up: () => ({
+      id,
+      type: 'warning',
+      icon: '🗡️',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}仇恨`,
+      value: `+${effect.value || 1}`,
+      valueClass: 'negative',
+      animating: false
+    }),
+
+    hatred_down: () => ({
+      id,
+      type: 'info',
+      icon: '🕊️',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}仇恨`,
+      value: `-${effect.value || 1}`,
+      valueClass: 'positive',
+      animating: false
+    }),
+
+    debt_up: () => ({
+      id,
+      type: 'success',
+      icon: '🎁',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}恩情`,
+      value: `+${effect.value || 1}`,
+      valueClass: 'positive',
+      animating: false
+    }),
+
+    debt_down: () => ({
+      id,
+      type: 'info',
+      icon: '📜',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}恩情`,
+      value: `-${effect.value || 1}`,
+      valueClass: 'neutral',
+      animating: false
+    }),
+
+    fear_up: () => ({
+      id,
+      type: 'warning',
+      icon: '👁️',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}畏惧`,
+      value: `+${effect.value || 1}`,
+      valueClass: 'negative',
+      animating: false
+    }),
+
+    fear_down: () => ({
+      id,
+      type: 'info',
+      icon: '🌤️',
+      text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}畏惧`,
+      value: `-${effect.value || 1}`,
+      valueClass: 'positive',
+      animating: false
+    }),
+
     route: () => ({
       id,
       type: 'info',
