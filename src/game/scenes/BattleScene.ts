@@ -19,6 +19,10 @@ export class BattleScene extends Phaser.Scene {
   private arena!: Phaser.GameObjects.Container
   private disposed = false
   private ready = false
+  private pendingSnapshots: BattleRuntimeSnapshot[] = []
+  private pendingCommands: BattleSceneCommand[] = []
+  private pendingHits: BattleSceneHit[] = []
+  private pendingEndResults: Array<'victory' | 'defeat' | 'fled'> = []
 
   constructor() {
     super('BattleScene')
@@ -27,22 +31,68 @@ export class BattleScene extends Phaser.Scene {
   create() {
     this.disposed = false
     this.ready = false
+    this.pendingSnapshots = []
+    this.pendingCommands = []
+    this.pendingHits = []
+    this.pendingEndResults = []
     this.cameras.main.setBackgroundColor('#e8f7ff')
     this.createArena()
     this.createAnimations()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.disposeScene())
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.disposeScene())
     this.unsubscribers.push(
-      gameEvents.on('battle:snapshot', snapshot => this.updateSnapshot(snapshot)),
-      gameEvents.on('battle:play-command', command => this.playCommand(command)),
-      gameEvents.on('battle:damage-number', hit => this.showDamage(hit)),
-      gameEvents.on('battle:ended', payload => this.playBattleEnd(payload.result))
+      gameEvents.on('battle:snapshot', snapshot => {
+        this.pendingSnapshots = [snapshot]
+      }),
+      gameEvents.on('battle:play-command', command => {
+        this.pendingCommands.push(command)
+      }),
+      gameEvents.on('battle:damage-number', hit => {
+        this.pendingHits.push(hit)
+      }),
+      gameEvents.on('battle:ended', payload => {
+        this.pendingEndResults = [payload.result]
+      })
     )
     this.time.delayedCall(0, () => {
       if (!this.hasLiveSceneSystems()) return
       this.ready = true
       gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
     })
+  }
+
+  update() {
+    if (!this.canRenderRuntimeEvents()) return
+
+    const snapshot = this.pendingSnapshots.pop()
+    if (snapshot) {
+      this.pendingSnapshots = []
+      this.updateSnapshot(snapshot)
+    }
+
+    if (this.pendingCommands.length > 0) {
+      const commands = [...this.pendingCommands]
+      this.pendingCommands = []
+      for (const command of commands) {
+        if (!this.canRenderRuntimeEvents()) return
+        this.playCommand(command)
+      }
+    }
+
+    if (this.pendingHits.length > 0) {
+      const hits = [...this.pendingHits]
+      this.pendingHits = []
+      for (const hit of hits) {
+        if (!this.canRenderRuntimeEvents()) return
+        this.showDamage(hit)
+      }
+    }
+
+    const endResult = this.pendingEndResults.pop()
+    if (endResult) {
+      this.pendingEndResults = []
+      this.playBattleEnd(endResult)
+    }
   }
 
   shutdown() {
@@ -53,6 +103,10 @@ export class BattleScene extends Phaser.Scene {
     if (this.disposed) return
     this.disposed = true
     this.ready = false
+    this.pendingSnapshots = []
+    this.pendingCommands = []
+    this.pendingHits = []
+    this.pendingEndResults = []
     for (const off of this.unsubscribers) off()
     this.unsubscribers = []
     this.actors.clear()
