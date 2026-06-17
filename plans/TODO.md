@@ -12,7 +12,8 @@
   - 已建立 `src/game/battle/battleRuntime.ts`
   - 已建立 `src/game/scenes/BattleScene.ts`
   - 已接入本地背景/角色占位资源
-  - 待完成：从旧 `battleStore` 迁移剩余机制并退役旧入口
+  - 已确认主战斗页不再依赖旧 `battleStore`
+  - 已将 `battleStore` 降级为 legacy compatibility store，避免误用旧链路
 - [x] 拆分 `src/views/game/BattleView.vue`
   - 已拆出：
     - `components/battle/BattleTopHud.vue`
@@ -32,9 +33,9 @@
 - [ ] 增加战斗场景 arena 配置
 - [ ] 增加不同地图背景切换能力
 - [ ] 为 Boss、伙伴、灵兽预留独立站位模板
-- [ ] 明确 `stores/battleStore.ts` 去留：
-  - 若保留，只能做兼容适配层
-  - 若迁移完成，应删除页面主调用
+- [x] 明确 `stores/battleStore.ts` 去留：
+  - 页面主调用已迁移到 `useBattleSession + battleRuntime`
+  - `battleStore` 当前仅保留为 legacy 兼容存根，不再承载主战斗逻辑
 
 ## P1 游戏界面
 
