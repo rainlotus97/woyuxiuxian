@@ -16,6 +16,8 @@
   - 已接入本地背景/角色占位资源
   - 已确认主战斗页不再依赖旧 `battleStore`
   - 已将 `battleStore` 降级为 legacy compatibility store，避免误用旧链路
+  - 已建立 `BattlePanelShell / BattleWorldStrip`，把战斗 HUD 面板结构抽成复用组件
+  - 已将顶部状态、世界摘要、行动序列、命令栏、日志栏、结算卡统一到明亮战斗面板体系
 - [x] 拆分 `src/views/game/BattleView.vue`
   - 已拆出：
     - `components/battle/BattleTopHud.vue`
@@ -64,19 +66,22 @@
 ## P1 游戏界面
 
 - [ ] 重构 `src/views/GameLayout.vue`
-- [ ] 建立统一游戏 UI 设计 token
+- [~] 建立统一游戏 UI 设计 token
   - 色板
   - 阴影
   - 面板边框
   - 间距
   - 按钮状态
+  - 已在战斗页验证第一批 token 化面板壳：`BattlePanelShell`
 - [ ] 把“页面像应用”的问题逐页收口：
   - `AdventureView`
   - `MapView`
   - `SectView`
   - `StoryView`
   - `ShopView`
-- [ ] 增加统一弹层/面板组件，替代页面内重复容器样式
+- [~] 增加统一弹层/面板组件，替代页面内重复容器样式
+  - 已在战斗页建立 `BattlePanelShell` 作为第一阶段复用容器
+  - 待补：主界面、坊市、宗门、地图共用面板 token
 
 ## P1 剧情系统
 
@@ -203,6 +208,10 @@
   - 已让 `battle:snapshot / battle:play-command / battle:damage-number / battle:ended` 绑定当前战斗实例
   - 已将 `scene-ready` 延后到可渲染首帧后发出，避免 `showDamage()` / `updateSnapshot()` 抢跑
   - 已通过浏览器实测验证首进战斗与首回合伤害表现恢复正常
+- [x] 推进战斗 HUD 第二阶段重构
+  - 已建立 `BattlePanelShell` 与 `BattleWorldStrip`，把世界摘要与面板装饰从 `BattleView` 主文件中抽离
+  - 已重构 `BattleTopHud / BattleActionOrder / BattleCommandDock / BattleLogDock / BattleResultPanel`
+  - 已通过桌面与移动端截图确认亮色布局下无明显遮挡，控制台无新增异常
 - [x] 让地图区域风险进入真实战斗/历练结算链路
   - 已建立 `mapAreaEncounterResolver` 作为地图区域到历练区域/风险倍率/文案的统一入口
   - 已让 BattleView、AdventureView、MapView 复用该 resolver，而不是各自维护映射和文案

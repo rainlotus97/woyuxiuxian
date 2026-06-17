@@ -1,28 +1,46 @@
 <template>
-  <section class="log-dock">
-    <div class="dock-header passive">
+  <BattlePanelShell
+    class="log-dock"
+    variant="mist"
+    padding="md"
+    eyebrow="战场流光"
+    title="战斗记录"
+    :subtitle="summaryText"
+    header-align="start"
+  >
+    <template #header>
       <SpiritFireBar :current="spiritFire" :max="maxSpiritFire" />
+    </template>
+
+    <div class="log-list">
+      <div
+        v-for="log in logs"
+        :key="log.id"
+        class="battle-log"
+        :class="log.severity"
+      >
+        {{ log.text }}
+      </div>
     </div>
-    <div
-      v-for="log in logs"
-      :key="log.id"
-      class="battle-log"
-      :class="log.severity"
-    >
-      {{ log.text }}
-    </div>
-  </section>
+  </BattlePanelShell>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BattleRuntimeLog } from '@/game/battle/battleRuntime'
+import BattlePanelShell from './BattlePanelShell.vue'
 import SpiritFireBar from './SpiritFireBar.vue'
 
-defineProps<{
+const props = defineProps<{
   spiritFire: number
   maxSpiritFire: number
   logs: BattleRuntimeLog[]
 }>()
+
+const summaryText = computed(() => {
+  const latest = props.logs[props.logs.length - 1]
+  return latest?.severity === 'major' ? '局势正在迅速变化' : '阵中灵机未定'
+})
 </script>
 
 <style scoped>
@@ -31,13 +49,12 @@ defineProps<{
   z-index: 2;
   left: 18px;
   bottom: 18px;
-  display: grid;
-  gap: 7px;
   max-width: min(560px, calc(100vw - 36px));
 }
 
-.dock-header.passive {
-  margin: 0 0 8px;
+.log-list {
+  display: grid;
+  gap: 8px;
 }
 
 .battle-log {
@@ -54,5 +71,12 @@ defineProps<{
   color: #8b5a20;
   border-left-color: #e3a642;
   background: rgba(255, 248, 218, 0.78);
+}
+
+@media (max-width: 720px) {
+  .log-dock {
+    right: 18px;
+    max-width: none;
+  }
 }
 </style>

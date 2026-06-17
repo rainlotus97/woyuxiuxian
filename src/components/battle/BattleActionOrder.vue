@@ -1,23 +1,32 @@
 <template>
-  <div class="action-order" v-if="units.length">
-    <div class="order-title">行动序列</div>
-    <div
-      v-for="unit in units"
-      :key="unit.id"
-      class="order-row"
-      :class="{ active: currentActorId === unit.id, enemy: unit.side === 'enemy' }"
-    >
-      <span>{{ unit.icon }}</span>
-      <div class="order-meta">
-        <b>{{ cleanName(unit.name) }}</b>
-        <div class="gauge"><i :style="{ width: `${unit.actionGauge}%` }"></i></div>
+  <BattlePanelShell
+    v-if="units.length"
+    class="action-order"
+    variant="jade"
+    padding="sm"
+    eyebrow="气机轮转"
+    title="行动序列"
+  >
+    <div class="order-list">
+      <div
+        v-for="unit in units"
+        :key="unit.id"
+        class="order-row"
+        :class="{ active: currentActorId === unit.id, enemy: unit.side === 'enemy' }"
+      >
+        <span class="order-icon">{{ unit.icon }}</span>
+        <div class="order-meta">
+          <b>{{ cleanName(unit.name) }}</b>
+          <div class="gauge"><i :style="{ width: `${unit.actionGauge}%` }"></i></div>
+        </div>
       </div>
     </div>
-  </div>
+  </BattlePanelShell>
 </template>
 
 <script setup lang="ts">
 import type { BattleRuntimeUnit } from '@/game/battle/battleRuntime'
+import BattlePanelShell from './BattlePanelShell.vue'
 
 defineProps<{
   units: BattleRuntimeUnit[]
@@ -34,24 +43,13 @@ function cleanName(name: string) {
   position: absolute;
   z-index: 2;
   right: 18px;
-  top: 106px;
-  width: 148px;
-  display: grid;
-  gap: 8px;
-  padding: 11px 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(97, 147, 135, 0.28);
-  background: rgba(255, 252, 236, 0.56);
-  box-shadow: 0 18px 45px rgba(89, 139, 130, 0.16);
-  backdrop-filter: blur(12px);
+  top: calc(88px + env(safe-area-inset-top, 0px));
+  width: 170px;
 }
 
-.order-title {
-  color: #8c652c;
-  font-size: 12px;
-  text-align: center;
-  padding-bottom: 2px;
-  border-bottom: 1px solid rgba(176, 133, 55, 0.18);
+.order-list {
+  display: grid;
+  gap: 8px;
 }
 
 .order-row {
@@ -66,12 +64,22 @@ function cleanName(name: string) {
 
 .order-row.active {
   opacity: 1;
-  background: rgba(255, 235, 154, 0.56);
-  filter: drop-shadow(0 4px 10px rgba(188, 134, 44, 0.24));
+  background: rgba(255, 235, 154, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(207, 154, 66, 0.18);
 }
 
 .order-row.enemy .gauge i {
   background: linear-gradient(90deg, #f47c8c, #d64a5e);
+}
+
+.order-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .order-meta {
@@ -104,11 +112,12 @@ function cleanName(name: string) {
 
 @media (max-width: 720px) {
   .action-order {
-    width: 118px;
+    top: auto;
+    bottom: 210px;
     right: 10px;
+    width: 126px;
   }
 
-  .order-title,
   .order-meta b {
     display: none;
   }

@@ -1,12 +1,12 @@
 <template>
   <div class="battle-hud top">
-    <button class="icon-btn" @click="$emit('exit')">×</button>
+    <button class="icon-btn" @click="$emit('exit')">退</button>
     <div class="battle-title">
       <span class="eyebrow">{{ areaName || '遭遇战' }}</span>
       <strong>{{ title }}</strong>
     </div>
     <button class="speed-btn" :class="{ active: autoBattle }" @click="$emit('cycle-auto')">
-      {{ autoBattle ? `${battleSpeed}x 自动` : '手动' }}
+      {{ autoBattle ? `${battleSpeed}x 自动` : '手动布阵' }}
     </button>
   </div>
 </template>
@@ -36,26 +36,29 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   padding: calc(12px + env(safe-area-inset-top, 0px)) 20px 12px;
-  background: linear-gradient(180deg, rgba(244, 251, 246, 0.88), rgba(244, 251, 246, 0));
+  background: linear-gradient(180deg, rgba(247, 252, 248, 0.92), rgba(247, 252, 248, 0));
 }
 
 .icon-btn,
 .speed-btn {
-  border: 1px solid rgba(128, 102, 49, 0.26);
-  background: rgba(255, 252, 236, 0.78);
-  color: #6c5131;
-  min-width: 54px;
-  height: 42px;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(88, 130, 128, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(119, 152, 143, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(239, 249, 240, 0.82)),
+    radial-gradient(circle at top, rgba(255, 223, 142, 0.22), transparent 62%);
+  color: #486560;
+  min-width: 82px;
+  height: 44px;
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(88, 130, 128, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);
   font-weight: 700;
+  font-size: 13px;
 }
 
 .speed-btn.active {
   color: #204b46;
-  border-color: rgba(58, 156, 139, 0.5);
-  background: linear-gradient(135deg, #fff1a8, #9fe5ce);
+  border-color: rgba(58, 156, 139, 0.44);
+  background: linear-gradient(135deg, rgba(255, 240, 170, 0.94), rgba(159, 229, 206, 0.96));
 }
 
 .battle-title {
@@ -74,5 +77,23 @@ defineEmits<{
   font-size: 20px;
   letter-spacing: 0;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 720px) {
+  .battle-hud.top {
+    padding-inline: 14px;
+    gap: 10px;
+  }
+
+  .icon-btn,
+  .speed-btn {
+    min-width: 72px;
+    height: 40px;
+    font-size: 12px;
+  }
+
+  .battle-title strong {
+    font-size: 17px;
+  }
 }
 </style>

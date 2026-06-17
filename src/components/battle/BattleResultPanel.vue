@@ -1,19 +1,22 @@
 <template>
   <div class="result-panel">
-    <div class="result-card">
-      <span class="result-mark">{{ resultMark }}</span>
-      <h2>{{ title }}</h2>
-      <p v-if="result === 'victory'">获得 {{ rewards.cultivation }} 修为、{{ rewards.gold }} 灵石。</p>
-      <p v-else-if="result === 'defeat'">你被迫撤回，世界仍在继续流转。</p>
-      <p v-else>你脱离了战场，没有获得战利品。</p>
-      <button @click="$emit('confirm')">返回历练</button>
-    </div>
+    <BattlePanelShell class="result-card" variant="gold" padding="lg">
+      <div class="result-body">
+        <span class="result-mark">{{ resultMark }}</span>
+        <h2>{{ title }}</h2>
+        <p v-if="result === 'victory'">获得 {{ rewards.cultivation }} 修为、{{ rewards.gold }} 灵石。</p>
+        <p v-else-if="result === 'defeat'">你被迫撤回，世界仍在继续流转。</p>
+        <p v-else>你脱离了战场，没有获得战利品。</p>
+        <button @click="$emit('confirm')">返回历练</button>
+      </div>
+    </BattlePanelShell>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BattleRuntimeResult } from '@/game/battle/battleRuntime'
+import BattlePanelShell from './BattlePanelShell.vue'
 
 const props = defineProps<{
   result: Exclude<BattleRuntimeResult, null>
@@ -45,12 +48,10 @@ const resultMark = computed(() => {
 
 .result-card {
   width: min(340px, calc(100vw - 34px));
-  border: 1px solid rgba(188, 137, 45, 0.34);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 253, 240, 0.98), rgba(235, 250, 242, 0.98));
-  padding: 24px 18px 18px;
+}
+
+.result-body {
   text-align: center;
-  box-shadow: 0 28px 80px rgba(95, 133, 124, 0.24);
 }
 
 .result-mark {

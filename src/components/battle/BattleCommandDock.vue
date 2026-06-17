@@ -1,9 +1,15 @@
 <template>
-  <section class="command-dock">
-    <div class="dock-header">
+  <BattlePanelShell
+    class="command-dock"
+    variant="gold"
+    padding="md"
+    eyebrow="灵脉调息"
+    :title="actorName"
+    :subtitle="targetHint"
+  >
+    <template #header>
       <SpiritFireBar :current="spiritFire" :max="maxSpiritFire" />
-      <small>{{ actorName }} · {{ targetHint }}</small>
-    </div>
+    </template>
 
     <div v-if="targets.length" class="target-row">
       <button
@@ -39,10 +45,11 @@
         脱战
       </button>
     </div>
-  </section>
+  </BattlePanelShell>
 </template>
 
 <script setup lang="ts">
+import BattlePanelShell from './BattlePanelShell.vue'
 import SpiritFireBar from './SpiritFireBar.vue'
 
 interface TargetChip {
@@ -91,20 +98,8 @@ function cleanName(name: string) {
   bottom: 0;
   z-index: 2;
   padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(0deg, rgba(244, 251, 246, 0.96), rgba(244, 251, 246, 0.2));
-}
-
-.dock-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.dock-header small {
-  color: rgba(76, 86, 78, 0.72);
-  font-size: 12px;
+  border-radius: 22px 22px 0 0;
+  border-bottom: 0;
 }
 
 .target-row {
