@@ -7,7 +7,7 @@ import { useCompanionStore } from '@/stores/companionStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
-import { DIFFICULTY_CONFIG, ENEMIES } from '@/game/battle/config'
+import { DIFFICULTY_CONFIG, ENEMIES, getBattleArenaIdForArea } from '@/game/battle/config'
 import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById, getSkillsByIds } from '@/types/skill'
 import { getAreaById, rollDrops, rollReward, type AreaDefinition } from '@/types/adventure'
@@ -205,6 +205,8 @@ export function useBattleSession() {
     battleRunId++
     worldStore.simulateOffline()
     battleRuntime.value = new BattleRuntime(createAllies(), createEnemies())
+    const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
+    gameEvents.emit('battle:arena-theme', { arenaId })
     refreshSnapshot()
     selectedSkillId.value = null
     selectedTargetId.value = battleRuntime.value.aliveEnemies[0]?.id ?? null
@@ -326,6 +328,8 @@ export function useBattleSession() {
     unsubSceneReady = gameEvents.on('battle:scene-ready', () => {
       if (disposed) return
       sceneReady = true
+      const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
+      gameEvents.emit('battle:arena-theme', { arenaId })
       refreshSnapshot()
     })
   }

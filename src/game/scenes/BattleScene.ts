@@ -1,9 +1,13 @@
 import Phaser from 'phaser'
+import { DEFAULT_BATTLE_ARENA_ID, getBattleArenaTheme, type BattleArenaTheme } from '@/game/battle/config'
 import { gameEvents, type BattleSceneCommand, type BattleSceneHit } from '@/game/engine/gameEvents'
 import type { BattleRuntimeSnapshot, BattleRuntimeUnit } from '@/game/battle/battleRuntime'
+import { buildBattleArena } from './battleArenaBuilder'
+import { getBattleActorPosition, getBattleActorScale, getBattleShadowSize } from './battleSceneLayout'
 
 interface ActorSprite {
   unitId: string
+  spriteKey: string
   sprite: Phaser.GameObjects.Sprite
   shadow: Phaser.GameObjects.Ellipse
   hpBar: Phaser.GameObjects.Rectangle
@@ -17,6 +21,7 @@ export class BattleScene extends Phaser.Scene {
   private actors = new Map<string, ActorSprite>()
   private unsubscribers: (() => void)[] = []
   private arena!: Phaser.GameObjects.Container
+  private arenaTheme: BattleArenaTheme = getBattleArenaTheme(DEFAULT_BATTLE_ARENA_ID)
   private disposed = false
   private ready = false
   private pendingSnapshots: BattleRuntimeSnapshot[] = []
@@ -35,7 +40,6 @@ export class BattleScene extends Phaser.Scene {
     this.pendingCommands = []
     this.pendingHits = []
     this.pendingEndResults = []
-    this.cameras.main.setBackgroundColor('#e8f7ff')
     this.createArena()
     this.createAnimations()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.disposeScene())
@@ -46,6 +50,9 @@ export class BattleScene extends Phaser.Scene {
       }),
       gameEvents.on('battle:play-command', command => {
         this.pendingCommands.push(command)
+      }),
+      gameEvents.on('battle:arena-theme', payload => {
+        this.applyArenaTheme(payload.arenaId)
       }),
       gameEvents.on('battle:damage-number', hit => {
         this.pendingHits.push(hit)
@@ -112,6 +119,14 @@ export class BattleScene extends Phaser.Scene {
     this.actors.clear()
   }
 
+  private applyArenaTheme(arenaId: string) {
+    this.arenaTheme = getBattleArenaTheme(arenaId)
+    if (!this.sys?.isActive()) return
+    this.cameras.main.setBackgroundColor(this.arenaTheme.cameraBackgroundColor)
+    this.rebuildArena()
+    this.relayoutActors()
+  }
+
   updateSnapshot(snapshot: BattleRuntimeSnapshot) {
     if (!this.canRenderRuntimeEvents()) return
     this.ensureActors(snapshot.units)
@@ -131,84 +146,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createArena() {
-    const { width, height } = this.scale
-    this.arena = this.add.container(0, 0)
-
-    this.addBackgroundLayer('bg_cloud_base', 0.5, 0.5, 1.02, 1)
-    this.addBackgroundLayer('bg_cloud_glow', 0.5, 0.5, 1.02, 0.42)
-    this.addBackgroundLayer('bg_mountain_far', 0.5, 0.44, 1.02, 0.86)
-    this.addBackgroundLayer('bg_mountain_near', 0.5, 0.52, 1.02, 0.7)
-    this.addDriftingCloud('bg_cloud_1', 0.22, 0.23, 1.15, 0.46, 18000, 52)
-    this.addDriftingCloud('bg_cloud_2', 0.72, 0.31, 1.12, 0.42, 21000, -46)
-    this.addDriftingCloud('bg_cloud_3', 0.44, 0.48, 1.18, 0.34, 16000, 38)
-    this.addDriftingCloud('bg_cloud_4', 0.82, 0.57, 1.2, 0.32, 19000, -34)
-    this.createBattleTerrace(width, height)
-
-    const sigil = this.add.graphics()
-    sigil.lineStyle(3, 0xd8a944, 0.34)
-    sigil.strokeCircle(width / 2, height * 0.54, Math.min(width, height) * 0.21)
-    sigil.strokeCircle(width / 2, height * 0.54, Math.min(width, height) * 0.12)
-    sigil.lineStyle(1, 0x56b9a8, 0.28)
-    for (let i = 0; i < 8; i++) {
-      const angle = i * Math.PI / 4
-      const radius = Math.min(width, height) * 0.22
-      sigil.beginPath()
-      sigil.moveTo(width / 2, height * 0.54)
-      sigil.lineTo(width / 2 + Math.cos(angle) * radius, height * 0.54 + Math.sin(angle) * radius)
-      sigil.strokePath()
-    }
-    this.tweens.add({ targets: sigil, angle: 360, duration: 32000, repeat: -1 })
-    this.tweens.add({ targets: sigil, alpha: { from: 0.32, to: 0.82 }, scale: { from: 0.94, to: 1.04 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
-    this.arena.add(sigil)
-
-    const sweep = this.add.rectangle(width * 0.5, height * 0.54, width * 0.72, 5, 0xfff0a6, 0.54)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setAngle(-5)
-    this.tweens.add({
-      targets: sweep,
-      x: { from: width * 0.16, to: width * 0.84 },
-      alpha: { from: 0, to: 0.74 },
-      duration: 1400,
-      yoyo: true,
-      repeat: -1,
-      repeatDelay: 1300,
-      ease: 'Sine.easeInOut'
-    })
-    this.arena.add(sweep)
+    this.cameras.main.setBackgroundColor(this.arenaTheme.cameraBackgroundColor)
+    this.arena = buildBattleArena(this, this.arenaTheme)
   }
 
-  private addBackgroundLayer(key: string, xRatio: number, yRatio: number, fillScale = 1, alpha = 1) {
-    const { width, height } = this.scale
-    const layer = this.add.image(width * xRatio, height * yRatio, key)
-      .setOrigin(0.5)
-      .setAlpha(alpha)
-      .setScale(Math.max(width / 270, height / 170) * fillScale)
-    this.arena.add(layer)
-    return layer
-  }
-
-  private addDriftingCloud(key: string, xRatio: number, yRatio: number, fillScale: number, alpha: number, duration: number, drift: number) {
-    const cloud = this.addBackgroundLayer(key, xRatio, yRatio, fillScale, alpha)
-    cloud.setBlendMode(Phaser.BlendModes.SCREEN)
-    this.tweens.add({ targets: cloud, x: cloud.x + drift, duration, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
-  }
-
-  private createBattleTerrace(width: number, height: number) {
-    const terrace = this.add.graphics()
-    const top = height * 0.52
-    terrace.fillStyle(0xf3dfb5, 0.48)
-    terrace.fillRoundedRect(width * 0.08, top, width * 0.84, height * 0.28, 26)
-    terrace.lineStyle(2, 0xd0a85a, 0.24)
-    terrace.strokeRoundedRect(width * 0.08, top, width * 0.84, height * 0.28, 26)
-    terrace.lineStyle(1, 0xb88f4d, 0.18)
-    for (let i = 0; i < 7; i++) {
-      const y = top + 18 + i * 30
-      terrace.beginPath()
-      terrace.moveTo(width * 0.11, y)
-      terrace.lineTo(width * 0.89, y + Math.sin(i) * 8)
-      terrace.strokePath()
-    }
-    this.arena.add(terrace)
+  private rebuildArena() {
+    this.arena?.destroy(true)
+    this.arena = buildBattleArena(this, this.arenaTheme)
   }
 
   private createAnimations() {
@@ -277,11 +221,16 @@ export class BattleScene extends Phaser.Scene {
       existing.hpBg.setPosition(position.x - 25, position.y - 69)
       existing.hpBar.setPosition(position.x - 24, position.y - 69)
       existing.name.setPosition(position.x, position.y - 91)
+      existing.sprite.setScale(getBattleActorScale(this.arenaTheme, unit.side, unit.spriteKey))
+      const shadowSize = getBattleShadowSize(this.arenaTheme, unit.side)
+      existing.shadow.width = shadowSize.width
+      existing.shadow.height = shadowSize.height
       return
     }
-    const shadow = this.add.ellipse(position.x, position.y + 33, unit.side === 'ally' ? 64 : 58, 18, 0x4e6e68, 0.22)
+    const shadowSize = getBattleShadowSize(this.arenaTheme, unit.side)
+    const shadow = this.add.ellipse(position.x, position.y + 33, shadowSize.width, shadowSize.height, 0x4e6e68, 0.22)
     const sprite = this.add.sprite(position.x, position.y, unit.spriteKey, 0)
-      .setScale(unit.spriteKey === 'actor_boss' ? 3.25 : unit.side === 'ally' ? 3.05 : 2.9)
+      .setScale(getBattleActorScale(this.arenaTheme, unit.side, unit.spriteKey))
       .play(`${unit.spriteKey}_idle`)
     sprite.setAlpha(0)
     const hpFrame = this.add.rectangle(position.x - 29, position.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
@@ -300,18 +249,12 @@ export class BattleScene extends Phaser.Scene {
       .setScale(unit.spriteKey === 'actor_boss' ? 0.72 : 0.58)
       .setBlendMode(Phaser.BlendModes.ADD)
     this.tweens.add({ targets: aura, alpha: 0, scale: aura.scale * 1.4, duration: 820, ease: 'Sine.easeOut', onComplete: () => aura.destroy() })
-    this.actors.set(unit.id, { unitId: unit.id, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
+    this.actors.set(unit.id, { unitId: unit.id, spriteKey: unit.spriteKey, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
   }
 
   private getPosition(side: 'ally' | 'enemy', index: number, total: number) {
     const { width, height } = this.scale
-    const centerX = width / 2
-    const spacing = Math.min(76, width / Math.max(5, total + 1))
-    const offset = (index - (total - 1) / 2) * spacing
-    return {
-      x: centerX + offset,
-      y: side === 'ally' ? height * 0.69 + Math.abs(offset) * 0.06 : height * 0.36 - Math.abs(offset) * 0.04
-    }
+    return getBattleActorPosition(width, height, this.arenaTheme, side, index, total)
   }
 
   private playCommand(command: BattleSceneCommand) {
@@ -322,8 +265,8 @@ export class BattleScene extends Phaser.Scene {
 
     const originalX = actor.sprite.x
     const originalY = actor.sprite.y
-    const lungeX = target.sprite.x + (actor.side === 'ally' ? -52 : 52)
-    const lungeY = target.sprite.y + 8
+    const lungeX = target.sprite.x + (actor.side === 'ally' ? -this.arenaTheme.layout.lungeOffsetX : this.arenaTheme.layout.lungeOffsetX)
+    const lungeY = target.sprite.y + this.arenaTheme.layout.lungeOffsetY
     if (command.type === 'skill') {
       this.playCastAura(actor)
     }
@@ -489,5 +432,32 @@ export class BattleScene extends Phaser.Scene {
 
   private isActorAlive(actor: ActorSprite | undefined): actor is ActorSprite {
     return Boolean(actor?.sprite?.scene === this && actor?.name?.scene === this)
+  }
+
+  private relayoutActors() {
+    if (this.actors.size === 0) return
+    const runtimeUnits = Array.from(this.actors.keys())
+    const allies = runtimeUnits
+      .map(id => this.actors.get(id))
+      .filter((actor): actor is ActorSprite => Boolean(actor && actor.side === 'ally'))
+    const enemies = runtimeUnits
+      .map(id => this.actors.get(id))
+      .filter((actor): actor is ActorSprite => Boolean(actor && actor.side === 'enemy'))
+
+    allies.forEach((actor, index) => this.relayoutActor(actor, this.getPosition('ally', index, allies.length)))
+    enemies.forEach((actor, index) => this.relayoutActor(actor, this.getPosition('enemy', index, enemies.length)))
+  }
+
+  private relayoutActor(actor: ActorSprite, position: { x: number; y: number }) {
+    const shadowSize = getBattleShadowSize(this.arenaTheme, actor.side)
+    actor.sprite.setPosition(position.x, position.y)
+    actor.sprite.setScale(getBattleActorScale(this.arenaTheme, actor.side, actor.spriteKey))
+    actor.shadow.setPosition(position.x, position.y + 33)
+    actor.shadow.width = shadowSize.width
+    actor.shadow.height = shadowSize.height
+    actor.hpFrame.setPosition(position.x - 29, position.y - 72)
+    actor.hpBg.setPosition(position.x - 25, position.y - 69)
+    actor.hpBar.setPosition(position.x - 24, position.y - 69)
+    actor.name.setPosition(position.x, position.y - 91)
   }
 }

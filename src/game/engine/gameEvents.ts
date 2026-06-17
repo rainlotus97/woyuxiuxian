@@ -25,8 +25,13 @@ export interface BattleSceneReady {
   sceneKey: string
 }
 
+export interface BattleArenaThemeChanged {
+  arenaId: string
+}
+
 export interface GameEvents {
   'battle:scene-ready': BattleSceneReady
+  'battle:arena-theme': BattleArenaThemeChanged
   'battle:snapshot': BattleRuntimeSnapshot
   'battle:play-command': BattleSceneCommand
   'battle:damage-number': BattleSceneHit

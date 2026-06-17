@@ -40,9 +40,15 @@
   - 已支持护盾吸收伤害与 DOT 回合开始扣血
   - 待补：召唤物实体与专属站位/AI
 - [ ] 增加回放日志结构，支持剧情战和世界事件战共用
-- [ ] 增加战斗场景 arena 配置
-- [ ] 增加不同地图背景切换能力
-- [ ] 为 Boss、伙伴、灵兽预留独立站位模板
+- [x] 增加战斗场景 arena 配置
+  - 已建立 `src/game/battle/config/arenas.ts`
+  - 已抽离 `battleArenaBuilder`、`battleSceneLayout`，避免舞台结构和站位逻辑堆进 `BattleScene`
+- [x] 增加不同地图背景切换能力
+  - 已通过 `battle:arena-theme` 事件让区域驱动战场主题
+  - 已验证 `misty_forest` 与 `dark_cave` 进入战斗时主题切换稳定
+- [~] 为 Boss、伙伴、灵兽预留独立站位模板
+  - 已建立 arena layout 层，支持 ally/enemy/boss 缩放与站位参数配置
+  - 待补：伙伴/灵兽专用列队模板与召唤物插槽
 - [x] 明确 `stores/battleStore.ts` 去留：
   - 页面主调用已迁移到 `useBattleSession + battleRuntime`
   - `battleStore` 当前仅保留为 legacy 兼容存根，不再承载主战斗逻辑
@@ -143,4 +149,7 @@
   - 已验证 BattleView 命令栏可切换友方目标并正常结算
 - [x] 建立战斗配置目录
   - 已迁移技能、技能树、敌人、区域/难度配置到 `src/game/battle/config/*`
+- [x] 建立 arena 配置与区域主题切换
+  - 已让战斗区域驱动舞台背景、色调、站位布局
+  - 已验证首次进入战斗和指定区域直达战斗都稳定
 - [x] 新增 roadmap 与 todo 文档，明确后续执行顺序
