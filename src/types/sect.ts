@@ -175,6 +175,14 @@ export interface SectTask {
 // 宗门关系
 export type SectRelation = 'neutral' | 'friendly' | 'allied' | 'hostile' | 'at_war'
 
+export type SectWorldStatus = 'stable' | 'rebuilding' | 'collapsed'
+
+export interface SectWorldCondition {
+  status: SectWorldStatus
+  occupiedBySectId: string | null
+  lastUpdatedTick: number | null
+}
+
 // 宗门关系配置
 export const RELATION_CONFIG: Record<SectRelation, { label: string; color: string; description: string }> = {
   'neutral': { label: '中立', color: '#9ca3af', description: '互不干涉' },

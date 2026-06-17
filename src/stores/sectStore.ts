@@ -7,7 +7,8 @@ import type {
   SectTaskType,
   SectRelation,
   SectWar,
-  SectEvent
+  SectEvent,
+  SectWorldCondition
 } from '@/types/sect'
 import {
   SECT_POSITIONS,
@@ -37,6 +38,7 @@ interface SectState {
   tasks: SectTask[]
   activeWar: SectWar | null
   activeEvent: SectEvent | null
+  worldCondition: SectWorldCondition
   unlockedSects: string[]
   facilityLevels: Record<string, number>
   lastTaskRefresh: number
@@ -57,6 +59,11 @@ function getDefaultSectState(): SectState {
     tasks: [],
     activeWar: null,
     activeEvent: null,
+    worldCondition: {
+      status: 'stable',
+      occupiedBySectId: null,
+      lastUpdatedTick: null
+    },
     unlockedSects: [],
     facilityLevels: {},
     lastTaskRefresh: Date.now(),
@@ -82,6 +89,7 @@ export const useSectStore = defineStore('sect', () => {
         reputation: parsed.reputation ?? defaults.reputation,
         relations: parsed.relations ?? defaults.relations,
         tasks: parsed.tasks ?? defaults.tasks,
+        worldCondition: parsed.worldCondition ?? defaults.worldCondition,
         unlockedSects: parsed.unlockedSects ?? defaults.unlockedSects,
         facilityLevels: parsed.facilityLevels ?? defaults.facilityLevels
       }
@@ -104,6 +112,7 @@ export const useSectStore = defineStore('sect', () => {
   const tasks = ref<SectTask[]>(initialData.tasks)
   const activeWar = ref<SectWar | null>(initialData.activeWar)
   const activeEvent = ref<SectEvent | null>(initialData.activeEvent)
+  const worldCondition = ref<SectWorldCondition>(initialData.worldCondition)
   const unlockedSects = ref<string[]>(initialData.unlockedSects)
   const facilityLevels = ref<Record<string, number>>(initialData.facilityLevels)
   const lastTaskRefresh = ref<number>(initialData.lastTaskRefresh)
@@ -185,6 +194,7 @@ export const useSectStore = defineStore('sect', () => {
         tasks: toRaw(tasks.value),
         activeWar: toRaw(activeWar.value),
         activeEvent: toRaw(activeEvent.value),
+        worldCondition: toRaw(worldCondition.value),
         unlockedSects: toRaw(unlockedSects.value),
         facilityLevels: toRaw(facilityLevels.value),
         lastTaskRefresh: lastTaskRefresh.value,
@@ -245,7 +255,19 @@ export const useSectStore = defineStore('sect', () => {
     tasks.value = []
     activeWar.value = null
     activeEvent.value = null
+    worldCondition.value = {
+      status: 'stable',
+      occupiedBySectId: null,
+      lastUpdatedTick: null
+    }
     return true
+  }
+
+  function applyWorldCondition(condition: Partial<SectWorldCondition>) {
+    worldCondition.value = {
+      ...worldCondition.value,
+      ...condition
+    }
   }
 
   // 晋升职位
@@ -881,6 +903,7 @@ export const useSectStore = defineStore('sect', () => {
     tasks,
     activeWar,
     activeEvent,
+    worldCondition,
     unlockedSects,
     facilityLevels,
     lastTaskRefresh,
@@ -918,6 +941,7 @@ export const useSectStore = defineStore('sect', () => {
     getFacilityLevel,
     upgradeFacility,
     setRelation,
+    applyWorldCondition,
     declareWar,
     advanceWar,
     handleWarEnd,

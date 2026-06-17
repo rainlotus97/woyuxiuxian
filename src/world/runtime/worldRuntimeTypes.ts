@@ -75,5 +75,15 @@ export interface WorldRuntimeNpcActionResult {
 export interface WorldRuntimeAftermathResult {
   npcPatches?: WorldRuntimeNpcPatch[]
   relationshipDeltas?: WorldRuntimeRelationshipDelta[]
+  playerCaptivity?: {
+    isCaptured: boolean
+    captorSectId: string | null
+    sinceTick: number | null
+  }
+  sectCondition?: {
+    status: 'stable' | 'rebuilding' | 'collapsed'
+    occupiedBySectId: string | null
+    lastUpdatedTick: number | null
+  }
   logs?: WorldRuntimeLogEffect[]
 }

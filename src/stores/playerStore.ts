@@ -82,6 +82,11 @@ interface PlayerState {
   // 挂机相关
   idleStartTime: number | null
   isIdling: boolean
+  captivity: {
+    isCaptured: boolean
+    captorSectId: string | null
+    sinceTick: number | null
+  }
 
   // 历练区域进度
   areaProgress: AreaProgress[]
@@ -150,6 +155,11 @@ function getDefaultPlayer(): PlayerState {
 
     idleStartTime: null,
     isIdling: false,
+    captivity: {
+      isCaptured: false,
+      captorSectId: null,
+      sinceTick: null
+    },
 
     // 历练区域进度（初始为空，会在游戏运行时初始化）
     areaProgress: [],
@@ -232,6 +242,11 @@ export const usePlayerStore = defineStore('player', () => {
 
   const idleStartTime = ref<number | null>(initialData.idleStartTime)
   const isIdling = ref(initialData.isIdling)
+  const captivity = ref(initialData.captivity ?? {
+    isCaptured: false,
+    captorSectId: null,
+    sinceTick: null
+  })
 
   // 历练区域进度
   const areaProgress = ref<AreaProgress[]>(initialData.areaProgress ?? [])
@@ -378,6 +393,7 @@ export const usePlayerStore = defineStore('player', () => {
         temporaryBuffs: toRaw(temporaryBuffs.value),
         idleStartTime: idleStartTime.value,
         isIdling: isIdling.value,
+        captivity: toRaw(captivity.value),
         areaProgress: toRaw(areaProgress.value),
         stamina: stamina.value,
         maxStamina: maxStamina.value,
@@ -709,6 +725,25 @@ export const usePlayerStore = defineStore('player', () => {
     idleStartTime.value = null
   }
 
+  function setCaptivity(captorSectId: string | null, sinceTick: number | null) {
+    captivity.value = {
+      isCaptured: Boolean(captorSectId),
+      captorSectId,
+      sinceTick
+    }
+    if (captivity.value.isCaptured) {
+      stopIdle()
+    }
+  }
+
+  function clearCaptivity() {
+    captivity.value = {
+      isCaptured: false,
+      captorSectId: null,
+      sinceTick: null
+    }
+  }
+
   // 计算离线收益
   function calculateOfflineGains(): number {
     if (!idleStartTime.value) return 0
@@ -1017,6 +1052,7 @@ export const usePlayerStore = defineStore('player', () => {
     learnedSkills, skillPoints, skillBonuses,
     temporaryBuffs,
     idleStartTime, isIdling,
+    captivity,
     areaProgress,
 
     // 体力值系统
@@ -1037,6 +1073,7 @@ export const usePlayerStore = defineStore('player', () => {
     addToInventory, removeFromInventory, useConsumable,
     addBuff, removeBuff, clearBuffs,
     startIdle, stopIdle, calculateOfflineGains,
+    setCaptivity, clearCaptivity,
     addGold,
     toBattleUnit, saveToStorage,
 

@@ -160,7 +160,8 @@
   - 已让战争胜负生成结构化 `warResolution`，供地图区域易主和世界日志复用
   - 已建立 `warAftermathResolver`，让战争结算开始推动 NPC 被俘、宗门受创和世界日志后果
   - 已让被俘 NPC 退出普通自主行动循环，避免世界状态与战后后果冲突
-  - 待补：合并、沦陷、主角被俘、跨宗门连锁反应
+  - 已让战争 aftermath 进入主角被俘与宗门 `stable/rebuilding/collapsed` 状态切换的基础数据层
+  - 待补：合并、沦陷后的玩法限制与恢复链路、跨宗门连锁反应
 - [ ] 增加从弟子到宗主的晋升链
 - [ ] 把宗门设施、药园、任务、战争收益整合到统一宗门循环
 
@@ -218,6 +219,10 @@
   - 已建立 `warAftermathResolver`，统一处理败方 NPC 被俘、关系波动与宗门余波日志
   - 已让世界层统一应用战后 NPC patch / relationship delta / world log，不把规则散进 store 条件分支
   - 已为后续“主角被俘 / 宗门沦陷 / 势力合并”保留可扩展入口
+- [x] 让战后后果进入主角与宗门状态层
+  - 已为 `playerStore` 增加 captivity 持久化状态，支持记录俘虏方与起始 tick
+  - 已为 `sectStore` 增加 `worldCondition`，支持 stable / rebuilding / collapsed 世界态
+  - 已让 `warAftermathResolver` 可直接驱动主角被俘与宗门重建/沦陷基础状态
 - [x] 模块化战斗效果解析
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime

@@ -2,11 +2,17 @@ import { getSectById, type SectDefinition } from '@/types/sect'
 import type { NpcDefinition, NpcRuntimeState } from '@/types/world'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import { seededWorldRoll } from './worldSeed'
-import type { WorldRuntimeAftermathResult, WorldRuntimeNpcPatch, WorldRuntimeRelationshipDelta } from './worldRuntimeTypes'
+import type {
+  WorldRuntimeAftermathResult,
+  WorldRuntimeLogEffect,
+  WorldRuntimeNpcPatch,
+  WorldRuntimeRelationshipDelta
+} from './worldRuntimeTypes'
 
 interface WarAftermathContext {
   totalTicks: number
   warResolution: SectWarResolution
+  joinedSectId: string | null
   npcDefinitions: NpcDefinition[]
   npcStates: NpcRuntimeState[]
 }
@@ -57,6 +63,43 @@ function resolveSectAftershock(
     actorIds: [winningSect.id, losingSect.id],
     tags: ['sect', 'war', 'aftershock'],
     mapId: losingSect.areaId
+  }
+}
+
+function resolveSectCondition(
+  warResolution: SectWarResolution,
+  losingSect: SectDefinition | undefined,
+  winningSectId: string
+) {
+  if (!losingSect) return null
+
+  const scoreGap = Math.abs(warResolution.attackerScore - warResolution.defenderScore)
+  const collapsed = scoreGap >= 24
+
+  return {
+    status: collapsed ? 'collapsed' as const : 'rebuilding' as const,
+    occupiedBySectId: collapsed ? winningSectId : null,
+    lastUpdatedTick: null
+  }
+}
+
+function resolvePlayerCaptivity(
+  totalTicks: number,
+  joinedSectId: string | null,
+  losingSectId: string,
+  winningSectId: string,
+  warResolution: SectWarResolution
+) {
+  if (!joinedSectId || joinedSectId !== losingSectId) return null
+
+  const roll = seededWorldRoll(totalTicks, joinedSectId, winningSectId, 'war-aftermath-player-capture')
+  const threshold = Math.abs(warResolution.attackerScore - warResolution.defenderScore) >= 24 ? 0.72 : 0.88
+  if (roll <= threshold) return null
+
+  return {
+    isCaptured: true,
+    captorSectId: winningSectId,
+    sinceTick: totalTicks
   }
 }
 
@@ -118,7 +161,7 @@ function resolveNpcResentment(
 }
 
 export function resolveWarAftermath(context: WarAftermathContext): WorldRuntimeAftermathResult | null {
-  const { totalTicks, warResolution, npcDefinitions, npcStates } = context
+  const { totalTicks, warResolution, joinedSectId, npcDefinitions, npcStates } = context
   const winningSectId = getWinningSectId(warResolution)
   const losingSectId = getLosingSectId(warResolution)
   const winningSect = getSectById(winningSectId)
@@ -127,7 +170,7 @@ export function resolveWarAftermath(context: WarAftermathContext): WorldRuntimeA
 
   const npcPatches: WorldRuntimeNpcPatch[] = []
   const relationshipDeltas: WorldRuntimeRelationshipDelta[] = []
-  const logs = []
+  const logs: WorldRuntimeLogEffect[] = []
 
   const captureResult = resolveCaptureOutcome(totalTicks, losingNpc, winningSectId)
   if (captureResult?.npcPatches?.length) {
@@ -147,13 +190,30 @@ export function resolveWarAftermath(context: WarAftermathContext): WorldRuntimeA
     logs.push(sectAftershock)
   }
 
-  if (!npcPatches.length && !relationshipDeltas.length && !logs.length) {
+  const sectCondition = resolveSectCondition(warResolution, losingSect, winningSectId)
+  const playerCaptivity = resolvePlayerCaptivity(totalTicks, joinedSectId, losingSectId, winningSectId, warResolution)
+
+  if (playerCaptivity) {
+    logs.push({
+      scope: 'world' as const,
+      severity: 'legendary' as const,
+      title: '你在战乱中被俘',
+      text: `${winningSect?.name ?? winningSectId}趁乱将你擒下，你被押往敌方地牢，暂时失去自由。`,
+      actorIds: [],
+      tags: ['player', 'war', 'captured'],
+      mapId: losingSect?.areaId
+    })
+  }
+
+  if (!npcPatches.length && !relationshipDeltas.length && !logs.length && !sectCondition && !playerCaptivity) {
     return null
   }
 
   return {
     npcPatches: npcPatches.length ? npcPatches : undefined,
     relationshipDeltas: relationshipDeltas.length ? relationshipDeltas : undefined,
+    playerCaptivity: playerCaptivity ?? undefined,
+    sectCondition: sectCondition ?? undefined,
     logs: logs.length ? logs : undefined
   }
 }

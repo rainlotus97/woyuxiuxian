@@ -245,6 +245,7 @@ export const useWorldStore = defineStore('world', () => {
       const aftermath = resolveWarAftermath({
         totalTicks: clock.value.totalTicks,
         warResolution: sectUpdate.warResolution,
+        joinedSectId: sectStore.joinedSectId,
         npcDefinitions: npcDefinitions.value,
         npcStates: npcStates.value
       })
@@ -429,6 +430,8 @@ export const useWorldStore = defineStore('world', () => {
 
   function applyWarAftermath(result: WorldRuntimeAftermathResult | null) {
     if (!result) return
+    const playerStore = usePlayerStore()
+    const sectStore = useSectStore()
     if (result.npcPatches?.length) {
       for (const patch of result.npcPatches) {
         applyNpcPatch(patch)
@@ -436,6 +439,19 @@ export const useWorldStore = defineStore('world', () => {
     }
     if (result.relationshipDeltas?.length) {
       applyRelationshipDeltas(result.relationshipDeltas)
+    }
+    if (result.playerCaptivity) {
+      playerStore.setCaptivity(result.playerCaptivity.captorSectId, result.playerCaptivity.sinceTick)
+      if (result.playerCaptivity.isCaptured) {
+        addWorldFlag(
+          `player_captured_by:${result.playerCaptivity.captorSectId}`,
+          '你成为俘虏',
+          '你的行踪已被敌对势力控制，外界对你的命运议论纷纷。'
+        )
+      }
+    }
+    if (result.sectCondition) {
+      sectStore.applyWorldCondition(result.sectCondition)
     }
     if (result.logs?.length) {
       for (const log of result.logs) {
