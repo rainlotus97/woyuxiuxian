@@ -16,7 +16,7 @@ export function createGame(options: CreateGameOptions): Phaser.Game {
     parent: options.parent,
     width: options.width,
     height: options.height,
-    backgroundColor: '#120f17',
+    backgroundColor: '#e8f7ff',
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH

@@ -51,7 +51,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #120f17;
+  background: #e8f7ff;
 }
 
 .phaser-host :deep(canvas) {

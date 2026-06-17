@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BattleRuntime, type BattleRuntimeSnapshot } from '@/game/battle/battleRuntime'
 import { gameEvents, type BattleSceneCommand } from '@/game/engine/gameEvents'
@@ -46,6 +46,7 @@ export function useBattleSession() {
   let executing = false
   let unsubSceneReady: (() => void) | null = null
   let disposed = false
+  let sceneReady = false
   let battleRunId = 0
   const commandTimers = new Set<number>()
 
@@ -181,7 +182,7 @@ export function useBattleSession() {
   function refreshSnapshot() {
     if (disposed) return
     runtimeSnapshot.value = battleRuntime.value?.snapshot() ?? null
-    if (runtimeSnapshot.value) {
+    if (runtimeSnapshot.value && sceneReady) {
       gameEvents.emit('battle:snapshot', runtimeSnapshot.value)
     }
   }
@@ -241,7 +242,9 @@ export function useBattleSession() {
     executing = true
     const runId = battleRunId
     const hits = runtime.previewCommand(command)
-    gameEvents.emit('battle:play-command', command)
+    if (sceneReady) {
+      gameEvents.emit('battle:play-command', command)
+    }
     const timer = window.setTimeout(() => {
       commandTimers.delete(timer)
       if (disposed || battleRunId !== runId || battleRuntime.value !== runtime) {
@@ -249,7 +252,9 @@ export function useBattleSession() {
         return
       }
       for (const hit of hits) {
-        gameEvents.emit('battle:damage-number', hit)
+        if (sceneReady) {
+          gameEvents.emit('battle:damage-number', hit)
+        }
       }
       runtime.applyCommand(command, hits)
       selectedTargetId.value = runtime.aliveEnemies[0]?.id ?? null
@@ -262,8 +267,28 @@ export function useBattleSession() {
 
   function bindScene() {
     unsubSceneReady = gameEvents.on('battle:scene-ready', () => {
+      if (disposed) return
+      sceneReady = true
       refreshSnapshot()
     })
+  }
+
+  function disposeSession() {
+    disposed = true
+    sceneReady = false
+    battleRunId++
+    executing = false
+    if (frameId) {
+      cancelAnimationFrame(frameId)
+      frameId = 0
+    }
+    for (const timer of commandTimers) {
+      window.clearTimeout(timer)
+    }
+    commandTimers.clear()
+    unsubSceneReady?.()
+    unsubSceneReady = null
+    battleRuntime.value = null
   }
 
   function cycleAuto() {
@@ -330,22 +355,14 @@ export function useBattleSession() {
 
   onMounted(() => {
     disposed = false
+    sceneReady = false
     bindScene()
     initBattle()
     frameId = requestAnimationFrame(loop)
   })
 
-  onUnmounted(() => {
-    disposed = true
-    battleRunId++
-    if (frameId) cancelAnimationFrame(frameId)
-    for (const timer of commandTimers) {
-      window.clearTimeout(timer)
-    }
-    commandTimers.clear()
-    unsubSceneReady?.()
-    unsubSceneReady = null
-    battleRuntime.value = null
+  onBeforeUnmount(() => {
+    disposeSession()
   })
 
   return {

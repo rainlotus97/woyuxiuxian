@@ -18,6 +18,7 @@ export class BattleScene extends Phaser.Scene {
   private unsubscribers: (() => void)[] = []
   private arena!: Phaser.GameObjects.Container
   private disposed = false
+  private ready = false
 
   constructor() {
     super('BattleScene')
@@ -25,6 +26,7 @@ export class BattleScene extends Phaser.Scene {
 
   create() {
     this.disposed = false
+    this.ready = false
     this.cameras.main.setBackgroundColor('#e8f7ff')
     this.createArena()
     this.createAnimations()
@@ -36,7 +38,11 @@ export class BattleScene extends Phaser.Scene {
       gameEvents.on('battle:damage-number', hit => this.showDamage(hit)),
       gameEvents.on('battle:ended', payload => this.playBattleEnd(payload.result))
     )
-    gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
+    this.time.delayedCall(0, () => {
+      if (!this.hasLiveSceneSystems()) return
+      this.ready = true
+      gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
+    })
   }
 
   shutdown() {
@@ -46,13 +52,14 @@ export class BattleScene extends Phaser.Scene {
   private disposeScene() {
     if (this.disposed) return
     this.disposed = true
+    this.ready = false
     for (const off of this.unsubscribers) off()
     this.unsubscribers = []
     this.actors.clear()
   }
 
   updateSnapshot(snapshot: BattleRuntimeSnapshot) {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     this.ensureActors(snapshot.units)
     for (const unit of snapshot.units) {
       const actor = this.actors.get(unit.id)
@@ -207,7 +214,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private ensureActor(unit: BattleRuntimeUnit, position: { x: number; y: number }) {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     const existing = this.actors.get(unit.id)
     if (existing) {
       existing.sprite.setPosition(position.x, position.y)
@@ -254,7 +261,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playCommand(command: BattleSceneCommand) {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     const actor = this.actors.get(command.actorId)
     const target = this.actors.get(command.targetIds[0] ?? '')
     if (!this.isActorAlive(actor) || !this.isActorAlive(target)) return
@@ -275,11 +282,11 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Quad.easeOut',
       yoyo: true,
       onYoyo: () => {
-        if (!this.isSceneAlive() || !this.isActorAlive(target)) return
+        if (!this.canRenderRuntimeEvents() || !this.isActorAlive(target)) return
         this.playHitEffects(command, target)
       },
       onComplete: () => {
-        if (!this.isSceneAlive() || !this.isActorAlive(actor)) return
+        if (!this.canRenderRuntimeEvents() || !this.isActorAlive(actor)) return
         actor.sprite.setPosition(originalX, originalY)
         actor.sprite.play(`${actor.sprite.texture.key}_idle`)
       }
@@ -287,7 +294,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playHitEffects(command: BattleSceneCommand, target: ActorSprite) {
-    if (!this.isSceneAlive() || !this.isActorAlive(target)) return
+    if (!this.canRenderRuntimeEvents() || !this.isActorAlive(target)) return
     this.cameras.main.shake(command.type === 'skill' ? 190 : 110, command.type === 'skill' ? 0.008 : 0.004)
     target.sprite.play(`${target.sprite.texture.key}_hit`)
     target.sprite.setTint(0xffffff)
@@ -336,7 +343,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playCastAura(actor: ActorSprite) {
-    if (!this.isSceneAlive() || !this.isActorAlive(actor)) return
+    if (!this.canRenderRuntimeEvents() || !this.isActorAlive(actor)) return
     const aura = this.add.image(actor.sprite.x, actor.sprite.y + 2, 'vfx_aura')
       .setScale(0.42)
       .setAlpha(0.86)
@@ -350,7 +357,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playImpactSparks(x: number, y: number, count: number) {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.25, 0.25)
       const distance = Phaser.Math.Between(28, 66)
@@ -372,7 +379,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   showDamage(hit: BattleSceneHit) {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     const target = this.actors.get(hit.targetId)
     if (!this.isActorAlive(target)) return
     const text = this.add.text(target.sprite.x, target.sprite.y - 96, `${hit.isHeal ? '+' : '-'}${hit.amount}`, {
@@ -394,7 +401,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playBattleEnd(result: 'victory' | 'defeat' | 'fled') {
-    if (!this.isSceneAlive()) return
+    if (!this.canRenderRuntimeEvents()) return
     const { width, height } = this.scale
     const veil = this.add.rectangle(width / 2, height / 2, width, height, 0xfff4d6, 0.64)
     const label = this.add.text(width / 2, height / 2, result === 'victory' ? '战斗胜利' : result === 'defeat' ? '战斗败北' : '脱离战场', {
@@ -408,11 +415,25 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: label, scale: 1, duration: 420, ease: 'Back.easeOut' })
   }
 
-  private isSceneAlive() {
-    return !this.disposed && Boolean(this.sys?.isActive() && this.add && this.textures)
+  private canRenderRuntimeEvents() {
+    return this.ready && this.hasLiveSceneSystems()
+  }
+
+  private hasLiveSceneSystems() {
+    const add = this.add as Phaser.GameObjects.GameObjectFactory & {
+      scene?: Phaser.Scene | null
+      displayList?: unknown
+      updateList?: unknown
+    }
+    return !this.disposed
+      && Boolean(this.sys?.isActive())
+      && add?.scene === this
+      && Boolean(add.displayList)
+      && Boolean(add.updateList)
+      && Boolean(this.textures)
   }
 
   private isActorAlive(actor: ActorSprite | undefined): actor is ActorSprite {
-    return Boolean(actor?.sprite?.scene && actor?.name?.scene)
+    return Boolean(actor?.sprite?.scene === this && actor?.name?.scene === this)
   }
 }
