@@ -1,48 +1,38 @@
 import type { Unit } from '@/types/unit'
 import type { Skill } from '@/types/skill'
 import { getSkillById } from '@/types/skill'
+import {
+  applyPreparedEffects,
+  resolveBattleCommand
+} from './commandResolver'
+import { resolveCommandTargetIds } from './targeting'
+import {
+  hasStatusEffect,
+  processTurnStartStatuses
+} from './statusRuntime'
+import type {
+  BattleResolvedCommand,
+  BattleRuntimeCommand,
+  BattleRuntimeLog,
+  BattleRuntimePhase,
+  BattleRuntimeResult,
+  BattleRuntimeSnapshot,
+  BattleRuntimeUnit,
+  BattleTurnContext
+} from './runtimeTypes'
 
-export type BattleRuntimePhase = 'intro' | 'running' | 'selecting' | 'animating' | 'ended'
-export type BattleRuntimeResult = 'victory' | 'defeat' | 'fled' | null
-
-export interface BattleRuntimeUnit extends Unit {
-  side: 'ally' | 'enemy'
-  spriteKey: string
-  portraitKey?: string
-  actionGauge: number
-}
-
-export interface BattleRuntimeCommand {
-  type: 'attack' | 'skill'
-  actorId: string
-  targetIds: string[]
-  skillId?: string
-}
-
-export interface BattleRuntimeHit {
-  actorId: string
-  targetId: string
-  amount: number
-  isCrit: boolean
-  isHeal?: boolean
-}
-
-export interface BattleRuntimeLog {
-  id: string
-  text: string
-  severity: 'normal' | 'major'
-}
-
-export interface BattleRuntimeSnapshot {
-  phase: BattleRuntimePhase
-  units: BattleRuntimeUnit[]
-  currentActorId: string | null
-  spiritFire: number
-  maxSpiritFire: number
-  turn: number
-  result: BattleRuntimeResult
-  logs: BattleRuntimeLog[]
-}
+export type {
+  BattleAppliedEffect,
+  BattlePreparedEffect,
+  BattleResolvedCommand,
+  BattleRuntimeCommand,
+  BattleRuntimeHit,
+  BattleRuntimeLog,
+  BattleRuntimePhase,
+  BattleRuntimeResult,
+  BattleRuntimeSnapshot,
+  BattleRuntimeUnit
+} from './runtimeTypes'
 
 export class BattleRuntime {
   phase: BattleRuntimePhase = 'intro'
@@ -53,6 +43,7 @@ export class BattleRuntime {
   turn = 1
   result: BattleRuntimeResult = null
   logs: BattleRuntimeLog[] = []
+  private pendingTurnContext: BattleTurnContext = { hits: [], logs: [] }
 
   constructor(allies: Unit[], enemies: Unit[]) {
     this.units = [
@@ -77,6 +68,7 @@ export class BattleRuntime {
 
   tick(deltaMs: number, speed: number) {
     if (this.phase !== 'running') return
+    this.pendingTurnContext = { hits: [], logs: [] }
     const delta = deltaMs / 1000
     for (const unit of this.units) {
       if (!unit.isAlive) continue
@@ -86,12 +78,7 @@ export class BattleRuntime {
       .filter(unit => unit.isAlive && unit.actionGauge >= 100)
       .sort((a, b) => b.stats.speed - a.stats.speed)[0]
     if (ready) {
-      ready.actionGauge = 0
-      this.currentActorId = ready.id
-      this.phase = 'selecting'
-      if (ready.side === 'ally') {
-        this.spiritFire = Math.min(this.maxSpiritFire, this.spiritFire + 1)
-      }
+      this.startTurn(ready)
     }
   }
 
@@ -112,60 +99,117 @@ export class BattleRuntime {
   createAutoCommand(actorId: string): BattleRuntimeCommand | null {
     const actor = this.units.find(unit => unit.id === actorId)
     if (!actor || !actor.isAlive) return null
+    const allies = actor.side === 'ally' ? this.aliveAllies : this.aliveEnemies
     const enemies = actor.side === 'ally' ? this.aliveEnemies : this.aliveAllies
     if (enemies.length === 0) return null
-    const target = [...enemies].sort((a, b) => a.stats.currentHp - b.stats.currentHp)[0]
-    if (!target) return null
-    const skill = this.getAvailableSkills(actor.id)
-      .filter(item => item.effects.some(effect => effect.type === 'damage'))
-      .sort((a, b) => this.getSpiritFireCost(b) - this.getSpiritFireCost(a))[0]
-    if (skill && this.spiritFire >= this.getSpiritFireCost(skill) && Math.random() < 0.68) {
-      return { type: 'skill', actorId: actor.id, targetIds: [target.id], skillId: skill.id }
+
+    const woundedAllies = allies
+      .filter(unit => unit.stats.currentHp < unit.stats.maxHp)
+      .sort((a, b) => a.stats.currentHp / a.stats.maxHp - b.stats.currentHp / b.stats.maxHp)
+    const availableSkills = this.getAvailableSkills(actor.id)
+
+    const teamHeal = availableSkills.find(skill => skill.effects.some(effect => effect.type === 'heal' && effect.targetType === 'all_allies')) ?? null
+    if (teamHeal && woundedAllies.length >= 2) {
+      return {
+        type: 'skill',
+        actorId: actor.id,
+        targetIds: resolveCommandTargetIds({ type: 'skill', actorId: actor.id, targetIds: [], skillId: teamHeal.id }, actor, this.units, teamHeal),
+        skillId: teamHeal.id
+      }
     }
+
+    const singleHeal = availableSkills.find(skill => skill.effects.some(effect => effect.type === 'heal' && effect.targetType === 'single_ally')) ?? null
+    if (singleHeal && woundedAllies[0] && woundedAllies[0].stats.currentHp / woundedAllies[0].stats.maxHp < 0.62) {
+      return { type: 'skill', actorId: actor.id, targetIds: [woundedAllies[0].id], skillId: singleHeal.id }
+    }
+
+    const selfShield = availableSkills.find(skill => skill.effects.some(effect => effect.statusEffect?.type === 'shield')) ?? null
+    if (selfShield && actor.stats.currentHp / actor.stats.maxHp < 0.55 && !hasStatusEffect(actor, 'shield')) {
+      return { type: 'skill', actorId: actor.id, targetIds: [actor.id], skillId: selfShield.id }
+    }
+
+    const selfDefenseBuff = availableSkills.find(skill => skill.effects.some(effect => effect.statusEffect?.type === 'buff_def')) ?? null
+    if (selfDefenseBuff && actor.stats.currentHp / actor.stats.maxHp < 0.55 && !hasStatusEffect(actor, 'buff_def')) {
+      return { type: 'skill', actorId: actor.id, targetIds: [actor.id], skillId: selfDefenseBuff.id }
+    }
+
+    const damageSkill = availableSkills
+      .filter(item => item.effects.some(effect => effect.type === 'damage'))
+      .sort((a, b) => this.getSpiritFireCost(b) - this.getSpiritFireCost(a))[0] ?? null
+    const target = [...enemies].sort((a, b) => a.stats.currentHp - b.stats.currentHp)[0]
+    if (damageSkill && target && this.spiritFire >= this.getSpiritFireCost(damageSkill) && Math.random() < 0.68) {
+      return {
+        type: 'skill',
+        actorId: actor.id,
+        targetIds: resolveCommandTargetIds({ type: 'skill', actorId: actor.id, targetIds: [target.id], skillId: damageSkill.id }, actor, this.units, damageSkill),
+        skillId: damageSkill.id
+      }
+    }
+    if (!target) return null
     return { type: 'attack', actorId: actor.id, targetIds: [target.id] }
   }
 
-  previewCommand(command: BattleRuntimeCommand): BattleRuntimeHit[] {
+  resolveCommand(command: BattleRuntimeCommand): BattleResolvedCommand | null {
     const actor = this.units.find(unit => unit.id === command.actorId)
-    if (!actor) return []
-    const skill = command.skillId ? getSkillById(command.skillId) : null
-    const hits: BattleRuntimeHit[] = []
-    for (const targetId of command.targetIds) {
-      const target = this.units.find(unit => unit.id === targetId)
-      if (!target || !target.isAlive) continue
-      const base = skill
-        ? Math.max(8, Math.floor(actor.stats.attack * (skill.effects[0]?.scaling ?? 1) + (skill.effects[0]?.baseValue ?? 0) - target.stats.defense * 0.55))
-        : Math.max(5, Math.floor(actor.stats.attack * 1.05 - target.stats.defense * 0.55))
-      const isCrit = Math.random() < actor.stats.critRate
-      hits.push({
-        actorId: actor.id,
-        targetId: target.id,
-        amount: Math.floor(base * (isCrit ? actor.stats.critDamage : 1)),
-        isCrit
-      })
-    }
-    return hits
+    if (!actor || !actor.isAlive) return null
+    const skill = command.skillId ? (getSkillById(command.skillId) ?? null) : null
+    return resolveBattleCommand(command, this.units, actor, skill)
   }
 
-  applyCommand(command: BattleRuntimeCommand, hits: BattleRuntimeHit[]) {
-    const actor = this.units.find(unit => unit.id === command.actorId)
+  applyResolvedCommand(resolved: BattleResolvedCommand) {
+    const actor = this.units.find(unit => unit.id === resolved.actorId)
     if (!actor) return
-    const skill = command.skillId ? getSkillById(command.skillId) : null
+
+    const skill = resolved.skill
     if (skill) {
       actor.stats.currentMp = Math.max(0, actor.stats.currentMp - skill.mpCost)
       this.spiritFire = Math.max(0, this.spiritFire - this.getSpiritFireCost(skill))
     }
-    for (const hit of hits) {
-      const target = this.units.find(unit => unit.id === hit.targetId)
-      if (!target || !target.isAlive) continue
-      target.stats.currentHp = Math.max(0, target.stats.currentHp - hit.amount)
-      if (target.stats.currentHp <= 0) {
-        target.isAlive = false
+
+    const appliedEffects = applyPreparedEffects(this.units, resolved.preparedEffects)
+    const defeatedTargets = new Set<string>()
+    let totalDamage = 0
+    let totalHealing = 0
+    let totalStatuses = 0
+
+    for (const effect of appliedEffects) {
+      if (effect.effectType === 'damage') {
+        totalDamage += effect.amount
+      }
+      if (effect.effectType === 'heal') {
+        totalHealing += effect.amount
+      }
+      if (effect.effectType === 'status' && effect.appliedStatus) {
+        totalStatuses++
+        const target = this.units.find(unit => unit.id === effect.targetId)
+        if (target) {
+          this.addLog(`${target.name}获得${this.getStatusLabel(effect.appliedStatus.type)}效果。`, 'normal')
+        }
+      }
+      if (effect.targetDefeated) {
+        defeatedTargets.add(effect.targetId)
+      }
+    }
+
+    for (const targetId of defeatedTargets) {
+      const target = this.units.find(unit => unit.id === targetId)
+      if (target) {
         this.addLog(`${target.name}被击败。`, 'major')
       }
     }
-    const actionName = skill?.name ?? '普通攻击'
-    this.addLog(`${actor.name}施展${actionName}，造成${hits.reduce((sum, hit) => sum + hit.amount, 0)}点伤害。`, skill ? 'major' : 'normal')
+
+    if (totalDamage > 0 && totalHealing > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害并恢复${totalHealing}点气血。`, skill ? 'major' : 'normal')
+    } else if (totalDamage > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害。`, skill ? 'major' : 'normal')
+    } else if (totalHealing > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，恢复${totalHealing}点气血。`, 'major')
+    } else if (totalStatuses > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，灵力效果在战场扩散。`, 'major')
+    } else {
+      this.addLog(`${actor.name}施展${resolved.actionName}。`, skill ? 'major' : 'normal')
+    }
+
     this.finishAction()
   }
 
@@ -206,6 +250,12 @@ export class BattleRuntime {
     }
   }
 
+  consumePendingTurnContext(): BattleTurnContext {
+    const context = this.pendingTurnContext
+    this.pendingTurnContext = { hits: [], logs: [] }
+    return context
+  }
+
   getSpiritFireCost(skill: Skill): number {
     if (skill.mpCost >= 45) return 4
     if (skill.mpCost >= 25) return 3
@@ -228,5 +278,51 @@ export class BattleRuntime {
     if (this.logs.length > 40) {
       this.logs = this.logs.slice(-24)
     }
+  }
+
+  private getStatusLabel(type: string) {
+    const labels: Record<string, string> = {
+      poison: '中毒',
+      burn: '灼烧',
+      freeze: '冰封',
+      stun: '眩晕',
+      buff_atk: '攻势提升',
+      buff_def: '护体',
+      buff_spd: '身法提升',
+      debuff_atk: '攻势受挫',
+      debuff_def: '防御受创',
+      shield: '护盾',
+      invincible: '无敌'
+    }
+    return labels[type] ?? '异象'
+  }
+
+  private startTurn(actor: BattleRuntimeUnit) {
+    actor.actionGauge = 0
+    this.currentActorId = actor.id
+    if (actor.side === 'ally') {
+      this.spiritFire = Math.min(this.maxSpiritFire, this.spiritFire + 1)
+    }
+
+    const turnStart = processTurnStartStatuses(actor)
+    this.pendingTurnContext = {
+      hits: turnStart.hits,
+      logs: turnStart.logs
+    }
+    for (const log of turnStart.logs) {
+      this.addLog(log, turnStart.actorDefeated ? 'major' : 'normal')
+    }
+
+    if (turnStart.actorDefeated) {
+      this.finishAction()
+      return
+    }
+
+    if (turnStart.actionBlocked) {
+      this.finishAction()
+      return
+    }
+
+    this.phase = 'selecting'
   }
 }

@@ -2,15 +2,15 @@
   <section class="command-dock">
     <div class="dock-header">
       <SpiritFireBar :current="spiritFire" :max="maxSpiritFire" />
-      <small>{{ actorName }}</small>
+      <small>{{ actorName }} · {{ targetHint }}</small>
     </div>
 
-    <div class="target-row">
+    <div v-if="targets.length" class="target-row">
       <button
         v-for="target in targets"
         :key="target.id"
         class="target-chip"
-        :class="{ selected: selectedTargetId === target.id }"
+        :class="{ selected: selectedTargetId === target.id, ally: target.side === 'ally' }"
         @click="$emit('select-target', target.id)"
       >
         {{ target.icon }} {{ cleanName(target.name) }}
@@ -26,6 +26,7 @@
         v-for="skill in skills"
         :key="skill.id"
         class="command skill"
+        :class="{ selected: selectedSkillId === skill.id }"
         :disabled="skill.cost > spiritFire"
         @click="$emit('skill', skill.id)"
       >
@@ -48,6 +49,7 @@ interface TargetChip {
   id: string
   name: string
   icon: string
+  side: 'ally' | 'enemy'
 }
 
 interface SkillChip {
@@ -55,13 +57,16 @@ interface SkillChip {
   name: string
   icon: string
   cost: number
+  targetType: string
 }
 
 defineProps<{
   spiritFire: number
   maxSpiritFire: number
   actorName: string
+  targetHint: string
   targets: TargetChip[]
+  selectedSkillId: string | null
   selectedTargetId: string | null
   skills: SkillChip[]
 }>()
@@ -125,6 +130,11 @@ function cleanName(name: string) {
   background: linear-gradient(135deg, #fff3b2, #ffd783);
 }
 
+.target-chip.ally {
+  border-color: rgba(76, 184, 166, 0.3);
+  color: #266a63;
+}
+
 .command-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(68px, 1fr));
@@ -172,6 +182,11 @@ function cleanName(name: string) {
 
 .command.skill {
   border-color: rgba(76, 184, 166, 0.38);
+}
+
+.command.skill.selected {
+  border-color: rgba(201, 131, 57, 0.56);
+  box-shadow: 0 16px 30px rgba(201, 131, 57, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 @media (max-width: 720px) {

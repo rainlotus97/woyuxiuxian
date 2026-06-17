@@ -28,7 +28,9 @@
       :spirit-fire="runtimeSnapshot.spiritFire"
       :max-spirit-fire="runtimeSnapshot.maxSpiritFire"
       :actor-name="currentActorName"
-      :targets="targetableEnemies"
+      :target-hint="targetHint"
+      :targets="targetOptions"
+      :selected-skill-id="selectedSkillId"
       :selected-target-id="selectedTargetId"
       :skills="playerSkills"
       @attack="playerAttack"
@@ -81,8 +83,10 @@ const {
   runtimeSnapshot,
   selectedTargetId,
   setSelectedTargetId,
+  selectedSkillId,
   sortedUnits,
-  targetableEnemies,
+  targetHint,
+  targetOptions,
   weatherLabel,
   worldStore
 } = useBattleSession()

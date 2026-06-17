@@ -8,20 +8,23 @@ import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { createUnit, type Unit } from '@/types/unit'
-import { getSkillsByIds } from '@/types/skill'
+import { getSkillById, getSkillsByIds } from '@/types/skill'
 import { getAreaById, ENEMIES, rollDrops, rollReward, DIFFICULTY_CONFIG, type AreaDefinition } from '@/types/adventure'
+import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 
 interface BattleSkillOption {
   id: string
   name: string
   icon: string
   cost: number
+  targetType: string
 }
 
 interface BattleTargetOption {
   id: string
   name: string
   icon: string
+  side: 'ally' | 'enemy'
 }
 
 export function useBattleSession() {
@@ -37,6 +40,7 @@ export function useBattleSession() {
   const runtimeSnapshot = ref<BattleRuntimeSnapshot | null>(null)
   const currentArea = ref<AreaDefinition | null>(null)
   const selectedTargetId = ref<string | null>(null)
+  const selectedSkillId = ref<string | null>(null)
   const autoBattle = ref(localStorage.getItem('autoBattle') === 'true')
   const battleSpeed = ref<1 | 2 | 3>(localStorage.getItem('battleSpeed') === '3' ? 3 : localStorage.getItem('battleSpeed') === '2' ? 2 : 1)
   const pendingRewards = ref({ cultivation: 0, gold: 0 })
@@ -56,11 +60,6 @@ export function useBattleSession() {
     return battleRuntime.value.units.find(unit => unit.id === runtimeSnapshot.value?.currentActorId && unit.side === 'ally') ?? null
   })
   const isPlayerSelecting = computed(() => Boolean(playerActor.value))
-  const targetableEnemies = computed<BattleTargetOption[]>(() => (battleRuntime.value?.aliveEnemies || []).map(target => ({
-    id: target.id,
-    name: target.name,
-    icon: target.icon
-  })))
   const playerSkills = computed<BattleSkillOption[]>(() => {
     const actor = playerActor.value
     if (!actor || !battleRuntime.value) return []
@@ -71,8 +70,39 @@ export function useBattleSession() {
         id: skill.id,
         name: skill.name,
         icon: skill.icon,
-        cost: battleRuntime.value?.getSpiritFireCost(skill) || 1
+        cost: battleRuntime.value?.getSpiritFireCost(skill) || 1,
+        targetType: skill.effects[0]?.targetType ?? 'single_enemy'
       }))
+  })
+  const activeSkill = computed(() => selectedSkillId.value ? getSkillById(selectedSkillId.value) ?? null : null)
+  const targetHint = computed<string>(() => {
+    const fallback = '单体敌方'
+    const labels: Record<string, string> = {
+      single_enemy: fallback,
+      all_enemies: '敌方全体',
+      single_ally: '单体友方',
+      all_allies: '我方全体',
+      self: '自身'
+    }
+    if (!selectedSkillId.value) return fallback
+    return labels[activeSkill.value?.effects[0]?.targetType ?? 'single_enemy'] ?? fallback
+  })
+  const targetOptions = computed<BattleTargetOption[]>(() => {
+    const runtime = battleRuntime.value
+    const actor = playerActor.value
+    if (!runtime || !actor) return []
+    const options: SelectableBattleTarget[] = getSelectableTargets(
+      actor,
+      runtime.units,
+      selectedSkillId.value ? 'skill' : 'attack',
+      activeSkill.value
+    )
+    return options.map(option => ({
+      id: option.id,
+      name: option.name,
+      icon: option.icon,
+      side: option.side
+    }))
   })
   const resultLabel = computed(() => {
     const result = runtimeSnapshot.value?.result
@@ -175,6 +205,7 @@ export function useBattleSession() {
     worldStore.simulateOffline()
     battleRuntime.value = new BattleRuntime(createAllies(), createEnemies())
     refreshSnapshot()
+    selectedSkillId.value = null
     selectedTargetId.value = battleRuntime.value.aliveEnemies[0]?.id ?? null
     pendingRewards.value = calculateRewards()
   }
@@ -195,6 +226,12 @@ export function useBattleSession() {
     lastFrame = now
     if (!executing) {
       runtime.tick(delta, battleSpeed.value)
+      const turnContext = runtime.consumePendingTurnContext()
+      for (const hit of turnContext.hits) {
+        if (sceneReady) {
+          gameEvents.emit('battle:damage-number', hit)
+        }
+      }
       refreshSnapshot()
       maybeAutoAct()
     }
@@ -219,15 +256,29 @@ export function useBattleSession() {
 
   function playerAttack() {
     const actor = playerActor.value
-    const targetId = selectedTargetId.value || targetableEnemies.value[0]?.id
+    const targetId = selectedTargetId.value || targetOptions.value[0]?.id
     if (!actor || !targetId) return
+    selectedSkillId.value = null
     executeCommand({ type: 'attack', actorId: actor.id, targetIds: [targetId] })
   }
 
   function playerSkill(skillId: string) {
     const actor = playerActor.value
-    const targetId = selectedTargetId.value || targetableEnemies.value[0]?.id
-    if (!actor || !targetId) return
+    const skill = getSkillById(skillId)
+    if (!actor || !skill) return
+    selectedSkillId.value = skillId
+    const manualTargetType = getManualTargetType('skill', skill)
+    if (manualTargetType === 'single_ally') {
+      const firstTargetId = targetOptions.value[0]?.id ?? null
+      selectedTargetId.value = firstTargetId
+      return
+    }
+    if (!manualTargetType) {
+      executeCommand({ type: 'skill', actorId: actor.id, targetIds: [], skillId })
+      return
+    }
+    const targetId = selectedTargetId.value || targetOptions.value[0]?.id
+    if (!targetId) return
     executeCommand({ type: 'skill', actorId: actor.id, targetIds: [targetId], skillId })
   }
 
@@ -241,9 +292,13 @@ export function useBattleSession() {
     if (!runtime || executing || disposed) return
     executing = true
     const runId = battleRunId
-    const hits = runtime.previewCommand(command)
+    const resolved = runtime.resolveCommand(command)
+    if (!resolved) {
+      executing = false
+      return
+    }
     if (sceneReady) {
-      gameEvents.emit('battle:play-command', command)
+      gameEvents.emit('battle:play-command', resolved.command)
     }
     const timer = window.setTimeout(() => {
       commandTimers.delete(timer)
@@ -251,13 +306,14 @@ export function useBattleSession() {
         executing = false
         return
       }
-      for (const hit of hits) {
+      for (const hit of resolved.displayHits) {
         if (sceneReady) {
           gameEvents.emit('battle:damage-number', hit)
         }
       }
-      runtime.applyCommand(command, hits)
-      selectedTargetId.value = runtime.aliveEnemies[0]?.id ?? null
+      runtime.applyResolvedCommand(resolved)
+      selectedSkillId.value = null
+      selectedTargetId.value = runtime.aliveEnemies[0]?.id ?? runtime.aliveAllies[0]?.id ?? null
       executing = false
       refreshSnapshot()
       maybeAutoAct()
@@ -382,10 +438,21 @@ export function useBattleSession() {
     playerSkill,
     resultLabel,
     runtimeSnapshot,
+    targetHint,
+    targetOptions,
     selectedTargetId,
-    setSelectedTargetId: (targetId: string) => { selectedTargetId.value = targetId },
+    selectedSkillId,
+    setSelectedTargetId: (targetId: string) => {
+      selectedTargetId.value = targetId
+      const actor = playerActor.value
+      const skill = activeSkill.value
+      if (!actor || !skill || !selectedSkillId.value) return
+      const manualTargetType = getManualTargetType('skill', skill)
+      if (manualTargetType === 'single_ally') {
+        executeCommand({ type: 'skill', actorId: actor.id, targetIds: [targetId], skillId: skill.id })
+      }
+    },
     sortedUnits,
-    targetableEnemies,
     weatherLabel,
     worldStore
   }
