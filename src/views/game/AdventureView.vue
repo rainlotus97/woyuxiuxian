@@ -50,6 +50,16 @@
         <!-- 区域描述 -->
         <div class="area-desc">{{ area.description }}</div>
 
+        <div v-if="getAreaEncounterHint(area)" class="area-world-state">
+          <span
+            class="risk-badge"
+            :style="{ color: getAreaEncounterHint(area)?.riskColor, borderColor: `${getAreaEncounterHint(area)?.riskColor}55` }"
+          >
+            {{ getAreaEncounterHint(area)?.statusText }}
+          </span>
+          <p>{{ getAreaEncounterHint(area)?.encounterNote }}</p>
+        </div>
+
         <!-- 掉落预览 -->
         <div class="area-drops">
           <span class="drops-label">掉落:</span>
@@ -167,8 +177,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
+import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
+import { useWorldStore } from '@/stores/worldStore'
 import { useToast } from '@/composables/useToast'
 import {
   AREAS,
@@ -184,8 +197,10 @@ import {
 } from '@/types/adventure'
 
 const router = useRouter()
+const mapStore = useMapStore()
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
+const worldStore = useWorldStore()
 const { info, warning, success } = useToast()
 
 const showBuyStaminaModal = ref(false)
@@ -266,11 +281,13 @@ function handleSweep(area: AreaDefinition) {
   let totalExp = 0
   let totalGold = 0
   const allDrops: Map<string, { item: DropItem; quantity: number }> = new Map()
+  const encounter = getAreaEncounterHint(area)
+  const rewardMultiplier = encounter?.rewardMultiplier ?? 1
 
   for (let i = 0; i < 3; i++) {
     // 经验和灵石
-    totalExp += rollReward(area.expReward)
-    totalGold += rollReward(area.goldReward)
+    totalExp += Math.max(1, Math.floor(rollReward(area.expReward) * rewardMultiplier))
+    totalGold += Math.max(1, Math.floor(rollReward(area.goldReward) * rewardMultiplier))
 
     // 掉落物品
     const drops = rollDrops(area.drops)
@@ -336,6 +353,16 @@ function handleBuyStamina(option: { amount: number; cost: number }) {
   } else {
     warning(result.message)
   }
+}
+
+function getAreaEncounterHint(area: AreaDefinition) {
+  const mapAreaEntry = Object.entries(mapStore.areaStates).find(([, state]) => {
+    const encounter = resolveMapAreaEncounter(state.areaId, state, worldStore.weather)
+    return encounter?.adventureAreaId === area.id
+  })
+  if (!mapAreaEntry) return null
+  const [mapAreaId, state] = mapAreaEntry
+  return resolveMapAreaEncounter(mapAreaId, state, worldStore.weather)
 }
 
 // 启动体力恢复定时器
@@ -512,6 +539,32 @@ onUnmounted(() => {
   color: var(--color-muted);
   margin-bottom: 8px;
   line-height: 1.4;
+}
+
+.area-world-state {
+  margin-bottom: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid rgba(126, 184, 218, 0.28);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.area-world-state p {
+  margin: 0;
+  color: rgba(217, 223, 226, 0.76);
+  font-size: 0.625rem;
+  line-height: 1.45;
 }
 
 .area-drops {

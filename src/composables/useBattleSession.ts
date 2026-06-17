@@ -14,6 +14,10 @@ import { usePetStore } from '@/stores/petStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
+import {
+  applyEncounterRewardMultiplier,
+  resolveMapAreaEncounter
+} from '@/map/runtime/mapAreaEncounterResolver'
 import { DIFFICULTY_CONFIG, ENEMIES, getBattleArenaIdForArea } from '@/game/battle/config'
 import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById, getSkillsByIds } from '@/types/skill'
@@ -67,6 +71,7 @@ export function useBattleSession() {
   let disposed = false
   let sceneReady = false
   let battleStarted = false
+  let startLoopTimer = 0
   let battleRunId = 0
   let battleInstanceId = ''
   const commandTimers = new Set<number>()
@@ -140,6 +145,13 @@ export function useBattleSession() {
     return labels[worldStore.weather]
   })
   const currentActorName = computed(() => cleanName(playerActor.value?.name || '等待出手'))
+  const activeMapEncounter = computed(() => {
+    const mapAreaId = route.query.mapAreaId as string | undefined
+    if (!mapAreaId) return null
+    return resolveMapAreaEncounter(mapAreaId, mapStore.getAreaState(mapAreaId), worldStore.weather)
+  })
+  const areaStatusLabel = computed(() => activeMapEncounter.value?.statusText ?? weatherLabel.value)
+  const encounterNote = computed(() => activeMapEncounter.value?.encounterNote ?? '天地静默，灵气在暗处流动。')
   const activeRouteGameplaySession = computed(() => {
     const sessionId = route.query.storySessionId as string | undefined
     const session = getRouteGameplaySession()
@@ -183,12 +195,13 @@ export function useBattleSession() {
     const enemyIds = area?.enemies?.length ? area.enemies : ['wild_wolf', 'forest_spider']
     const difficulty = area ? DIFFICULTY_CONFIG[area.difficulty] : DIFFICULTY_CONFIG.easy
     const count = Math.min(3, difficulty.enemiesPerWave[0] || 2)
+    const encounterEnemyMultiplier = activeMapEncounter.value?.enemyStatMultiplier ?? 1
     const enemies: Unit[] = []
     for (let i = 0; i < count; i++) {
       const enemyDef = ENEMIES[enemyIds[i % enemyIds.length] || 'wild_wolf']
       if (!enemyDef) continue
       const isBoss = area?.difficulty === 'nightmare' && i === 1
-      const multiplier = difficulty.enemyStatMult * (isBoss ? difficulty.bossStatMult || 2.5 : i === 1 ? 1.35 : 1)
+      const multiplier = difficulty.enemyStatMult * encounterEnemyMultiplier * (isBoss ? difficulty.bossStatMult || 2.5 : i === 1 ? 1.35 : 1)
       enemies.push(createUnit({
         id: `enemy_${i}`,
         name: isBoss ? `[BOSS]${enemyDef.name}` : i === 1 ? `[精英]${enemyDef.name}` : enemyDef.name,
@@ -346,10 +359,16 @@ export function useBattleSession() {
       sceneReady = true
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
       gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
-      refreshSnapshot()
       if (!battleStarted) {
         battleStarted = true
-        frameId = requestAnimationFrame(loop)
+        startLoopTimer = window.setTimeout(() => {
+          startLoopTimer = 0
+          if (disposed || !sceneReady || !isBattleSceneReady(battleInstanceId)) return
+          refreshSnapshot()
+          frameId = requestAnimationFrame(loop)
+        }, 0)
+      } else {
+        refreshSnapshot()
       }
     })
   }
@@ -365,6 +384,10 @@ export function useBattleSession() {
     if (frameId) {
       cancelAnimationFrame(frameId)
       frameId = 0
+    }
+    if (startLoopTimer) {
+      window.clearTimeout(startLoopTimer)
+      startLoopTimer = 0
     }
     for (const timer of commandTimers) {
       window.clearTimeout(timer)
@@ -395,9 +418,10 @@ export function useBattleSession() {
   function calculateRewards() {
     const area = currentArea.value
     if (!area) return { cultivation: 40, gold: 20 }
+    const rewardMultiplier = activeMapEncounter.value?.rewardMultiplier ?? 1
     return {
-      cultivation: rollReward(area.expReward),
-      gold: rollReward(area.goldReward)
+      cultivation: applyEncounterRewardMultiplier(rollReward(area.expReward), rewardMultiplier),
+      gold: applyEncounterRewardMultiplier(rollReward(area.goldReward), rewardMultiplier)
     }
   }
 
@@ -508,6 +532,8 @@ export function useBattleSession() {
     targetOptions,
     selectedTargetId,
     selectedSkillId,
+    areaStatusLabel,
+    encounterNote,
     setSelectedTargetId: (targetId: string) => {
       selectedTargetId.value = targetId
       const actor = playerActor.value

@@ -18,9 +18,9 @@
     <section class="world-strip">
       <div class="world-time">
         <b>{{ worldStore.currentTimeLabel }}</b>
-        <span>{{ weatherLabel }}</span>
+        <span>{{ areaStatusLabel }}</span>
       </div>
-      <p>{{ worldStore.visibleLogs[0]?.text || '天地静默，灵气在暗处流动。' }}</p>
+      <p>{{ encounterNote }}</p>
     </section>
 
     <BattleCommandDock
@@ -85,9 +85,10 @@ const {
   setSelectedTargetId,
   selectedSkillId,
   sortedUnits,
+  areaStatusLabel,
+  encounterNote,
   targetHint,
   targetOptions,
-  weatherLabel,
   worldStore
 } = useBattleSession()
 </script>

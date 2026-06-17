@@ -139,6 +139,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { resolveMapAreaAdventureAreaId } from '@/map/runtime/mapAreaEncounterResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { WORLD_REALMS, WORLD_REALM_CONFIGS, type MapArea } from '@/types/map'
@@ -192,28 +193,7 @@ function handleAreaClick(area: MapArea) {
 
 // 挑战区域
 function handleChallenge(area: MapArea) {
-  // 根据区域找到对应的冒���区域
-  // 简化处理：根据境界要求匹配冒险区域
-  const realmToAreaMap: Record<string, string> = {
-    'qingyun_mountain': 'misty_forest',
-    'azure_valley': 'misty_forest',
-    'cloud_peak': 'dark_cave',
-    'flame_city': 'dark_cave',
-    'thunder_plains': 'barren_desert',
-    'sky_temple': 'barren_desert',
-    'hundred_beast_forest': 'frozen_tundra',
-    'fox_den': 'frozen_tundra',
-    'dragon_pool': 'volcanic_depths',
-    'phoenix_nest': 'volcanic_depths',
-    'blood_sea': 'abyss',
-    'shadow_city': 'abyss',
-    'chaos_abyss': 'celestial_ruins',
-    'jade_palace': 'celestial_ruins',
-    'star_sea': 'void_realm',
-    'void_temple': 'void_realm'
-  }
-
-  const adventureAreaId = realmToAreaMap[area.id] || 'misty_forest'
+  const adventureAreaId = resolveMapAreaAdventureAreaId(area.id)
 
   // 跳转到战斗页面，携带地图区域ID
   router.push({

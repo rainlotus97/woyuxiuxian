@@ -8,6 +8,7 @@
   - 已处理 Phaser Scene 销毁后仍接收事件导致的空引用问题
   - 已清理 BattleView 中未回收的延时伤害回调
   - 已为 BattleScene / useBattleSession 增加 battle instance 级事件握手，修复首次进入战斗页需要刷新才恢复渲染的问题
+  - 已完成首进战斗与首回合出手回归验证，确认 `showDamage()` / `updateSnapshot()` 不再触发空引用
   - 待补回归验证：路由往返、自动战斗连续结算、胜利弹层后退出
 - [~] 新战斗链路落地
   - 已建立 `src/game/battle/battleRuntime.ts`
@@ -147,7 +148,8 @@
   - 已为区域增加 `areaStates` 运行时状态，支持 `controllingSectId / riskLevel / stability / pressure / contested`
   - 已兼容旧存档区域状态回填
   - 已让天气、宗门战争、敌对关系共同影响区域风险
-  - 待补：区域易主、风险对历练/BattleView/收益掉落的真实影响
+  - 已让风险/天气开始影响 BattleView 敌人数值、奖励结算与前端状态展示
+  - 待补：区域易主、风险对更多历练入口/掉落结构/Boss 出现率的真实影响
 - [~] 为宗门增加外交、战争、俘虏、合并、沦陷状态
   - 已建立宗门世界态势 resolver，支持战争自动推进与关系自然漂移
   - 已让宗门战局与关系变化写入 `activeEvent`
@@ -193,6 +195,10 @@
   - 已让 `battle:snapshot / battle:play-command / battle:damage-number / battle:ended` 绑定当前战斗实例
   - 已将 `scene-ready` 延后到可渲染首帧后发出，避免 `showDamage()` / `updateSnapshot()` 抢跑
   - 已通过浏览器实测验证首进战斗与首回合伤害表现恢复正常
+- [x] 让地图区域风险进入真实战斗/历练结算链路
+  - 已建立 `mapAreaEncounterResolver` 作为地图区域到历练区域/风险倍率/文案的统一入口
+  - 已让 BattleView、AdventureView、MapView 复用该 resolver，而不是各自维护映射和文案
+  - 已让区域风险与天气共同影响敌人数值、奖励倍率与前端状态提示
 - [x] 模块化战斗效果解析
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime
@@ -205,6 +211,10 @@
 - [x] 建立战斗角色身份与阵型分配层
   - 已将 Boss / 伙伴 / 灵兽 / 召唤物站位逻辑从 `BattleScene` 抽离
   - 已验证战斗页进入正常，未引入新的控制台异常
+- [x] 让地图区域风险开始真实影响遭遇
+  - 已建立 `src/map/runtime/mapAreaEncounterResolver.ts`
+  - 已让地图区域状态统一映射到历练区域、战斗敌人数值、奖励倍率与前端提示文案
+  - 已清理 `MapView` 中失效的区域映射，改为复用运行时 resolver
 - [x] 建立真实召唤物 runtime 链路
   - 已新增 `src/game/battle/config/summons.ts` 与 summon runtime/unit factory
   - 已让 `battleRuntime` 支持 summon effect、实体生成、AI 使用与战斗日志写入

@@ -39,6 +39,7 @@ export class BattleScene extends Phaser.Scene {
   private pendingHits: BattleSceneHit[] = []
   private pendingEndResults: Array<'victory' | 'defeat' | 'fled'> = []
   private latestUnits = new Map<string, BattleRuntimeUnit>()
+  private readyTimer: Phaser.Time.TimerEvent | null = null
 
   constructor() {
     super('BattleScene')
@@ -80,12 +81,17 @@ export class BattleScene extends Phaser.Scene {
       })
     )
     this.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
-      if (!this.hasRenderableScene() || !this.battleInstanceId) return
-      this.ready = true
-      markBattleSceneReady(this.battleInstanceId)
-      gameEvents.emit('battle:scene-ready', {
-        sceneKey: 'BattleScene',
-        battleInstanceId: this.battleInstanceId
+      if (this.disposed || !this.time) return
+      this.readyTimer?.destroy()
+      this.readyTimer = this.time.delayedCall(0, () => {
+        this.readyTimer = null
+        if (!this.hasRenderableScene() || !this.hasBattleAssets() || !this.battleInstanceId) return
+        this.ready = true
+        markBattleSceneReady(this.battleInstanceId)
+        gameEvents.emit('battle:scene-ready', {
+          sceneKey: 'BattleScene',
+          battleInstanceId: this.battleInstanceId
+        })
       })
     })
   }
@@ -148,6 +154,8 @@ export class BattleScene extends Phaser.Scene {
     this.pendingHits = []
     this.pendingEndResults = []
     this.latestUnits = new Map()
+    this.readyTimer?.destroy()
+    this.readyTimer = null
     for (const off of this.unsubscribers) off()
     this.unsubscribers = []
     this.actors.clear()
@@ -249,21 +257,22 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private ensureActor(unit: BattleRuntimeUnit, placement: BattleFormationPlacement | undefined) {
-    if (!this.canRenderRuntimeEvents() || !placement) return
+    const add = this.getRenderableFactory()
+    if (!add || !placement) return
     const existing = this.actors.get(unit.id)
     if (existing) {
       this.applyPlacement(existing, placement)
       return
     }
-    const shadow = this.add.ellipse(placement.x, placement.y + 33, placement.shadowWidth, placement.shadowHeight, 0x4e6e68, 0.22)
-    const sprite = this.add.sprite(placement.x, placement.y, unit.spriteKey, 0)
+    const shadow = add.ellipse(placement.x, placement.y + 33, placement.shadowWidth, placement.shadowHeight, 0x4e6e68, 0.22)
+    const sprite = add.sprite(placement.x, placement.y, unit.spriteKey, 0)
       .setScale(placement.scale)
       .play(`${unit.spriteKey}_idle`)
     sprite.setAlpha(0)
-    const hpFrame = this.add.rectangle(placement.x - 29, placement.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
-    const hpBg = this.add.rectangle(placement.x - 25, placement.y - 69, 50, 5, 0xd7c9b1, 0.88).setOrigin(0, 0.5)
-    const hpBar = this.add.rectangle(placement.x - 24, placement.y - 69, 48, 4, unit.side === 'ally' ? 0x45bda9 : 0xe55969, 1).setOrigin(0, 0.5)
-    const name = this.add.text(placement.x, placement.y - 91, unit.name.replace('[BOSS]', '').replace('[精英]', ''), {
+    const hpFrame = add.rectangle(placement.x - 29, placement.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
+    const hpBg = add.rectangle(placement.x - 25, placement.y - 69, 50, 5, 0xd7c9b1, 0.88).setOrigin(0, 0.5)
+    const hpBar = add.rectangle(placement.x - 24, placement.y - 69, 48, 4, unit.side === 'ally' ? 0x45bda9 : 0xe55969, 1).setOrigin(0, 0.5)
+    const name = add.text(placement.x, placement.y - 91, unit.name.replace('[BOSS]', '').replace('[精英]', ''), {
       fontFamily: 'serif',
       fontSize: '12px',
       color: unit.side === 'ally' ? '#276d68' : '#8b3644',
@@ -271,7 +280,7 @@ export class BattleScene extends Phaser.Scene {
       strokeThickness: 4
     }).setOrigin(0.5)
     this.tweens.add({ targets: sprite, alpha: 1, y: placement.y - 10, duration: 180, ease: 'Quad.easeOut', onComplete: () => sprite.setY(placement.y) })
-    const aura = this.add.image(placement.x, placement.y + 2, 'vfx_aura')
+    const aura = add.image(placement.x, placement.y + 2, 'vfx_aura')
       .setAlpha(0.48)
       .setScale(Math.max(0.5, placement.scale * 0.2))
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -313,7 +322,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playHitEffects(command: BattleSceneCommand, target: ActorSprite) {
-    if (!this.canRenderRuntimeEvents() || !this.isActorAlive(target)) return
+    const add = this.getRenderableFactory()
+    if (!add || !this.isActorAlive(target)) return
     this.cameras.main.shake(command.type === 'skill' ? 190 : 110, command.type === 'skill' ? 0.008 : 0.004)
     target.sprite.play(`${target.sprite.texture.key}_hit`)
     target.sprite.setTint(0xffffff)
@@ -324,7 +334,7 @@ export class BattleScene extends Phaser.Scene {
       if (this.isActorAlive(target)) target.sprite.play(`${target.sprite.texture.key}_idle`)
     })
 
-    const ring = this.add.image(target.sprite.x, target.sprite.y - 4, 'vfx_impact_ring')
+    const ring = add.image(target.sprite.x, target.sprite.y - 4, 'vfx_impact_ring')
       .setScale(command.type === 'skill' ? 0.55 : 0.42)
       .setAlpha(0.96)
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -337,7 +347,7 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => ring.destroy()
     })
 
-    const slash = this.add.image(target.sprite.x, target.sprite.y - 14, command.type === 'skill' ? 'vfx_skill_slash' : 'vfx_slash')
+    const slash = add.image(target.sprite.x, target.sprite.y - 14, command.type === 'skill' ? 'vfx_skill_slash' : 'vfx_slash')
       .setScale(command.type === 'skill' ? 1.55 : 1.05)
       .setAlpha(0.95)
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -362,12 +372,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playCastAura(actor: ActorSprite) {
-    if (!this.canRenderRuntimeEvents() || !this.isActorAlive(actor)) return
-    const aura = this.add.image(actor.sprite.x, actor.sprite.y + 2, 'vfx_aura')
+    const add = this.getRenderableFactory()
+    if (!add || !this.isActorAlive(actor)) return
+    const aura = add.image(actor.sprite.x, actor.sprite.y + 2, 'vfx_aura')
       .setScale(0.42)
       .setAlpha(0.86)
       .setBlendMode(Phaser.BlendModes.ADD)
-    const ring = this.add.image(actor.sprite.x, actor.sprite.y + 2, 'vfx_impact_ring')
+    const ring = add.image(actor.sprite.x, actor.sprite.y + 2, 'vfx_impact_ring')
       .setScale(0.36)
       .setAlpha(0.72)
       .setBlendMode(Phaser.BlendModes.ADD)
@@ -376,11 +387,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playImpactSparks(x: number, y: number, count: number) {
-    if (!this.canRenderRuntimeEvents()) return
+    const add = this.getRenderableFactory()
+    if (!add) return
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.25, 0.25)
       const distance = Phaser.Math.Between(28, 66)
-      const spark = this.add.image(x, y, 'vfx_spark')
+      const spark = add.image(x, y, 'vfx_spark')
         .setScale(Phaser.Math.FloatBetween(0.46, 0.82))
         .setAlpha(0.95)
         .setBlendMode(Phaser.BlendModes.ADD)
@@ -398,10 +410,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   showDamage(hit: BattleSceneHit) {
-    if (!this.canRenderRuntimeEvents()) return
+    const add = this.getRenderableFactory()
+    if (!add) return
     const target = this.actors.get(hit.targetId)
     if (!this.isActorAlive(target)) return
-    const text = this.add.text(target.sprite.x, target.sprite.y - 96, `${hit.isHeal ? '+' : '-'}${hit.amount}`, {
+    const text = add.text(target.sprite.x, target.sprite.y - 96, `${hit.isHeal ? '+' : '-'}${hit.amount}`, {
       fontFamily: 'serif',
       fontSize: hit.isCrit ? '24px' : '18px',
       color: hit.isCrit ? '#a85c00' : hit.isHeal ? '#1d9c73' : '#c83f55',
@@ -422,10 +435,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playBattleEnd(result: 'victory' | 'defeat' | 'fled') {
-    if (!this.canRenderRuntimeEvents()) return
+    const add = this.getRenderableFactory()
+    if (!add) return
     const { width, height } = this.scale
-    const veil = this.add.rectangle(width / 2, height / 2, width, height, 0xfff4d6, 0.64)
-    const label = this.add.text(width / 2, height / 2, result === 'victory' ? '战斗胜利' : result === 'defeat' ? '战斗败北' : '脱离战场', {
+    const veil = add.rectangle(width / 2, height / 2, width, height, 0xfff4d6, 0.64)
+    const label = add.text(width / 2, height / 2, result === 'victory' ? '战斗胜利' : result === 'defeat' ? '战斗败北' : '脱离战场', {
       fontFamily: 'serif',
       fontSize: '34px',
       color: result === 'victory' ? '#9d6314' : '#b93d4c',
@@ -459,6 +473,26 @@ export class BattleScene extends Phaser.Scene {
       && Boolean(add?.displayList)
       && Boolean(add?.updateList)
       && add?.scene === this
+  }
+
+  private hasBattleAssets() {
+    return ['actor_ally', 'actor_enemy', 'actor_boss', 'vfx_aura', 'vfx_impact_ring', 'vfx_spark', 'vfx_slash', 'vfx_skill_slash']
+      .every(key => this.textures.exists(key))
+  }
+
+  private getRenderableFactory() {
+    if (!this.canRenderRuntimeEvents()) return null
+    const add = this.add as Phaser.GameObjects.GameObjectFactory & {
+      scene?: Phaser.Scene | null
+      displayList?: Phaser.GameObjects.DisplayList | null
+      updateList?: Phaser.GameObjects.UpdateList | null
+    } | null
+
+    if (!add || add.scene !== this || !add.displayList || !add.updateList) {
+      return null
+    }
+
+    return add
   }
 
   private isActorAlive(actor: ActorSprite | undefined): actor is ActorSprite {
