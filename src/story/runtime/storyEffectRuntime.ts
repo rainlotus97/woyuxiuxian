@@ -4,6 +4,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { getStoryBattleTemplate } from './storyBattleCatalog'
+import { describeStoryCharacterTarget, resolveStoryCharacterTarget } from './storyCharacterRegistry'
 
 export interface SerializedStoryRuntimeState {
   unlockedNpcIds: string[]
@@ -80,13 +81,22 @@ export function createStoryEffectRuntime(): StoryEffectRuntime {
   async function execute(effect: Effect) {
     switch (effect.type) {
       case 'unlock_npc':
-        if (effect.target && worldStore.unlockNpc(effect.target, `因剧情推进，你与${effect.target}的因果开始纠缠。`)) {
-          state.unlockedNpcIds.add(effect.target)
+        if (effect.target) {
+          const resolved = resolveStoryCharacterTarget(effect.target)
+          if (resolved.worldNpcId && worldStore.unlockNpc(
+            resolved.worldNpcId,
+            `因剧情推进，你与${resolved.storyCharacterName}的因果开始纠缠。`
+          )) {
+            state.unlockedNpcIds.add(resolved.worldNpcId)
+          }
         }
         return
       case 'unlock_companion':
         if (effect.target) {
-          companionStore.unlockCompanionById(effect.target)
+          const resolved = resolveStoryCharacterTarget(effect.target)
+          if (resolved.companionDefinitionId) {
+            companionStore.unlockCompanionById(resolved.companionDefinitionId)
+          }
         }
         return
       case 'sect_reputation':
@@ -101,7 +111,7 @@ export function createStoryEffectRuntime(): StoryEffectRuntime {
         return
       case 'world_flag':
         if (effect.target) {
-          worldStore.addWorldFlag(effect.target, '命运震荡', `世界接受了新的剧情标记：${effect.target}`)
+          worldStore.addWorldFlag(effect.target, '命运震荡', `世界接受了新的剧情标记：${describeStoryCharacterTarget(effect.target)}`)
         }
         return
       case 'story_battle':

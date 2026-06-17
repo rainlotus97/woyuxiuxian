@@ -22,6 +22,7 @@ import { volumeLoader } from './loader/volumeLoader'
 import { storyEventBus } from './eventBus'
 import { prerequisiteExpressionToText } from './parser'
 import { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
+import { describeStoryCharacterTarget } from './runtime/storyCharacterRegistry'
 // 以下模块待后续集成
 // import { extensionManager } from './extensionManager'
 // import { gameplayBridge } from './gameplayBridge'
@@ -348,13 +349,13 @@ export const useStoryStore = defineStore('story', () => {
         case 'unlock_npc':
           if (effect.target) {
             await effectRuntime.execute(effect)
-            showNotification(`结识人物: ${effect.target}`, 'success')
+            showNotification(`结识人物: ${describeStoryCharacterTarget(effect.target)}`, 'success')
           }
           break
         case 'unlock_companion':
           if (effect.target) {
             await effectRuntime.execute(effect)
-            showNotification(`解锁伙伴: ${effect.target}`, 'success')
+            showNotification(`解锁伙伴: ${describeStoryCharacterTarget(effect.target)}`, 'success')
           }
           break
         case 'sect_reputation':

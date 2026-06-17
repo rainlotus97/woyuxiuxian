@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { storyEventBus } from '@/story/eventBus'
+import { describeStoryCharacterTarget } from '@/story/runtime/storyCharacterRegistry'
 import type { StoryEvent, Effect, EffectType } from '@/story/types'
 
 interface FeedbackItem {
@@ -194,7 +195,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       type: 'success',
       icon: '🧑',
       text: '结识人物',
-      value: effect.target || '',
+      value: effect.target ? describeStoryCharacterTarget(effect.target) : '',
       valueClass: 'positive',
       animating: false
     }),
@@ -204,7 +205,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       type: 'success',
       icon: '🤝',
       text: '解锁伙伴',
-      value: effect.target || '',
+      value: effect.target ? describeStoryCharacterTarget(effect.target) : '',
       valueClass: 'positive',
       animating: false
     }),

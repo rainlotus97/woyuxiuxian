@@ -32,6 +32,14 @@ export {
   consumeResolvedRouteGameplaySession,
   hasRouteGameplaySession
 } from './runtime/routeGameplaySession'
+export {
+  STORY_CHARACTER_BINDINGS,
+  getStoryCharacterBindingById,
+  findStoryCharacterBinding,
+  resolveStoryCharacterTarget,
+  describeStoryCharacterTarget,
+  validateStoryCharacterBindings
+} from './runtime/storyCharacterRegistry'
 
 // 导出字典解析器
 export { dictionaryParser, DictionaryParser } from './dictionaryParser'

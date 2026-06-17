@@ -97,7 +97,9 @@
   - 已让 `worldStore` 持久化 NPC 解锁与 world flag，并写回世界日志
   - 已让 `storyStore` 持久化 effect runtime 状态，避免剧情玩法触发在刷新后丢失
   - 已修复节点效果在 `makeChoice()` / `goToNode()` 间重复执行的问题，避免剧情效果双重结算
-  - 待补：故事角色 ID 到世界 NPC / 伙伴 definition ID 的映射层，好感数值与 NPC 关系系统的真实联动
+  - 已建立 `storyCharacterRegistry`，支持故事角色 ID / 角色名到 world npc / companion definition 的单点映射
+  - 已让 `unlock_npc / unlock_companion` 优先消费 story 角色标识，而不是直接依赖底层 gameplay id
+  - 待补：好感数值与 NPC 关系系统的真实联动，更多角色映射与自动校验
 - [~] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
   - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
   - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
@@ -201,3 +203,7 @@
   - 已新增 gameplay outcome router，统一解析 `victory / defeat / fled / success / failure`
   - 已让 `GameplayTrigger` 支持结果节点映射，并在 story parser 中解析 `胜利后跳转 / 败北后跳转 / 脱离后跳转`
   - 已让 `gameplayBridge.onComplete()` 统一按结果决定继续节点，而不是只靠 `continueNodeId / failureNodeId`
+- [x] 建立 story 角色到 world/companion 的映射层
+  - 已新增 `storyCharacterRegistry`，统一维护 `Cxxx -> world npc / companion` 绑定
+  - 已让 story effect runtime、通知文案、反馈浮层优先显示故事角色名而不是内部 gameplay id
+  - 已更新剧情规则文档，允许 `解锁NPC / 解锁伙伴` 直接使用故事角色 ID 或角色名
