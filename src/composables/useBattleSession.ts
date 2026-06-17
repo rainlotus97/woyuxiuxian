@@ -4,6 +4,7 @@ import { BattleRuntime, type BattleRuntimeSnapshot } from '@/game/battle/battleR
 import { gameEvents, type BattleSceneCommand } from '@/game/engine/gameEvents'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useCompanionStore } from '@/stores/companionStore'
+import { usePetStore } from '@/stores/petStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -12,6 +13,7 @@ import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById, getSkillsByIds } from '@/types/skill'
 import { getAreaById, rollDrops, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
+import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
 
 interface BattleSkillOption {
   id: string
@@ -33,6 +35,7 @@ export function useBattleSession() {
   const route = useRoute()
   const playerStore = usePlayerStore()
   const companionStore = useCompanionStore()
+  const petStore = usePetStore()
   const sectStore = useSectStore()
   const mapStore = useMapStore()
   const worldStore = useWorldStore()
@@ -135,28 +138,10 @@ export function useBattleSession() {
     const allies: Unit[] = [playerStore.toBattleUnit()]
     for (const { owned, definition, stats } of companionStore.equippedCompanions) {
       if (!definition) continue
-      allies.push(createUnit({
-        id: `companion_${owned.definitionId}`,
-        name: definition.name,
-        type: 'companion',
-        element: definition.element,
-        realm: playerStore.realm,
-        quality: definition.quality === '凡品' ? '凡品' : definition.quality === '灵品' ? '玄品' : definition.quality === '仙品' ? '仙品' : '神品',
-        level: owned.level,
-        icon: definition.icon,
-        stats: {
-          maxHp: stats.maxHp,
-          currentHp: stats.maxHp,
-          maxMp: stats.maxMp,
-          currentMp: stats.maxMp,
-          attack: stats.attack,
-          defense: stats.defense,
-          speed: stats.speed,
-          critRate: stats.critRate,
-          critDamage: stats.critDamage
-        },
-        skills: definition.skills || []
-      }))
+      allies.push(buildCompanionBattleUnit({ owned, definition, stats }, playerStore.realm))
+    }
+    if (petStore.equippedPet) {
+      allies.push(buildPetBattleUnit(petStore.equippedPet))
     }
     return allies
   }
@@ -383,6 +368,10 @@ export function useBattleSession() {
     if (result === 'victory') {
       playerStore.addCultivation(pendingRewards.value.cultivation)
       playerStore.addGold(pendingRewards.value.gold)
+      if (petStore.equippedPet) {
+        petStore.addPetExp(petStore.equippedPet.owned.definitionId, Math.max(12, Math.floor(pendingRewards.value.cultivation * 0.18)))
+        petStore.addIntimacy(petStore.equippedPet.owned.definitionId, 2)
+      }
       if (currentArea.value) {
         sectStore.updateTaskProgress('battle', 'monster')
         sectStore.updateTaskProgress('explore', currentArea.value.id)

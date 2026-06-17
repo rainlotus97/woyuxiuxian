@@ -10,6 +10,7 @@ import type {
 } from '@/types/world'
 import { formatWorldTime } from '@/types/world'
 import { usePlayerStore } from './playerStore'
+import { usePetStore } from './petStore'
 
 interface WorldState {
   clock: WorldClock
@@ -235,16 +236,30 @@ export const useWorldStore = defineStore('world', () => {
 
   function resolvePlayerAction() {
     const playerStore = usePlayerStore()
+    const petStore = usePetStore()
     const mode = idleMode.value
     const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 60))
     if (mode === 'cultivate') {
       const gain = weather.value === 'rain' ? Math.floor(baseGain * 1.1) : baseGain
       playerStore.addCultivation(gain)
+      if (petStore.equippedPet) {
+        petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
+        if (seededRoll(clock.value.totalTicks * 47) > 0.58) {
+          petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
+        }
+      }
       if (seededRoll(clock.value.totalTicks * 29) > 0.94) {
         addLog('player', 'major', '修炼顿悟', `你在${currentTimeLabel.value}心有所感，额外凝聚了${gain}点修为。`, ['player'], ['cultivation'])
       }
     } else if (mode === 'adventure') {
       playerStore.addCultivation(Math.floor(baseGain * 0.35))
+      if (petStore.equippedPet) {
+        petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
+        petStore.addIntimacy(petStore.equippedPet.owned.definitionId, 1)
+        if (seededRoll(clock.value.totalTicks * 53) > 0.7) {
+          petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
+        }
+      }
       if (seededRoll(clock.value.totalTicks * 31) > 0.78) {
         const gold = 8 + Math.floor(seededRoll(clock.value.totalTicks * 33) * 24)
         playerStore.addGold(gold)
