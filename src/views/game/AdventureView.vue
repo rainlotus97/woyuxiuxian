@@ -177,7 +177,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
+import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
+import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -189,7 +190,6 @@ import {
   type DropItem,
   getRealmRequirementText,
   isAreaUnlocked,
-  rollDrops,
   rollReward,
   DIFFICULTY_CONFIG,
   REALM_PRIMARY_COLOR,
@@ -290,7 +290,7 @@ function handleSweep(area: AreaDefinition) {
     totalGold += Math.max(1, Math.floor(rollReward(area.goldReward) * rewardMultiplier))
 
     // 掉落物品
-    const drops = rollDrops(area.drops)
+    const drops = resolveEncounterDrops(area.drops, encounter)
     for (const drop of drops) {
       const existing = allDrops.get(drop.item.id)
       if (existing) {
@@ -356,13 +356,7 @@ function handleBuyStamina(option: { amount: number; cost: number }) {
 }
 
 function getAreaEncounterHint(area: AreaDefinition) {
-  const mapAreaEntry = Object.entries(mapStore.areaStates).find(([, state]) => {
-    const encounter = resolveMapAreaEncounter(state.areaId, state, worldStore.weather)
-    return encounter?.adventureAreaId === area.id
-  })
-  if (!mapAreaEntry) return null
-  const [mapAreaId, state] = mapAreaEntry
-  return resolveMapAreaEncounter(mapAreaId, state, worldStore.weather)
+  return resolveAdventureAreaEncounter(area.id, mapStore.areaStates, worldStore.weather)
 }
 
 // 启动体力恢复定时器

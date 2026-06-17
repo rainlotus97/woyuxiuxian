@@ -75,6 +75,13 @@ const WEATHER_BATTLE_CONFIG: Record<WorldWeather, {
   mist: { enemyMultiplier: 1.05, rewardMultiplier: 1.06, note: '迷雾遮蔽视线，埋伏与奇遇都更常见。' }
 }
 
+const AREA_RISK_PRIORITY: Record<AreaRiskLevel, number> = {
+  safe: 0,
+  watch: 1,
+  danger: 2,
+  chaos: 3
+}
+
 export interface MapAreaEncounterContext {
   mapArea: MapArea
   mapAreaId: string
@@ -146,6 +153,46 @@ export function resolveMapAreaEncounter(
     statusText: `${riskConfig.label}${state.contested ? ' · 争夺中' : ''}${controllerSect ? ` · ${controllerSect.name}` : ''}`,
     encounterNote: `${riskConfig.note}${weatherConfig.note}`
   }
+}
+
+function compareEncounterPriority(
+  current: MapAreaEncounterContext,
+  candidate: MapAreaEncounterContext
+) {
+  const currentScore = AREA_RISK_PRIORITY[current.riskLevel]
+    + (current.contested ? 0.5 : 0)
+  const candidateScore = AREA_RISK_PRIORITY[candidate.riskLevel]
+    + (candidate.contested ? 0.5 : 0)
+
+  if (candidateScore !== currentScore) {
+    return candidateScore - currentScore
+  }
+
+  const currentControllerScore = current.controllerSectId ? 1 : 0
+  const candidateControllerScore = candidate.controllerSectId ? 1 : 0
+  if (candidateControllerScore !== currentControllerScore) {
+    return candidateControllerScore - currentControllerScore
+  }
+
+  return candidate.mapAreaId.localeCompare(current.mapAreaId)
+}
+
+export function resolveAdventureAreaEncounter(
+  adventureAreaId: AreaDefinition['id'],
+  areaStates: Record<string, AreaRuntimeState>,
+  weather: WorldWeather
+) {
+  let activeEncounter: MapAreaEncounterContext | null = null
+
+  for (const [mapAreaId, state] of Object.entries(areaStates)) {
+    const encounter = resolveMapAreaEncounter(mapAreaId, state, weather)
+    if (!encounter || encounter.adventureAreaId !== adventureAreaId) continue
+    if (!activeEncounter || compareEncounterPriority(activeEncounter, encounter) > 0) {
+      activeEncounter = encounter
+    }
+  }
+
+  return activeEncounter
 }
 
 export function applyEncounterRewardMultiplier(amount: number, multiplier: number) {

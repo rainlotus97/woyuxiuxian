@@ -16,12 +16,17 @@ import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
 import {
   applyEncounterRewardMultiplier,
+  resolveAdventureAreaEncounter,
   resolveMapAreaEncounter
 } from '@/map/runtime/mapAreaEncounterResolver'
-import { DIFFICULTY_CONFIG, ENEMIES, getBattleArenaIdForArea } from '@/game/battle/config'
+import {
+  resolveEncounterDrops,
+  resolveEncounterEnemySelections
+} from '@/map/runtime/mapEncounterComposition'
+import { DIFFICULTY_CONFIG, getBattleArenaIdForArea } from '@/game/battle/config'
 import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById, getSkillsByIds } from '@/types/skill'
-import { getAreaById, rollDrops, rollReward, type AreaDefinition } from '@/types/adventure'
+import { getAreaById, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
 import {
@@ -147,8 +152,12 @@ export function useBattleSession() {
   const currentActorName = computed(() => cleanName(playerActor.value?.name || '等待出手'))
   const activeMapEncounter = computed(() => {
     const mapAreaId = route.query.mapAreaId as string | undefined
-    if (!mapAreaId) return null
-    return resolveMapAreaEncounter(mapAreaId, mapStore.getAreaState(mapAreaId), worldStore.weather)
+    if (mapAreaId) {
+      return resolveMapAreaEncounter(mapAreaId, mapStore.getAreaState(mapAreaId), worldStore.weather)
+    }
+    const areaId = route.query.areaId as string | undefined
+    if (!areaId) return null
+    return resolveAdventureAreaEncounter(areaId, mapStore.areaStates, worldStore.weather)
   })
   const areaStatusLabel = computed(() => activeMapEncounter.value?.statusText ?? weatherLabel.value)
   const encounterNote = computed(() => activeMapEncounter.value?.encounterNote ?? '天地静默，灵气在暗处流动。')
@@ -192,24 +201,24 @@ export function useBattleSession() {
     const areaId = route.query.areaId as string | undefined
     const area = areaId ? getAreaById(areaId) : undefined
     if (area) currentArea.value = area
-    const enemyIds = area?.enemies?.length ? area.enemies : ['wild_wolf', 'forest_spider']
     const difficulty = area ? DIFFICULTY_CONFIG[area.difficulty] : DIFFICULTY_CONFIG.easy
     const count = Math.min(3, difficulty.enemiesPerWave[0] || 2)
     const encounterEnemyMultiplier = activeMapEncounter.value?.enemyStatMultiplier ?? 1
+    const selections = resolveEncounterEnemySelections(area ?? null, count, activeMapEncounter.value)
     const enemies: Unit[] = []
-    for (let i = 0; i < count; i++) {
-      const enemyDef = ENEMIES[enemyIds[i % enemyIds.length] || 'wild_wolf']
-      if (!enemyDef) continue
-      const isBoss = area?.difficulty === 'nightmare' && i === 1
-      const multiplier = difficulty.enemyStatMult * encounterEnemyMultiplier * (isBoss ? difficulty.bossStatMult || 2.5 : i === 1 ? 1.35 : 1)
+    for (let i = 0; i < selections.length; i++) {
+      const selection = selections[i]
+      if (!selection) continue
+      const enemyDef = selection.definition
+      const multiplier = difficulty.enemyStatMult * encounterEnemyMultiplier * selection.statMultiplier
       enemies.push(createUnit({
         id: `enemy_${i}`,
-        name: isBoss ? `[BOSS]${enemyDef.name}` : i === 1 ? `[精英]${enemyDef.name}` : enemyDef.name,
+        name: `${selection.namePrefix}${enemyDef.name}`,
         type: 'enemy',
         element: '金',
         realm: enemyDef.realm,
         realmLevel: enemyDef.realmLevel,
-        quality: isBoss ? '仙品' : i === 1 ? '玄品' : '凡品',
+        quality: selection.quality,
         level: enemyDef.realmLevel + 2,
         icon: enemyDef.icon,
         stats: {
@@ -220,8 +229,8 @@ export function useBattleSession() {
           attack: Math.floor(enemyDef.baseStats.attack * multiplier),
           defense: Math.floor(enemyDef.baseStats.defense * multiplier),
           speed: enemyDef.baseStats.speed,
-          critRate: 0.05 + (isBoss ? 0.12 : 0),
-          critDamage: 1.5 + (isBoss ? 0.4 : 0)
+          critRate: 0.05 + selection.critRateBonus,
+          critDamage: 1.5 + selection.critDamageBonus
         },
         skills: enemyDef.skills
       }))
@@ -463,7 +472,7 @@ export function useBattleSession() {
       if (currentArea.value) {
         sectStore.updateTaskProgress('battle', 'monster')
         sectStore.updateTaskProgress('explore', currentArea.value.id)
-        const drops = rollDrops(currentArea.value.drops)
+        const drops = resolveEncounterDrops(currentArea.value.drops, activeMapEncounter.value)
         for (const drop of drops) {
           playerStore.addToInventory({
             id: `drop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
