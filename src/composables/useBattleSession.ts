@@ -66,6 +66,7 @@ export function useBattleSession() {
   let unsubSceneReady: (() => void) | null = null
   let disposed = false
   let sceneReady = false
+  let battleStarted = false
   let battleRunId = 0
   let battleInstanceId = ''
   const commandTimers = new Set<number>()
@@ -346,12 +347,17 @@ export function useBattleSession() {
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
       gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
       refreshSnapshot()
+      if (!battleStarted) {
+        battleStarted = true
+        frameId = requestAnimationFrame(loop)
+      }
     })
   }
 
   function disposeSession() {
     disposed = true
     sceneReady = false
+    battleStarted = false
     battleRunId++
     battleInstanceId = ''
     setActiveBattleInstanceId(null)
@@ -472,9 +478,9 @@ export function useBattleSession() {
   onMounted(() => {
     disposed = false
     sceneReady = false
+    battleStarted = false
     bindScene()
     initBattle()
-    frameId = requestAnimationFrame(loop)
   })
 
   onBeforeUnmount(() => {

@@ -79,22 +79,19 @@ export class BattleScene extends Phaser.Scene {
         this.pendingEndResults = [payload.result]
       })
     )
+    this.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
+      if (!this.hasRenderableScene() || !this.battleInstanceId) return
+      this.ready = true
+      markBattleSceneReady(this.battleInstanceId)
+      gameEvents.emit('battle:scene-ready', {
+        sceneKey: 'BattleScene',
+        battleInstanceId: this.battleInstanceId
+      })
+    })
   }
 
   update() {
-    if (!this.ready) {
-      if (!this.hasLiveSceneSystems()) return
-      this.ready = true
-      this.time.delayedCall(0, () => {
-        if (!this.canRenderRuntimeEvents()) return
-        markBattleSceneReady(this.battleInstanceId)
-        gameEvents.emit('battle:scene-ready', {
-          sceneKey: 'BattleScene',
-          battleInstanceId: this.battleInstanceId ?? ''
-        })
-      })
-      return
-    }
+    if (!this.ready) return
     if (!this.canRenderRuntimeEvents()) return
 
     const arenaId = this.pendingArenaId
@@ -440,18 +437,27 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private canRenderRuntimeEvents() {
-    return this.ready && this.hasLiveSceneSystems() && Boolean(this.battleInstanceId)
+    return this.ready && this.hasRenderableScene() && Boolean(this.battleInstanceId)
   }
 
-  private hasLiveSceneSystems() {
-    const add = this.add as Phaser.GameObjects.GameObjectFactory & { scene?: Phaser.Scene | null }
+  private hasRenderableScene() {
+    const add = this.add as Phaser.GameObjects.GameObjectFactory & {
+      scene?: Phaser.Scene | null
+      displayList?: Phaser.GameObjects.DisplayList | null
+      updateList?: Phaser.GameObjects.UpdateList | null
+    }
     const sys = this.sys
     return !this.disposed
       && Boolean(sys?.isActive())
       && Boolean(sys?.displayList)
       && Boolean(sys?.updateList)
       && Boolean(sys?.game?.renderer)
+      && Boolean(this.cameras?.main)
+      && Boolean(this.time)
+      && Boolean(this.tweens)
       && Boolean(this.textures)
+      && Boolean(add?.displayList)
+      && Boolean(add?.updateList)
       && add?.scene === this
   }
 
