@@ -19,6 +19,11 @@ import {
   mergeAreaRuntimeStates,
   resolveAreaWorldUpdate
 } from '@/map/runtime/areaWorldResolver'
+import {
+  resolveAreaOwnershipChange,
+  type AreaOwnershipResolution
+} from '@/map/runtime/areaOwnershipResolver'
+import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import { usePlayerStore } from './playerStore'
 import { useSectStore } from './sectStore'
 
@@ -290,8 +295,40 @@ export const useMapStore = defineStore('map', () => {
     }
   }
 
-  function updateAreaWorldState(totalTicks: number, weather: string) {
+  function applyWarResolution(resolution: SectWarResolution) {
+    const appliedChanges: AreaOwnershipResolution[] = []
+    for (const area of ALL_AREAS) {
+      const currentState = getAreaState(area.id)
+      if (!currentState) continue
+
+      const ownershipChange = resolveAreaOwnershipChange(
+        area,
+        resolution,
+        currentState.controllingSectId ?? area.sects[0] ?? null
+      )
+
+      if (!ownershipChange) continue
+
+      upsertAreaState(area.id, {
+        controllingSectId: ownershipChange.update.controllingSectId,
+        stability: Math.max(18, currentState.stability + (ownershipChange.update.stabilityDelta ?? 0)),
+        pressure: Math.max(0, currentState.pressure + (ownershipChange.update.pressureDelta ?? 0)),
+        contested: ownershipChange.update.contested ?? false
+      })
+
+      recordEvent(ownershipChange.mapEvent)
+      appliedChanges.push(ownershipChange)
+    }
+
+    return appliedChanges
+  }
+
+  function updateAreaWorldState(totalTicks: number, weather: string, warResolution?: SectWarResolution | null) {
     const sectStore = useSectStore()
+    const ownershipChanges = warResolution ? applyWarResolution(warResolution) : []
+    if (warResolution) {
+      // ownership changes are already applied above
+    }
     for (const area of ALL_AREAS) {
       const currentState = getAreaState(area.id)
       if (!currentState) continue
@@ -324,6 +361,10 @@ export const useMapStore = defineStore('map', () => {
           impact: update.log.impact
         })
       }
+    }
+
+    return {
+      ownershipChanges
     }
   }
 
@@ -460,6 +501,7 @@ export const useMapStore = defineStore('map', () => {
     isRealmUnlockedByPlayer,
     getSectsInArea,
     getUnlockedSects,
+    applyWarResolution,
     updateAreaWorldState,
     getEventsByType,
     getRecentEvents,

@@ -223,8 +223,22 @@ export const useWorldStore = defineStore('world', () => {
   function resolveWorldSystems() {
     const mapStore = useMapStore()
     const sectStore = useSectStore()
-    sectStore.updateWorldState(clock.value.totalTicks)
-    mapStore.updateAreaWorldState(clock.value.totalTicks, weather.value)
+    const sectUpdate = sectStore.updateWorldState(clock.value.totalTicks)
+    const mapUpdate = mapStore.updateAreaWorldState(clock.value.totalTicks, weather.value, sectUpdate.warResolution)
+    if (mapUpdate.ownershipChanges.length > 0) {
+      for (const change of mapUpdate.ownershipChanges) {
+        if (!change.worldLog) continue
+        addLog(
+          change.worldLog.scope,
+          change.worldLog.severity,
+          change.worldLog.title,
+          change.worldLog.text,
+          change.worldLog.actorIds,
+          change.worldLog.tags,
+          change.worldLog.mapId
+        )
+      }
+    }
   }
 
   function advanceClock(updateTimestamp: boolean) {

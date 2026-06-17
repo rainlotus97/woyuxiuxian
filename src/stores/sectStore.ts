@@ -17,6 +17,7 @@ import {
   generateRandomTask
 } from '@/types/sect'
 import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
+import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
 import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
@@ -435,8 +436,8 @@ export const useSectStore = defineStore('sect', () => {
   }
 
   // 推进战争
-  function advanceWar(attackerWon: boolean): boolean {
-    if (!activeWar.value) return false
+  function advanceWar(attackerWon: boolean): SectWarResolution | null {
+    if (!activeWar.value) return null
 
     if (attackerWon) {
       activeWar.value.attackerScore += 10 + Math.floor(Math.random() * 5)
@@ -447,20 +448,21 @@ export const useSectStore = defineStore('sect', () => {
     // 检查是否结束
     if (activeWar.value.attackerScore >= activeWar.value.winScore) {
       activeWar.value.status = 'victory'
-      handleWarEnd(true)
+      return handleWarEnd(true)
     } else if (activeWar.value.defenderScore >= activeWar.value.winScore) {
       activeWar.value.status = 'defeat'
-      handleWarEnd(false)
+      return handleWarEnd(false)
     }
-    return true
+    return null
   }
 
   // 处理战争结束
-  function handleWarEnd(attackerWon: boolean) {
-    if (!activeWar.value) return
+  function handleWarEnd(attackerWon: boolean): SectWarResolution | null {
+    const war = activeWar.value
+    if (!war) return null
 
     const winner = attackerWon ? 'attacker' : 'defender'
-    activeWar.value.result = {
+    war.result = {
       winner,
       rewards: winner === 'attacker' ? ['500贡献点', '1000灵石', '100声望'] : ['200贡献点', '500灵石'],
       penalties: winner === 'attacker' ? [] : ['100声望', '200贡献点']
@@ -479,10 +481,18 @@ export const useSectStore = defineStore('sect', () => {
       reputation.value = Math.max(0, reputation.value - 100)
     }
 
-    if (activeWar.value) {
-      relations.value[activeWar.value.defenderSectId] = attackerWon ? 'hostile' : 'neutral'
+    relations.value[war.defenderSectId] = attackerWon ? 'hostile' : 'neutral'
+    const resolution: SectWarResolution = {
+      warId: war.id,
+      attackerSectId: war.attackerSectId,
+      defenderSectId: war.defenderSectId,
+      winner,
+      status: attackerWon ? 'victory' : 'defeat',
+      attackerScore: war.attackerScore,
+      defenderScore: war.defenderScore
     }
     activeWar.value = null
+    return resolution
   }
 
   // 处理随机事件
@@ -537,6 +547,7 @@ export const useSectStore = defineStore('sect', () => {
     const current = currentSect.value
     const war = activeWar.value
     const defender = war ? getSectById(war.defenderSectId) ?? null : null
+    let warResolution: SectWarResolution | null = null
 
     const warProgress = resolveSectWarProgress(totalTicks, {
       joinedSectId: joinedSectId.value,
@@ -548,7 +559,7 @@ export const useSectStore = defineStore('sect', () => {
     }, current, defender)
 
     if (warProgress) {
-      advanceWar(warProgress.attackerWon)
+      warResolution = advanceWar(warProgress.attackerWon)
       if (warProgress.log) {
         activeEvent.value = {
           id: `sect_world_war_${Date.now()}`,
@@ -585,6 +596,10 @@ export const useSectStore = defineStore('sect', () => {
         choices: [],
         handled: true
       }
+    }
+
+    return {
+      warResolution
     }
   }
 

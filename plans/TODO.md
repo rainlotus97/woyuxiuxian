@@ -143,6 +143,7 @@
 - [~] 打通 `mapStore` 与 `sectStore` 的世界 tick 联动
   - 已让 `worldStore.advanceTick()` 统一驱动 `sectStore.updateWorldState()` 与 `mapStore.updateAreaWorldState()`
   - 已建立 `src/map/runtime/*` 与 `src/sect/runtime/*` 的世界态势解析层，避免 store 内继续堆条件分支
+  - 已让 `sectStore.updateWorldState()` 返回结构化战争结算结果，由 `worldStore` 协调传给地图层处理
   - 待补：更细粒度事件分发、世界系统之间的反馈闭环、重要结果回流到主界面提示
 - [~] 为地图区域增加控制权和风险等级
   - 已为区域增加 `areaStates` 运行时状态，支持 `controllingSectId / riskLevel / stability / pressure / contested`
@@ -151,10 +152,12 @@
   - 已让风险/天气开始影响 BattleView 敌人数值、奖励结算与前端状态展示
   - 已建立 `mapEncounterComposition`，让风险开始影响精英/Boss 槽位、掉落品质倾向与争夺区额外收益
   - 已让 BattleView 与 AdventureView 共享同一套区域遭遇/掉落 resolver，避免地图入口和历练入口表现分裂
-  - 待补：区域易主、风险对更多历练入口/Boss 专属模板/特殊事件遭遇的真实影响
+  - 已建立 `areaOwnershipResolver`，让宗门战争结算可推动区域控制权变更，并回流地图历史与世界日志
+  - 待补：风险对更多历练入口/Boss 专属模板/特殊事件遭遇的真实影响
 - [~] 为宗门增加外交、战争、俘虏、合并、沦陷状态
   - 已建立宗门世界态势 resolver，支持战争自动推进与关系自然漂移
   - 已让宗门战局与关系变化写入 `activeEvent`
+  - 已让战争胜负生成结构化 `warResolution`，供地图区域易主和世界日志复用
   - 待补：俘虏、合并、沦陷、NPC 宗门牵连、跨宗门连锁反应
 - [ ] 增加从弟子到宗主的晋升链
 - [ ] 把宗门设施、药园、任务、战争收益整合到统一宗门循环
@@ -205,6 +208,10 @@
   - 已建立 `mapEncounterComposition`，统一处理风险驱动的精英/Boss 槽位提升与掉落质量偏移
   - 已让直接历练入口也能反查当前地图态势，不再只有地图跳转战斗才吃到风险修正
   - 已让实战结算和扫荡结算共用同一套风险掉落逻辑
+- [x] 让宗门战争结果推动区域易主
+  - 已建立 `SectWarResolution -> areaOwnershipResolver -> mapStore/worldStore` 的单向协调链路
+  - 已让区域控制权变更同步进入地图历史和世界日志，而不是只停留在宗门内部事件
+  - 已为后续俘虏、宗门合并、沦陷扩展预留独立 runtime 接口
 - [x] 模块化战斗效果解析
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime
