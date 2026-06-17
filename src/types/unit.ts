@@ -129,7 +129,7 @@ export interface UnitStats {
 }
 
 // ====== 单位类型 ======
-export type UnitType = 'protagonist' | 'companion' | 'pet' | 'enemy'
+export type UnitType = 'protagonist' | 'companion' | 'pet' | 'summon' | 'enemy'
 
 export interface Unit {
   id: string

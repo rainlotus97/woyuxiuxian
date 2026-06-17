@@ -47,8 +47,10 @@
   - 已通过 `battle:arena-theme` 事件让区域驱动战场主题
   - 已验证 `misty_forest` 与 `dark_cave` 进入战斗时主题切换稳定
 - [~] 为 Boss、伙伴、灵兽预留独立站位模板
-  - 已建立 arena layout 层，支持 ally/enemy/boss 缩放与站位参数配置
-  - 待补：伙伴/灵兽专用列队模板与召唤物插槽
+  - 已建立 `presentationRoles`、`battleFormation` 阵型分配层
+  - 已支持 protagonist / companion / pet / summon / enemy / elite / boss 角色身份建模
+  - 已让 `BattleScene` 消费 placement 结果，不再自己判断谁站哪
+  - 待补：真实灵兽上阵链路、召唤物实体生成与专用插槽
 - [x] 明确 `stores/battleStore.ts` 去留：
   - 页面主调用已迁移到 `useBattleSession + battleRuntime`
   - `battleStore` 当前仅保留为 legacy 兼容存根，不再承载主战斗逻辑
@@ -152,4 +154,7 @@
 - [x] 建立 arena 配置与区域主题切换
   - 已让战斗区域驱动舞台背景、色调、站位布局
   - 已验证首次进入战斗和指定区域直达战斗都稳定
+- [x] 建立战斗角色身份与阵型分配层
+  - 已将 Boss / 伙伴 / 灵兽 / 召唤物站位逻辑从 `BattleScene` 抽离
+  - 已验证战斗页进入正常，未引入新的控制台异常
 - [x] 新增 roadmap 与 todo 文档，明确后续执行顺序

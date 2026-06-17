@@ -1,11 +1,13 @@
 import type { Skill } from '@/types/skill'
 import type { StatusEffect, Unit } from '@/types/unit'
+import type { BattleActorRole } from './presentationRoles'
 
 export type BattleRuntimePhase = 'intro' | 'running' | 'selecting' | 'animating' | 'ended'
 export type BattleRuntimeResult = 'victory' | 'defeat' | 'fled' | null
 
 export interface BattleRuntimeUnit extends Unit {
   side: 'ally' | 'enemy'
+  battleRole: BattleActorRole
   spriteKey: string
   portraitKey?: string
   actionGauge: number

@@ -3,11 +3,12 @@ import { DEFAULT_BATTLE_ARENA_ID, getBattleArenaTheme, type BattleArenaTheme } f
 import { gameEvents, type BattleSceneCommand, type BattleSceneHit } from '@/game/engine/gameEvents'
 import type { BattleRuntimeSnapshot, BattleRuntimeUnit } from '@/game/battle/battleRuntime'
 import { buildBattleArena } from './battleArenaBuilder'
-import { getBattleActorPosition, getBattleActorScale, getBattleShadowSize } from './battleSceneLayout'
+import { resolveBattleFormation, type BattleFormationPlacement } from './battleSceneLayout'
 
 interface ActorSprite {
   unitId: string
   spriteKey: string
+  battleRole: BattleRuntimeUnit['battleRole']
   sprite: Phaser.GameObjects.Sprite
   shadow: Phaser.GameObjects.Ellipse
   hpBar: Phaser.GameObjects.Rectangle
@@ -28,6 +29,7 @@ export class BattleScene extends Phaser.Scene {
   private pendingCommands: BattleSceneCommand[] = []
   private pendingHits: BattleSceneHit[] = []
   private pendingEndResults: Array<'victory' | 'defeat' | 'fled'> = []
+  private latestUnits = new Map<string, BattleRuntimeUnit>()
 
   constructor() {
     super('BattleScene')
@@ -114,6 +116,7 @@ export class BattleScene extends Phaser.Scene {
     this.pendingCommands = []
     this.pendingHits = []
     this.pendingEndResults = []
+    this.latestUnits = new Map()
     for (const off of this.unsubscribers) off()
     this.unsubscribers = []
     this.actors.clear()
@@ -129,6 +132,7 @@ export class BattleScene extends Phaser.Scene {
 
   updateSnapshot(snapshot: BattleRuntimeSnapshot) {
     if (!this.canRenderRuntimeEvents()) return
+    this.latestUnits = new Map(snapshot.units.map(unit => [unit.id, unit]))
     this.ensureActors(snapshot.units)
     for (const unit of snapshot.units) {
       const actor = this.actors.get(unit.id)
@@ -207,54 +211,41 @@ export class BattleScene extends Phaser.Scene {
 
     const allies = units.filter(unit => unit.side === 'ally')
     const enemies = units.filter(unit => unit.side === 'enemy')
-    allies.forEach((unit, index) => this.ensureActor(unit, this.getPosition('ally', index, allies.length)))
-    enemies.forEach((unit, index) => this.ensureActor(unit, this.getPosition('enemy', index, enemies.length)))
+    const allyPlacements = this.getPlacements(allies, 'ally')
+    const enemyPlacements = this.getPlacements(enemies, 'enemy')
+    allies.forEach(unit => this.ensureActor(unit, allyPlacements.get(unit.id)))
+    enemies.forEach(unit => this.ensureActor(unit, enemyPlacements.get(unit.id)))
   }
 
-  private ensureActor(unit: BattleRuntimeUnit, position: { x: number; y: number }) {
-    if (!this.canRenderRuntimeEvents()) return
+  private ensureActor(unit: BattleRuntimeUnit, placement: BattleFormationPlacement | undefined) {
+    if (!this.canRenderRuntimeEvents() || !placement) return
     const existing = this.actors.get(unit.id)
     if (existing) {
-      existing.sprite.setPosition(position.x, position.y)
-      existing.shadow.setPosition(position.x, position.y + 33)
-      existing.hpFrame.setPosition(position.x - 29, position.y - 72)
-      existing.hpBg.setPosition(position.x - 25, position.y - 69)
-      existing.hpBar.setPosition(position.x - 24, position.y - 69)
-      existing.name.setPosition(position.x, position.y - 91)
-      existing.sprite.setScale(getBattleActorScale(this.arenaTheme, unit.side, unit.spriteKey))
-      const shadowSize = getBattleShadowSize(this.arenaTheme, unit.side)
-      existing.shadow.width = shadowSize.width
-      existing.shadow.height = shadowSize.height
+      this.applyPlacement(existing, placement)
       return
     }
-    const shadowSize = getBattleShadowSize(this.arenaTheme, unit.side)
-    const shadow = this.add.ellipse(position.x, position.y + 33, shadowSize.width, shadowSize.height, 0x4e6e68, 0.22)
-    const sprite = this.add.sprite(position.x, position.y, unit.spriteKey, 0)
-      .setScale(getBattleActorScale(this.arenaTheme, unit.side, unit.spriteKey))
+    const shadow = this.add.ellipse(placement.x, placement.y + 33, placement.shadowWidth, placement.shadowHeight, 0x4e6e68, 0.22)
+    const sprite = this.add.sprite(placement.x, placement.y, unit.spriteKey, 0)
+      .setScale(placement.scale)
       .play(`${unit.spriteKey}_idle`)
     sprite.setAlpha(0)
-    const hpFrame = this.add.rectangle(position.x - 29, position.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
-    const hpBg = this.add.rectangle(position.x - 25, position.y - 69, 50, 5, 0xd7c9b1, 0.88).setOrigin(0, 0.5)
-    const hpBar = this.add.rectangle(position.x - 24, position.y - 69, 48, 4, unit.side === 'ally' ? 0x45bda9 : 0xe55969, 1).setOrigin(0, 0.5)
-    const name = this.add.text(position.x, position.y - 91, unit.name.replace('[BOSS]', '').replace('[精英]', ''), {
+    const hpFrame = this.add.rectangle(placement.x - 29, placement.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
+    const hpBg = this.add.rectangle(placement.x - 25, placement.y - 69, 50, 5, 0xd7c9b1, 0.88).setOrigin(0, 0.5)
+    const hpBar = this.add.rectangle(placement.x - 24, placement.y - 69, 48, 4, unit.side === 'ally' ? 0x45bda9 : 0xe55969, 1).setOrigin(0, 0.5)
+    const name = this.add.text(placement.x, placement.y - 91, unit.name.replace('[BOSS]', '').replace('[精英]', ''), {
       fontFamily: 'serif',
       fontSize: '12px',
       color: unit.side === 'ally' ? '#276d68' : '#8b3644',
       stroke: '#fff8e6',
       strokeThickness: 4
     }).setOrigin(0.5)
-    this.tweens.add({ targets: sprite, alpha: 1, y: position.y - 10, duration: 180, ease: 'Quad.easeOut', onComplete: () => sprite.setY(position.y) })
-    const aura = this.add.image(position.x, position.y + 2, 'vfx_aura')
+    this.tweens.add({ targets: sprite, alpha: 1, y: placement.y - 10, duration: 180, ease: 'Quad.easeOut', onComplete: () => sprite.setY(placement.y) })
+    const aura = this.add.image(placement.x, placement.y + 2, 'vfx_aura')
       .setAlpha(0.48)
-      .setScale(unit.spriteKey === 'actor_boss' ? 0.72 : 0.58)
+      .setScale(Math.max(0.5, placement.scale * 0.2))
       .setBlendMode(Phaser.BlendModes.ADD)
     this.tweens.add({ targets: aura, alpha: 0, scale: aura.scale * 1.4, duration: 820, ease: 'Sine.easeOut', onComplete: () => aura.destroy() })
-    this.actors.set(unit.id, { unitId: unit.id, spriteKey: unit.spriteKey, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
-  }
-
-  private getPosition(side: 'ally' | 'enemy', index: number, total: number) {
-    const { width, height } = this.scale
-    return getBattleActorPosition(width, height, this.arenaTheme, side, index, total)
+    this.actors.set(unit.id, { unitId: unit.id, spriteKey: unit.spriteKey, battleRole: unit.battleRole, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
   }
 
   private playCommand(command: BattleSceneCommand) {
@@ -435,29 +426,38 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private relayoutActors() {
-    if (this.actors.size === 0) return
-    const runtimeUnits = Array.from(this.actors.keys())
-    const allies = runtimeUnits
-      .map(id => this.actors.get(id))
-      .filter((actor): actor is ActorSprite => Boolean(actor && actor.side === 'ally'))
-    const enemies = runtimeUnits
-      .map(id => this.actors.get(id))
-      .filter((actor): actor is ActorSprite => Boolean(actor && actor.side === 'enemy'))
+    if (this.actors.size === 0 || this.latestUnits.size === 0) return
+    const allyUnits = Array.from(this.latestUnits.values()).filter(unit => unit.side === 'ally')
+    const enemyUnits = Array.from(this.latestUnits.values()).filter(unit => unit.side === 'enemy')
+    const allyPlacements = this.getPlacements(allyUnits, 'ally')
+    const enemyPlacements = this.getPlacements(enemyUnits, 'enemy')
 
-    allies.forEach((actor, index) => this.relayoutActor(actor, this.getPosition('ally', index, allies.length)))
-    enemies.forEach((actor, index) => this.relayoutActor(actor, this.getPosition('enemy', index, enemies.length)))
+    for (const unit of allyUnits) {
+      const actor = this.actors.get(unit.id)
+      const placement = allyPlacements.get(unit.id)
+      if (actor && placement) this.applyPlacement(actor, placement)
+    }
+    for (const unit of enemyUnits) {
+      const actor = this.actors.get(unit.id)
+      const placement = enemyPlacements.get(unit.id)
+      if (actor && placement) this.applyPlacement(actor, placement)
+    }
   }
 
-  private relayoutActor(actor: ActorSprite, position: { x: number; y: number }) {
-    const shadowSize = getBattleShadowSize(this.arenaTheme, actor.side)
-    actor.sprite.setPosition(position.x, position.y)
-    actor.sprite.setScale(getBattleActorScale(this.arenaTheme, actor.side, actor.spriteKey))
-    actor.shadow.setPosition(position.x, position.y + 33)
-    actor.shadow.width = shadowSize.width
-    actor.shadow.height = shadowSize.height
-    actor.hpFrame.setPosition(position.x - 29, position.y - 72)
-    actor.hpBg.setPosition(position.x - 25, position.y - 69)
-    actor.hpBar.setPosition(position.x - 24, position.y - 69)
-    actor.name.setPosition(position.x, position.y - 91)
+  private applyPlacement(actor: ActorSprite, placement: BattleFormationPlacement) {
+    actor.battleRole = placement.role
+    actor.sprite.setPosition(placement.x, placement.y)
+    actor.sprite.setScale(placement.scale)
+    actor.shadow.setPosition(placement.x, placement.y + 33)
+    actor.shadow.width = placement.shadowWidth
+    actor.shadow.height = placement.shadowHeight
+    actor.hpFrame.setPosition(placement.x - 29, placement.y - 72)
+    actor.hpBg.setPosition(placement.x - 25, placement.y - 69)
+    actor.hpBar.setPosition(placement.x - 24, placement.y - 69)
+    actor.name.setPosition(placement.x, placement.y - 91)
+  }
+
+  private getPlacements(units: BattleRuntimeUnit[], side: 'ally' | 'enemy') {
+    return resolveBattleFormation(units, this.arenaTheme, side, this.scale.width, this.scale.height)
   }
 }

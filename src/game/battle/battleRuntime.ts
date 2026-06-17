@@ -1,6 +1,7 @@
 import type { Unit } from '@/types/unit'
 import type { Skill } from '@/types/skill'
 import { getSkillById } from '@/types/skill'
+import { getBattleActorRole, getBattleSpriteKey } from './presentationRoles'
 import {
   applyPreparedEffects,
   resolveBattleCommand
@@ -264,11 +265,12 @@ export class BattleRuntime {
   }
 
   private toRuntimeUnit(unit: Unit, side: 'ally' | 'enemy', index: number): BattleRuntimeUnit {
-    const isBoss = unit.name.includes('BOSS') || unit.quality === '仙品' || unit.quality === '神品'
+    const battleRole = getBattleActorRole(unit, side)
     return {
       ...unit,
       side,
-      spriteKey: side === 'ally' ? 'actor_ally' : isBoss ? 'actor_boss' : 'actor_enemy',
+      battleRole,
+      spriteKey: getBattleSpriteKey(battleRole, side),
       actionGauge: index * 8 + Math.random() * 18
     }
   }

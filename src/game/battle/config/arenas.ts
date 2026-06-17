@@ -1,4 +1,5 @@
 import type { AreaDifficulty } from '@/types/adventure'
+import type { BattleActorRole } from '@/game/battle/presentationRoles'
 
 export interface BattleArenaOverlaySpec {
   xRatio: number
@@ -70,6 +71,14 @@ export interface BattleArenaSideFormation {
   shadowHeight: number
 }
 
+export interface BattleArenaRoleStyle {
+  scaleMultiplier?: number
+  xOffset?: number
+  yOffset?: number
+  shadowWidthDelta?: number
+  shadowHeightDelta?: number
+}
+
 export interface BattleArenaLayout {
   ally: BattleArenaSideFormation
   enemy: BattleArenaSideFormation
@@ -80,6 +89,8 @@ export interface BattleArenaLayout {
   }
   lungeOffsetX: number
   lungeOffsetY: number
+  roleStyles?: Partial<Record<BattleActorRole, BattleArenaRoleStyle>>
+  roleSlotOrder?: Partial<Record<'ally' | 'enemy', Partial<Record<BattleActorRole, number[]>>>>
 }
 
 export interface BattleArenaTheme {
