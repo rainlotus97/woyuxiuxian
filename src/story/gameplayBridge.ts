@@ -10,6 +10,11 @@ import type {
   GameplaySuspendState
 } from './types'
 import { storyEventBus } from './eventBus'
+import {
+  clearRouteGameplaySession,
+  createRouteGameplaySession,
+  getRouteGameplaySession
+} from './runtime/routeGameplaySession'
 
 /** 玩法处理器类型 */
 type GameplayHandler = (trigger: GameplayTrigger) => Promise<GameplayResult>
@@ -26,6 +31,9 @@ export class GameplayBridge {
 
   /** 暂停状态 */
   private suspendState: GameplaySuspendState | null = null
+  /** 当前路由型玩法的挂起执行 */
+  private pendingExecution: Promise<GameplayResult> | null = null
+  private resolvePendingExecution: ((result: GameplayResult) => void) | null = null
 
   /**
    * 注册玩法处理器
@@ -78,6 +86,15 @@ export class GameplayBridge {
       previousNodeId,
       suspendedAt: Date.now(),
       retryCount: 0
+    }
+
+    if (trigger.type === 'battle') {
+      createRouteGameplaySession({
+        gameplayType: trigger.type,
+        trigger,
+        previousNodeId,
+        returnPath: '/game/story'
+      })
     }
 
     // 发射事件
@@ -172,6 +189,9 @@ export class GameplayBridge {
         this.isPlaying.value = false
         this.currentTrigger.value = null
         this.suspendState = null
+        this.pendingExecution = null
+        this.resolvePendingExecution = null
+        clearRouteGameplaySession()
         console.log('[GameplayBridge] Gameplay failed, skipping')
         return { continueNodeId: null, shouldRetry: false, shouldSkip: true }
 
@@ -185,6 +205,9 @@ export class GameplayBridge {
         this.currentTrigger.value = null
         const failureNodeId = trigger.failureNodeId || null
         this.suspendState = null
+        this.pendingExecution = null
+        this.resolvePendingExecution = null
+        clearRouteGameplaySession()
         console.log(`[GameplayBridge] Gameplay failed, going to: ${failureNodeId}`)
         return { continueNodeId: failureNodeId, shouldRetry: false, shouldSkip: false }
 
@@ -197,7 +220,18 @@ export class GameplayBridge {
    * 获取暂停状态
    */
   getSuspendState(): GameplaySuspendState | null {
-    return this.suspendState
+    if (this.suspendState) return this.suspendState
+
+    const routeSession = getRouteGameplaySession()
+    if (!routeSession || routeSession.status !== 'pending') return null
+
+    return {
+      type: 'gameplay',
+      gameplayTrigger: routeSession.trigger,
+      previousNodeId: routeSession.previousNodeId,
+      suspendedAt: routeSession.createdAt,
+      retryCount: 0
+    }
   }
 
   /**
@@ -229,6 +263,9 @@ export class GameplayBridge {
       this.isPlaying.value = false
       this.currentTrigger.value = null
       this.suspendState = null
+      this.pendingExecution = null
+      this.resolvePendingExecution = null
+      clearRouteGameplaySession()
       console.log('[GameplayBridge] Gameplay skipped manually')
     }
   }
@@ -240,6 +277,28 @@ export class GameplayBridge {
     this.isPlaying.value = false
     this.currentTrigger.value = null
     this.suspendState = null
+    this.pendingExecution = null
+    this.resolvePendingExecution = null
+    clearRouteGameplaySession()
+  }
+
+  createPendingRouteResult(): Promise<GameplayResult> {
+    if (this.pendingExecution) return this.pendingExecution
+
+    this.pendingExecution = new Promise<GameplayResult>(resolve => {
+      this.resolvePendingExecution = resolve
+    })
+
+    return this.pendingExecution
+  }
+
+  async resolveRouteResult(result: GameplayResult): Promise<void> {
+    if (!this.resolvePendingExecution) return
+
+    const resolve = this.resolvePendingExecution
+    this.resolvePendingExecution = null
+    this.pendingExecution = null
+    resolve(result)
   }
 }
 

@@ -20,6 +20,11 @@ import { getSkillById, getSkillsByIds } from '@/types/skill'
 import { getAreaById, rollDrops, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
+import {
+  completeRouteGameplaySession,
+  getRouteGameplaySession
+} from '@/story/runtime/routeGameplaySession'
+import type { GameplayResult } from '@/story/types'
 
 interface BattleSkillOption {
   id: string
@@ -134,6 +139,13 @@ export function useBattleSession() {
     return labels[worldStore.weather]
   })
   const currentActorName = computed(() => cleanName(playerActor.value?.name || '等待出手'))
+  const activeRouteGameplaySession = computed(() => {
+    const sessionId = route.query.storySessionId as string | undefined
+    const session = getRouteGameplaySession()
+    if (!session) return null
+    if (sessionId && session.id !== sessionId) return null
+    return session
+  })
 
   function cleanName(name: string) {
     return name.replace('[BOSS]', '').replace('[精英]', '')
@@ -383,6 +395,32 @@ export function useBattleSession() {
     }
   }
 
+  function createStoryBattleResult(result: 'victory' | 'defeat' | 'fled'): GameplayResult {
+    const routeSession = activeRouteGameplaySession.value
+    return {
+      success: result === 'victory',
+      gameplayType: 'battle',
+      targetId: routeSession?.trigger.targetId || String(route.query.storyBattleId || currentArea.value?.id || 'story_battle'),
+      data: {
+        battleResult: result,
+        areaId: currentArea.value?.id || null,
+        mapAreaId: (route.query.mapAreaId as string | undefined) || null,
+        rewards: result === 'victory' ? { ...pendingRewards.value } : { cultivation: 0, gold: 0 }
+      }
+    }
+  }
+
+  function finishStoryBattle(result: 'victory' | 'defeat' | 'fled') {
+    const routeSession = activeRouteGameplaySession.value
+    if (!routeSession) {
+      router.push('/game/adventure')
+      return
+    }
+
+    completeRouteGameplaySession(routeSession.id, createStoryBattleResult(result))
+    router.push(routeSession.returnPath)
+  }
+
   function claimAndExit() {
     const result = battleRuntime.value?.result
     if (result === 'victory') {
@@ -415,11 +453,19 @@ export function useBattleSession() {
       }
     }
     worldStore.advanceTick()
+    if (activeRouteGameplaySession.value && result) {
+      finishStoryBattle(result)
+      return
+    }
     router.push('/game/adventure')
   }
 
   function exitBattle() {
     battleRuntime.value?.flee()
+    if (activeRouteGameplaySession.value) {
+      finishStoryBattle('fled')
+      return
+    }
     router.push('/game/adventure')
   }
 

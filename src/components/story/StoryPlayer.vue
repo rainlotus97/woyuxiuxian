@@ -132,6 +132,7 @@ import EffectFeedback from './EffectFeedback.vue'
 import GameplayEmbed from './GameplayEmbed.vue'
 import { gameplayBridge } from '@/story/gameplayBridge'
 import { registerDefaultGameplayHandlers } from '@/story/runtime/registerDefaultGameplayHandlers'
+import { consumeResolvedRouteGameplaySession } from '@/story/runtime/routeGameplaySession'
 import type { StoryTermination, GameplayTrigger, GameplayResult } from '@/story/types'
 
 const emit = defineEmits<{
@@ -323,6 +324,40 @@ async function onGameplayComplete(result: GameplayResult) {
   dialogsViewed.value = false
 }
 
+async function resumeRouteGameplayResult() {
+  const suspendState = gameplayBridge.getSuspendState()
+  const routeSession = consumeResolvedRouteGameplaySession()
+  if (!routeSession?.result) return
+  if (!suspendState) return
+
+  await gameplayBridge.resolveRouteResult(routeSession.result)
+
+  showGameplay.value = false
+  currentGameplayTrigger.value = null
+  store.clearPendingGameplayTrigger()
+
+  const { continueNodeId, shouldRetry, shouldSkip } = await gameplayBridge.onComplete(routeSession.result)
+  if (shouldRetry) {
+    await triggerGameplay(suspendState.gameplayTrigger)
+    return
+  }
+
+  if (shouldSkip) {
+    textComplete.value = false
+    currentDialogIndex.value = 0
+    dialogsViewed.value = false
+    return
+  }
+
+  if (continueNodeId) {
+    await store.goToNode(continueNodeId)
+  }
+
+  textComplete.value = false
+  currentDialogIndex.value = 0
+  dialogsViewed.value = false
+}
+
 function onGameplaySkip() {
   store.clearPendingGameplayTrigger()
   gameplayBridge.skip()
@@ -344,6 +379,7 @@ onMounted(async () => {
   if (!store.currentNode) {
     await store.initStory('male', 1)
   }
+  await resumeRouteGameplayResult()
 })
 
 onBeforeUnmount(() => {

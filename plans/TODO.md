@@ -102,7 +102,9 @@
   - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
   - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
   - 已让 `story_battle` 效果生成标准 `GameplayTrigger`，由 `StoryPlayer` 经 `gameplayBridge` 统一消费
-  - 待补：战斗结算结果回流故事节点、失败分支细化、非战斗玩法的真实界面与结果协议
+  - 已建立 `routeGameplaySession`，支持剧情战跨路由挂起、战斗结算写回、返回故事页后恢复分支
+  - 已让 BattleView 识别 story session，并在胜利 / 败北 / 脱离后返回 `/game/story` 而不是固定跳回历练
+  - 待补：失败分支细化、非战斗玩法的真实界面与结果协议
 
 ## P2 世界/NPC 系统
 
@@ -190,3 +192,7 @@
   - 已让剧情效果可解锁 NPC / 伙伴、修改宗门声望、开放地图、记录世界标记、挂起剧情战
   - 已让剧情战通过统一 `GameplayTrigger` 进入主战斗路由，而不是只停留在文案提示
   - 已修复剧情节点效果重复执行导致的双重结算风险
+- [x] 打通剧情战结果回流故事节点的基础闭环
+  - 已建立 `routeGameplaySession` 持久化剧情战会话与结果，支持跨路由恢复
+  - 已让 `gameplayBridge` 为剧情战保留挂起执行，并在故事页恢复时消费真实战斗结果
+  - 已让 BattleView / useBattleSession 在剧情战结束后写回 `victory / defeat / fled` 结果并返回故事页

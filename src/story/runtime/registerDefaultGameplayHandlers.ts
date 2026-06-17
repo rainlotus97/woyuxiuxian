@@ -2,6 +2,7 @@ import type { Router } from 'vue-router'
 import { gameplayBridge } from '../gameplayBridge'
 import type { GameplayResult } from '../types'
 import { getStoryBattleTemplate } from './storyBattleCatalog'
+import { getRouteGameplaySession } from './routeGameplaySession'
 
 function createFallbackResult(success: boolean, gameplayType: string, targetId: string): GameplayResult {
   return {
@@ -19,23 +20,19 @@ export function registerDefaultGameplayHandlers(router: Router) {
         return createFallbackResult(false, trigger.type, trigger.targetId)
       }
 
+      const routeSession = getRouteGameplaySession()
+
       await router.push({
         path: '/game/battle',
         query: {
           areaId: template.areaId,
-          mapAreaId: template.mapAreaId
+          mapAreaId: template.mapAreaId,
+          storyBattleId: template.id,
+          storySessionId: routeSession?.id
         }
       })
 
-      return {
-        success: true,
-        gameplayType: trigger.type,
-        targetId: trigger.targetId,
-        data: {
-          templateId: template.id,
-          description: template.description
-        }
-      }
+      return gameplayBridge.createPendingRouteResult()
     }),
     gameplayBridge.registerHandler('collect', async trigger => ({
       success: true,

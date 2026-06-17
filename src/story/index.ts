@@ -19,6 +19,14 @@ export { gameplayBridge, GameplayBridge } from './gameplayBridge'
 export { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
 export { registerDefaultGameplayHandlers } from './runtime/registerDefaultGameplayHandlers'
 export { getStoryBattleTemplate, STORY_BATTLE_TEMPLATES } from './runtime/storyBattleCatalog'
+export {
+  createRouteGameplaySession,
+  getRouteGameplaySession,
+  completeRouteGameplaySession,
+  clearRouteGameplaySession,
+  consumeResolvedRouteGameplaySession,
+  hasRouteGameplaySession
+} from './runtime/routeGameplaySession'
 
 // 导出字典解析器
 export { dictionaryParser, DictionaryParser } from './dictionaryParser'
