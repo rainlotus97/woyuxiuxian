@@ -38,6 +38,11 @@ woyu-xiuxian/
 └── .github/workflows/  # GitHub Actions
 ```
 
+## Roadmap
+
+- `plans/ROADMAP.md`：阶段性演进路线与架构收敛原则
+- `plans/TODO.md`：当前执行清单与优先级
+
 ## 开发
 
 ```bash
