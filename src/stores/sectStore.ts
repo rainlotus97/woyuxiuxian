@@ -16,6 +16,7 @@ import {
   getSectById,
   generateRandomTask
 } from '@/types/sect'
+import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
 import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
@@ -532,6 +533,61 @@ export const useSectStore = defineStore('sect', () => {
     }
   }
 
+  function updateWorldState(totalTicks: number) {
+    const current = currentSect.value
+    const war = activeWar.value
+    const defender = war ? getSectById(war.defenderSectId) ?? null : null
+
+    const warProgress = resolveSectWarProgress(totalTicks, {
+      joinedSectId: joinedSectId.value,
+      reputation: reputation.value,
+      sectHp: sectHp.value,
+      sectMaxHp: sectMaxHp.value,
+      relations: relations.value,
+      activeWar: activeWar.value
+    }, current, defender)
+
+    if (warProgress) {
+      advanceWar(warProgress.attackerWon)
+      if (warProgress.log) {
+        activeEvent.value = {
+          id: `sect_world_war_${Date.now()}`,
+          type: 'sect_conflict',
+          title: warProgress.log.title,
+          description: warProgress.log.description,
+          choices: [],
+          handled: true
+        }
+      }
+    }
+
+    const relationDrift = resolveSectRelationDrift(
+      totalTicks,
+      {
+        joinedSectId: joinedSectId.value,
+        reputation: reputation.value,
+        sectHp: sectHp.value,
+        sectMaxHp: sectMaxHp.value,
+        relations: relations.value,
+        activeWar: activeWar.value
+      },
+      current,
+      unlockedSects.value
+    )
+
+    if (relationDrift) {
+      relations.value[relationDrift.shift.targetSectId] = relationDrift.shift.relation
+      activeEvent.value = {
+        id: `sect_relation_${Date.now()}`,
+        type: relationDrift.shift.relation === 'hostile' ? 'sect_conflict' : 'alliance_offer',
+        title: relationDrift.log.title,
+        description: relationDrift.log.description,
+        choices: [],
+        handled: true
+      }
+    }
+  }
+
   // 领取每日俸禄
   function claimDailySalary(): { gold: number; contribution: number } | null {
     if (!joinedSectId.value || !currentPosition.value) {
@@ -853,6 +909,7 @@ export const useSectStore = defineStore('sect', () => {
     handleEventChoice,
     unlockSect,
     checkUnlockedSects,
+    updateWorldState,
     claimDailySalary,
     // 炼丹
     craftAlchemy,

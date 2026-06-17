@@ -109,6 +109,8 @@ export interface MapArea {
   // 区域状态
   isUnlocked: boolean
   isConquered: boolean
+  controllingSectId?: string | null
+  defaultRiskLevel?: 'safe' | 'watch' | 'danger' | 'chaos'
   // 背景故事
   background?: string
 }

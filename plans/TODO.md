@@ -139,9 +139,19 @@
 
 ## P2 宗门/地图系统
 
-- [ ] 打通 `mapStore` 与 `sectStore` 的世界 tick 联动
-- [ ] 为地图区域增加控制权和风险等级
-- [ ] 为宗门增加外交、战争、俘虏、合并、沦陷状态
+- [~] 打通 `mapStore` 与 `sectStore` 的世界 tick 联动
+  - 已让 `worldStore.advanceTick()` 统一驱动 `sectStore.updateWorldState()` 与 `mapStore.updateAreaWorldState()`
+  - 已建立 `src/map/runtime/*` 与 `src/sect/runtime/*` 的世界态势解析层，避免 store 内继续堆条件分支
+  - 待补：更细粒度事件分发、世界系统之间的反馈闭环、重要结果回流到主界面提示
+- [~] 为地图区域增加控制权和风险等级
+  - 已为区域增加 `areaStates` 运行时状态，支持 `controllingSectId / riskLevel / stability / pressure / contested`
+  - 已兼容旧存档区域状态回填
+  - 已让天气、宗门战争、敌对关系共同影响区域风险
+  - 待补：区域易主、风险对历练/BattleView/收益掉落的真实影响
+- [~] 为宗门增加外交、战争、俘虏、合并、沦陷状态
+  - 已建立宗门世界态势 resolver，支持战争自动推进与关系自然漂移
+  - 已让宗门战局与关系变化写入 `activeEvent`
+  - 待补：俘虏、合并、沦陷、NPC 宗门牵连、跨宗门连锁反应
 - [ ] 增加从弟子到宗主的晋升链
 - [ ] 把宗门设施、药园、任务、战争收益整合到统一宗门循环
 

@@ -28,6 +28,8 @@ import type {
 } from '@/world/runtime/worldRuntimeTypes'
 import { usePlayerStore } from './playerStore'
 import { usePetStore } from './petStore'
+import { useMapStore } from './mapStore'
+import { useSectStore } from './sectStore'
 
 interface WorldState {
   clock: WorldClock
@@ -213,8 +215,16 @@ export const useWorldStore = defineStore('world', () => {
   function advanceTick(updateTimestamp = true) {
     advanceClock(updateTimestamp)
     resolveWeather()
+    resolveWorldSystems()
     resolvePlayerAction()
     resolveNpcActions()
+  }
+
+  function resolveWorldSystems() {
+    const mapStore = useMapStore()
+    const sectStore = useSectStore()
+    sectStore.updateWorldState(clock.value.totalTicks)
+    mapStore.updateAreaWorldState(clock.value.totalTicks, weather.value)
   }
 
   function advanceClock(updateTimestamp: boolean) {

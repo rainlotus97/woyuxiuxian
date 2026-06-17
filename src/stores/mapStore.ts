@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watchEffect, toRaw } from 'vue'
 import type { WorldRealm, GameDate, MapArea, HistoryEvent, HistoryEventType } from '@/types/map'
+import type { AreaRuntimeState } from '@/map/runtime/mapRuntimeTypes'
 import {
   WORLD_REALMS,
   WORLD_REALM_CONFIGS,
@@ -10,8 +11,14 @@ import {
   formatDate,
   getAreasByRealm,
   getAreaById,
-  isRealmUnlocked
+  isRealmUnlocked,
+  ALL_AREAS
 } from '@/types/map'
+import {
+  createDefaultAreaRuntimeState,
+  mergeAreaRuntimeStates,
+  resolveAreaWorldUpdate
+} from '@/map/runtime/areaWorldResolver'
 import { usePlayerStore } from './playerStore'
 import { useSectStore } from './sectStore'
 
@@ -38,6 +45,8 @@ interface MapState {
   currentRealm: WorldRealm
   // 历史事件记录
   historyEvents: HistoryEvent[]
+  // 区域运行时状态
+  areaStates: Record<string, AreaRuntimeState>
   // 总游戏天数（用于统计）
   totalDaysPlayed: number
 }
@@ -50,8 +59,13 @@ function getDefaultMapState(): MapState {
     conqueredAreas: [],
     currentRealm: '人界',
     historyEvents: [],
+    areaStates: createInitialAreaStates(),
     totalDaysPlayed: 0
   }
+}
+
+function createInitialAreaStates(): Record<string, AreaRuntimeState> {
+  return mergeAreaRuntimeStates(ALL_AREAS, undefined)
 }
 
 // LocalStorage key
@@ -76,7 +90,8 @@ export const useMapStore = defineStore('map', () => {
         // 确保日期格式正确
         currentDate: parsed.currentDate ?? defaults.currentDate,
         unlockedRealms: parsed.unlockedRealms ?? defaults.unlockedRealms,
-        historyEvents: parsed.historyEvents ?? defaults.historyEvents
+        historyEvents: parsed.historyEvents ?? defaults.historyEvents,
+        areaStates: mergeAreaRuntimeStates(ALL_AREAS, parsed.areaStates ?? defaults.areaStates)
       }
     } else {
       initialData = getDefaultMapState()
@@ -100,6 +115,7 @@ export const useMapStore = defineStore('map', () => {
 
   // 历史事件
   const historyEvents = ref<HistoryEvent[]>([...initialData.historyEvents])
+  const areaStates = ref<Record<string, AreaRuntimeState>>({ ...initialData.areaStates })
 
   // 总游戏天数
   const totalDaysPlayed = ref(initialData.totalDaysPlayed)
@@ -156,6 +172,7 @@ export const useMapStore = defineStore('map', () => {
         conqueredAreas: toRaw(conqueredAreas.value),
         currentRealm: currentRealm.value,
         historyEvents: toRaw(historyEvents.value),
+        areaStates: toRaw(areaStates.value),
         totalDaysPlayed: totalDaysPlayed.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -245,6 +262,69 @@ export const useMapStore = defineStore('map', () => {
     }
 
     return true
+  }
+
+  function getAreaState(areaId: string): AreaRuntimeState | null {
+    return areaStates.value[areaId] ?? null
+  }
+
+  function upsertAreaState(areaId: string, partial: Partial<AreaRuntimeState>) {
+    const current = areaStates.value[areaId]
+      ?? createDefaultAreaRuntimeState(getAreaById(areaId) ?? {
+        id: areaId,
+        name: areaId,
+        realm: '人界',
+        icon: '',
+        description: '',
+        requiredRealm: '炼气',
+        requiredRealmLevel: 1,
+        adjacentAreas: [],
+        sects: [],
+        resources: [],
+        isUnlocked: false,
+        isConquered: false
+      })
+    areaStates.value[areaId] = {
+      ...current,
+      ...partial
+    }
+  }
+
+  function updateAreaWorldState(totalTicks: number, weather: string) {
+    const sectStore = useSectStore()
+    for (const area of ALL_AREAS) {
+      const currentState = getAreaState(area.id)
+      if (!currentState) continue
+
+      const update = resolveAreaWorldUpdate({
+        totalTicks,
+        weather,
+        areaId: area.id,
+        realm: area.realm,
+        controllingSectId: currentState.controllingSectId ?? area.sects[0] ?? null,
+        joinedSectId: sectStore.joinedSectId,
+        activeWar: sectStore.activeWar,
+        relations: sectStore.relations
+      }, currentState.stability, currentState.pressure)
+
+      upsertAreaState(area.id, {
+        controllingSectId: update.controllingSectId,
+        riskLevel: update.riskLevel,
+        stability: currentState.stability + (update.stabilityDelta ?? 0),
+        pressure: currentState.pressure + (update.pressureDelta ?? 0),
+        contested: update.contested,
+        lastUpdatedTick: update.lastUpdatedTick ?? totalTicks
+      })
+
+      if (update.log) {
+        recordEvent({
+          type: update.log.type,
+          title: update.log.title,
+          description: update.log.description,
+          impact: update.log.impact
+        })
+      }
+    }
   }
 
   // 攻占区域
@@ -355,6 +435,7 @@ export const useMapStore = defineStore('map', () => {
     conqueredAreas,
     currentRealm,
     historyEvents,
+    areaStates,
     totalDaysPlayed,
 
     // 计算属性
@@ -374,10 +455,12 @@ export const useMapStore = defineStore('map', () => {
     switchRealm,
     recordEvent,
     getAreaInfo,
+    getAreaState,
     isAreaConquered,
     isRealmUnlockedByPlayer,
     getSectsInArea,
     getUnlockedSects,
+    updateAreaWorldState,
     getEventsByType,
     getRecentEvents,
     saveToStorage
