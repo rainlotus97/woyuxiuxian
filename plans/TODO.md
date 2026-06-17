@@ -119,13 +119,17 @@
   - 身世
   - 性格权重
   - 命运标签
-- [ ] 建立 NPC 关系网
 - [~] 建立 NPC 关系网
   - 已建立 world NPC relationship state 的 story favor 同步入口
   - 已支持 favor -> bond 的基础映射（stranger / friend / companion / rival / enemy / lover）
   - 已支持 hatred / debt / fear 由剧情效果写入 relationship state
-  - 待补：NPC 与 NPC 之间的关系边、关系驱动的自主行动与事件分发
-- [ ] 实现 NPC 自主行动结果写回世界日志
+  - 已建立 `src/world/runtime/{relationshipState,npcRelationshipActionResolver,npcActionResolver}.ts`
+  - 已让 hatred / favor / debt / fear 在 world tick 中驱动报复、陪同历练、还情援助、畏惧献礼等事件
+  - 已让 relationship-driven 结果统一写回玩家收益/损失、NPC 状态补丁和世界日志
+  - 待补：NPC 与 NPC 之间的关系边、更复杂的行动分发、真实埋伏/俘虏/宗门牵连
+- [~] 实现 NPC 自主行动结果写回世界日志
+  - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
+  - 待补：重要 NPC 专属事件模版、地图/宗门上下文、日志去重与可见性分级
 - [ ] 实现重要 NPC 的“故事化事件记录”
 - [ ] 增加主角挂机日志与奇遇日志
 - [ ] 增加世界灾害和区域状态变化

@@ -10,6 +10,17 @@ import type {
   WorldWeather
 } from '@/types/world'
 import { formatWorldTime } from '@/types/world'
+import { resolveNpcAction } from '@/world/runtime/npcActionResolver'
+import {
+  applyRelationshipDeltaToState,
+  createDefaultRelationshipState
+} from '@/world/runtime/relationshipState'
+import { seededWorldRoll } from '@/world/runtime/worldSeed'
+import type {
+  WorldRuntimeLogEffect,
+  WorldRuntimeNpcPatch,
+  WorldRuntimeRelationshipDelta
+} from '@/world/runtime/worldRuntimeTypes'
 import { usePlayerStore } from './playerStore'
 import { usePetStore } from './petStore'
 
@@ -116,30 +127,6 @@ function getDefaultWorldState(): WorldState {
   }
 }
 
-function seededRoll(seed: number): number {
-  const x = Math.sin(seed) * 10000
-  return x - Math.floor(x)
-}
-
-function createDefaultRelationshipState(): RelationshipState {
-  return {
-    favor: 0,
-    hatred: 0,
-    fear: 0,
-    debt: 0,
-    bond: 'stranger'
-  }
-}
-
-function resolveBondFromFavor(favor: number): RelationshipState['bond'] {
-  if (favor >= 90) return 'lover'
-  if (favor >= 70) return 'companion'
-  if (favor >= 45) return 'friend'
-  if (favor <= -60) return 'enemy'
-  if (favor <= -25) return 'rival'
-  return 'stranger'
-}
-
 export const useWorldStore = defineStore('world', () => {
   let initialData: WorldState
   try {
@@ -243,7 +230,7 @@ export const useWorldStore = defineStore('world', () => {
   }
 
   function resolveWeather() {
-    const roll = seededRoll(clock.value.totalTicks * 13 + clock.value.day)
+    const roll = seededWorldRoll(clock.value.totalTicks, clock.value.day, 'weather')
     const previous = weather.value
     if (roll > 0.985) weather.value = 'fire'
     else if (roll > 0.955) weather.value = 'flood'
@@ -275,11 +262,11 @@ export const useWorldStore = defineStore('world', () => {
       playerStore.addCultivation(gain)
       if (petStore.equippedPet) {
         petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
-        if (seededRoll(clock.value.totalTicks * 47) > 0.58) {
+        if (seededWorldRoll(clock.value.totalTicks, 'pet-cultivate-exp') > 0.58) {
           petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
         }
       }
-      if (seededRoll(clock.value.totalTicks * 29) > 0.94) {
+      if (seededWorldRoll(clock.value.totalTicks, 'player-cultivate-insight') > 0.94) {
         addLog('player', 'major', '修炼顿悟', `你在${currentTimeLabel.value}心有所感，额外凝聚了${gain}点修为。`, ['player'], ['cultivation'])
       }
     } else if (mode === 'adventure') {
@@ -287,72 +274,105 @@ export const useWorldStore = defineStore('world', () => {
       if (petStore.equippedPet) {
         petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
         petStore.addIntimacy(petStore.equippedPet.owned.definitionId, 1)
-        if (seededRoll(clock.value.totalTicks * 53) > 0.7) {
+        if (seededWorldRoll(clock.value.totalTicks, 'pet-adventure-exp') > 0.7) {
           petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
         }
       }
-      if (seededRoll(clock.value.totalTicks * 31) > 0.78) {
-        const gold = 8 + Math.floor(seededRoll(clock.value.totalTicks * 33) * 24)
+      if (seededWorldRoll(clock.value.totalTicks, 'player-adventure-find') > 0.78) {
+        const gold = 8 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-adventure-gold') * 24)
         playerStore.addGold(gold)
         addLog('player', 'normal', '游历所得', `你在城外寻到一处废弃洞府，带回${gold}枚灵石。`, ['player'], ['adventure'])
       }
     } else if (mode === 'gatherHerbs') {
-      if (seededRoll(clock.value.totalTicks * 37) > 0.62) {
+      if (seededWorldRoll(clock.value.totalTicks, 'player-herb-gather') > 0.62) {
         playerStore.addToInventory({
           id: `world_herb_${Date.now()}_${clock.value.totalTicks}`,
           name: '灵草',
           icon: '草',
           type: 'material',
           quality: 'common',
-          quantity: 1 + Math.floor(seededRoll(clock.value.totalTicks * 39) * 3),
+          quantity: 1 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-herb-count') * 3),
           description: '世界游历采得的灵草'
         })
         addLog('player', 'normal', '采得灵草', '你循着雨后灵气，在山石夹缝间采到几株灵草。', ['player'], ['herb'])
       }
     } else if (mode === 'sectDuty') {
-      if (seededRoll(clock.value.totalTicks * 41) > 0.8) {
+      if (seededWorldRoll(clock.value.totalTicks, 'player-sect-duty') > 0.8) {
         addLog('sect', 'normal', '宗门差遣', '宗门执事派你巡查山门，几名外门弟子对你多了些敬意。', ['player'], ['sect'])
       }
     } else if (mode === 'trainSkill') {
-      if (seededRoll(clock.value.totalTicks * 43) > 0.86) {
+      if (seededWorldRoll(clock.value.totalTicks, 'player-skill-train') > 0.86) {
         addLog('player', 'normal', '功法熟稔', '你反复演练剑诀，灵力运转比先前顺畅了些。', ['player'], ['skill'])
       }
     }
   }
 
   function resolveNpcActions() {
+    const playerStore = usePlayerStore()
     for (const npc of npcStates.value) {
       const def = npcDefinitions.value.find(item => item.id === npc.id)
       if (!def || npc.hpState === 'dead') continue
-      const roll = seededRoll(clock.value.totalTicks * (npc.id.length + 17) + def.personality.ambition)
-      npc.lastActionTick = clock.value.totalTicks
+      const playerRelationship = getRelationshipState(npc.id, 'player')
+      const result = resolveNpcAction({
+        clock: clock.value,
+        weather: weather.value,
+        npcDefinition: def,
+        npcState: npc,
+        playerRelationship,
+        playerGold: playerStore.gold
+      })
+      if (!result) continue
 
-      if (npc.hpState === 'injured' && def.personality.caution > 45) {
-        npc.currentGoal = 'recover'
-        if (roll > 0.82) {
-          npc.hpState = 'healthy'
-          addLog('npc', 'normal', `${def.name}疗伤`, `${def.name}闭门调息，伤势已经稳定。`, [def.id], ['npc', 'recover'])
-        }
-        continue
+      if (result.npcPatch) {
+        applyNpcPatch(result.npcPatch)
       }
-
-      if (def.personality.ambition > 80 && roll > 0.86) {
-        npc.currentGoal = 'challenge'
-        const harmed = roll > 0.96 && !def.tags.includes('主线保护')
-        if (harmed) {
-          npc.hpState = 'injured'
-          addLog('npc', 'major', `${def.name}遭遇强敌`, `${def.name}强闯秘地失败，被一道禁制斩伤，道基险些崩裂。`, [def.id], ['npc', 'injured'])
-        } else {
-          npc.cultivation += 80
-          addLog('npc', 'major', `${def.name}声名鹊起`, `${def.name}击败同阶修士，凶名在青阳城暗处传开。`, [def.id], ['npc', 'challenge'])
+      if (result.relationshipDeltas?.length) {
+        applyRelationshipDeltas(result.relationshipDeltas)
+      }
+      if (result.playerEffect?.cultivationDelta) {
+        playerStore.addCultivation(result.playerEffect.cultivationDelta)
+      }
+      if (result.playerEffect?.goldDelta) {
+        playerStore.addGold(result.playerEffect.goldDelta)
+      }
+      if (result.logs?.length) {
+        for (const log of result.logs) {
+          addWorldRuntimeLog(log)
         }
-      } else if (def.aptitude.talent === 'monster' && roll > 0.9) {
-        npc.realmLevel = Math.min(9, npc.realmLevel + 1)
-        addLog('npc', 'legendary', `${def.name}破境`, `${def.name}一夜悟道，境界踏入${npc.realm}${npc.realmLevel}层。`, [def.id], ['npc', 'breakthrough'])
-      } else if (def.personality.cruelty > 75 && roll < 0.08) {
-        addLog('npc', 'major', `${def.name}暗中出手`, `有人在城外失踪，现场残留的火煞气息与${def.name}极像。`, [def.id], ['npc', 'villain'])
       }
     }
+  }
+
+  function applyNpcPatch(patch: WorldRuntimeNpcPatch) {
+    const npc = npcStates.value.find(item => item.id === patch.id)
+    if (!npc) return
+
+    if (patch.currentGoal) npc.currentGoal = patch.currentGoal
+    if (patch.hpState) npc.hpState = patch.hpState
+    if (patch.locationMapId) npc.locationMapId = patch.locationMapId
+    if (typeof patch.lastActionTick === 'number') npc.lastActionTick = patch.lastActionTick
+    if (typeof patch.cultivationDelta === 'number') npc.cultivation += patch.cultivationDelta
+    if (typeof patch.realmLevelDelta === 'number') {
+      npc.realmLevel = Math.max(1, Math.min(9, npc.realmLevel + patch.realmLevelDelta))
+    }
+    if (patch.addFlags?.length) {
+      for (const flag of patch.addFlags) {
+        if (!npc.flags.includes(flag)) {
+          npc.flags.push(flag)
+        }
+      }
+    }
+  }
+
+  function applyRelationshipDeltas(deltas: WorldRuntimeRelationshipDelta[]) {
+    for (const delta of deltas) {
+      const relationship = getRelationshipState(delta.npcId, delta.subjectId || 'player')
+      applyRelationshipDeltaToState(relationship, delta)
+    }
+  }
+
+  function addWorldRuntimeLog(log: WorldRuntimeLogEffect) {
+    addLog(log.scope, log.severity, log.title, log.text, log.actorIds, log.tags, log.mapId)
   }
 
   function addLog(
@@ -361,7 +381,8 @@ export const useWorldStore = defineStore('world', () => {
     title: string,
     text: string,
     actorIds: string[],
-    tags: string[]
+    tags: string[],
+    mapId?: string
   ) {
     logs.value.unshift({
       id: `world_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -372,6 +393,7 @@ export const useWorldStore = defineStore('world', () => {
       title,
       text,
       actorIds,
+      mapId,
       tags,
       revealed: true
     })
@@ -424,11 +446,7 @@ export const useWorldStore = defineStore('world', () => {
 
     const subjectId = input.subjectId || 'player'
     const relationship = getRelationshipState(npcId, subjectId)
-    relationship.favor += input.favorDelta || 0
-    relationship.hatred += input.hatredDelta || 0
-    relationship.fear += input.fearDelta || 0
-    relationship.debt += input.debtDelta || 0
-    relationship.bond = resolveBondFromFavor(relationship.favor)
+    applyRelationshipDeltaToState(relationship, input)
 
     addLog(
       'npc',
