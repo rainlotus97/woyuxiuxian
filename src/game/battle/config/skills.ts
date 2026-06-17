@@ -321,6 +321,65 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     prerequisites: ['fireball'],
     unlockRealm: '筑基'
   },
+  hellfire: {
+    id: 'hellfire',
+    name: '狱炎',
+    description: '魔焰席卷敌方，造成灼烧伤害',
+    icon: '狱',
+    category: 'attack',
+    branch: 'special',
+    tier: 3,
+    mpCost: 32,
+    mpCostPerLevel: 4,
+    cooldown: 3,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'damage',
+        targetType: 'all_enemies',
+        baseValue: 18,
+        scaling: 0.85,
+        element: '火',
+        levelScaling: 5,
+        statusEffect: {
+          type: 'burn',
+          chance: 0.45,
+          duration: 2,
+          value: 12
+        }
+      }
+    ],
+    prerequisites: ['poison_fog'],
+    unlockRealm: '金丹'
+  },
+  demon_summon: {
+    id: 'demon_summon',
+    name: '魔侍召来',
+    description: '撕开深渊裂隙，召来魔侍加入战场',
+    icon: '召',
+    category: 'support',
+    branch: 'special',
+    tier: 3,
+    mpCost: 28,
+    mpCostPerLevel: 3,
+    cooldown: 4,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'summon',
+        targetType: 'self',
+        baseValue: 0,
+        scaling: 0,
+        summon: {
+          definitionId: 'abyss_guard',
+          count: 2,
+          maxActive: 2
+        }
+      }
+    ],
+    prerequisites: ['hellfire'],
+    unlockRealm: '金丹'
+  },
   critical_eye: {
     id: 'critical_eye',
     name: '灵眼',

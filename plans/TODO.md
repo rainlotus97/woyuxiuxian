@@ -34,11 +34,13 @@
   - 已拆出 `targeting`、`commandResolver`、`statusRuntime`、`runtimeTypes`
   - 已支持单体/群体/自身目标解析
   - 已支持 buff/debuff 状态附加与回合开始结算入口
-  - 待补：召唤物、无敌、更多敌人专属状态、冷却系统
+  - 已支持召唤 effect runtime 建模与战场实体生成
+  - 待补：无敌、更多敌人专属状态、冷却系统
 - [~] 增加护盾、治疗、持续伤害、召唤物支持
   - 已支持单体治疗、群体治疗、自身护盾、毒/灼烧持续伤害
   - 已支持护盾吸收伤害与 DOT 回合开始扣血
-  - 待补：召唤物实体与专属站位/AI
+  - 已支持 `demon_summon -> 深渊魔侍` 召唤链路，召唤物可进入战场、行动序列和目标选择
+  - 待补：召唤物专属技能、退场规则、玩家侧召唤技接入
 - [ ] 增加回放日志结构，支持剧情战和世界事件战共用
 - [x] 增加战斗场景 arena 配置
   - 已建立 `src/game/battle/config/arenas.ts`
@@ -50,7 +52,8 @@
   - 已建立 `presentationRoles`、`battleFormation` 阵型分配层
   - 已支持 protagonist / companion / pet / summon / enemy / elite / boss 角色身份建模
   - 已让 `BattleScene` 消费 placement 结果，不再自己判断谁站哪
-  - 待补：真实灵兽上阵链路、召唤物实体生成与专用插槽
+  - 已验证召唤物实体生成后可复用现有 summon 站位模板
+  - 待补：真实灵兽上阵链路、召唤物专用技能与更细粒度插槽
 - [x] 明确 `stores/battleStore.ts` 去留：
   - 页面主调用已迁移到 `useBattleSession + battleRuntime`
   - `battleStore` 当前仅保留为 legacy 兼容存根，不再承载主战斗逻辑
@@ -157,4 +160,8 @@
 - [x] 建立战斗角色身份与阵型分配层
   - 已将 Boss / 伙伴 / 灵兽 / 召唤物站位逻辑从 `BattleScene` 抽离
   - 已验证战斗页进入正常，未引入新的控制台异常
+- [x] 建立真实召唤物 runtime 链路
+  - 已新增 `src/game/battle/config/summons.ts` 与 summon runtime/unit factory
+  - 已让 `battleRuntime` 支持 summon effect、实体生成、AI 使用与战斗日志写入
+  - 已验证 `深渊之底 -> 恶魔领主 -> 深渊魔侍` 会真实进入行动序列与目标列表
 - [x] 新增 roadmap 与 todo 文档，明确后续执行顺序

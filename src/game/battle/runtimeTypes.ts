@@ -55,6 +55,12 @@ export interface BattlePreparedEffect {
   statusEffect?: StatusEffect
 }
 
+export interface BattlePreparedSummon {
+  actorId: string
+  summonId: string
+  side: 'ally' | 'enemy'
+}
+
 export interface BattleAppliedEffect {
   actorId: string
   targetId: string
@@ -67,6 +73,15 @@ export interface BattleAppliedEffect {
   targetDefeated: boolean
 }
 
+export interface BattleSummonOutcome {
+  actorId: string
+  summonId: string
+  summonName: string
+  unitId?: string
+  success: boolean
+  reason?: 'limit' | 'missing-owner' | 'missing-definition'
+}
+
 export interface BattleResolvedCommand {
   command: BattleRuntimeCommand
   actorId: string
@@ -74,6 +89,7 @@ export interface BattleResolvedCommand {
   skill: Skill | null
   targetIds: string[]
   preparedEffects: BattlePreparedEffect[]
+  preparedSummons: BattlePreparedSummon[]
   previewEffects: BattleAppliedEffect[]
   displayHits: BattleRuntimeHit[]
 }

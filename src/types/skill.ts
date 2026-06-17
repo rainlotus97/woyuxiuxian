@@ -11,7 +11,7 @@ export type SkillTargetType =
   | 'all_allies'
   | 'self'
 
-export type SkillEffectType = 'damage' | 'heal' | 'buff' | 'debuff' | 'special'
+export type SkillEffectType = 'damage' | 'heal' | 'buff' | 'debuff' | 'special' | 'summon'
 
 export interface SkillEffect {
   type: SkillEffectType
@@ -19,6 +19,11 @@ export interface SkillEffect {
   baseValue: number
   scaling: number
   element?: Element
+  summon?: {
+    definitionId: string
+    count?: number
+    maxActive?: number
+  }
   statusEffect?: {
     type: StatusEffectType
     chance: number

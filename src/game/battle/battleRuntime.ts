@@ -1,7 +1,6 @@
 import type { Unit } from '@/types/unit'
 import type { Skill } from '@/types/skill'
 import { getSkillById } from '@/types/skill'
-import { getBattleActorRole, getBattleSpriteKey } from './presentationRoles'
 import {
   applyPreparedEffects,
   resolveBattleCommand
@@ -11,6 +10,8 @@ import {
   hasStatusEffect,
   processTurnStartStatuses
 } from './statusRuntime'
+import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
+import { toBattleRuntimeUnit } from './runtimeUnitFactory'
 import type {
   BattleResolvedCommand,
   BattleRuntimeCommand,
@@ -24,6 +25,7 @@ import type {
 
 export type {
   BattleAppliedEffect,
+  BattlePreparedSummon,
   BattlePreparedEffect,
   BattleResolvedCommand,
   BattleRuntimeCommand,
@@ -32,7 +34,8 @@ export type {
   BattleRuntimePhase,
   BattleRuntimeResult,
   BattleRuntimeSnapshot,
-  BattleRuntimeUnit
+  BattleRuntimeUnit,
+  BattleSummonOutcome
 } from './runtimeTypes'
 
 export class BattleRuntime {
@@ -45,11 +48,12 @@ export class BattleRuntime {
   result: BattleRuntimeResult = null
   logs: BattleRuntimeLog[] = []
   private pendingTurnContext: BattleTurnContext = { hits: [], logs: [] }
+  private summonSerial = 0
 
   constructor(allies: Unit[], enemies: Unit[]) {
     this.units = [
-      ...allies.map((unit, index) => this.toRuntimeUnit(unit, 'ally' as const, index)),
-      ...enemies.map((unit, index) => this.toRuntimeUnit(unit, 'enemy' as const, index))
+      ...allies.map((unit, index) => toBattleRuntimeUnit(unit, 'ally' as const, index * 8 + Math.random() * 18)),
+      ...enemies.map((unit, index) => toBattleRuntimeUnit(unit, 'enemy' as const, index * 8 + Math.random() * 18))
     ]
     this.phase = 'running'
     this.addLog('战斗开始，灵火在阵中流转。', 'major')
@@ -134,6 +138,11 @@ export class BattleRuntime {
       return { type: 'skill', actorId: actor.id, targetIds: [actor.id], skillId: selfDefenseBuff.id }
     }
 
+    const summonSkill = availableSkills.find(skill => skill.effects.some(effect => effect.type === 'summon')) ?? null
+    if (summonSkill && hasSummonCapacity(actor, this.units, summonSkill) && Math.random() < 0.72) {
+      return { type: 'skill', actorId: actor.id, targetIds: [], skillId: summonSkill.id }
+    }
+
     const damageSkill = availableSkills
       .filter(item => item.effects.some(effect => effect.type === 'damage'))
       .sort((a, b) => this.getSpiritFireCost(b) - this.getSpiritFireCost(a))[0] ?? null
@@ -168,10 +177,12 @@ export class BattleRuntime {
     }
 
     const appliedEffects = applyPreparedEffects(this.units, resolved.preparedEffects)
+    const summonOutcomes = applyPreparedSummons(this.units, resolved.preparedSummons, () => this.nextSummonSerial())
     const defeatedTargets = new Set<string>()
     let totalDamage = 0
     let totalHealing = 0
     let totalStatuses = 0
+    let totalSummons = 0
 
     for (const effect of appliedEffects) {
       if (effect.effectType === 'damage') {
@@ -192,6 +203,17 @@ export class BattleRuntime {
       }
     }
 
+    for (const summon of summonOutcomes) {
+      if (summon.success) {
+        totalSummons++
+        this.addLog(`${actor.name}唤出${summon.summonName}加入战场。`, 'major')
+        continue
+      }
+      if (summon.reason === 'limit') {
+        this.addLog(`${actor.name}试图继续召唤${summon.summonName}，但战场已无可用召唤位。`, 'normal')
+      }
+    }
+
     for (const targetId of defeatedTargets) {
       const target = this.units.find(unit => unit.id === targetId)
       if (target) {
@@ -205,6 +227,8 @@ export class BattleRuntime {
       this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害。`, skill ? 'major' : 'normal')
     } else if (totalHealing > 0) {
       this.addLog(`${actor.name}施展${resolved.actionName}，恢复${totalHealing}点气血。`, 'major')
+    } else if (totalSummons > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，召来${totalSummons}个战场助力。`, 'major')
     } else if (totalStatuses > 0) {
       this.addLog(`${actor.name}施展${resolved.actionName}，灵力效果在战场扩散。`, 'major')
     } else {
@@ -264,22 +288,16 @@ export class BattleRuntime {
     return 1
   }
 
-  private toRuntimeUnit(unit: Unit, side: 'ally' | 'enemy', index: number): BattleRuntimeUnit {
-    const battleRole = getBattleActorRole(unit, side)
-    return {
-      ...unit,
-      side,
-      battleRole,
-      spriteKey: getBattleSpriteKey(battleRole, side),
-      actionGauge: index * 8 + Math.random() * 18
-    }
-  }
-
   private addLog(text: string, severity: BattleRuntimeLog['severity']) {
     this.logs.push({ id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, text, severity })
     if (this.logs.length > 40) {
       this.logs = this.logs.slice(-24)
     }
+  }
+
+  private nextSummonSerial() {
+    this.summonSerial += 1
+    return this.summonSerial
   }
 
   private getStatusLabel(type: string) {

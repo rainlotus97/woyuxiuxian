@@ -149,6 +149,8 @@ export interface Unit {
 
   // AI 类型（仅敌人使用）
   aiType?: 'aggressive' | 'defensive' | 'support' | 'balanced'
+  summonOwnerId?: string
+  summonDefinitionId?: string
 }
 
 // ====== 工具函数 ======

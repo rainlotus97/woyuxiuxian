@@ -13,6 +13,7 @@ import {
   cloneRuntimeUnits,
   resolveStatusEffectFromSkill
 } from './statusRuntime'
+import { prepareSummons } from './summonRuntime'
 
 const BASIC_ATTACK_EFFECT: SkillEffect = {
   type: 'damage',
@@ -240,6 +241,7 @@ export function resolveBattleCommand(
   )
   const previewUnits = cloneRuntimeUnits(units)
   const previewEffects = applyPreparedEffects(previewUnits, preparedEffects)
+  const preparedSummons = prepareSummons(actor, units, skill)
   const displayHits = previewEffects
     .filter(effect => (effect.effectType === 'damage' || effect.effectType === 'heal') && effect.amount > 0)
     .map(effect => ({
@@ -260,6 +262,7 @@ export function resolveBattleCommand(
     skill,
     targetIds,
     preparedEffects,
+    preparedSummons,
     previewEffects,
     displayHits
   }
