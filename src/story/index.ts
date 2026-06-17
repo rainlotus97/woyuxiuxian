@@ -16,6 +16,9 @@ export { extensionManager, ExtensionManager } from './extensionManager'
 
 // 导出玩法桥接器
 export { gameplayBridge, GameplayBridge } from './gameplayBridge'
+export { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
+export { registerDefaultGameplayHandlers } from './runtime/registerDefaultGameplayHandlers'
+export { getStoryBattleTemplate, STORY_BATTLE_TEMPLATES } from './runtime/storyBattleCatalog'
 
 // 导出字典解析器
 export { dictionaryParser, DictionaryParser } from './dictionaryParser'

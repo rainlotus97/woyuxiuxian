@@ -189,6 +189,76 @@ function createFeedback(effect: Effect): FeedbackItem | null {
       animating: false
     }),
 
+    unlock_npc: () => ({
+      id,
+      type: 'success',
+      icon: '🧑',
+      text: '结识人物',
+      value: effect.target || '',
+      valueClass: 'positive',
+      animating: false
+    }),
+
+    unlock_companion: () => ({
+      id,
+      type: 'success',
+      icon: '🤝',
+      text: '解锁伙伴',
+      value: effect.target || '',
+      valueClass: 'positive',
+      animating: false
+    }),
+
+    sect_reputation: () => ({
+      id,
+      type: 'info',
+      icon: '🏯',
+      text: '宗门声望',
+      value: `${Number(effect.value || 0) >= 0 ? '+' : ''}${effect.value || 0}`,
+      valueClass: Number(effect.value || 0) >= 0 ? 'positive' : 'negative',
+      animating: false
+    }),
+
+    unlock_map: () => ({
+      id,
+      type: 'success',
+      icon: '🗺️',
+      text: '开放地图',
+      value: effect.target || '',
+      valueClass: 'positive',
+      animating: false
+    }),
+
+    world_flag: () => ({
+      id,
+      type: 'info',
+      icon: '🌌',
+      text: '世界标记',
+      value: effect.target || '',
+      valueClass: 'neutral',
+      animating: false
+    }),
+
+    story_battle: () => ({
+      id,
+      type: 'warning',
+      icon: '⚔️',
+      text: '剧情战',
+      value: effect.target || '',
+      valueClass: 'negative',
+      animating: false
+    }),
+
+    branch_flag: () => ({
+      id,
+      type: 'info',
+      icon: '🌿',
+      text: '分支标记',
+      value: effect.target || '',
+      valueClass: 'neutral',
+      animating: false
+    }),
+
     info: () => ({
       id,
       type: 'info',

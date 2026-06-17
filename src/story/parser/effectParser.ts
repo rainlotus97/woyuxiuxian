@@ -45,6 +45,37 @@ export function parseEffectLine(line: string): Effect | null {
   match = line.match(/^解锁结局[：:]\s*(.+)$/)
   if (match?.[1]) return { type: 'ending', target: match[1].trim() }
 
+  match = line.match(/^解锁NPC[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'unlock_npc', target: match[1].trim() }
+
+  match = line.match(/^解锁伙伴[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'unlock_companion', target: match[1].trim() }
+
+  match = line.match(/^宗门声望[+\-]\s*(\d+)$/)
+  if (match?.[1]) {
+    const value = Number(match[1])
+    const isNegative = line.includes('-')
+    return { type: 'sect_reputation', value: isNegative ? -value : value }
+  }
+
+  match = line.match(/^开放地图[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'unlock_map', target: match[1].trim() }
+
+  match = line.match(/^世界标记[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'world_flag', target: match[1].trim() }
+
+  match = line.match(/^分支标记[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'branch_flag', target: match[1].trim() }
+
+  match = line.match(/^触发事件[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'trigger_event', target: match[1].trim() }
+
+  match = line.match(/^触发战斗[：:]\s*(.+)$/)
+  if (match?.[1]) return { type: 'story_battle', target: match[1].trim() }
+
+  match = line.match(/^设置[：:]\s*(.+?)=(.+)$/)
+  if (match?.[1] && match[2]) return { type: 'set_var', target: match[1].trim(), value: match[2].trim() }
+
   match = line.match(/^解锁(.+?)功能$/)
   if (match?.[1]) return { type: 'unlock_feature', target: match[1].trim() }
 

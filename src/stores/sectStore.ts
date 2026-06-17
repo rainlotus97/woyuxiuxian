@@ -267,6 +267,20 @@ export const useSectStore = defineStore('sect', () => {
     reputation.value += amount
   }
 
+  function applyStoryReputation(amount: number, reason?: string) {
+    reputation.value += amount
+    if (reason && joinedSectId.value) {
+      activeEvent.value = {
+        id: `story_reputation_${Date.now()}`,
+        type: 'opportunity',
+        title: '宗门回响',
+        description: reason,
+        choices: [],
+        handled: true
+      }
+    }
+  }
+
   // 完成任务进度（手动触发特定任务）
   function completeTask(taskId: string): boolean {
     const task = tasks.value.find(t => t.id === taskId)
@@ -824,6 +838,7 @@ export const useSectStore = defineStore('sect', () => {
     promotePosition,
     addContribution,
     addReputation,
+    applyStoryReputation,
     completeTask,
     updateTaskProgress,
     claimTaskReward,

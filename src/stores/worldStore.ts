@@ -19,6 +19,8 @@ interface WorldState {
   npcDefinitions: NpcDefinition[]
   npcStates: NpcRuntimeState[]
   logs: WorldLogEntry[]
+  unlockedNpcIds: string[]
+  worldFlags: string[]
 }
 
 const STORAGE_KEY = 'woyu-xiuxian-world'
@@ -107,7 +109,9 @@ function getDefaultWorldState(): WorldState {
     weather: 'clear',
     npcDefinitions,
     npcStates: createNpcStates(npcDefinitions),
-    logs: []
+    logs: [],
+    unlockedNpcIds: npcDefinitions.filter(item => item.role === 'main').map(item => item.id),
+    worldFlags: []
   }
 }
 
@@ -129,7 +133,9 @@ export const useWorldStore = defineStore('world', () => {
         clock: { ...defaults.clock, ...parsed.clock },
         npcDefinitions: parsed.npcDefinitions?.length ? parsed.npcDefinitions : defaults.npcDefinitions,
         npcStates: parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates,
-        logs: parsed.logs ?? defaults.logs
+        logs: parsed.logs ?? defaults.logs,
+        unlockedNpcIds: parsed.unlockedNpcIds ?? defaults.unlockedNpcIds,
+        worldFlags: parsed.worldFlags ?? defaults.worldFlags
       }
     } else {
       initialData = getDefaultWorldState()
@@ -145,9 +151,12 @@ export const useWorldStore = defineStore('world', () => {
   const npcDefinitions = ref<NpcDefinition[]>([...initialData.npcDefinitions])
   const npcStates = ref<NpcRuntimeState[]>([...initialData.npcStates])
   const logs = ref<WorldLogEntry[]>([...initialData.logs])
+  const unlockedNpcIds = ref<string[]>([...initialData.unlockedNpcIds])
+  const worldFlags = ref<string[]>([...initialData.worldFlags])
 
   const currentTimeLabel = computed(() => formatWorldTime(clock.value))
   const visibleLogs = computed(() => logs.value.slice(0, 12))
+  const unlockedNpcDefinitions = computed(() => npcDefinitions.value.filter(definition => unlockedNpcIds.value.includes(definition.id)))
   const importantNpcStates = computed(() => npcStates.value.map(state => ({
     state,
     definition: npcDefinitions.value.find(def => def.id === state.id)
@@ -160,7 +169,9 @@ export const useWorldStore = defineStore('world', () => {
       weather: weather.value,
       npcDefinitions: toRaw(npcDefinitions.value),
       npcStates: toRaw(npcStates.value),
-      logs: toRaw(logs.value)
+      logs: toRaw(logs.value),
+      unlockedNpcIds: toRaw(unlockedNpcIds.value),
+      worldFlags: toRaw(worldFlags.value)
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
@@ -349,6 +360,31 @@ export const useWorldStore = defineStore('world', () => {
     }
   }
 
+  function unlockNpc(npcId: string, reason?: string) {
+    const definition = npcDefinitions.value.find(item => item.id === npcId)
+    if (!definition) return false
+    if (!unlockedNpcIds.value.includes(npcId)) {
+      unlockedNpcIds.value.push(npcId)
+      addLog('npc', 'major', `结识${definition.name}`, reason || `${definition.name}正式进入你的命运轨迹。`, [npcId], ['story', 'unlock-npc'])
+    }
+    return true
+  }
+
+  function isNpcUnlocked(npcId: string) {
+    return unlockedNpcIds.value.includes(npcId)
+  }
+
+  function addWorldFlag(flag: string, title?: string, text?: string) {
+    if (!worldFlags.value.includes(flag)) {
+      worldFlags.value.push(flag)
+      addLog('world', 'normal', title || '世界异动', text || `世界留下了新的标记：${flag}`, [], ['story', 'world-flag'])
+    }
+  }
+
+  function hasWorldFlag(flag: string) {
+    return worldFlags.value.includes(flag)
+  }
+
   function getIdleModeLabel(mode: IdleMode): string {
     const labels: Record<IdleMode, string> = {
       cultivate: '闭关修炼',
@@ -371,12 +407,19 @@ export const useWorldStore = defineStore('world', () => {
     npcDefinitions,
     npcStates,
     logs,
+    unlockedNpcIds,
+    worldFlags,
     currentTimeLabel,
     visibleLogs,
+    unlockedNpcDefinitions,
     importantNpcStates,
     setIdleMode,
     simulateOffline,
     advanceTick,
-    getIdleModeLabel
+    getIdleModeLabel,
+    unlockNpc,
+    isNpcUnlocked,
+    addWorldFlag,
+    hasWorldFlag
   }
 })

@@ -230,6 +230,23 @@ export const useMapStore = defineStore('map', () => {
     }
   }
 
+  function unlockArea(areaId: string, reason?: string) {
+    const area = getAreaById(areaId)
+    if (!area) return false
+
+    if (!conqueredAreas.value.includes(areaId)) {
+      conqueredAreas.value.push(areaId)
+      recordEvent({
+        type: 'world',
+        title: `开放${area.name}`,
+        description: reason || `${area.name}已对你开放，可前往探索或接触当地势力。`,
+        impact: `解锁区域 ${area.name}`
+      })
+    }
+
+    return true
+  }
+
   // 攻占区域
   function conquerArea(areaId: string) {
     if (!conqueredAreas.value.includes(areaId)) {
@@ -352,6 +369,7 @@ export const useMapStore = defineStore('map', () => {
     // 方法
     advanceDay,
     unlockRealm,
+    unlockArea,
     conquerArea,
     switchRealm,
     recordEvent,

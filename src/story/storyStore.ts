@@ -8,6 +8,7 @@ import type {
   Perspective,
   StoryNode,
   Effect,
+  GameplayTrigger,
   Prerequisite,
   PrerequisiteExpression,
   EndingInfo,
@@ -20,6 +21,7 @@ import { storyCache } from './loader/cacheManager'
 import { volumeLoader } from './loader/volumeLoader'
 import { storyEventBus } from './eventBus'
 import { prerequisiteExpressionToText } from './parser'
+import { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
 // 以下模块待后续集成
 // import { extensionManager } from './extensionManager'
 // import { gameplayBridge } from './gameplayBridge'
@@ -75,6 +77,7 @@ export const useStoryStore = defineStore('story', () => {
   const unlockedEndings = ref<Map<string, EndingInfo>>(new Map())
   const volumeCompletions = ref<VolumeCompletion[]>([])
   const sessionState = ref<StorySessionState>({ status: 'idle' })
+  const effectRuntime = createStoryEffectRuntime()
 
   // 结局字典（所有可能的结局）
   const allEndings: EndingInfo[] = [
@@ -206,11 +209,6 @@ export const useStoryStore = defineStore('story', () => {
     // 执行选项效果
     if (choice.effects && choice.effects.length > 0) {
       await executeEffects(choice.effects)
-    }
-
-    // 执行节点效果（结束节点的效果在节点本身定义）
-    if (node.content.effects.length > 0) {
-      await executeEffects(node.content.effects)
     }
 
     // 检查是否为结束标记
@@ -347,6 +345,45 @@ export const useStoryStore = defineStore('story', () => {
             showNotification(`解锁功能: ${effect.target}`, 'success')
           }
           break
+        case 'unlock_npc':
+          if (effect.target) {
+            await effectRuntime.execute(effect)
+            showNotification(`结识人物: ${effect.target}`, 'success')
+          }
+          break
+        case 'unlock_companion':
+          if (effect.target) {
+            await effectRuntime.execute(effect)
+            showNotification(`解锁伙伴: ${effect.target}`, 'success')
+          }
+          break
+        case 'sect_reputation':
+          if (typeof effect.value === 'number') {
+            await effectRuntime.execute(effect)
+            showNotification(`宗门声望 ${effect.value >= 0 ? '+' : ''}${effect.value}`, 'info')
+          }
+          break
+        case 'unlock_map':
+          if (effect.target) {
+            await effectRuntime.execute(effect)
+            showNotification(`地图开放: ${effect.target}`, 'success')
+          }
+          break
+        case 'world_flag':
+          if (effect.target) {
+            await effectRuntime.execute(effect)
+            showNotification(`世界标记: ${effect.target}`, 'info')
+          }
+          break
+        case 'story_battle':
+          await effectRuntime.execute(effect)
+          showNotification(`剧情战已准备: ${effect.target}`, 'warning')
+          break
+        case 'branch_flag':
+        case 'set_var':
+        case 'trigger_event':
+          await effectRuntime.execute(effect)
+          break
         case 'ending':
           // 结局效果在 checkEndNode 中处理，这里只显示通知
           if (effect.target) {
@@ -358,6 +395,14 @@ export const useStoryStore = defineStore('story', () => {
           break
       }
     }
+  }
+
+  function consumePendingGameplayTrigger(): GameplayTrigger | null {
+    return effectRuntime.consumePendingGameplayTrigger()
+  }
+
+  function clearPendingGameplayTrigger() {
+    effectRuntime.clearPendingGameplayTrigger()
   }
 
   // ============ 条件检查 ============
@@ -789,6 +834,7 @@ export const useStoryStore = defineStore('story', () => {
         favorability: Object.fromEntries(favorability.value),
         storyItems: Object.fromEntries(storyItems.value),
         choiceHistory: Object.fromEntries(choiceHistory.value),
+        effectRuntime: effectRuntime.serializeState(),
         // 结局系统数据
         unlockedEndings: Object.fromEntries(unlockedEndings.value),
         volumeCompletions: volumeCompletions.value,
@@ -822,6 +868,7 @@ export const useStoryStore = defineStore('story', () => {
         if (data.choiceHistory) {
           choiceHistory.value = new Map(Object.entries(data.choiceHistory))
         }
+        effectRuntime.hydrateState(data.effectRuntime)
         // 加载结局系统数据
         if (data.unlockedEndings) {
           unlockedEndings.value = new Map(Object.entries(data.unlockedEndings))
@@ -912,6 +959,7 @@ export const useStoryStore = defineStore('story', () => {
     totalEndingCount,
     hasTrueEnding,
     currentTermination,
+    effectRuntimeState: effectRuntime.state,
 
     // 方法
     initStory,
@@ -922,6 +970,8 @@ export const useStoryStore = defineStore('story', () => {
     checkPrerequisites,
     formatPrerequisiteSummary,
     executeEffects,
+    consumePendingGameplayTrigger,
+    clearPendingGameplayTrigger,
     getFavorability,
     addFavorability,
     addItem,

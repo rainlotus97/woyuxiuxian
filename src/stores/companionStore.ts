@@ -210,6 +210,12 @@ export const useCompanionStore = defineStore('companion', () => {
     return true
   }
 
+  function unlockCompanionById(definitionId: string): boolean {
+    const definition = getCompanionById(definitionId)
+    if (!definition) return false
+    return addCompanion(definition)
+  }
+
   // 升级伙伴
   function upgradeCompanion(definitionId: string, expAmount: number): boolean {
     const companion = ownedCompanions.value.find(c => c.definitionId === definitionId)
@@ -423,6 +429,7 @@ export const useCompanionStore = defineStore('companion', () => {
     singleGacha,
     tenGacha,
     addCompanion,
+    unlockCompanionById,
     upgradeCompanion,
     starUpCompanion,
     giveGift,

@@ -121,7 +121,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useStoryStore } from '@/story/storyStore'
 import TypewriterText from './TypewriterText.vue'
 import EndingDisplay from './EndingDisplay.vue'
@@ -130,6 +131,7 @@ import SideQuestPanel from './SideQuestPanel.vue'
 import EffectFeedback from './EffectFeedback.vue'
 import GameplayEmbed from './GameplayEmbed.vue'
 import { gameplayBridge } from '@/story/gameplayBridge'
+import { registerDefaultGameplayHandlers } from '@/story/runtime/registerDefaultGameplayHandlers'
 import type { StoryTermination, GameplayTrigger, GameplayResult } from '@/story/types'
 
 const emit = defineEmits<{
@@ -137,6 +139,8 @@ const emit = defineEmits<{
 }>()
 
 const store = useStoryStore()
+const router = useRouter()
+let unregisterGameplayHandlers: (() => void) | null = null
 
 // 状态
 const isLoading = computed(() => store.isLoading)
@@ -187,6 +191,15 @@ const showChoices = computed(() => {
   return textComplete.value && (noDialogs || dialogsViewed.value) && hasChoices
 })
 
+function tryLaunchPendingGameplay() {
+  if (showGameplay.value) return
+
+  const pendingTrigger = store.consumePendingGameplayTrigger()
+  if (pendingTrigger) {
+    triggerGameplay(pendingTrigger)
+  }
+}
+
 // 方法
 function onTextComplete() {
   console.log('[StoryPlayer] onTextComplete called')
@@ -198,7 +211,10 @@ function onTextComplete() {
   if (gameplayTrigger && !showGameplay.value) {
     console.log('[StoryPlayer] Found gameplay trigger:', gameplayTrigger)
     triggerGameplay(gameplayTrigger)
+    return
   }
+
+  tryLaunchPendingGameplay()
 }
 
 function showNextDialog(index: number) {
@@ -295,6 +311,7 @@ async function onGameplayComplete(result: GameplayResult) {
 
   showGameplay.value = false
   currentGameplayTrigger.value = null
+  store.clearPendingGameplayTrigger()
 
   if (continueNodeId) {
     await store.goToNode(continueNodeId)
@@ -307,6 +324,7 @@ async function onGameplayComplete(result: GameplayResult) {
 }
 
 function onGameplaySkip() {
+  store.clearPendingGameplayTrigger()
   gameplayBridge.skip()
   showGameplay.value = false
   currentGameplayTrigger.value = null
@@ -322,9 +340,15 @@ async function onSideQuestTrigger(questId: string) {
 
 // 生命周期
 onMounted(async () => {
+  unregisterGameplayHandlers = registerDefaultGameplayHandlers(router)
   if (!store.currentNode) {
     await store.initStory('male', 1)
   }
+})
+
+onBeforeUnmount(() => {
+  unregisterGameplayHandlers?.()
+  unregisterGameplayHandlers = null
 })
 
 // 监听节点变化
@@ -335,6 +359,11 @@ watch(currentNode, (newNode, oldNode) => {
   textComplete.value = false
   currentDialogIndex.value = 0
   dialogsViewed.value = false
+})
+
+watch(currentNode, () => {
+  if (!textComplete.value) return
+  tryLaunchPendingGameplay()
 })
 
 // 暴露给外部使用的API

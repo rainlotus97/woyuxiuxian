@@ -23,6 +23,13 @@ export type EffectType =
   | 'trigger_event'
   | 'set_var'
   | 'unlock_feature'
+  | 'unlock_npc'
+  | 'unlock_companion'
+  | 'sect_reputation'
+  | 'unlock_map'
+  | 'world_flag'
+  | 'story_battle'
+  | 'branch_flag'
   | 'info'
 
 // ============ 前置条件类型 ============

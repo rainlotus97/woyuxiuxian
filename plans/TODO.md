@@ -91,14 +91,18 @@
   - 已让 `volumeLoader` 在缓存前构建 manifest / diagnostics
   - 已把角色信息接入 cache，支线任务可通过 `storyCache.getCharacterInfo()` 获取角色名
   - 已让前置条件支持 AND / OR / 括号表达式，并在 `storyStore` 中按表达式执行
-- [ ] 补足剧情效果类型：
-  - NPC 解锁
-  - 宗门声望
-  - 地图开放
-  - 世界标记
-  - 战斗模板
-  - 好感分支
-- [ ] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
+- [~] 补足剧情效果类型：
+  - 已扩展 `EffectType` / `effectParser`，支持 NPC 解锁、伙伴解锁、宗门声望、地图开放、世界标记、剧情战、分支标记、变量设置
+  - 已建立 `src/story/runtime/storyEffectRuntime.ts`，把剧情效果接到 `worldStore / sectStore / mapStore / companionStore`
+  - 已让 `worldStore` 持久化 NPC 解锁与 world flag，并写回世界日志
+  - 已让 `storyStore` 持久化 effect runtime 状态，避免剧情玩法触发在刷新后丢失
+  - 已修复节点效果在 `makeChoice()` / `goToNode()` 间重复执行的问题，避免剧情效果双重结算
+  - 待补：故事角色 ID 到世界 NPC / 伙伴 definition ID 的映射层，好感数值与 NPC 关系系统的真实联动
+- [~] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
+  - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
+  - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
+  - 已让 `story_battle` 效果生成标准 `GameplayTrigger`，由 `StoryPlayer` 经 `gameplayBridge` 统一消费
+  - 待补：战斗结算结果回流故事节点、失败分支细化、非战斗玩法的真实界面与结果协议
 
 ## P2 世界/NPC 系统
 
@@ -181,3 +185,8 @@
   - 已让灵兽通过 `allyRosterFactory` 接入 battle runtime 主链
   - 已让 world tick / 战斗结算为已上阵灵兽提供经验与亲密度成长
 - [x] 新增 roadmap 与 todo 文档，明确后续执行顺序
+- [x] 打通剧情效果到主游戏运行时的第一阶段桥接
+  - 已建立 `src/story/runtime/*` 作为 story -> gameplay 运行时桥接层
+  - 已让剧情效果可解锁 NPC / 伙伴、修改宗门声望、开放地图、记录世界标记、挂起剧情战
+  - 已让剧情战通过统一 `GameplayTrigger` 进入主战斗路由，而不是只停留在文案提示
+  - 已修复剧情节点效果重复执行导致的双重结算风险
