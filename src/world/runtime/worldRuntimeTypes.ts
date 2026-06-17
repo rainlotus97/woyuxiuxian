@@ -18,6 +18,17 @@ export interface WorldRuntimeNpcContext {
   playerGold: number
 }
 
+export interface WorldRuntimeNpcSocialContext {
+  clock: WorldClock
+  weather: WorldWeather
+  actorDefinition: NpcDefinition
+  actorState: NpcRuntimeState
+  actorRelationship: RelationshipState
+  targetDefinition: NpcDefinition
+  targetState: NpcRuntimeState
+  targetRelationship: RelationshipState
+}
+
 export interface WorldRuntimeNpcPatch {
   id: string
   cultivationDelta?: number
@@ -55,6 +66,7 @@ export interface WorldRuntimeLogEffect {
 
 export interface WorldRuntimeNpcActionResult {
   npcPatch?: WorldRuntimeNpcPatch
+  npcPatches?: WorldRuntimeNpcPatch[]
   relationshipDeltas?: WorldRuntimeRelationshipDelta[]
   playerEffect?: WorldRuntimePlayerEffect
   logs?: WorldRuntimeLogEffect[]

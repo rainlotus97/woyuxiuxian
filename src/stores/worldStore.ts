@@ -12,6 +12,11 @@ import type {
 import { formatWorldTime } from '@/types/world'
 import { resolveNpcAction } from '@/world/runtime/npcActionResolver'
 import {
+  mergeNpcRelationshipNetwork,
+  pickNpcInteractionTarget
+} from '@/world/runtime/npcRelationshipNetwork'
+import { resolveNpcSocialAction } from '@/world/runtime/npcSocialActionResolver'
+import {
   applyRelationshipDeltaToState,
   createDefaultRelationshipState
 } from '@/world/runtime/relationshipState'
@@ -99,7 +104,7 @@ function createNpcDefinitions(): NpcDefinition[] {
 }
 
 function createNpcStates(definitions: NpcDefinition[]): NpcRuntimeState[] {
-  return definitions.map(definition => ({
+  return mergeNpcRelationshipNetwork(definitions, definitions.map(definition => ({
     id: definition.id,
     realm: definition.aptitude.talent === 'destined' ? '筑基' : '炼气',
     realmLevel: definition.aptitude.talent === 'destined' ? 3 : 1 + Math.floor(definition.aptitude.comprehension / 25),
@@ -110,7 +115,7 @@ function createNpcStates(definitions: NpcDefinition[]): NpcRuntimeState[] {
     relationships: {},
     flags: [],
     lastActionTick: 0
-  }))
+  })))
 }
 
 function getDefaultWorldState(): WorldState {
@@ -139,7 +144,10 @@ export const useWorldStore = defineStore('world', () => {
         ...parsed,
         clock: { ...defaults.clock, ...parsed.clock },
         npcDefinitions: parsed.npcDefinitions?.length ? parsed.npcDefinitions : defaults.npcDefinitions,
-        npcStates: parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates,
+        npcStates: mergeNpcRelationshipNetwork(
+          parsed.npcDefinitions?.length ? parsed.npcDefinitions : defaults.npcDefinitions,
+          parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates
+        ),
         logs: parsed.logs ?? defaults.logs,
         unlockedNpcIds: parsed.unlockedNpcIds ?? defaults.unlockedNpcIds,
         worldFlags: parsed.worldFlags ?? defaults.worldFlags
@@ -309,11 +317,13 @@ export const useWorldStore = defineStore('world', () => {
 
   function resolveNpcActions() {
     const playerStore = usePlayerStore()
+    const engagedNpcIds = new Set<string>()
+    const definitionMap = new Map(npcDefinitions.value.map(definition => [definition.id, definition]))
     for (const npc of npcStates.value) {
       const def = npcDefinitions.value.find(item => item.id === npc.id)
       if (!def || npc.hpState === 'dead') continue
       const playerRelationship = getRelationshipState(npc.id, 'player')
-      const result = resolveNpcAction({
+      let result = resolveNpcAction({
         clock: clock.value,
         weather: weather.value,
         npcDefinition: def,
@@ -321,10 +331,49 @@ export const useWorldStore = defineStore('world', () => {
         playerRelationship,
         playerGold: playerStore.gold
       })
+
+      if (!result) {
+        const targetState = pickNpcInteractionTarget(
+          def,
+          npc,
+          npc.relationships,
+          definitionMap,
+          npcStates.value,
+          clock.value.totalTicks,
+          engagedNpcIds
+        )
+        if (targetState) {
+          const targetDefinition = definitionMap.get(targetState.id)
+          const actorRelationship = getRelationshipState(npc.id, targetState.id)
+          const targetRelationship = getRelationshipState(targetState.id, npc.id)
+          if (targetDefinition) {
+            result = resolveNpcSocialAction({
+              clock: clock.value,
+              weather: weather.value,
+              actorDefinition: def,
+              actorState: npc,
+              actorRelationship,
+              targetDefinition,
+              targetState,
+              targetRelationship
+            })
+            if (result) {
+              engagedNpcIds.add(npc.id)
+              engagedNpcIds.add(targetState.id)
+            }
+          }
+        }
+      }
+
       if (!result) continue
 
       if (result.npcPatch) {
         applyNpcPatch(result.npcPatch)
+      }
+      if (result.npcPatches?.length) {
+        for (const patch of result.npcPatches) {
+          applyNpcPatch(patch)
+        }
       }
       if (result.relationshipDeltas?.length) {
         applyRelationshipDeltas(result.relationshipDeltas)
