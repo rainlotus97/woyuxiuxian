@@ -370,6 +370,8 @@ export interface GameplayTrigger {
   params?: Record<string, unknown>
   /** 完成后继续的目标节点（可选，不填则返回当前节点继续） */
   continueNodeId?: string
+  /** 不同结果对应的目标节点 */
+  outcomeNodeIds?: Partial<Record<'victory' | 'defeat' | 'fled' | 'success' | 'failure', string>>
   /** 完成条件（可选） */
   completionCondition?: Prerequisite[]
   /** 失败处理 */

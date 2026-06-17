@@ -33,6 +33,7 @@ function cloneTrigger(trigger: GameplayTrigger): GameplayTrigger {
   return {
     ...trigger,
     params: trigger.params ? { ...trigger.params } : undefined,
+    outcomeNodeIds: trigger.outcomeNodeIds ? { ...trigger.outcomeNodeIds } : undefined,
     completionCondition: trigger.completionCondition ? [...trigger.completionCondition] : undefined
   }
 }

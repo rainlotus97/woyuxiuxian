@@ -104,7 +104,8 @@
   - 已让 `story_battle` 效果生成标准 `GameplayTrigger`，由 `StoryPlayer` 经 `gameplayBridge` 统一消费
   - 已建立 `routeGameplaySession`，支持剧情战跨路由挂起、战斗结算写回、返回故事页后恢复分支
   - 已让 BattleView 识别 story session，并在胜利 / 败北 / 脱离后返回 `/game/story` 而不是固定跳回历练
-  - 待补：失败分支细化、非战斗玩法的真实界面与结果协议
+  - 已支持 `胜利后跳转 / 败北后跳转 / 脱离后跳转` 结果分支协议，剧情战可按战果进入不同节点
+  - 待补：非战斗玩法的真实界面与结果协议，更多复合玩法结果枚举
 
 ## P2 世界/NPC 系统
 
@@ -196,3 +197,7 @@
   - 已建立 `routeGameplaySession` 持久化剧情战会话与结果，支持跨路由恢复
   - 已让 `gameplayBridge` 为剧情战保留挂起执行，并在故事页恢复时消费真实战斗结果
   - 已让 BattleView / useBattleSession 在剧情战结束后写回 `victory / defeat / fled` 结果并返回故事页
+- [x] 支持剧情战按结果分支回到不同故事节点
+  - 已新增 gameplay outcome router，统一解析 `victory / defeat / fled / success / failure`
+  - 已让 `GameplayTrigger` 支持结果节点映射，并在 story parser 中解析 `胜利后跳转 / 败北后跳转 / 脱离后跳转`
+  - 已让 `gameplayBridge.onComplete()` 统一按结果决定继续节点，而不是只靠 `continueNodeId / failureNodeId`

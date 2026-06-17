@@ -15,6 +15,7 @@ import {
   createRouteGameplaySession,
   getRouteGameplaySession
 } from './runtime/routeGameplaySession'
+import { resolveGameplayContinueNode } from './runtime/gameplayOutcomeRouter'
 
 /** 玩法处理器类型 */
 type GameplayHandler = (trigger: GameplayTrigger) => Promise<GameplayResult>
@@ -167,8 +168,7 @@ export class GameplayBridge {
     if (result.success) {
       this.isPlaying.value = false
       this.currentTrigger.value = null
-
-      const continueNodeId = trigger.continueNodeId || null
+      const continueNodeId = resolveGameplayContinueNode(trigger, result)
       this.suspendState = null
 
       console.log(`[GameplayBridge] Gameplay completed successfully, continuing to: ${continueNodeId || 'current node'}`)
@@ -203,7 +203,7 @@ export class GameplayBridge {
       case 'goto':
         this.isPlaying.value = false
         this.currentTrigger.value = null
-        const failureNodeId = trigger.failureNodeId || null
+        const failureNodeId = resolveGameplayContinueNode(trigger, result)
         this.suspendState = null
         this.pendingExecution = null
         this.resolvePendingExecution = null

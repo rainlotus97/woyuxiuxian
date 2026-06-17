@@ -20,6 +20,11 @@ export { createStoryEffectRuntime } from './runtime/storyEffectRuntime'
 export { registerDefaultGameplayHandlers } from './runtime/registerDefaultGameplayHandlers'
 export { getStoryBattleTemplate, STORY_BATTLE_TEMPLATES } from './runtime/storyBattleCatalog'
 export {
+  extractGameplayOutcomeRoutes,
+  resolveGameplayOutcomeKey,
+  resolveGameplayContinueNode
+} from './runtime/gameplayOutcomeRouter'
+export {
   createRouteGameplaySession,
   getRouteGameplaySession,
   completeRouteGameplaySession,

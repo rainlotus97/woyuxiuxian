@@ -89,6 +89,7 @@ function parseGameplayTrigger(content: string): GameplayTrigger | undefined {
       trigger = {
         type: gameplayType,
         targetId: triggerMatch[2].trim(),
+        outcomeNodeIds: {}
       }
       const activeTrigger = trigger
 
@@ -131,6 +132,24 @@ function parseGameplayTrigger(content: string): GameplayTrigger | undefined {
         const continueMatch = paramLine.match(/^完成后跳转[：:]\s*(.+)$/)
         if (continueMatch?.[1]) {
           activeTrigger.continueNodeId = continueMatch[1].trim()
+        }
+
+        const victoryMatch = paramLine.match(/^胜利后跳转[：:]\s*(.+)$/)
+        if (victoryMatch?.[1]) {
+          activeTrigger.outcomeNodeIds = activeTrigger.outcomeNodeIds || {}
+          activeTrigger.outcomeNodeIds.victory = victoryMatch[1].trim()
+        }
+
+        const defeatMatch = paramLine.match(/^败北后跳转[：:]\s*(.+)$/)
+        if (defeatMatch?.[1]) {
+          activeTrigger.outcomeNodeIds = activeTrigger.outcomeNodeIds || {}
+          activeTrigger.outcomeNodeIds.defeat = defeatMatch[1].trim()
+        }
+
+        const fledMatch = paramLine.match(/^脱离后跳转[：:]\s*(.+)$/)
+        if (fledMatch?.[1]) {
+          activeTrigger.outcomeNodeIds = activeTrigger.outcomeNodeIds || {}
+          activeTrigger.outcomeNodeIds.fled = fledMatch[1].trim()
         }
       }
 
