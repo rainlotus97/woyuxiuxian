@@ -7,6 +7,7 @@
 - [~] 战斗页稳定性修复
   - 已处理 Phaser Scene 销毁后仍接收事件导致的空引用问题
   - 已清理 BattleView 中未回收的延时伤害回调
+  - 已为 BattleScene / useBattleSession 增加 battle instance 级事件握手，修复首次进入战斗页需要刷新才恢复渲染的问题
   - 待补回归验证：路由往返、自动战斗连续结算、胜利弹层后退出
 - [~] 新战斗链路落地
   - 已建立 `src/game/battle/battleRuntime.ts`
@@ -150,6 +151,10 @@
 - [x] 接入战斗占位背景与像素角色资源
 - [x] 调亮战斗视觉风格，补回命中特效
 - [x] 修复战斗页切换时的 Phaser 空引用问题
+- [x] 修复首次进入战斗页的场景实例竞态
+  - 已让 `battle:snapshot / battle:play-command / battle:damage-number / battle:ended` 绑定当前战斗实例
+  - 已将 `scene-ready` 延后到可渲染首帧后发出，避免 `showDamage()` / `updateSnapshot()` 抢跑
+  - 已通过浏览器实测验证首进战斗与首回合伤害表现恢复正常
 - [x] 模块化战斗效果解析
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime

@@ -2,6 +2,10 @@ import type { BattleRuntimeSnapshot } from '@/game/battle/battleRuntime'
 
 type Handler<T> = (payload: T) => void
 
+interface ScopedBattleEvent {
+  battleInstanceId: string
+}
+
 export interface BattleSceneCommand {
   type: 'attack' | 'skill'
   actorId: string
@@ -18,24 +22,41 @@ export interface BattleSceneHit {
 }
 
 export interface BattleSceneEnded {
+  battleInstanceId: string
   result: 'victory' | 'defeat' | 'fled'
 }
 
-export interface BattleSceneReady {
+export interface BattleSceneReady extends ScopedBattleEvent {
   sceneKey: string
 }
 
-export interface BattleArenaThemeChanged {
+export interface BattleArenaThemeChanged extends ScopedBattleEvent {
   arenaId: string
+}
+
+export interface BattleSceneSnapshotChanged extends ScopedBattleEvent {
+  snapshot: BattleRuntimeSnapshot
+}
+
+export interface BattleSceneCommandRequested extends ScopedBattleEvent {
+  command: BattleSceneCommand
+}
+
+export interface BattleSceneDamageNumberRequested extends ScopedBattleEvent {
+  hit: BattleSceneHit
+}
+
+export interface BattleSceneHitResolved extends ScopedBattleEvent {
+  hit: BattleSceneHit
 }
 
 export interface GameEvents {
   'battle:scene-ready': BattleSceneReady
   'battle:arena-theme': BattleArenaThemeChanged
-  'battle:snapshot': BattleRuntimeSnapshot
-  'battle:play-command': BattleSceneCommand
-  'battle:damage-number': BattleSceneHit
-  'battle:hit': BattleSceneHit
+  'battle:snapshot': BattleSceneSnapshotChanged
+  'battle:play-command': BattleSceneCommandRequested
+  'battle:damage-number': BattleSceneDamageNumberRequested
+  'battle:hit': BattleSceneHitResolved
   'battle:ended': BattleSceneEnded
   'asset:preload-progress': { loaded: number; total: number }
 }
@@ -64,3 +85,31 @@ class GameEventBus {
 }
 
 export const gameEvents = new GameEventBus()
+
+let activeBattleInstanceId: string | null = null
+let readyBattleInstanceId: string | null = null
+
+export function setActiveBattleInstanceId(battleInstanceId: string | null) {
+  if (activeBattleInstanceId !== battleInstanceId) {
+    readyBattleInstanceId = null
+  }
+  activeBattleInstanceId = battleInstanceId
+}
+
+export function getActiveBattleInstanceId() {
+  return activeBattleInstanceId
+}
+
+export function markBattleSceneReady(battleInstanceId: string | null) {
+  readyBattleInstanceId = battleInstanceId
+}
+
+export function clearBattleSceneReady(battleInstanceId: string | null) {
+  if (readyBattleInstanceId === battleInstanceId) {
+    readyBattleInstanceId = null
+  }
+}
+
+export function isBattleSceneReady(battleInstanceId: string) {
+  return readyBattleInstanceId === battleInstanceId
+}

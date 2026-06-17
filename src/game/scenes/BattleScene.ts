@@ -1,6 +1,13 @@
 import Phaser from 'phaser'
 import { DEFAULT_BATTLE_ARENA_ID, getBattleArenaTheme, type BattleArenaTheme } from '@/game/battle/config'
-import { gameEvents, type BattleSceneCommand, type BattleSceneHit } from '@/game/engine/gameEvents'
+import {
+  clearBattleSceneReady,
+  gameEvents,
+  getActiveBattleInstanceId,
+  markBattleSceneReady,
+  type BattleSceneCommand,
+  type BattleSceneHit
+} from '@/game/engine/gameEvents'
 import type { BattleRuntimeSnapshot, BattleRuntimeUnit } from '@/game/battle/battleRuntime'
 import { buildBattleArena } from './battleArenaBuilder'
 import { resolveBattleFormation, type BattleFormationPlacement } from './battleSceneLayout'
@@ -25,6 +32,7 @@ export class BattleScene extends Phaser.Scene {
   private arenaTheme: BattleArenaTheme = getBattleArenaTheme(DEFAULT_BATTLE_ARENA_ID)
   private disposed = false
   private ready = false
+  private battleInstanceId: string | null = null
   private pendingArenaId: string | null = null
   private pendingSnapshots: BattleRuntimeSnapshot[] = []
   private pendingCommands: BattleSceneCommand[] = []
@@ -39,6 +47,7 @@ export class BattleScene extends Phaser.Scene {
   create() {
     this.disposed = false
     this.ready = false
+    this.battleInstanceId = getActiveBattleInstanceId()
     this.pendingArenaId = null
     this.pendingSnapshots = []
     this.pendingCommands = []
@@ -49,19 +58,24 @@ export class BattleScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.disposeScene())
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.disposeScene())
     this.unsubscribers.push(
-      gameEvents.on('battle:snapshot', snapshot => {
-        this.pendingSnapshots = [snapshot]
+      gameEvents.on('battle:snapshot', payload => {
+        if (!this.isCurrentBattleInstance(payload.battleInstanceId)) return
+        this.pendingSnapshots = [payload.snapshot]
       }),
-      gameEvents.on('battle:play-command', command => {
-        this.pendingCommands.push(command)
+      gameEvents.on('battle:play-command', payload => {
+        if (!this.isCurrentBattleInstance(payload.battleInstanceId)) return
+        this.pendingCommands.push(payload.command)
       }),
       gameEvents.on('battle:arena-theme', payload => {
+        if (!this.isCurrentBattleInstance(payload.battleInstanceId)) return
         this.pendingArenaId = payload.arenaId
       }),
-      gameEvents.on('battle:damage-number', hit => {
-        this.pendingHits.push(hit)
+      gameEvents.on('battle:damage-number', payload => {
+        if (!this.isCurrentBattleInstance(payload.battleInstanceId)) return
+        this.pendingHits.push(payload.hit)
       }),
       gameEvents.on('battle:ended', payload => {
+        if (!this.isCurrentBattleInstance(payload.battleInstanceId)) return
         this.pendingEndResults = [payload.result]
       })
     )
@@ -71,7 +85,15 @@ export class BattleScene extends Phaser.Scene {
     if (!this.ready) {
       if (!this.hasLiveSceneSystems()) return
       this.ready = true
-      gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
+      this.time.delayedCall(0, () => {
+        if (!this.canRenderRuntimeEvents()) return
+        markBattleSceneReady(this.battleInstanceId)
+        gameEvents.emit('battle:scene-ready', {
+          sceneKey: 'BattleScene',
+          battleInstanceId: this.battleInstanceId ?? ''
+        })
+      })
+      return
     }
     if (!this.canRenderRuntimeEvents()) return
 
@@ -121,6 +143,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.disposed) return
     this.disposed = true
     this.ready = false
+    clearBattleSceneReady(this.battleInstanceId)
+    this.battleInstanceId = null
     this.pendingArenaId = null
     this.pendingSnapshots = []
     this.pendingCommands = []
@@ -395,7 +419,9 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => text.destroy()
     })
-    gameEvents.emit('battle:hit', hit)
+    if (this.battleInstanceId) {
+      gameEvents.emit('battle:hit', { hit, battleInstanceId: this.battleInstanceId })
+    }
   }
 
   private playBattleEnd(result: 'victory' | 'defeat' | 'fled') {
@@ -414,7 +440,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private canRenderRuntimeEvents() {
-    return this.ready && this.hasLiveSceneSystems()
+    return this.ready && this.hasLiveSceneSystems() && Boolean(this.battleInstanceId)
   }
 
   private hasLiveSceneSystems() {
@@ -431,6 +457,10 @@ export class BattleScene extends Phaser.Scene {
 
   private isActorAlive(actor: ActorSprite | undefined): actor is ActorSprite {
     return Boolean(actor?.sprite?.scene === this && actor?.name?.scene === this)
+  }
+
+  private isCurrentBattleInstance(battleInstanceId: string) {
+    return Boolean(this.battleInstanceId && battleInstanceId === this.battleInstanceId)
   }
 
   private relayoutActors() {

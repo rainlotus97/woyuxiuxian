@@ -1,7 +1,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BattleRuntime, type BattleRuntimeSnapshot } from '@/game/battle/battleRuntime'
-import { gameEvents, type BattleSceneCommand } from '@/game/engine/gameEvents'
+import {
+  clearBattleSceneReady,
+  gameEvents,
+  isBattleSceneReady,
+  setActiveBattleInstanceId,
+  type BattleSceneCommand
+} from '@/game/engine/gameEvents'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useCompanionStore } from '@/stores/companionStore'
 import { usePetStore } from '@/stores/petStore'
@@ -56,6 +62,7 @@ export function useBattleSession() {
   let disposed = false
   let sceneReady = false
   let battleRunId = 0
+  let battleInstanceId = ''
   const commandTimers = new Set<number>()
 
   const sortedUnits = computed(() => [...(runtimeSnapshot.value?.units || [])].sort((a, b) => b.actionGauge - a.actionGauge))
@@ -132,6 +139,16 @@ export function useBattleSession() {
     return name.replace('[BOSS]', '').replace('[精英]', '')
   }
 
+  function startBattleInstance() {
+    battleRunId++
+    battleInstanceId = `battle-${battleRunId}`
+    lastFrame = 0
+    clearBattleSceneReady(battleInstanceId)
+    setActiveBattleInstanceId(battleInstanceId)
+  }
+
+  startBattleInstance()
+
   function createAllies(): Unit[] {
     playerStore.baseStats.currentHp = playerStore.totalStats.maxHp
     playerStore.baseStats.currentMp = playerStore.totalStats.maxMp
@@ -187,11 +204,10 @@ export function useBattleSession() {
   }
 
   function initBattle() {
-    battleRunId++
     worldStore.simulateOffline()
     battleRuntime.value = new BattleRuntime(createAllies(), createEnemies())
     const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
-    gameEvents.emit('battle:arena-theme', { arenaId })
+    gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
     refreshSnapshot()
     selectedSkillId.value = null
     selectedTargetId.value = battleRuntime.value.aliveEnemies[0]?.id ?? null
@@ -201,8 +217,8 @@ export function useBattleSession() {
   function refreshSnapshot() {
     if (disposed) return
     runtimeSnapshot.value = battleRuntime.value?.snapshot() ?? null
-    if (runtimeSnapshot.value && sceneReady) {
-      gameEvents.emit('battle:snapshot', runtimeSnapshot.value)
+    if (runtimeSnapshot.value && sceneReady && isBattleSceneReady(battleInstanceId)) {
+      gameEvents.emit('battle:snapshot', { snapshot: runtimeSnapshot.value, battleInstanceId })
     }
   }
 
@@ -216,8 +232,8 @@ export function useBattleSession() {
       runtime.tick(delta, battleSpeed.value)
       const turnContext = runtime.consumePendingTurnContext()
       for (const hit of turnContext.hits) {
-        if (sceneReady) {
-          gameEvents.emit('battle:damage-number', hit)
+        if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+          gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
       refreshSnapshot()
@@ -226,7 +242,9 @@ export function useBattleSession() {
     if (runtime.phase !== 'ended') {
       frameId = requestAnimationFrame(loop)
     } else {
-      gameEvents.emit('battle:ended', { result: runtime.result || 'defeat' })
+      if (isBattleSceneReady(battleInstanceId)) {
+        gameEvents.emit('battle:ended', { result: runtime.result || 'defeat', battleInstanceId })
+      }
       refreshSnapshot()
     }
   }
@@ -285,8 +303,8 @@ export function useBattleSession() {
       executing = false
       return
     }
-    if (sceneReady) {
-      gameEvents.emit('battle:play-command', resolved.command)
+    if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+      gameEvents.emit('battle:play-command', { command: resolved.command, battleInstanceId })
     }
     const timer = window.setTimeout(() => {
       commandTimers.delete(timer)
@@ -295,8 +313,8 @@ export function useBattleSession() {
         return
       }
       for (const hit of resolved.displayHits) {
-        if (sceneReady) {
-          gameEvents.emit('battle:damage-number', hit)
+        if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+          gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
       runtime.applyResolvedCommand(resolved)
@@ -310,11 +328,11 @@ export function useBattleSession() {
   }
 
   function bindScene() {
-    unsubSceneReady = gameEvents.on('battle:scene-ready', () => {
-      if (disposed) return
+    unsubSceneReady = gameEvents.on('battle:scene-ready', payload => {
+      if (disposed || payload.battleInstanceId !== battleInstanceId) return
       sceneReady = true
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
-      gameEvents.emit('battle:arena-theme', { arenaId })
+      gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
       refreshSnapshot()
     })
   }
@@ -323,6 +341,8 @@ export function useBattleSession() {
     disposed = true
     sceneReady = false
     battleRunId++
+    battleInstanceId = ''
+    setActiveBattleInstanceId(null)
     executing = false
     if (frameId) {
       cancelAnimationFrame(frameId)
