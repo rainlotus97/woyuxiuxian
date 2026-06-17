@@ -20,8 +20,10 @@ import {
   applyRelationshipDeltaToState,
   createDefaultRelationshipState
 } from '@/world/runtime/relationshipState'
+import { resolveWarAftermath } from '@/world/runtime/warAftermathResolver'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
 import type {
+  WorldRuntimeAftermathResult,
   WorldRuntimeLogEffect,
   WorldRuntimeNpcPatch,
   WorldRuntimeRelationshipDelta
@@ -239,6 +241,15 @@ export const useWorldStore = defineStore('world', () => {
         )
       }
     }
+    if (sectUpdate.warResolution) {
+      const aftermath = resolveWarAftermath({
+        totalTicks: clock.value.totalTicks,
+        warResolution: sectUpdate.warResolution,
+        npcDefinitions: npcDefinitions.value,
+        npcStates: npcStates.value
+      })
+      applyWarAftermath(aftermath)
+    }
   }
 
   function advanceClock(updateTimestamp: boolean) {
@@ -345,7 +356,7 @@ export const useWorldStore = defineStore('world', () => {
     const definitionMap = new Map(npcDefinitions.value.map(definition => [definition.id, definition]))
     for (const npc of npcStates.value) {
       const def = npcDefinitions.value.find(item => item.id === npc.id)
-      if (!def || npc.hpState === 'dead') continue
+      if (!def || npc.hpState === 'dead' || npc.hpState === 'captured') continue
       const playerRelationship = getRelationshipState(npc.id, 'player')
       let result = resolveNpcAction({
         clock: clock.value,
@@ -412,6 +423,23 @@ export const useWorldStore = defineStore('world', () => {
         for (const log of result.logs) {
           addWorldRuntimeLog(log)
         }
+      }
+    }
+  }
+
+  function applyWarAftermath(result: WorldRuntimeAftermathResult | null) {
+    if (!result) return
+    if (result.npcPatches?.length) {
+      for (const patch of result.npcPatches) {
+        applyNpcPatch(patch)
+      }
+    }
+    if (result.relationshipDeltas?.length) {
+      applyRelationshipDeltas(result.relationshipDeltas)
+    }
+    if (result.logs?.length) {
+      for (const log of result.logs) {
+        addWorldRuntimeLog(log)
       }
     }
   }

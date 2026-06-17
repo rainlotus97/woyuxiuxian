@@ -71,3 +71,9 @@ export interface WorldRuntimeNpcActionResult {
   playerEffect?: WorldRuntimePlayerEffect
   logs?: WorldRuntimeLogEffect[]
 }
+
+export interface WorldRuntimeAftermathResult {
+  npcPatches?: WorldRuntimeNpcPatch[]
+  relationshipDeltas?: WorldRuntimeRelationshipDelta[]
+  logs?: WorldRuntimeLogEffect[]
+}
