@@ -69,7 +69,7 @@
 - 建立战斗配置目录：
   - `src/game/battle/config/skills`
   - `src/game/battle/config/enemies`
-  - `src/game/battle/config/arenas`
+  - `src/game/battle/config/areas`
 - 建立战斗验收基线：
   - 手动战斗
   - 自动战斗

@@ -26,7 +26,10 @@
 
 ## P1 战斗系统
 
-- [ ] 建立战斗配置目录，避免技能/敌人硬散落在 `types/*`
+- [x] 建立战斗配置目录，避免技能/敌人硬散落在 `types/*`
+  - 已建立 `src/game/battle/config/{skills,skillTrees,enemies,areas}.ts`
+  - 已将 `types/skill.ts`、`types/adventure.ts` 收口为类型、helper 与兼容导出层
+  - 已让战斗会话直接消费 `src/game/battle/config`，后续扩展战斗内容不再继续堆进 `types/*`
 - [~] 增加 buff/debuff runtime
   - 已拆出 `targeting`、`commandResolver`、`statusRuntime`、`runtimeTypes`
   - 已支持单体/群体/自身目标解析
@@ -138,4 +141,6 @@
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime
   - 已验证 BattleView 命令栏可切换友方目标并正常结算
+- [x] 建立战斗配置目录
+  - 已迁移技能、技能树、敌人、区域/难度配置到 `src/game/battle/config/*`
 - [x] 新增 roadmap 与 todo 文档，明确后续执行顺序

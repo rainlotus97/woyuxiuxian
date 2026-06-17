@@ -7,9 +7,10 @@ import { useCompanionStore } from '@/stores/companionStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { DIFFICULTY_CONFIG, ENEMIES } from '@/game/battle/config'
 import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById, getSkillsByIds } from '@/types/skill'
-import { getAreaById, ENEMIES, rollDrops, rollReward, DIFFICULTY_CONFIG, type AreaDefinition } from '@/types/adventure'
+import { getAreaById, rollDrops, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 
 interface BattleSkillOption {
