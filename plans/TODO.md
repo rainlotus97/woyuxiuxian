@@ -13,13 +13,15 @@
   - 已建立 `src/game/scenes/BattleScene.ts`
   - 已接入本地背景/角色占位资源
   - 待完成：从旧 `battleStore` 迁移剩余机制并退役旧入口
-- [ ] 拆分 `src/views/game/BattleView.vue`
-  - 目标组件：
-    - `components/battle/BattleHud.vue`
+- [x] 拆分 `src/views/game/BattleView.vue`
+  - 已拆出：
+    - `components/battle/BattleTopHud.vue`
     - `components/battle/BattleCommandDock.vue`
     - `components/battle/BattleResultPanel.vue`
     - `components/battle/BattleLogDock.vue`
+    - `components/battle/BattleActionOrder.vue`
     - `components/battle/SpiritFireBar.vue`
+  - 已抽离 `composables/useBattleSession.ts`
 
 ## P1 战斗系统
 
