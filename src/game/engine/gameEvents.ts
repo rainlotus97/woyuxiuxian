@@ -88,6 +88,15 @@ export const gameEvents = new GameEventBus()
 
 let activeBattleInstanceId: string | null = null
 let readyBattleInstanceId: string | null = null
+let battleInstanceSequence = 0
+
+export function createBattleInstanceId() {
+  battleInstanceSequence += 1
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `battle-${battleInstanceSequence}-${crypto.randomUUID()}`
+  }
+  return `battle-${Date.now()}-${battleInstanceSequence}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 export function setActiveBattleInstanceId(battleInstanceId: string | null) {
   if (activeBattleInstanceId !== battleInstanceId) {
@@ -108,6 +117,10 @@ export function clearBattleSceneReady(battleInstanceId: string | null) {
   if (readyBattleInstanceId === battleInstanceId) {
     readyBattleInstanceId = null
   }
+}
+
+export function isActiveBattleInstance(battleInstanceId: string | null) {
+  return Boolean(battleInstanceId && activeBattleInstanceId === battleInstanceId)
 }
 
 export function isBattleSceneReady(battleInstanceId: string) {

@@ -3,6 +3,7 @@ import { DEFAULT_BATTLE_ARENA_ID, getBattleArenaTheme, type BattleArenaTheme } f
 import {
   clearBattleSceneReady,
   gameEvents,
+  isActiveBattleInstance,
   getActiveBattleInstanceId,
   markBattleSceneReady,
   type BattleSceneCommand,
@@ -85,7 +86,7 @@ export class BattleScene extends Phaser.Scene {
       this.readyTimer?.destroy()
       this.readyTimer = this.time.delayedCall(0, () => {
         this.readyTimer = null
-        if (!this.hasRenderableScene() || !this.hasBattleAssets() || !this.battleInstanceId) return
+        if (!this.hasRenderableScene() || !this.hasBattleAssets() || !this.battleInstanceId || !isActiveBattleInstance(this.battleInstanceId)) return
         this.ready = true
         markBattleSceneReady(this.battleInstanceId)
         gameEvents.emit('battle:scene-ready', {

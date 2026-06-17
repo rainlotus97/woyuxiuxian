@@ -2,8 +2,10 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BattleRuntime, type BattleRuntimeSnapshot } from '@/game/battle/battleRuntime'
 import {
+  createBattleInstanceId,
   clearBattleSceneReady,
   gameEvents,
+  getActiveBattleInstanceId,
   isBattleSceneReady,
   setActiveBattleInstanceId,
   type BattleSceneCommand
@@ -175,7 +177,7 @@ export function useBattleSession() {
 
   function startBattleInstance() {
     battleRunId++
-    battleInstanceId = `battle-${battleRunId}`
+    battleInstanceId = createBattleInstanceId()
     lastFrame = 0
     clearBattleSceneReady(battleInstanceId)
     setActiveBattleInstanceId(battleInstanceId)
@@ -380,6 +382,28 @@ export function useBattleSession() {
         refreshSnapshot()
       }
     })
+
+    if (
+      !disposed
+      && battleInstanceId
+      && getActiveBattleInstanceId() === battleInstanceId
+      && isBattleSceneReady(battleInstanceId)
+    ) {
+      sceneReady = true
+      const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
+      gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
+      if (!battleStarted) {
+        battleStarted = true
+        startLoopTimer = window.setTimeout(() => {
+          startLoopTimer = 0
+          if (disposed || !sceneReady || !isBattleSceneReady(battleInstanceId)) return
+          refreshSnapshot()
+          frameId = requestAnimationFrame(loop)
+        }, 0)
+      } else {
+        refreshSnapshot()
+      }
+    }
   }
 
   function disposeSession() {
