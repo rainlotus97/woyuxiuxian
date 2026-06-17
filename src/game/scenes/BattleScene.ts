@@ -25,6 +25,7 @@ export class BattleScene extends Phaser.Scene {
   private arenaTheme: BattleArenaTheme = getBattleArenaTheme(DEFAULT_BATTLE_ARENA_ID)
   private disposed = false
   private ready = false
+  private pendingArenaId: string | null = null
   private pendingSnapshots: BattleRuntimeSnapshot[] = []
   private pendingCommands: BattleSceneCommand[] = []
   private pendingHits: BattleSceneHit[] = []
@@ -38,6 +39,7 @@ export class BattleScene extends Phaser.Scene {
   create() {
     this.disposed = false
     this.ready = false
+    this.pendingArenaId = null
     this.pendingSnapshots = []
     this.pendingCommands = []
     this.pendingHits = []
@@ -54,7 +56,7 @@ export class BattleScene extends Phaser.Scene {
         this.pendingCommands.push(command)
       }),
       gameEvents.on('battle:arena-theme', payload => {
-        this.applyArenaTheme(payload.arenaId)
+        this.pendingArenaId = payload.arenaId
       }),
       gameEvents.on('battle:damage-number', hit => {
         this.pendingHits.push(hit)
@@ -63,15 +65,22 @@ export class BattleScene extends Phaser.Scene {
         this.pendingEndResults = [payload.result]
       })
     )
-    this.time.delayedCall(0, () => {
-      if (!this.hasLiveSceneSystems()) return
-      this.ready = true
-      gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
-    })
   }
 
   update() {
+    if (!this.ready) {
+      if (!this.hasLiveSceneSystems()) return
+      this.ready = true
+      gameEvents.emit('battle:scene-ready', { sceneKey: 'BattleScene' })
+    }
     if (!this.canRenderRuntimeEvents()) return
+
+    const arenaId = this.pendingArenaId
+    if (arenaId) {
+      this.pendingArenaId = null
+      this.applyArenaTheme(arenaId)
+      if (!this.canRenderRuntimeEvents()) return
+    }
 
     const snapshot = this.pendingSnapshots.pop()
     if (snapshot) {
@@ -112,6 +121,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.disposed) return
     this.disposed = true
     this.ready = false
+    this.pendingArenaId = null
     this.pendingSnapshots = []
     this.pendingCommands = []
     this.pendingHits = []
@@ -408,17 +418,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private hasLiveSceneSystems() {
-    const add = this.add as Phaser.GameObjects.GameObjectFactory & {
-      scene?: Phaser.Scene | null
-      displayList?: unknown
-      updateList?: unknown
-    }
+    const add = this.add as Phaser.GameObjects.GameObjectFactory & { scene?: Phaser.Scene | null }
+    const sys = this.sys
     return !this.disposed
-      && Boolean(this.sys?.isActive())
-      && add?.scene === this
-      && Boolean(add.displayList)
-      && Boolean(add.updateList)
+      && Boolean(sys?.isActive())
+      && Boolean(sys?.displayList)
+      && Boolean(sys?.updateList)
+      && Boolean(sys?.game?.renderer)
       && Boolean(this.textures)
+      && add?.scene === this
   }
 
   private isActorAlive(actor: ActorSprite | undefined): actor is ActorSprite {
