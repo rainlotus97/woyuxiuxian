@@ -53,6 +53,7 @@ import {
   resolvePlayerCaptivityEscape,
   resolvePlayerCaptivityTick
 } from '@/world/runtime/playerCaptivityResolver'
+import { resolvePlayerJourney } from '@/world/runtime/playerJourneyResolver'
 import { getAreaById } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import type {
@@ -390,6 +391,7 @@ export const useWorldStore = defineStore('world', () => {
     const playerStore = usePlayerStore()
     const petStore = usePetStore()
     const mapStore = useMapStore()
+    const sectStore = useSectStore()
     const mode = idleMode.value
     const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 60))
 
@@ -407,7 +409,7 @@ export const useWorldStore = defineStore('world', () => {
         realm: playerStore.realm,
         realmLevel: playerStore.realmLevel,
         weather: weather.value,
-        sectReputation: useSectStore().reputation
+        sectReputation: sectStore.reputation
       })
       playerStore.addCultivation(captivityResult.cultivationGain)
       if (captivityResult.narrative || shouldRecordCaptivityJourney) {
@@ -423,77 +425,36 @@ export const useWorldStore = defineStore('world', () => {
       return
     }
 
-    if (mode === 'cultivate') {
-      const gain = weather.value === 'rain' ? Math.floor(baseGain * 1.1) : baseGain
-      playerStore.addCultivation(gain)
-      if (petStore.equippedPet) {
-        petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
-        if (seededWorldRoll(clock.value.totalTicks, 'pet-cultivate-exp') > 0.58) {
-          petStore.addPetExp(petStore.equippedPet.owned.definitionId, 2)
-        }
-      }
-      if (seededWorldRoll(clock.value.totalTicks, 'player-cultivate-insight') > 0.94) {
-        recordPlayerJourney('major', '修炼顿悟', `你在${currentTimeLabel.value}心有所感，额外凝聚了${gain}点修为。`, [
-          { type: 'cultivation', label: '修为', value: gain }
-        ], undefined, ['cultivation', 'insight'])
-      }
-    } else if (mode === 'adventure') {
-      playerStore.addCultivation(Math.floor(baseGain * 0.35))
-      if (petStore.equippedPet) {
-        petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
-        petStore.addIntimacy(petStore.equippedPet.owned.definitionId, 1)
-        if (seededWorldRoll(clock.value.totalTicks, 'pet-adventure-exp') > 0.7) {
-          petStore.addPetExp(petStore.equippedPet.owned.definitionId, 3)
-        }
-      }
-      if (seededWorldRoll(clock.value.totalTicks, 'player-adventure-find') > 0.78) {
-        const gold = 8 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-adventure-gold') * 24)
-        playerStore.addGold(gold)
-        const anomaly = areaAnomalies.value[0]
-        recordPlayerJourney('normal', '游历所得', `你在城外寻到一处废弃洞府，带回${gold}枚灵石。`, [
-          { type: 'gold', label: '灵石', value: gold }
-        ], anomaly?.areaId, ['adventure', 'loot'])
-      }
-      if (seededWorldRoll(clock.value.totalTicks, 'player-adventure-encounter') > 0.9) {
-        const anomaly = areaAnomalies.value[0]
-        const areaId = anomaly?.areaId ?? mapStore.currentRealmAreas[0]?.id
-        const cultivationGain = 12 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-adventure-insight') * 30)
-        playerStore.addCultivation(cultivationGain)
-        recordPlayerJourney('major', '奇遇现身', `你在${getAreaLabel(areaId)}偶遇一处残阵，借机参悟，额外获得${cultivationGain}点修为。`, [
-          { type: 'cultivation', label: '修为', value: cultivationGain }
-        ], areaId, ['adventure', 'fortune'])
-      }
-    } else if (mode === 'gatherHerbs') {
-      if (seededWorldRoll(clock.value.totalTicks, 'player-herb-gather') > 0.62) {
-        const quantity = 1 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-herb-count') * 3)
-        playerStore.addToInventory({
-          id: `world_herb_${Date.now()}_${clock.value.totalTicks}`,
-          definitionId: 'herb_spirit_grass',
-          name: '灵草',
-          icon: '草',
-          type: 'material',
-          quality: 'common',
-          quantity,
-          description: '世界游历采得的灵草'
-        })
-        recordPlayerJourney('normal', '采得灵草', '你循着雨后灵气，在山石夹缝间采到几株灵草。', [
-          { type: 'item', label: '灵草', value: quantity }
-        ], undefined, ['herb', 'gather'])
-      }
-    } else if (mode === 'sectDuty') {
-      if (seededWorldRoll(clock.value.totalTicks, 'player-sect-duty') > 0.8) {
-        const sectStore = useSectStore()
-        sectStore.addContribution(8)
-        sectStore.addReputation(3)
-        recordPlayerJourney('normal', '宗门差遣', '宗门执事派你巡查山门，几名外门弟子对你多了些敬意。', [
-          { type: 'contribution', label: '贡献', value: 8 },
-          { type: 'reputation', label: '声望', value: 3 }
-        ], sectStore.currentSect?.areaId, ['sect', 'duty'])
-      }
-    } else if (mode === 'trainSkill') {
-      if (seededWorldRoll(clock.value.totalTicks, 'player-skill-train') > 0.86) {
-        recordPlayerJourney('normal', '功法熟稔', '你反复演练剑诀，灵力运转比先前顺畅了些。', [], undefined, ['skill', 'training'])
-      }
+    const journey = resolvePlayerJourney({
+      clock: clock.value,
+      idleMode: mode,
+      weather: weather.value,
+      baseCultivationGain: baseGain,
+      hasEquippedPet: Boolean(petStore.equippedPet),
+      activeAnomaly: areaAnomalies.value[0] ?? null,
+      fallbackAreaId: mapStore.currentRealmAreas[0]?.id ?? null,
+      sectHomeAreaId: sectStore.currentSect?.areaId ?? null
+    })
+
+    if (journey.cultivationDelta) playerStore.addCultivation(journey.cultivationDelta)
+    if (journey.goldDelta) playerStore.addGold(journey.goldDelta)
+    for (const item of journey.inventoryItems) {
+      playerStore.addToInventory(item)
+    }
+    if (petStore.equippedPet && journey.petExpDelta) {
+      petStore.addPetExp(petStore.equippedPet.owned.definitionId, journey.petExpDelta)
+    }
+    if (petStore.equippedPet && journey.petIntimacyDelta) {
+      petStore.addIntimacy(petStore.equippedPet.owned.definitionId, journey.petIntimacyDelta)
+    }
+    if (journey.sectContributionDelta) {
+      sectStore.addContribution(journey.sectContributionDelta)
+    }
+    if (journey.sectReputationDelta) {
+      sectStore.addReputation(journey.sectReputationDelta)
+    }
+    for (const entry of journey.journeys) {
+      recordPlayerJourney(entry.severity, entry.title, entry.text, entry.rewards, entry.areaId, entry.tags)
     }
   }
 

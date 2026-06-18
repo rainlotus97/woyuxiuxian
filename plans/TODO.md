@@ -183,6 +183,7 @@
   - 已建立 `playerJourneys`，接入修炼顿悟、游历所得、采药、宗门差遣、奇遇等挂机记录
   - 已新增 `playerCaptivityResolver`，让主角被俘后不再沿用普通挂机分支，而是转入囚中修行 / 观察守备 / 尝试脱困的独立循环
   - 已让宗门恢复行动支持赎回 / 营救主角，主角被俘不再只是阻塞状态
+  - 已新增 `playerJourneyResolver`，将常规挂机模式的收益、宠物成长、物品产出与行程记录从 `worldStore` 抽离为可测试 runtime
   - 待补：更复杂的挂机分支、奖励结构与被俘后的剧情化营救事件
 - [~] 增加世界灾害和区域状态变化
   - 已建立 `worldNarrativeResolver` 与 `areaAnomalies`，支持灾害/遗迹/灵脉/妖潮驱动区域稳定度与压力波动
@@ -269,7 +270,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、map / sect unlock rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

@@ -432,6 +432,50 @@ test('world log context resolver labels area sect and actors', async () => {
   assert.ok(storyView.badges.some(badge => badge.label === '青云山'))
 })
 
+test('player journey resolver produces mode rewards', async () => {
+  const { resolvePlayerJourney } = await load('/src/world/runtime/playerJourneyResolver.ts')
+  const baseClock = { year: 1, month: 1, day: 1, shichenIndex: 4, totalTicks: 1, lastSimulatedAt: 0 }
+  const baseContext = {
+    clock: baseClock,
+    weather: 'rain',
+    baseCultivationGain: 100,
+    hasEquippedPet: true,
+    activeAnomaly: { areaId: 'qingyun_mountain' },
+    fallbackAreaId: 'qingyun_mountain',
+    sectHomeAreaId: 'qingyun_mountain'
+  }
+
+  const cultivate = resolvePlayerJourney({ ...baseContext, idleMode: 'cultivate' })
+  assert.equal(cultivate.cultivationDelta, 110)
+  assert.ok(cultivate.petExpDelta >= 2)
+
+  let herb = null
+  for (let tick = 1; tick < 80 && !herb; tick++) {
+    const result = resolvePlayerJourney({
+      ...baseContext,
+      clock: { ...baseClock, totalTicks: tick },
+      idleMode: 'gatherHerbs'
+    })
+    if (result.inventoryItems.length > 0) herb = result
+  }
+  assert.ok(herb, 'herb mode should produce a deterministic gathering tick')
+  assert.equal(herb.inventoryItems[0].definitionId, 'herb_spirit_grass')
+  assert.ok(herb.journeys.some(journey => journey.title === '采得灵草'))
+
+  let sectDuty = null
+  for (let tick = 1; tick < 120 && !sectDuty; tick++) {
+    const result = resolvePlayerJourney({
+      ...baseContext,
+      clock: { ...baseClock, totalTicks: tick },
+      idleMode: 'sectDuty'
+    })
+    if (result.sectContributionDelta > 0) sectDuty = result
+  }
+  assert.ok(sectDuty, 'sect duty mode should produce a deterministic duty tick')
+  assert.equal(sectDuty.sectContributionDelta, 8)
+  assert.equal(sectDuty.sectReputationDelta, 3)
+})
+
 test('world narrative creates anomaly records with area context', async () => {
   const { createAreaAnomaly, resolveWorldDisasterTrigger } = await load('/src/world/runtime/worldNarrativeResolver.ts')
   const { HUMAN_REALM_AREAS } = await load('/src/types/map.ts')
