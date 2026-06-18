@@ -832,7 +832,11 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveShopPurchase
   } = await load('/src/shop/runtime/shopInventoryResolver.ts')
   const { resolveShopMerchantEvents } = await load('/src/shop/runtime/shopMerchantEventResolver.ts')
-  const { resolveShopMerchantTradeLog } = await load('/src/shop/runtime/shopMerchantLogResolver.ts')
+  const {
+    resolveShopMerchantTradeLog,
+    resolveShopMerchantTradeOutcome
+  } = await load('/src/shop/runtime/shopMerchantLogResolver.ts')
+  const { resolveShopMerchantRelationshipDeltas } = await load('/src/shop/runtime/shopMerchantRelationshipResolver.ts')
   const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
@@ -1550,6 +1554,13 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(merchantTradeLog?.actorIds[0], 'npc_bai_ruoli')
   assert.ok(merchantTradeLog?.tags.includes('shop'))
   assert.equal(resolveShopMerchantTradeLog(merchantPill), null)
+  const merchantRelationshipDeltas = resolveShopMerchantRelationshipDeltas(merchantEventFood)
+  assert.equal(merchantRelationshipDeltas[0]?.npcId, 'npc_bai_ruoli')
+  assert.ok((merchantRelationshipDeltas[0]?.favorDelta ?? 0) > 0)
+  assert.ok((merchantRelationshipDeltas[0]?.debtDelta ?? 0) <= 0)
+  assert.equal(resolveShopMerchantRelationshipDeltas(merchantPill).length, 0)
+  const merchantTradeOutcome = resolveShopMerchantTradeOutcome(merchantEventFood)
+  assert.equal(merchantTradeOutcome?.relationshipDeltas[0]?.npcId, 'npc_bai_ruoli')
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)

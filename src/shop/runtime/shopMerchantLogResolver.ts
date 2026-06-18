@@ -1,5 +1,6 @@
 import type { WorldLogEntry } from '@/types/world'
 import type { ShopInventoryItem } from './shopInventoryResolver'
+import { resolveShopMerchantRelationshipDeltas } from './shopMerchantRelationshipResolver'
 
 export interface ShopMerchantTradeLog {
   scope: WorldLogEntry['scope']
@@ -23,5 +24,14 @@ export function resolveShopMerchantTradeLog(item: ShopInventoryItem): ShopMercha
     actorIds: [event.merchantId],
     mapId: event.mapId,
     tags: ['shop', 'merchant', 'trade', event.tag, item.definition.category]
+  }
+}
+
+export function resolveShopMerchantTradeOutcome(item: ShopInventoryItem) {
+  const log = resolveShopMerchantTradeLog(item)
+  if (!log) return null
+  return {
+    log,
+    relationshipDeltas: resolveShopMerchantRelationshipDeltas(item)
   }
 }

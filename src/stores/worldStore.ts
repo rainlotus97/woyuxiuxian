@@ -980,22 +980,28 @@ export const useWorldStore = defineStore('world', () => {
   }
 
   function recordMerchantTradeEvent(input: {
-    scope: WorldLogEntry['scope']
-    severity: WorldLogEntry['severity']
-    title: string
-    text: string
-    actorIds: string[]
-    mapId?: string
-    tags: string[]
+    log: {
+      scope: WorldLogEntry['scope']
+      severity: WorldLogEntry['severity']
+      title: string
+      text: string
+      actorIds: string[]
+      mapId?: string
+      tags: string[]
+    }
+    relationshipDeltas?: WorldRuntimeRelationshipDelta[]
   }) {
+    if (input.relationshipDeltas?.length) {
+      applyRelationshipDeltas(input.relationshipDeltas)
+    }
     addLog(
-      input.scope,
-      input.severity,
-      input.title,
-      input.text,
-      input.actorIds,
-      input.tags,
-      input.mapId
+      input.log.scope,
+      input.log.severity,
+      input.log.title,
+      input.log.text,
+      input.log.actorIds,
+      input.log.tags,
+      input.log.mapId
     )
   }
 

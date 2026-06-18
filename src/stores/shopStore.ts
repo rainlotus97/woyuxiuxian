@@ -12,7 +12,7 @@ import {
   type ShopFilter,
   type ShopInventoryItem
 } from '@/shop/runtime/shopInventoryResolver'
-import { resolveShopMerchantTradeLog } from '@/shop/runtime/shopMerchantLogResolver'
+import { resolveShopMerchantTradeOutcome } from '@/shop/runtime/shopMerchantLogResolver'
 import type { ShopCategoryId, ShopQuality } from '@/shop/config/shopCatalog'
 
 interface ShopState {
@@ -171,9 +171,9 @@ export const useShopStore = defineStore('shop', () => {
       sectStore.addContribution(-purchase.contributionCost)
     }
     purchasedByStockId.value[purchase.stockId] = purchase.nextPurchasedQuantity
-    const merchantLog = resolveShopMerchantTradeLog(purchase.purchasedItem)
-    if (merchantLog) {
-      worldStore.recordMerchantTradeEvent(merchantLog)
+    const merchantOutcome = resolveShopMerchantTradeOutcome(purchase.purchasedItem)
+    if (merchantOutcome) {
+      worldStore.recordMerchantTradeEvent(merchantOutcome)
     }
     return { success: true, message: purchase.message, item: purchase.purchasedItem }
   }
