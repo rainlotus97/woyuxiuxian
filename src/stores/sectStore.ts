@@ -49,6 +49,10 @@ import {
   type SectWarReport
 } from '@/sect/runtime/sectWarRewardResolver'
 import {
+  resolveSectWarAdvance,
+  resolveSectWarDeclaration
+} from '@/sect/runtime/sectWarLifecycleResolver'
+import {
   resolveAvailableSeeds,
   resolveGardenAccelerateCost,
   resolveGardenHarvest,
@@ -602,27 +606,18 @@ export const useSectStore = defineStore('sect', () => {
 
   // 发起战争
   function declareWar(targetSectId: string): boolean {
-    if (!joinedSectId.value) return false
-    if (!authorityState.value.canDeclareWar) return false
-    if (activeWar.value) return false
-
     const targetSect = getSectById(targetSectId)
-    if (!targetSect) return false
+    const declaration = resolveSectWarDeclaration({
+      joinedSectId: joinedSectId.value,
+      canDeclareWar: authorityState.value.canDeclareWar,
+      hasActiveWar: Boolean(activeWar.value),
+      targetSectId,
+      targetExists: Boolean(targetSect),
+      now: Date.now()
+    })
+    if (!declaration.canDeclare || !declaration.war) return false
 
-    activeWar.value = {
-      id: `war_${Date.now()}`,
-      attackerSectId: joinedSectId.value,
-      defenderSectId: targetSectId,
-      startDate: {
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-        day: new Date().getDate()
-      },
-      status: 'ongoing',
-      attackerScore: 0,
-      defenderScore: 0,
-      winScore: 100
-    }
+    activeWar.value = declaration.war
     relations.value[targetSectId] = 'at_war'
     return true
   }
@@ -631,19 +626,15 @@ export const useSectStore = defineStore('sect', () => {
   function advanceWar(attackerWon: boolean): SectWarResolution | null {
     if (!activeWar.value) return null
 
-    if (attackerWon) {
-      activeWar.value.attackerScore += 10 + Math.floor(Math.random() * 5)
-    } else {
-      activeWar.value.defenderScore += 10 + Math.floor(Math.random() * 5)
-    }
+    const advance = resolveSectWarAdvance({
+      war: activeWar.value,
+      attackerWon,
+      random: Math.random()
+    })
+    activeWar.value = advance.war
 
-    // 检查是否结束
-    if (activeWar.value.attackerScore >= activeWar.value.winScore) {
-      activeWar.value.status = 'victory'
-      return handleWarEnd(true)
-    } else if (activeWar.value.defenderScore >= activeWar.value.winScore) {
-      activeWar.value.status = 'defeat'
-      return handleWarEnd(false)
+    if (advance.ended && advance.attackerWon !== null) {
+      return handleWarEnd(advance.attackerWon)
     }
     return null
   }

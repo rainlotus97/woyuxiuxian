@@ -548,6 +548,10 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveInitialFacilityLevels
   } = await load('/src/sect/runtime/sectFacilityResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
+  const {
+    resolveSectWarAdvance,
+    resolveSectWarDeclaration
+  } = await load('/src/sect/runtime/sectWarLifecycleResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
   const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
   const { SECT_FACILITIES } = await load('/src/types/sect.ts')
@@ -790,6 +794,37 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(warDefeat.penalties.reputation, 100)
   assert.equal(warDefeat.nextDefenderRelation, 'neutral')
   assert.equal(warDefeat.nextSectHp, 780)
+
+  const blockedWarDeclaration = resolveSectWarDeclaration({
+    joinedSectId: 'qingyun_sect',
+    canDeclareWar: false,
+    hasActiveWar: false,
+    targetSectId: 'medicine_valley',
+    targetExists: true,
+    now: 1000
+  })
+  assert.equal(blockedWarDeclaration.canDeclare, false)
+  assert.equal(blockedWarDeclaration.reason, 'no_authority')
+  const readyWarDeclaration = resolveSectWarDeclaration({
+    joinedSectId: 'qingyun_sect',
+    canDeclareWar: true,
+    hasActiveWar: false,
+    targetSectId: 'medicine_valley',
+    targetExists: true,
+    now: 1000
+  })
+  assert.equal(readyWarDeclaration.canDeclare, true)
+  assert.equal(readyWarDeclaration.war?.id, 'war_1000')
+  assert.equal(readyWarDeclaration.war?.startDate.year, 1970)
+  const advancedWar = resolveSectWarAdvance({
+    war: { ...warFixture, attackerScore: 89 },
+    attackerWon: true,
+    random: 0.99
+  })
+  assert.equal(advancedWar.ended, true)
+  assert.equal(advancedWar.attackerWon, true)
+  assert.equal(advancedWar.war.attackerScore, 103)
+  assert.equal(advancedWar.war.status, 'victory')
 })
 
 const results = await Promise.all(diagnostics)
