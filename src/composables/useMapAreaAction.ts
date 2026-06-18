@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { resolveMapAreaAction, resolveMapAreaActionOptions, type MapAreaActionKind } from '@/map/runtime/mapAreaActionResolver'
+import { resolveMapAreaActionJourney } from '@/map/runtime/mapAreaActionJourneyResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -67,6 +68,11 @@ export function useMapAreaAction() {
         mapId: area.id,
         tags: result.tags
       }
+    })
+    const journey = resolveMapAreaActionJourney({ result, option })
+    worldStore.recordManualPlayerJourney({
+      ...journey,
+      areaId: area.id
     })
 
     lastFeedback.value = {

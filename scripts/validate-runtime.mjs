@@ -1007,6 +1007,8 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveMapExploration,
     resolveMapExplorationPoints
   } = await load('/src/map/runtime/mapExplorationResolver.ts')
+  const { resolveMapAreaAction, resolveMapAreaActionOptions } = await load('/src/map/runtime/mapAreaActionResolver.ts')
+  const { resolveMapAreaActionJourney } = await load('/src/map/runtime/mapAreaActionJourneyResolver.ts')
   const {
     resolveInventoryMaterialConsumption,
     resolveInventoryMaterialQuantity
@@ -1190,6 +1192,27 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(lockedTrail.success, false)
   assert.ok(lockedTrail.reason.includes('天象'))
   assert.equal(blocked.sweepAllowed, false)
+
+  const areaActionOptions = resolveMapAreaActionOptions({
+    areaState: explorationState,
+    hasAnomaly: true
+  })
+  const suppressOption = areaActionOptions.find(option => option.kind === 'suppress')
+  assert.ok(suppressOption)
+  const suppressAction = resolveMapAreaAction({
+    areaName: '青云山',
+    areaState: explorationState,
+    weather: 'clear',
+    hasAnomaly: true
+  }, 'suppress')
+  const suppressJourney = resolveMapAreaActionJourney({
+    result: suppressAction,
+    option: suppressOption
+  })
+  assert.equal(suppressJourney.title, '青云山镇压')
+  assert.ok(suppressJourney.text.includes(`消耗 ${suppressOption.staminaCost} 点体力`))
+  assert.ok(suppressJourney.rewards.some(reward => reward.label === '压力'))
+  assert.ok(suppressJourney.tags.includes('suppress'))
 
   const joinJourney = resolveSectMembershipJourney({
     action: 'join',
