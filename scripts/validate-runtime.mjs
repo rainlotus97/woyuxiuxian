@@ -3032,7 +3032,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(freshAcceptance.state, 'verifying')
   assert.equal(freshAcceptance.readyForP1, false)
   assert.equal(freshAcceptance.remainingCount, 6)
-  assert.equal(freshAcceptance.primaryGap.id, 'idle')
+  assert.equal(freshAcceptance.primaryGap.id, 'sect')
 
   const sectClosedReadiness = resolveMainLoopReadiness({
     ...baseInput,
@@ -3080,6 +3080,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(sectClosedAcceptance.acceptedCount, 1)
   assert.equal(sectClosedAcceptance.remainingCount, 5)
   assert.equal(sectClosedAcceptance.acceptedItems[0].id, 'sect')
+  assert.equal(sectClosedAcceptance.primaryGap.id, 'story')
 
   assert.deepEqual(resolveP0LoopRouteTarget({
     id: 'map',

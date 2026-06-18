@@ -66,7 +66,8 @@ export function resolveP0LoopAcceptance(audit: P0LoopAuditSummary): P0LoopAccept
     : blockedItems.length > 0
       ? 'blocked'
       : 'verifying'
-  const primaryGap = blockedItems[0] ?? remainingItems[0] ?? null
+  const recommendedGap = remainingItems.find(item => item.id === audit.nextActionId)
+  const primaryGap = recommendedGap ?? blockedItems[0] ?? remainingItems[0] ?? null
 
   const copy: Record<P0LoopAcceptanceState, { gateLabel: string; headline: string }> = {
     accepted: {

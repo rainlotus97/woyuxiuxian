@@ -18,6 +18,7 @@ export interface P0LoopAuditSummary {
   subtitle: string
   progressText: string
   progressPercent: number
+  nextActionId: P0LoopNextActionSummary['primary']['id']
   nextActionTitle: string
   nextActionReason: string
   checklist: P0LoopAuditChecklistItem[]
@@ -81,6 +82,7 @@ export function resolveP0LoopAudit(input: {
     subtitle: stageCopy[stage].subtitle,
     progressText: `P0 ${closure.closedCount}/${closure.totalCount}`,
     progressPercent,
+    nextActionId: nextAction.primary.id,
     nextActionTitle: nextAction.primary.title,
     nextActionReason: nextAction.primary.reason,
     checklist: closure.items.map(createChecklistItem)
