@@ -29,7 +29,7 @@ import {
 } from '@/map/runtime/mapEncounterComposition'
 import { DIFFICULTY_CONFIG, getBattleArenaIdForArea } from '@/game/battle/config'
 import { createUnit, type Unit } from '@/types/unit'
-import { getSkillById, getSkillsByIds } from '@/types/skill'
+import { getSkillById } from '@/types/skill'
 import { getAreaById, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
@@ -44,6 +44,7 @@ interface BattleSkillOption {
   name: string
   icon: string
   cost: number
+  currentCooldown: number
   targetType: string
 }
 
@@ -95,14 +96,14 @@ export function useBattleSession() {
   const playerSkills = computed<BattleSkillOption[]>(() => {
     const actor = playerActor.value
     if (!actor || !battleRuntime.value) return []
-    return getSkillsByIds(actor.skills)
-      .filter(skill => skill.category !== 'passive')
+    return battleRuntime.value.getActorSkills(actor.id)
       .slice(0, 4)
       .map(skill => ({
         id: skill.id,
         name: skill.name,
         icon: skill.icon,
         cost: battleRuntime.value?.getSpiritFireCost(skill) || 1,
+        currentCooldown: skill.currentCooldown,
         targetType: skill.effects[0]?.targetType ?? 'single_enemy'
       }))
   })

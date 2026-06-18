@@ -12,6 +12,7 @@ export interface BattleRuntimeUnit extends Unit {
   spriteKey: string
   portraitKey?: string
   actionGauge: number
+  skillCooldowns: Record<string, number>
 }
 
 export interface BattleRuntimeCommand {

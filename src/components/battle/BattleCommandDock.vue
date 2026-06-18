@@ -32,13 +32,13 @@
         v-for="skill in skills"
         :key="skill.id"
         class="command skill"
-        :class="{ selected: selectedSkillId === skill.id }"
-        :disabled="skill.cost > spiritFire"
+        :class="{ selected: selectedSkillId === skill.id, cooling: skill.currentCooldown > 0 }"
+        :disabled="skill.cost > spiritFire || skill.currentCooldown > 0"
         @click="$emit('skill', skill.id)"
       >
         <span>{{ skill.icon }}</span>
         {{ skill.name }}
-        <small>{{ skill.cost }}火</small>
+        <small>{{ skill.currentCooldown > 0 ? `${skill.currentCooldown}手` : `${skill.cost}火` }}</small>
       </button>
       <button class="command flee" @click="$emit('flee')">
         <span>退</span>
@@ -64,6 +64,7 @@ interface SkillChip {
   name: string
   icon: string
   cost: number
+  currentCooldown: number
   targetType: string
 }
 
@@ -182,6 +183,11 @@ function cleanName(name: string) {
 .command.skill.selected {
   border-color: rgba(201, 131, 57, 0.56);
   box-shadow: 0 16px 30px rgba(201, 131, 57, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.command.skill.cooling {
+  border-color: rgba(115, 128, 145, 0.24);
+  background: linear-gradient(180deg, rgba(238, 244, 245, 0.82), rgba(229, 236, 234, 0.78));
 }
 
 @media (max-width: 720px) {

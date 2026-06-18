@@ -13,6 +13,12 @@ import {
 import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
 import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
+import {
+  applySkillCooldown,
+  canUseRuntimeSkill,
+  reduceActorSkillCooldowns,
+  withRuntimeSkillCooldown
+} from './skillCooldownRuntime'
 import type {
   BattleResolvedCommand,
   BattleRuntimeCommand,
@@ -89,18 +95,21 @@ export class BattleRuntime {
     }
   }
 
+  getActorSkills(actorId: string): Skill[] {
+    const actor = this.units.find(unit => unit.id === actorId)
+    if (!actor) return []
+    return actor.skills
+      .map(skillId => getSkillById(skillId))
+      .filter((skill): skill is Skill => Boolean(skill && skill.category !== 'passive'))
+      .map(skill => withRuntimeSkillCooldown(skill, actor))
+  }
+
   getAvailableSkills(actorId: string): Skill[] {
     const actor = this.units.find(unit => unit.id === actorId)
     if (!actor) return []
-    const skills: Skill[] = []
-    for (const skillId of actor.skills) {
-      const skill = getSkillById(skillId)
-      if (!skill || skill.category === 'passive') continue
-      if (actor.stats.currentMp < skill.mpCost) continue
-      if (this.getSpiritFireCost(skill) > this.spiritFire) continue
-      skills.push(skill)
-    }
-    return skills
+    return this.getActorSkills(actorId)
+      .filter(skill => canUseRuntimeSkill(skill, actor))
+      .filter(skill => this.getSpiritFireCost(skill) <= this.spiritFire)
   }
 
   createAutoCommand(actorId: string): BattleRuntimeCommand | null {
@@ -164,7 +173,10 @@ export class BattleRuntime {
   resolveCommand(command: BattleRuntimeCommand): BattleResolvedCommand | null {
     const actor = this.units.find(unit => unit.id === command.actorId)
     if (!actor || !actor.isAlive) return null
-    const skill = command.skillId ? (getSkillById(command.skillId) ?? null) : null
+    const baseSkill = command.skillId ? (getSkillById(command.skillId) ?? null) : null
+    const skill = baseSkill ? withRuntimeSkillCooldown(baseSkill, actor) : null
+    if (skill && !canUseRuntimeSkill(skill, actor)) return null
+    if (skill && this.getSpiritFireCost(skill) > this.spiritFire) return null
     return resolveBattleCommand(command, this.units, actor, skill)
   }
 
@@ -176,6 +188,7 @@ export class BattleRuntime {
     if (skill) {
       actor.stats.currentMp = Math.max(0, actor.stats.currentMp - skill.mpCost)
       this.spiritFire = Math.max(0, this.spiritFire - this.getSpiritFireCost(skill))
+      applySkillCooldown(actor, skill)
     }
 
     const appliedEffects = applyPreparedEffects(this.units, resolved.preparedEffects)
@@ -389,6 +402,7 @@ export class BattleRuntime {
   private startTurn(actor: BattleRuntimeUnit) {
     actor.actionGauge = 0
     this.currentActorId = actor.id
+    reduceActorSkillCooldowns(actor)
     this.replayRecorder.recordTurnStart(this.turn, actor)
     if (actor.side === 'ally') {
       this.spiritFire = Math.min(this.maxSpiritFire, this.spiritFire + 1)

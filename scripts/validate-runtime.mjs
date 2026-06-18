@@ -74,6 +74,75 @@ test('battle runtime resolves lethal command and replay', async () => {
   assert.ok(runtime.getReplayEvents().some(event => event.type === 'battle_end'))
 })
 
+test('battle runtime tracks skill cooldown by actor turns', async () => {
+  const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { createUnit } = await load('/src/types/unit.ts')
+
+  const ally = createUnit({
+    id: 'cooldown_ally',
+    name: '冷却试炼者',
+    type: 'protagonist',
+    skills: ['sword_qi'],
+    stats: {
+      maxHp: 200,
+      currentHp: 200,
+      maxMp: 80,
+      currentMp: 80,
+      attack: 24,
+      defense: 5,
+      speed: 120,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const enemy = createUnit({
+    id: 'cooldown_enemy',
+    name: '厚甲木桩',
+    type: 'enemy',
+    stats: {
+      maxHp: 500,
+      currentHp: 500,
+      maxMp: 30,
+      currentMp: 30,
+      attack: 1,
+      defense: 6,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+
+  const runtime = new BattleRuntime([ally], [enemy])
+  const resolved = runtime.resolveCommand({
+    type: 'skill',
+    actorId: 'cooldown_ally',
+    targetIds: ['cooldown_enemy'],
+    skillId: 'sword_qi'
+  })
+  assert.ok(resolved, 'cooldown skill should resolve before use')
+  runtime.applyResolvedCommand(resolved)
+  const actor = runtime.units.find(unit => unit.id === 'cooldown_ally')
+  assert.ok(actor, 'actor should remain in runtime')
+  assert.equal(actor.skillCooldowns.sword_qi, 2)
+  assert.equal(runtime.resolveCommand({
+    type: 'skill',
+    actorId: 'cooldown_ally',
+    targetIds: ['cooldown_enemy'],
+    skillId: 'sword_qi'
+  }), null)
+
+  actor.actionGauge = 100
+  runtime.tick(16, 1)
+  assert.equal(actor.skillCooldowns.sword_qi, 1)
+  assert.equal(runtime.getAvailableSkills(actor.id).some(skill => skill.id === 'sword_qi'), false)
+
+  runtime.finishAction()
+  actor.actionGauge = 100
+  runtime.tick(16, 1)
+  assert.equal(actor.skillCooldowns.sword_qi, 0)
+  assert.equal(runtime.getAvailableSkills(actor.id).some(skill => skill.id === 'sword_qi'), true)
+})
+
 test('story parser reads node choices and gameplay effects', async () => {
   const { storyParser } = await load('/src/story/parser/index.ts')
   const content = `---

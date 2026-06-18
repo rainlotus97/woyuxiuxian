@@ -2,6 +2,7 @@ import { createUnit, type Unit } from '@/types/unit'
 import { getBattleActorRole, getBattleSpriteKey } from './presentationRoles'
 import { getSummonDefinition } from './config/summons'
 import type { BattleRuntimeUnit } from './runtimeTypes'
+import { createSkillCooldownState } from './skillCooldownRuntime'
 
 export function toBattleRuntimeUnit(
   unit: Unit,
@@ -14,7 +15,8 @@ export function toBattleRuntimeUnit(
     side,
     battleRole,
     spriteKey: getBattleSpriteKey(battleRole, side),
-    actionGauge
+    actionGauge,
+    skillCooldowns: createSkillCooldownState(unit.skills)
   }
 }
 
