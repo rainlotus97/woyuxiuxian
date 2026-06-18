@@ -27,13 +27,19 @@ import {
   formatNpcNotoriety,
   getBondLabel as getNpcBondLabel,
   getDestinyRankLabel,
+  getBloodlineGradeLabel,
+  getConstitutionLabel,
+  getFactionStanceLabel,
+  getNpcGrowthFlawSummary,
+  getNpcLineageSummary,
   getNpcPotentialScore,
   getNpcRootLabel,
   getNpcSpotlightScore,
   getOriginTypeLabel,
   getRootGradeLabel,
   getTalentGradeLabel,
-  getNpcTemperamentSummary
+  getNpcTemperamentSummary,
+  normalizeNpcDefinitionProfile
 } from '@/world/runtime/npcProfile'
 import {
   createDefaultNpcDefinitions,
@@ -121,19 +127,19 @@ function getDefaultWorldState(): WorldState {
 }
 
 function mergeNpcDefinitionsWithDefaults(definitions: NpcDefinition[] | undefined, defaults: NpcDefinition[]) {
-  if (!definitions?.length) return defaults
+  if (!definitions?.length) return defaults.map(normalizeNpcDefinitionProfile)
 
   return defaults.map(defaultDefinition => {
     const existing = definitions.find(item => item.id === defaultDefinition.id)
-    if (!existing) return defaultDefinition
+    if (!existing) return normalizeNpcDefinitionProfile(defaultDefinition)
 
-    return {
+    return normalizeNpcDefinitionProfile({
       ...defaultDefinition,
       ...existing,
       aptitude: { ...defaultDefinition.aptitude, ...existing.aptitude },
       personality: { ...defaultDefinition.personality, ...existing.personality },
       profile: { ...defaultDefinition.profile, ...existing.profile }
-    }
+    })
   })
 }
 
@@ -715,6 +721,14 @@ export const useWorldStore = defineStore('world', () => {
       destinyRank: definition.profile.destinyRank,
       destinyRankLabel: getDestinyRankLabel(definition.profile.destinyRank),
       destinyTags: definition.profile.destinyTags,
+      bloodline: definition.profile.bloodline,
+      bloodlineGradeLabel: getBloodlineGradeLabel(definition.aptitude.bloodlineGrade),
+      constitution: getConstitutionLabel(definition.aptitude.constitution),
+      constitutionNote: definition.profile.constitutionNote,
+      lineageSummary: getNpcLineageSummary(definition),
+      factionStance: definition.profile.factionStance,
+      factionStanceLabel: getFactionStanceLabel(definition.profile.factionStance),
+      growthFlawSummary: getNpcGrowthFlawSummary(definition),
       sectName: definition.sectId ? getSectById(definition.sectId)?.name ?? definition.sectId : '散修',
       root: getNpcRootLabel(definition.aptitude),
       rootGradeLabel: getRootGradeLabel(definition.aptitude.rootGrade),

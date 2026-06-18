@@ -176,16 +176,26 @@
                 <strong>{{ npc.talent }}</strong>
               </div>
               <div class="profile-chip">
-                <span>身世</span>
-                <strong>{{ npc.originLabel }}</strong>
+                <span>血脉</span>
+                <strong>{{ npc.bloodlineGradeLabel }}</strong>
               </div>
               <div class="profile-chip">
-                <span>声势</span>
-                <strong>{{ npc.notorietyLabel }}</strong>
+                <span>体质</span>
+                <strong>{{ npc.constitution }}</strong>
+              </div>
+              <div class="profile-chip">
+                <span>立场</span>
+                <strong>{{ npc.factionStanceLabel }}</strong>
+              </div>
+              <div class="profile-chip">
+                <span>缺陷</span>
+                <strong>{{ npc.growthFlawSummary }}</strong>
               </div>
             </div>
             <p class="npc-story">{{ npc.background }}</p>
-            <p class="npc-note">{{ npc.temperament }} · {{ npc.identityHook }}</p>
+            <p class="npc-note">{{ npc.temperament }} · {{ npc.originLabel }} · {{ npc.notorietyLabel }}</p>
+            <p class="npc-note">{{ npc.bloodline }} {{ npc.constitutionNote }}</p>
+            <p class="npc-note">{{ npc.identityHook }}</p>
             <div class="npc-tags">
               <span v-for="tag in npc.destinyTags.slice(0, 3)" :key="tag" class="tag-pill">{{ tag }}</span>
               <span class="tag-pill tag-emphasis">潜力 {{ npc.potentialScore }}</span>
@@ -370,6 +380,12 @@ const spotlightNpcs = computed(() => {
         background: profile?.background ?? '命数未明。',
         identityHook: profile?.identityHook ?? '命数未明。',
         originLabel: profile?.originLabel ?? '来历不详',
+        bloodline: profile?.bloodline ?? '未显血脉',
+        bloodlineGradeLabel: profile?.bloodlineGradeLabel ?? '无显血脉',
+        constitution: profile?.constitution ?? '凡体',
+        constitutionNote: profile?.constitutionNote ?? '体质平常。',
+        factionStanceLabel: profile?.factionStanceLabel ?? '中立',
+        growthFlawSummary: profile?.growthFlawSummary ?? '无明显缺陷',
         destinyTags: profile?.destinyTags ?? [],
         destinyRankLabel: profile?.destinyRankLabel ?? '平命',
         destinyTone,

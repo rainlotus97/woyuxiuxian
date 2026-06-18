@@ -60,9 +60,12 @@ function resolveAmbitionAction(context: WorldRuntimeNpcContext) {
   }
 
   const roll = seededWorldRoll(clock.totalTicks, npcState.id, 'npc-challenge')
-  if (roll <= 0.86) return null
+  const recklessBias = npcDefinition.aptitude.growthFlaws?.includes('reckless_breakthrough') ? 0.08 : 0
+  const bloodlineBias = npcDefinition.aptitude.bloodlineGrade === 'forbidden' ? 0.05 : 0
+  if (roll <= 0.86 - recklessBias - bloodlineBias) return null
 
-  const harmed = roll > 0.96 && !npcDefinition.tags.includes('主线保护')
+  const injuryThreshold = npcDefinition.aptitude.growthFlaws?.includes('unstable_meridian') ? 0.92 : 0.96
+  const harmed = roll > injuryThreshold && !npcDefinition.tags.includes('主线保护')
   if (harmed) {
     return withActionStamp(context, {
       npcPatch: {
@@ -107,13 +110,18 @@ function resolveAmbitionAction(context: WorldRuntimeNpcContext) {
 
 function resolveBreakthroughAction(context: WorldRuntimeNpcContext) {
   const { npcDefinition, npcState, clock } = context
-  if ((npcDefinition.aptitude.talent !== 'monster' && npcDefinition.aptitude.talent !== 'destined') || npcState.hpState === 'dead') {
+  const hasExceptionalBody = npcDefinition.aptitude.constitution === 'star_meridian'
+    || npcDefinition.aptitude.constitution === 'void_meridian'
+    || npcDefinition.aptitude.constitution === 'thunder_body'
+  if ((npcDefinition.aptitude.talent !== 'monster' && npcDefinition.aptitude.talent !== 'destined' && !hasExceptionalBody) || npcState.hpState === 'dead') {
     return null
   }
 
   const roll = seededWorldRoll(clock.totalTicks, npcState.id, 'npc-breakthrough')
   const potentialBonus = getNpcPotentialScore(npcDefinition) / 1000
-  if (roll <= 0.9 - potentialBonus) return null
+  const constitutionBonus = hasExceptionalBody ? 0.04 : 0
+  const flawPenalty = npcDefinition.aptitude.growthFlaws?.includes('heart_demon') ? 0.03 : 0
+  if (roll <= 0.9 - potentialBonus - constitutionBonus + flawPenalty) return null
 
   return withActionStamp(context, {
     npcPatch: {
@@ -138,12 +146,17 @@ function resolveBreakthroughAction(context: WorldRuntimeNpcContext) {
 
 function resolveCrueltyAction(context: WorldRuntimeNpcContext) {
   const { npcDefinition, npcState, clock } = context
-  if (npcDefinition.personality.cruelty <= 75) {
+  const vengefulBias = npcDefinition.aptitude.growthFlaws?.includes('vengeful') ? 8 : 0
+  const demonicBias = npcDefinition.profile.factionStance === 'demonic' || npcDefinition.aptitude.constitution === 'demon_blood' ? 6 : 0
+  if (npcDefinition.personality.cruelty + vengefulBias + demonicBias <= 75) {
     return null
   }
 
   const roll = seededWorldRoll(clock.totalTicks, npcState.id, 'npc-villain')
-  if (roll >= 0.08) return null
+  const triggerChance = 0.08
+    + (npcDefinition.aptitude.bloodlineGrade === 'forbidden' ? 0.035 : 0)
+    + (npcDefinition.aptitude.growthFlaws?.includes('vengeful') ? 0.025 : 0)
+  if (roll >= triggerChance) return null
 
   return withActionStamp(context, {
     npcPatch: {

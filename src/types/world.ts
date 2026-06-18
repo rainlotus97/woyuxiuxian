@@ -26,15 +26,38 @@ export type NpcOriginType =
   | 'wanderer'
   | 'outer_realm'
 export type DestinyRank = 'ordinary' | 'fated' | 'anomalous' | 'legendary'
+export type BloodlineGrade = 'none' | 'thin' | 'awakened' | 'ancient' | 'forbidden'
+export type ConstitutionType =
+  | 'ordinary_body'
+  | 'sword_bone'
+  | 'medicine_body'
+  | 'demon_blood'
+  | 'star_meridian'
+  | 'void_meridian'
+  | 'thunder_body'
+  | 'ice_heart'
+export type FactionStance = 'orthodox' | 'neutral' | 'demonic' | 'beast' | 'rogue' | 'imperial'
+export type GrowthFlaw =
+  | 'none'
+  | 'heart_demon'
+  | 'weak_body'
+  | 'unstable_meridian'
+  | 'vengeful'
+  | 'oath_bound'
+  | 'greedy_impulse'
+  | 'reckless_breakthrough'
 
 export interface AptitudeProfile {
   root: Element | '冰' | '风' | '空'
   rootGrade: RootGrade
   talent: TalentGrade
+  bloodlineGrade: BloodlineGrade
+  constitution: ConstitutionType
   comprehension: number
   luck: number
   physique: number
   willpower: number
+  growthFlaws: GrowthFlaw[]
 }
 
 export interface PersonalityProfile {
@@ -76,6 +99,9 @@ export interface NpcDefinition {
     identityHook: string
     destinyRank: DestinyRank
     destinyTags: string[]
+    bloodline: string
+    constitutionNote: string
+    factionStance: FactionStance
   }
   tags: string[]
 }

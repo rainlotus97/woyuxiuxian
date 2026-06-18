@@ -2,14 +2,18 @@ import { ALL_AREAS } from '@/types/map'
 import { ALL_SECTS, type SectDefinition, type SectSpecialty } from '@/types/sect'
 import { REALM_ORDER, type Realm } from '@/types/unit'
 import type {
+  BloodlineGrade,
+  ConstitutionType,
   DestinyRank,
+  FactionStance,
+  GrowthFlaw,
   NpcDefinition,
   NpcOriginType,
   NpcRuntimeState,
   RootGrade,
   TalentGrade
 } from '@/types/world'
-import { getNpcPotentialScore } from './npcProfile'
+import { getNpcPotentialScore, normalizeNpcDefinitionProfile } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
 
 const SURNAMES = ['沈', '顾', '谢', '陆', '苏', '林', '韩', '白', '宁', '叶', '温', '秦', '萧', '洛', '祁', '商']
@@ -44,6 +48,17 @@ const DESTINY_TEMPLATES: Record<DestinyRank, string[]> = {
   fated: ['奇缘', '同道', '机兆'],
   anomalous: ['异数', '逆命', '隐劫'],
   legendary: ['天命', '轮回', '古传']
+}
+
+const CONSTITUTION_NOTES: Record<ConstitutionType, string> = {
+  ordinary_body: '体质平常，胜在根基稳定。',
+  sword_bone: '骨相如剑，适合剑修与杀伐法门。',
+  medicine_body: '经脉亲近草木丹气，炼丹与疗愈天赋更高。',
+  demon_blood: '血气凶烈，爆发强但更易招来杀劫。',
+  star_meridian: '星力入脉，悟性与命数牵引都异于常人。',
+  void_meridian: '空冥入体，适合阵法、遁术与奇门法。',
+  thunder_body: '雷意淬身，破境凶险但战力成长极快。',
+  ice_heart: '心湖似冰，抗心魔强，但情感线推进更慢。'
 }
 
 function pickFromSeed<T>(items: T[], ...parts: Array<number | string>) {
@@ -121,6 +136,77 @@ function deriveDestinyRank(talent: TalentGrade, rootGrade: RootGrade, ...parts: 
   return roll > 0.86 ? 'fated' : 'ordinary'
 }
 
+function deriveBloodlineGrade(originType: NpcOriginType, destinyRank: DestinyRank, ...parts: Array<number | string>): BloodlineGrade {
+  const roll = seededWorldRoll(...parts, originType, destinyRank, 'bloodline-grade')
+  if (originType === 'ancient_lineage') return destinyRank === 'legendary' || roll > 0.48 ? 'ancient' : 'awakened'
+  if (originType === 'beast_blood') return roll > 0.82 ? 'forbidden' : roll > 0.28 ? 'awakened' : 'thin'
+  if (originType === 'outer_realm') return roll > 0.76 ? 'forbidden' : roll > 0.46 ? 'awakened' : 'thin'
+  if (destinyRank === 'legendary') return roll > 0.62 ? 'ancient' : 'awakened'
+  if (destinyRank === 'anomalous') return roll > 0.68 ? 'awakened' : 'thin'
+  return roll > 0.82 ? 'thin' : 'none'
+}
+
+function deriveConstitution(
+  root: NpcDefinition['aptitude']['root'],
+  sect: SectDefinition | null,
+  originType: NpcOriginType,
+  bloodlineGrade: BloodlineGrade,
+  ...parts: Array<number | string>
+): ConstitutionType {
+  if (originType === 'beast_blood' || bloodlineGrade === 'forbidden') return 'demon_blood'
+  if (root === '空') return 'void_meridian'
+  if (root === '雷') return 'thunder_body'
+  if (root === '冰') return 'ice_heart'
+  if (sect?.specialty === '剑修' || root === '金') return seededWorldRoll(...parts, 'sword-body') > 0.42 ? 'sword_bone' : 'ordinary_body'
+  if (sect?.specialty === '炼丹' || root === '木') return seededWorldRoll(...parts, 'medicine-body') > 0.46 ? 'medicine_body' : 'ordinary_body'
+  if (bloodlineGrade === 'ancient' || bloodlineGrade === 'awakened') return seededWorldRoll(...parts, 'star-body') > 0.58 ? 'star_meridian' : 'ordinary_body'
+  return 'ordinary_body'
+}
+
+function deriveGrowthFlaws(
+  talent: TalentGrade,
+  constitution: ConstitutionType,
+  personality: NpcDefinition['personality'],
+  bloodlineGrade: BloodlineGrade,
+  ...parts: Array<number | string>
+): GrowthFlaw[] {
+  const flaws: GrowthFlaw[] = []
+  if ((talent === 'monster' || talent === 'destined') && seededWorldRoll(...parts, 'heart-demon') > 0.72) flaws.push('heart_demon')
+  if (constitution === 'ordinary_body' && personality.ambition > 78 && seededWorldRoll(...parts, 'reckless') > 0.62) flaws.push('reckless_breakthrough')
+  if (constitution === 'demon_blood' || bloodlineGrade === 'forbidden') flaws.push('unstable_meridian')
+  if (personality.cruelty > 76 && personality.affection < 34) flaws.push('vengeful')
+  if (personality.loyalty > 84 && seededWorldRoll(...parts, 'oath') > 0.54) flaws.push('oath_bound')
+  if (personality.greed > 78) flaws.push('greedy_impulse')
+  if (constitution === 'ice_heart' && seededWorldRoll(...parts, 'weak-body') > 0.66) flaws.push('weak_body')
+  return Array.from(new Set(flaws)).slice(0, 2)
+}
+
+function deriveFactionStance(sect: SectDefinition | null, originType: NpcOriginType, role: NpcDefinition['role']): FactionStance {
+  if (!sect) return originType === 'beast_blood' ? 'beast' : 'rogue'
+  if (sect.realm === '魔界' || sect.specialty === '魔修' || role === 'enemy') return 'demonic'
+  if (sect.realm === '仙界') return 'imperial'
+  if (sect.specialty === '御兽' && originType === 'beast_blood') return 'beast'
+  return 'orthodox'
+}
+
+function buildBloodlineText(originType: NpcOriginType, bloodlineGrade: BloodlineGrade) {
+  const source: Record<NpcOriginType, string> = {
+    mortal_village: '凡俗血脉',
+    cultivator_clan: '修真家族血脉',
+    sect_foundling: '宗门收养旧脉',
+    fallen_house: '败落旧族血脉',
+    ancient_lineage: '上古残脉',
+    beast_blood: '妖血混脉',
+    wanderer: '散修漂泊血脉',
+    outer_realm: '界外异血'
+  }
+  if (bloodlineGrade === 'none') return `${source[originType]}尚未显化`
+  if (bloodlineGrade === 'thin') return `${source[originType]}仅有微弱回响`
+  if (bloodlineGrade === 'awakened') return `${source[originType]}已经初步觉醒`
+  if (bloodlineGrade === 'ancient') return `${source[originType]}保留古老真意`
+  return `${source[originType]}带有禁忌污染`
+}
+
 function buildAptitude(
   sect: SectDefinition | null,
   role: NpcDefinition['role'],
@@ -129,6 +215,10 @@ function buildAptitude(
   const root = deriveRoot(sect, ...parts)
   const rootGrade = deriveRootGrade(sect, ...parts)
   const talent = deriveTalent(sect, role, ...parts)
+  const originType = deriveOriginType(sect, role, ...parts)
+  const destinyRank = deriveDestinyRank(talent, rootGrade, ...parts)
+  const bloodlineGrade = deriveBloodlineGrade(originType, destinyRank, ...parts)
+  const constitution = deriveConstitution(root, sect, originType, bloodlineGrade, ...parts)
   const base = {
     mortal: 38,
     good: 50,
@@ -145,14 +235,19 @@ function buildAptitude(
     mutated: 12
   }[rootGrade]
 
+  const personality = buildPersonality(role, sect, ...parts)
+
   return {
     root,
     rootGrade,
     talent,
+    bloodlineGrade,
+    constitution,
     comprehension: clampStat(base + rootBonus + seededWorldRoll(...parts, 'comp') * 11 - 5),
     luck: clampStat(base - 4 + seededWorldRoll(...parts, 'luck') * 18 - 6),
     physique: clampStat(base - 8 + seededWorldRoll(...parts, 'physique') * 20 - 6),
-    willpower: clampStat(base - 5 + seededWorldRoll(...parts, 'will') * 18 - 6)
+    willpower: clampStat(base - 5 + seededWorldRoll(...parts, 'will') * 18 - 6),
+    growthFlaws: deriveGrowthFlaws(talent, constitution, personality, bloodlineGrade, ...parts)
   }
 }
 
@@ -251,8 +346,9 @@ function buildSectNpcDefinition(sect: SectDefinition): NpcDefinition {
   const originType = deriveOriginType(sect, role, sect.id)
   const destinyRank = deriveDestinyRank(aptitude.talent, aptitude.rootGrade, sect.id)
   const title = pickFromSeed(SPECIALTY_TITLES[sect.specialty], sect.id, 'title')
+  const factionStance = deriveFactionStance(sect, originType, role)
 
-  return {
+  return normalizeNpcDefinitionProfile({
     id: `npc_${sect.id}_core`,
     name,
     gender,
@@ -269,10 +365,13 @@ function buildSectNpcDefinition(sect: SectDefinition): NpcDefinition {
       familyStatus: buildFamilyStatus(originType, sect),
       identityHook: buildIdentityHook(role, sect, destinyRank),
       destinyRank,
-      destinyTags: buildDestinyTags(sect, destinyRank, role, originType)
+      destinyTags: buildDestinyTags(sect, destinyRank, role, originType),
+      bloodline: buildBloodlineText(originType, aptitude.bloodlineGrade),
+      constitutionNote: CONSTITUTION_NOTES[aptitude.constitution],
+      factionStance
     },
     tags: [sect.specialty, sect.realm, role === 'enemy' ? '敌线候选' : '宗门角色']
-  }
+  })
 }
 
 function buildRogueNpcDefinition(areaId: string): NpcDefinition {
@@ -284,7 +383,7 @@ function buildRogueNpcDefinition(areaId: string): NpcDefinition {
   const destinyRank = deriveDestinyRank(aptitude.talent, aptitude.rootGrade, areaId)
   const title = pickFromSeed(ROGUE_TITLES, areaId, 'rogue-title')
 
-  return {
+  return normalizeNpcDefinitionProfile({
     id: `npc_${areaId}_wanderer`,
     name,
     gender,
@@ -300,10 +399,13 @@ function buildRogueNpcDefinition(areaId: string): NpcDefinition {
       familyStatus: buildFamilyStatus(originType, null),
       identityHook: buildIdentityHook('random', null, destinyRank),
       destinyRank,
-      destinyTags: buildDestinyTags(null, destinyRank, 'random', originType)
+      destinyTags: buildDestinyTags(null, destinyRank, 'random', originType),
+      bloodline: buildBloodlineText(originType, aptitude.bloodlineGrade),
+      constitutionNote: CONSTITUTION_NOTES[aptitude.constitution],
+      factionStance: deriveFactionStance(null, originType, 'random')
     },
     tags: [area?.realm ?? '人界', '游历人物']
-  }
+  })
 }
 
 function createAnchorNpcDefinitions(): NpcDefinition[] {
@@ -315,7 +417,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: 'main',
       homeMapId: 'qingyun_mountain',
       sectId: 'qingyun_sect',
-      aptitude: { root: '水', rootGrade: 'heavenly', talent: 'destined', comprehension: 96, luck: 88, physique: 74, willpower: 98 },
+      aptitude: { root: '水', rootGrade: 'heavenly', talent: 'destined', bloodlineGrade: 'awakened', constitution: 'ice_heart', comprehension: 96, luck: 88, physique: 74, willpower: 98, growthFlaws: ['oath_bound'] },
       personality: { ambition: 54, loyalty: 92, cruelty: 12, affection: 72, caution: 88, greed: 8 },
       profile: {
         title: '青云圣女',
@@ -325,7 +427,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '苏氏仍在青州经营旧族势力，对她寄予厚望。',
         identityHook: '既是正道门面的继承者，也可能成为改写宗门格局的关键节点。',
         destinyRank: 'legendary',
-        destinyTags: ['轮回', '正道核心', '圣女']
+        destinyTags: ['轮回', '正道核心', '圣女'],
+        bloodline: '青州苏氏水脉已经觉醒，和轮回记忆互相牵引。',
+        constitutionNote: CONSTITUTION_NOTES.ice_heart,
+        factionStance: 'orthodox'
       },
       tags: ['圣女', '轮回', '主线保护']
     },
@@ -335,7 +440,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       gender: 'male',
       role: 'main',
       homeMapId: 'cloud_peak',
-      aptitude: { root: '空', rootGrade: 'mutated', talent: 'monster', comprehension: 90, luck: 62, physique: 48, willpower: 99 },
+      aptitude: { root: '空', rootGrade: 'mutated', talent: 'monster', bloodlineGrade: 'ancient', constitution: 'void_meridian', comprehension: 90, luck: 62, physique: 48, willpower: 99, growthFlaws: ['weak_body'] },
       personality: { ambition: 35, loyalty: 96, cruelty: 38, affection: 70, caution: 91, greed: 10 },
       profile: {
         title: '残魂护道者',
@@ -345,7 +450,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '前尘身世已碎，只余部分传承记忆与执念。',
         identityHook: '他的过去与多处遗迹、灵脉、上古因果相连。',
         destinyRank: 'anomalous',
-        destinyTags: ['古修传承', '守护', '空灵残魂']
+        destinyTags: ['古修传承', '守护', '空灵残魂'],
+        bloodline: '古修残脉只余魂火，却仍保留空冥真意。',
+        constitutionNote: CONSTITUTION_NOTES.void_meridian,
+        factionStance: 'neutral'
       },
       tags: ['残魂', '守护者', '主线保护']
     },
@@ -356,7 +464,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: 'enemy',
       homeMapId: 'blood_sea',
       sectId: 'blood_sect',
-      aptitude: { root: '火', rootGrade: 'single', talent: 'genius', comprehension: 78, luck: 56, physique: 84, willpower: 71 },
+      aptitude: { root: '火', rootGrade: 'single', talent: 'genius', bloodlineGrade: 'forbidden', constitution: 'demon_blood', comprehension: 78, luck: 56, physique: 84, willpower: 71, growthFlaws: ['unstable_meridian', 'vengeful'] },
       personality: { ambition: 92, loyalty: 18, cruelty: 86, affection: 12, caution: 42, greed: 74 },
       profile: {
         title: '血魔少主',
@@ -366,7 +474,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '背后有血魔旧脉支撑，也有同门在暗中觊觎其位。',
         identityHook: '他若在乱世中坐大，很可能牵引出宗门沦陷与玩家被俘线。',
         destinyRank: 'anomalous',
-        destinyTags: ['魔修', '反派种子', '血焰']
+        destinyTags: ['魔修', '反派种子', '血焰'],
+        bloodline: '血魔旧脉带有禁血污染，越战越容易失控。',
+        constitutionNote: CONSTITUTION_NOTES.demon_blood,
+        factionStance: 'demonic'
       },
       tags: ['反派种子', '魔修']
     },
@@ -377,7 +488,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: 'sect',
       homeMapId: 'qingyun_mountain',
       sectId: 'qingyun_sect',
-      aptitude: { root: '金', rootGrade: 'dual', talent: 'spirit', comprehension: 67, luck: 50, physique: 66, willpower: 64 },
+      aptitude: { root: '金', rootGrade: 'dual', talent: 'spirit', bloodlineGrade: 'thin', constitution: 'sword_bone', comprehension: 67, luck: 50, physique: 66, willpower: 64, growthFlaws: [] },
       personality: { ambition: 61, loyalty: 72, cruelty: 20, affection: 52, caution: 59, greed: 28 },
       profile: {
         title: '青云内门',
@@ -387,7 +498,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '由青云宗执事抚养长大，对山门有天然归属感。',
         identityHook: '若与玩家交好，可逐步变成稳定宗门盟友或同门竞争者。',
         destinyRank: 'fated',
-        destinyTags: ['剑修', '同门候选', '山门旧识']
+        destinyTags: ['剑修', '同门候选', '山门旧识'],
+        bloodline: '青云外山旧脉仅有微弱剑意回响。',
+        constitutionNote: CONSTITUTION_NOTES.sword_bone,
+        factionStance: 'orthodox'
       },
       tags: ['同门候选', '剑修']
     },
@@ -398,7 +512,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: 'companion',
       homeMapId: 'azure_valley',
       sectId: 'medicine_valley',
-      aptitude: { root: '木', rootGrade: 'single', talent: 'genius', comprehension: 82, luck: 80, physique: 58, willpower: 76 },
+      aptitude: { root: '木', rootGrade: 'single', talent: 'genius', bloodlineGrade: 'awakened', constitution: 'medicine_body', comprehension: 82, luck: 80, physique: 58, willpower: 76, growthFlaws: ['oath_bound'] },
       personality: { ambition: 57, loyalty: 74, cruelty: 14, affection: 82, caution: 73, greed: 18 },
       profile: {
         title: '药王谷真传',
@@ -408,7 +522,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '白氏药脉在药王谷仍有影响力，家族与宗门关系微妙。',
         identityHook: '她适合作为伙伴、情感支线与坊市经济线的关键枢纽。',
         destinyRank: 'anomalous',
-        destinyTags: ['丹修', '同行候选', '药脉旧约']
+        destinyTags: ['丹修', '同行候选', '药脉旧约'],
+        bloodline: '白氏药脉已经觉醒，能感知灵草药性。',
+        constitutionNote: CONSTITUTION_NOTES.medicine_body,
+        factionStance: 'orthodox'
       },
       tags: ['伙伴候选', '炼丹']
     },
@@ -419,7 +536,7 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: 'sect',
       homeMapId: 'sky_temple',
       sectId: 'sky_temple_sect',
-      aptitude: { root: '空', rootGrade: 'heavenly', talent: 'monster', comprehension: 88, luck: 68, physique: 46, willpower: 92 },
+      aptitude: { root: '空', rootGrade: 'heavenly', talent: 'monster', bloodlineGrade: 'ancient', constitution: 'void_meridian', comprehension: 88, luck: 68, physique: 46, willpower: 92, growthFlaws: ['heart_demon'] },
       personality: { ambition: 68, loyalty: 62, cruelty: 18, affection: 40, caution: 95, greed: 14 },
       profile: {
         title: '天机行走',
@@ -429,7 +546,10 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
         familyStatus: '其血脉与天机旧脉有关，族谱几乎断绝。',
         identityHook: '他既可能成为预警者，也可能在关键时刻选择将你推入棋局。',
         destinyRank: 'legendary',
-        destinyTags: ['天机', '布局者', '界域先知']
+        destinyTags: ['天机', '布局者', '界域先知'],
+        bloodline: '镜湖古脉仍在体内留有推衍回响。',
+        constitutionNote: CONSTITUTION_NOTES.void_meridian,
+        factionStance: 'imperial'
       },
       tags: ['谋局者', '阵法']
     }
