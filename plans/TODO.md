@@ -128,11 +128,9 @@
 ## P2 世界/NPC 系统
 
 - [ ] 继续扩展 `src/types/world.ts`
-  - 灵根
-  - 天资
-  - 身世
-  - 性格权重
-  - 命运标签
+  - 已补入灵根、天资、身世来源、命运层级、名望等核心 NPC 画像字段
+  - 已让旧存档 NPC 定义按默认画像结构合并回填
+  - 待补：更多可写回玩法的血脉、体质、阵营立场与成长缺陷字段
 - [~] 建立 NPC 关系网
   - 已建立 world NPC relationship state 的 story favor 同步入口
   - 已支持 favor -> bond 的基础映射（stranger / friend / companion / rival / enemy / lover）
@@ -142,6 +140,7 @@
   - 已让 relationship-driven 结果统一写回玩家收益/损失、NPC 状态补丁和世界日志
   - 已建立 `npcRelationshipNetwork.ts`，为 NPC 与 NPC 生成基础关系边并兼容旧存档回填
   - 已让 NPC 与 NPC 在 world tick 中触发冲突、提携、出卖等社交事件
+  - 已让资质/命数权重进入关系压力、重要人物排序与战争 aftermath 选人逻辑
   - 待补：更复杂的行动分发、真实埋伏/俘虏/宗门牵连、跨区域传播链
 - [~] 实现 NPC 自主行动结果写回世界日志
   - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
@@ -149,9 +148,11 @@
   - 已让 `MapView` 开始消费 `worldStore.visibleLogs` 作为主界面的世界异闻摘要入口
   - 已让 `CultivationView` 消费 `importantNpcStates + visibleLogs`，将 NPC 动向与世界异闻抬到主首页
   - 已新增 `npcStories / playerJourneys / areaAnomalies`，让重要 NPC 纪闻、主角挂机日志与区域异动有独立承载
+  - 已让 NPC 行动、社交冲突、破境、战争 aftermath 写回 `notoriety`，支持“谁正在冒头”的持续演化
   - 待补：更丰富的事件模版、地图/宗门上下文、日志去重与可见性分级
 - [~] 实现重要 NPC 的“故事化事件记录”
   - 已将 NPC 破境、冲突、提携等结果沉淀为 `npcStories`
+  - 已让主界重要人物卡展示灵根、天资、身世、命数、声势与身份钩子，不再只是基础标签
   - 待补：主线级人物专属事件模版、阶段性传记节点
 - [~] 增加主角挂机日志与奇遇日志
   - 已建立 `playerJourneys`，接入修炼顿悟、游历所得、采药、宗门差遣、奇遇等挂机记录

@@ -7,6 +7,7 @@ import {
   applyRelationshipDeltaToState,
   createDefaultRelationshipState
 } from './relationshipState'
+import { getNpcDestinyPressure } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
 
 function hasSharedTag(actor: NpcDefinition, target: NpcDefinition) {
@@ -14,15 +15,7 @@ function hasSharedTag(actor: NpcDefinition, target: NpcDefinition) {
 }
 
 function getTalentPressure(target: NpcDefinition) {
-  const talentWeight = {
-    mortal: 2,
-    good: 5,
-    spirit: 9,
-    genius: 14,
-    monster: 18,
-    destined: 20
-  } as const
-  return talentWeight[target.aptitude.talent] ?? 0
+  return getNpcDestinyPressure(target)
 }
 
 export function createSeededNpcRelationshipState(
@@ -110,7 +103,9 @@ export function mergeNpcRelationshipNetwork(
   states: NpcRuntimeState[]
 ): NpcRuntimeState[] {
   const defaultNetwork = buildNpcRelationshipNetwork(definitions)
+  const definitionById = new Map(definitions.map(definition => [definition.id, definition]))
   const normalizedById = new Map(states.map(state => {
+    const definition = definitionById.get(state.id)
     const defaultRelationships = defaultNetwork[state.id] ?? {}
     const mergedRelationships: Record<string, RelationshipState> = {
       ...(state.relationships ?? {})
@@ -124,7 +119,16 @@ export function mergeNpcRelationshipNetwork(
 
     return [state.id, {
       ...state,
-      relationships: mergedRelationships
+      realm: state.realm ?? '炼气',
+      realmLevel: state.realmLevel ?? 1,
+      cultivation: state.cultivation ?? 0,
+      hpState: state.hpState ?? 'healthy',
+      locationMapId: state.locationMapId ?? definition?.homeMapId ?? '',
+      currentGoal: state.currentGoal ?? ((definition?.personality.ambition ?? 0) > 80 ? 'challenge' : (definition?.personality.caution ?? 0) > 80 ? 'cultivate' : 'adventure'),
+      relationships: mergedRelationships,
+      flags: state.flags ?? [],
+      notoriety: state.notoriety ?? 0,
+      lastActionTick: state.lastActionTick ?? 0
     }]
   }))
 
@@ -134,14 +138,15 @@ export function mergeNpcRelationshipNetwork(
 
     const created: NpcRuntimeState = {
       id: definition.id,
-      realm: definition.aptitude.talent === 'destined' ? '筑基' : '炼气',
-      realmLevel: definition.aptitude.talent === 'destined' ? 3 : 1 + Math.floor(definition.aptitude.comprehension / 25),
+      realm: '炼气',
+      realmLevel: 1 + Math.floor(definition.aptitude.comprehension / 25),
       cultivation: 0,
       hpState: 'healthy',
       locationMapId: definition.homeMapId,
       currentGoal: definition.personality.ambition > 80 ? 'challenge' : definition.personality.caution > 80 ? 'cultivate' : 'adventure',
       relationships: defaultNetwork[definition.id] ?? {},
       flags: [],
+      notoriety: 0,
       lastActionTick: 0
     }
     return created

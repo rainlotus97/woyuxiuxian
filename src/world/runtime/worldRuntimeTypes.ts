@@ -33,6 +33,7 @@ export interface WorldRuntimeNpcPatch {
   id: string
   cultivationDelta?: number
   realmLevelDelta?: number
+  notorietyDelta?: number
   hpState?: NpcHealthState
   currentGoal?: NpcGoal
   locationMapId?: string

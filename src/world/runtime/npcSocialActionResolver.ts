@@ -1,4 +1,5 @@
 import type { WorldRuntimeNpcActionResult, WorldRuntimeNpcSocialContext } from './worldRuntimeTypes'
+import { getNpcPowerScore } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
 
 function withInteractionStamp(
@@ -24,14 +25,12 @@ function withInteractionStamp(
   }
 }
 
-function getNpcPowerScore(context: Pick<WorldRuntimeNpcSocialContext, 'actorDefinition' | 'actorState'> | Pick<WorldRuntimeNpcSocialContext, 'targetDefinition' | 'targetState'>) {
+function resolveNpcPowerScore(
+  context: Pick<WorldRuntimeNpcSocialContext, 'actorDefinition' | 'actorState'> | Pick<WorldRuntimeNpcSocialContext, 'targetDefinition' | 'targetState'>
+) {
   const definition = 'actorDefinition' in context ? context.actorDefinition : context.targetDefinition
   const state = 'actorState' in context ? context.actorState : context.targetState
-  return state.realmLevel * 18
-    + state.cultivation / 20
-    + definition.aptitude.comprehension * 0.6
-    + definition.aptitude.physique * 0.45
-    + definition.aptitude.willpower * 0.5
+  return getNpcPowerScore(definition, state)
 }
 
 function resolveNpcClash(context: WorldRuntimeNpcSocialContext) {
@@ -52,8 +51,8 @@ function resolveNpcClash(context: WorldRuntimeNpcSocialContext) {
 
   if (roll <= threshold) return null
 
-  const actorPower = getNpcPowerScore({ actorDefinition, actorState })
-  const targetPower = getNpcPowerScore({ targetDefinition, targetState })
+  const actorPower = resolveNpcPowerScore({ actorDefinition, actorState })
+  const targetPower = resolveNpcPowerScore({ targetDefinition, targetState })
   const edge = actorPower - targetPower + actorRelationship.hatred * 0.35 - targetRelationship.hatred * 0.2
   const actorWins = edge + seededWorldRoll(clock.totalTicks, actorState.id, targetState.id, 'npc-social-clash-edge') * 10 >= 0
   const victorDefinition = actorWins ? actorDefinition : targetDefinition
@@ -66,12 +65,14 @@ function resolveNpcClash(context: WorldRuntimeNpcSocialContext) {
       {
         id: victorId,
         currentGoal: 'challenge',
-        cultivationDelta: 34
+        cultivationDelta: 34,
+        notorietyDelta: 8
       },
       {
         id: loserId,
         hpState: 'injured',
-        currentGoal: 'recover'
+        currentGoal: 'recover',
+        notorietyDelta: 3
       }
     ],
     relationshipDeltas: [
@@ -127,12 +128,14 @@ function resolveNpcSupport(context: WorldRuntimeNpcSocialContext) {
       {
         id: actorState.id,
         currentGoal: sameSect ? 'sectDuty' : 'adventure',
-        cultivationDelta: actorGain
+        cultivationDelta: actorGain,
+        notorietyDelta: 2
       },
       {
         id: targetState.id,
         currentGoal: 'cultivate',
-        cultivationDelta: targetGain
+        cultivationDelta: targetGain,
+        notorietyDelta: 4
       }
     ],
     relationshipDeltas: [

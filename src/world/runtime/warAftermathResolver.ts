@@ -1,6 +1,7 @@
 import { getSectById, type SectDefinition } from '@/types/sect'
 import type { NpcDefinition, NpcRuntimeState } from '@/types/world'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
+import { getNpcDestinyPressure } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
 import type {
   WorldRuntimeAftermathResult,
@@ -46,7 +47,7 @@ function pickAffectedNpc(
     .filter(item => !excludeCaptured || item.state.hpState !== 'captured')
     .sort((a, b) => {
       if (b.state.realmLevel !== a.state.realmLevel) return b.state.realmLevel - a.state.realmLevel
-      return b.definition.aptitude.talent.localeCompare(a.definition.aptitude.talent)
+      return getNpcDestinyPressure(b.definition) - getNpcDestinyPressure(a.definition)
     })[0] ?? null
 }
 
@@ -118,6 +119,7 @@ function resolveCaptureOutcome(
     id: losingNpc.definition.id,
     hpState: 'captured',
     currentGoal: 'recover',
+    notorietyDelta: 7,
     addFlags: [`captured_by:${winningSectId}`]
   }
 

@@ -16,6 +16,16 @@ export interface WorldClock {
 
 export type RootGrade = 'mixed' | 'dual' | 'single' | 'heavenly' | 'mutated'
 export type TalentGrade = 'mortal' | 'good' | 'spirit' | 'genius' | 'monster' | 'destined'
+export type NpcOriginType =
+  | 'mortal_village'
+  | 'cultivator_clan'
+  | 'sect_foundling'
+  | 'fallen_house'
+  | 'ancient_lineage'
+  | 'beast_blood'
+  | 'wanderer'
+  | 'outer_realm'
+export type DestinyRank = 'ordinary' | 'fated' | 'anomalous' | 'legendary'
 
 export interface AptitudeProfile {
   root: Element | '冰' | '风' | '空'
@@ -60,7 +70,11 @@ export interface NpcDefinition {
   profile: {
     title: string
     origin: string
+    originType: NpcOriginType
     background: string
+    familyStatus: string
+    identityHook: string
+    destinyRank: DestinyRank
     destinyTags: string[]
   }
   tags: string[]
@@ -76,6 +90,7 @@ export interface NpcRuntimeState {
   currentGoal: NpcGoal
   relationships: Record<string, RelationshipState>
   flags: string[]
+  notoriety: number
   lastActionTick: number
 }
 

@@ -1,5 +1,6 @@
 import type { WorldRuntimeNpcActionResult, WorldRuntimeNpcContext } from './worldRuntimeTypes'
 import { resolveRelationshipDrivenNpcAction } from './npcRelationshipActionResolver'
+import { getNpcPotentialScore } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
 
 function withActionStamp(
@@ -84,11 +85,12 @@ function resolveAmbitionAction(context: WorldRuntimeNpcContext) {
   }
 
   return withActionStamp(context, {
-    npcPatch: {
-      id: npcState.id,
-      cultivationDelta: 80,
-      currentGoal: 'challenge'
-    },
+      npcPatch: {
+        id: npcState.id,
+        cultivationDelta: 80,
+        currentGoal: 'challenge',
+        notorietyDelta: 6
+      },
     logs: [
       {
         scope: 'npc',
@@ -105,18 +107,20 @@ function resolveAmbitionAction(context: WorldRuntimeNpcContext) {
 
 function resolveBreakthroughAction(context: WorldRuntimeNpcContext) {
   const { npcDefinition, npcState, clock } = context
-  if (npcDefinition.aptitude.talent !== 'monster' || npcState.hpState === 'dead') {
+  if ((npcDefinition.aptitude.talent !== 'monster' && npcDefinition.aptitude.talent !== 'destined') || npcState.hpState === 'dead') {
     return null
   }
 
   const roll = seededWorldRoll(clock.totalTicks, npcState.id, 'npc-breakthrough')
-  if (roll <= 0.9) return null
+  const potentialBonus = getNpcPotentialScore(npcDefinition) / 1000
+  if (roll <= 0.9 - potentialBonus) return null
 
   return withActionStamp(context, {
     npcPatch: {
       id: npcState.id,
       realmLevelDelta: 1,
-      currentGoal: 'cultivate'
+      currentGoal: 'cultivate',
+      notorietyDelta: 10
     },
     logs: [
       {
@@ -144,7 +148,8 @@ function resolveCrueltyAction(context: WorldRuntimeNpcContext) {
   return withActionStamp(context, {
     npcPatch: {
       id: npcState.id,
-      currentGoal: 'adventure'
+      currentGoal: 'adventure',
+      notorietyDelta: 5
     },
     logs: [
       {

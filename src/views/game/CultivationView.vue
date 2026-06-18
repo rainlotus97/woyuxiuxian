@@ -145,12 +145,33 @@
               </div>
             </div>
             <div class="npc-meta">
+              <span class="destiny-pill" :class="`destiny-${npc.destinyTone}`">{{ npc.destinyRankLabel }}</span>
               <span class="bond-pill" :class="`bond-${npc.bondTone}`">{{ npc.bondLabel }}</span>
               <span class="state-pill">{{ npc.hpLabel }}</span>
             </div>
+            <div class="npc-profile-grid">
+              <div class="profile-chip">
+                <span>灵根</span>
+                <strong>{{ npc.root }}</strong>
+              </div>
+              <div class="profile-chip">
+                <span>天资</span>
+                <strong>{{ npc.talent }}</strong>
+              </div>
+              <div class="profile-chip">
+                <span>身世</span>
+                <strong>{{ npc.originLabel }}</strong>
+              </div>
+              <div class="profile-chip">
+                <span>声势</span>
+                <strong>{{ npc.notorietyLabel }}</strong>
+              </div>
+            </div>
             <p class="npc-story">{{ npc.background }}</p>
+            <p class="npc-note">{{ npc.temperament }} · {{ npc.identityHook }}</p>
             <div class="npc-tags">
               <span v-for="tag in npc.destinyTags.slice(0, 3)" :key="tag" class="tag-pill">{{ tag }}</span>
+              <span class="tag-pill tag-emphasis">潜力 {{ npc.potentialScore }}</span>
             </div>
           </div>
         </div>
@@ -321,12 +342,29 @@ const spotlightNpcs = computed(() => {
     .map(item => {
       const relationship = worldStore.getRelationshipState(item.state.id)
       const profile = worldStore.getNpcDisplayProfile(item.state.id)
+      const destinyTone =
+        profile?.destinyRank === 'legendary'
+          ? 'legendary'
+          : profile?.destinyRank === 'anomalous'
+            ? 'anomalous'
+            : profile?.destinyRank === 'fated'
+              ? 'fated'
+              : 'ordinary'
       return {
         id: item.state.id,
         name: item.definition?.name ?? item.state.id,
         title: profile?.title ?? '无名修士',
         background: profile?.background ?? '命数未明。',
+        identityHook: profile?.identityHook ?? '命数未明。',
+        originLabel: profile?.originLabel ?? '来历不详',
         destinyTags: profile?.destinyTags ?? [],
+        destinyRankLabel: profile?.destinyRankLabel ?? '平命',
+        destinyTone,
+        root: profile?.root ?? '未知灵根',
+        talent: profile?.talent ?? '凡才',
+        potentialScore: profile?.potentialScore ?? 0,
+        temperament: profile?.temperament ?? '气机内敛',
+        notorietyLabel: profile?.notorietyLabel ?? '尚在潜藏',
         realm: item.state.realm,
         realmLevel: item.state.realmLevel,
         goalLabel: getNpcGoalLabel(item.state.currentGoal),
@@ -684,6 +722,41 @@ function handleIdleModeChange(mode: IdleMode) {
   line-height: 1.6;
 }
 
+.npc-note {
+  margin: 0;
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.npc-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.profile-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(252, 255, 251, 0.82);
+  border: 1px solid rgba(120, 146, 149, 0.12);
+}
+
+.profile-chip span {
+  color: rgba(73, 97, 95, 0.62);
+  font-size: 10px;
+}
+
+.profile-chip strong {
+  color: #355b5c;
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .npc-tags {
   display: flex;
   flex-wrap: wrap;
@@ -768,6 +841,42 @@ function handleIdleModeChange(mode: IdleMode) {
   font-size: 11px;
 }
 
+.destiny-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 146, 149, 0.18);
+  background: rgba(255, 255, 255, 0.84);
+  font-size: 11px;
+  color: #4b6f6f;
+}
+
+.destiny-legendary {
+  color: #9b4353;
+  background: rgba(255, 242, 245, 0.84);
+  border-color: rgba(199, 121, 138, 0.22);
+}
+
+.destiny-anomalous {
+  color: #8b6226;
+  background: rgba(255, 248, 233, 0.86);
+  border-color: rgba(194, 146, 66, 0.22);
+}
+
+.destiny-fated {
+  color: #2b6a71;
+  background: rgba(238, 252, 251, 0.9);
+  border-color: rgba(105, 177, 188, 0.24);
+}
+
+.tag-emphasis {
+  color: #8b6226;
+  border-color: rgba(194, 146, 66, 0.22);
+  background: rgba(255, 248, 233, 0.86);
+}
+
 @media (max-width: 980px) {
   .hero-grid,
   .overview-grid,
@@ -789,6 +898,10 @@ function handleIdleModeChange(mode: IdleMode) {
   }
 
   .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .npc-profile-grid {
     grid-template-columns: 1fr;
   }
 }

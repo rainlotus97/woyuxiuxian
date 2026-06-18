@@ -23,6 +23,23 @@ import {
   applyRelationshipDeltaToState,
   createDefaultRelationshipState
 } from '@/world/runtime/relationshipState'
+import {
+  formatNpcNotoriety,
+  getBondLabel as getNpcBondLabel,
+  getDestinyRankLabel,
+  getNpcPotentialScore,
+  getNpcRootLabel,
+  getNpcSpotlightScore,
+  getOriginTypeLabel,
+  getRootGradeLabel,
+  getTalentGradeLabel,
+  getNpcTemperamentSummary
+} from '@/world/runtime/npcProfile'
+import {
+  createDefaultNpcDefinitions,
+  createDefaultUnlockedNpcIds,
+  createNpcRuntimeStates
+} from '@/world/runtime/npcRoster'
 import { resolveWarAftermath } from '@/world/runtime/warAftermathResolver'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
 import { getAreaById } from '@/types/map'
@@ -74,90 +91,11 @@ function createDefaultClock(): WorldClock {
 }
 
 function createNpcDefinitions(): NpcDefinition[] {
-  return [
-    {
-      id: 'npc_su_qingyuan',
-      name: '苏清鸢',
-      gender: 'female',
-      role: 'main',
-      homeMapId: 'qingyang_city',
-      sectId: 'qingyun_sect',
-      aptitude: { root: '水', rootGrade: 'heavenly', talent: 'destined', comprehension: 96, luck: 88, physique: 74, willpower: 98 },
-      personality: { ambition: 54, loyalty: 92, cruelty: 12, affection: 72, caution: 88, greed: 8 },
-      profile: {
-        title: '青云圣女',
-        origin: '青州苏氏',
-        background: '青云宗圣女，传闻身怀前世记忆，对主线有极强牵引力。',
-        destinyTags: ['轮回', '水灵根', '正道核心']
-      },
-      tags: ['圣女', '轮回', '主线保护']
-    },
-    {
-      id: 'npc_mo_lao',
-      name: '墨老',
-      gender: 'male',
-      role: 'main',
-      homeMapId: 'qingyang_well',
-      aptitude: { root: '空', rootGrade: 'mutated', talent: 'monster', comprehension: 90, luck: 62, physique: 48, willpower: 99 },
-      personality: { ambition: 35, loyalty: 96, cruelty: 38, affection: 70, caution: 91, greed: 10 },
-      profile: {
-        title: '残魂护道者',
-        origin: '古井遗迹',
-        background: '寄宿于古井残阵的前辈神魂，擅长洞悉灵脉与命数的缝隙。',
-        destinyTags: ['空灵根', '古修传承', '守护']
-      },
-      tags: ['残魂', '守护者', '主线保护']
-    },
-    {
-      id: 'npc_xue_yan',
-      name: '薛焰',
-      gender: 'male',
-      role: 'enemy',
-      homeMapId: 'qingyang_city',
-      sectId: 'blood_sect',
-      aptitude: { root: '火', rootGrade: 'single', talent: 'genius', comprehension: 78, luck: 56, physique: 84, willpower: 71 },
-      personality: { ambition: 92, loyalty: 18, cruelty: 86, affection: 12, caution: 42, greed: 74 },
-      profile: {
-        title: '血魔少主',
-        origin: '血海魔岭',
-        background: '血魔宗重点培养的魔道天才，行事狠戾，极易在世界线中成长成反派核心。',
-        destinyTags: ['火灵根', '魔修', '反派种子']
-      },
-      tags: ['反派种子', '魔修']
-    },
-    {
-      id: 'npc_lu_heng',
-      name: '陆衡',
-      gender: 'male',
-      role: 'sect',
-      homeMapId: 'qingyun_mountain',
-      sectId: 'qingyun_sect',
-      aptitude: { root: '金', rootGrade: 'dual', talent: 'spirit', comprehension: 67, luck: 50, physique: 66, willpower: 64 },
-      personality: { ambition: 61, loyalty: 72, cruelty: 20, affection: 52, caution: 59, greed: 28 },
-      profile: {
-        title: '青云内门',
-        origin: '青云宗',
-        background: '青云宗内门弟子，适合作为同门线、竞争线和伙伴线的过渡人物。',
-        destinyTags: ['金灵根', '剑修', '同门候选']
-      },
-      tags: ['同门候选', '剑修']
-    }
-  ]
+  return createDefaultNpcDefinitions()
 }
 
 function createNpcStates(definitions: NpcDefinition[]): NpcRuntimeState[] {
-  return mergeNpcRelationshipNetwork(definitions, definitions.map(definition => ({
-    id: definition.id,
-    realm: definition.aptitude.talent === 'destined' ? '筑基' : '炼气',
-    realmLevel: definition.aptitude.talent === 'destined' ? 3 : 1 + Math.floor(definition.aptitude.comprehension / 25),
-    cultivation: 0,
-    hpState: 'healthy',
-    locationMapId: definition.homeMapId,
-    currentGoal: definition.personality.ambition > 80 ? 'challenge' : definition.personality.caution > 80 ? 'cultivate' : 'adventure',
-    relationships: {},
-    flags: [],
-    lastActionTick: 0
-  })))
+  return mergeNpcRelationshipNetwork(definitions, createNpcRuntimeStates(definitions))
 }
 
 function getDefaultWorldState(): WorldState {
@@ -172,7 +110,7 @@ function getDefaultWorldState(): WorldState {
     playerJourneys: [],
     npcStories: [],
     areaAnomalies: [],
-    unlockedNpcIds: npcDefinitions.filter(item => item.role === 'main').map(item => item.id),
+    unlockedNpcIds: createDefaultUnlockedNpcIds(npcDefinitions),
     worldFlags: []
   }
 }
@@ -244,10 +182,23 @@ export const useWorldStore = defineStore('world', () => {
   const importantNpcStories = computed(() => npcStories.value.slice(0, 6))
   const activeAreaAnomalies = computed(() => areaAnomalies.value.slice(0, 6))
   const unlockedNpcDefinitions = computed(() => npcDefinitions.value.filter(definition => unlockedNpcIds.value.includes(definition.id)))
-  const importantNpcStates = computed(() => npcStates.value.map(state => ({
-    state,
-    definition: npcDefinitions.value.find(def => def.id === state.id)
-  })).filter(item => item.definition))
+  const importantNpcStates = computed(() => {
+    return npcStates.value
+      .map(state => {
+        const definition = npcDefinitions.value.find(def => def.id === state.id)
+        if (!definition) return null
+        const relationship = getRelationshipState(state.id)
+        const unlocked = unlockedNpcIds.value.includes(state.id)
+        return {
+          state,
+          definition,
+          relationship,
+          spotlightScore: getNpcSpotlightScore(definition, state, relationship, unlocked)
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .sort((a, b) => b.spotlightScore - a.spotlightScore)
+  })
 
   function saveToStorage() {
     const data: WorldState = {
@@ -608,6 +559,9 @@ export const useWorldStore = defineStore('world', () => {
     if (typeof patch.realmLevelDelta === 'number') {
       npc.realmLevel = Math.max(1, Math.min(9, npc.realmLevel + patch.realmLevelDelta))
     }
+    if (typeof patch.notorietyDelta === 'number') {
+      npc.notoriety = Math.max(0, Math.min(100, npc.notoriety + patch.notorietyDelta))
+    }
     if (patch.addFlags?.length) {
       for (const flag of patch.addFlags) {
         if (!npc.flags.includes(flag)) {
@@ -715,53 +669,28 @@ export const useWorldStore = defineStore('world', () => {
       name: definition.name,
       title: definition.profile.title,
       origin: definition.profile.origin,
+      originType: definition.profile.originType,
+      originLabel: getOriginTypeLabel(definition.profile.originType),
       background: definition.profile.background,
+      familyStatus: definition.profile.familyStatus,
+      identityHook: definition.profile.identityHook,
+      destinyRank: definition.profile.destinyRank,
+      destinyRankLabel: getDestinyRankLabel(definition.profile.destinyRank),
       destinyTags: definition.profile.destinyTags,
       sectName: definition.sectId ? getSectById(definition.sectId)?.name ?? definition.sectId : '散修',
-      root: `${definition.aptitude.root}${getRootGradeLabel(definition.aptitude.rootGrade)}`,
+      root: getNpcRootLabel(definition.aptitude),
+      rootGradeLabel: getRootGradeLabel(definition.aptitude.rootGrade),
       talent: getTalentGradeLabel(definition.aptitude.talent),
+      potentialScore: getNpcPotentialScore(definition),
+      temperament: getNpcTemperamentSummary(definition),
       realm: `${state.realm}${state.realmLevel}层`,
       locationName: getAreaLabel(state.locationMapId),
+      notoriety: state.notoriety,
+      notorietyLabel: formatNpcNotoriety(state.notoriety),
       bond: relationship.bond,
-      bondLabel: getBondLabel(relationship.bond),
+      bondLabel: getNpcBondLabel(relationship.bond),
       hpState: state.hpState
     }
-  }
-
-  function getRootGradeLabel(grade: NpcDefinition['aptitude']['rootGrade']) {
-    const labels: Record<NpcDefinition['aptitude']['rootGrade'], string> = {
-      mixed: '杂灵根',
-      dual: '双灵根',
-      single: '单灵根',
-      heavenly: '天灵根',
-      mutated: '异灵根'
-    }
-    return labels[grade]
-  }
-
-  function getTalentGradeLabel(grade: NpcDefinition['aptitude']['talent']) {
-    const labels: Record<NpcDefinition['aptitude']['talent'], string> = {
-      mortal: '凡才',
-      good: '良才',
-      spirit: '灵才',
-      genius: '天骄',
-      monster: '妖孽',
-      destined: '命定'
-    }
-    return labels[grade]
-  }
-
-  function getBondLabel(bond: RelationshipState['bond']) {
-    const labels: Record<RelationshipState['bond'], string> = {
-      stranger: '陌路',
-      friend: '友善',
-      rival: '争锋',
-      enemy: '仇敌',
-      mentor: '师承',
-      companion: '同行',
-      lover: '情愫'
-    }
-    return labels[bond]
   }
 
   function unlockNpc(npcId: string, reason?: string) {
