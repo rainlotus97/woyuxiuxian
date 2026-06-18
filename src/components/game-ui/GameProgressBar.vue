@@ -30,7 +30,12 @@ const clampedPercent = computed(() => {
   return Math.max(0, Math.min(100, (props.current / props.max) * 100))
 })
 
-const valueText = computed(() => `${props.current}/${props.max}`)
+const valueText = computed(() => `${formatAmount(props.current)}/${formatAmount(props.max)}`)
+
+function formatAmount(value: number) {
+  if (Number.isInteger(value)) return String(value)
+  return value.toFixed(1)
+}
 </script>
 
 <style scoped>

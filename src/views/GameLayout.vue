@@ -13,7 +13,7 @@
           </div>
         </div>
 
-        <div class="resource-row">
+        <div class="resource-row" aria-label="主资源状态">
           <GameStatChip icon="石" label="灵石" :value="playerStore.gold" tone="gold" compact />
           <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" compact />
           <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" compact />
@@ -242,7 +242,7 @@ const formatCultivation = computed(() => {
   if (max >= 10000) {
     return `${(cur / 1000).toFixed(1)}k/${(max / 1000).toFixed(0)}k`
   }
-  return `${cur}/${max}`
+  return `${formatAmount(cur)}/${formatAmount(max)}`
 })
 
 const realmIcon = computed(() => {
@@ -294,6 +294,11 @@ function closeMenu() {
 
 function handleToggleBgm() {
   toggleBgm()
+}
+
+function formatAmount(value: number) {
+  if (Number.isInteger(value)) return String(value)
+  return value.toFixed(1)
 }
 
 function startWorldClock() {
@@ -378,7 +383,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(7px + env(safe-area-inset-top, 0px)) 12px 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 0;
   z-index: 6;
 }
 
@@ -391,16 +396,16 @@ onUnmounted(() => {
 
 .hud-shell {
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
   align-items: center;
-  gap: 10px 16px;
-  padding: 9px 10px;
+  gap: 7px 12px;
+  padding: 8px 10px;
   border: 1px solid rgba(101, 152, 145, 0.2);
-  border-radius: 14px;
+  border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(242, 251, 246, 0.76)),
-    linear-gradient(90deg, rgba(255, 238, 184, 0.24), transparent 46%);
-  box-shadow: 0 10px 26px rgba(88, 123, 116, 0.11);
+    linear-gradient(180deg, rgba(255, 255, 250, 0.84), rgba(242, 251, 246, 0.68)),
+    linear-gradient(90deg, rgba(255, 238, 184, 0.2), transparent 46%);
+  box-shadow: 0 10px 24px rgba(88, 123, 116, 0.09);
   backdrop-filter: blur(16px);
 }
 
@@ -417,12 +422,12 @@ onUnmounted(() => {
 .player-block {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .avatar-orb {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 10px;
@@ -440,7 +445,7 @@ onUnmounted(() => {
 
 .player-copy strong {
   color: #315257;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .player-copy small {
@@ -452,7 +457,7 @@ onUnmounted(() => {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 10px;
   border: 1px solid rgba(123, 166, 176, 0.2);
   background: rgba(255, 255, 255, 0.74);
@@ -472,7 +477,7 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 7px;
+  gap: 6px;
 }
 
 .audio-toggle,
@@ -480,8 +485,8 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 7px 10px;
+  min-height: 38px;
+  padding: 6px 9px;
   border: 1px solid rgba(103, 149, 144, 0.18);
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.58);
@@ -503,8 +508,8 @@ onUnmounted(() => {
 
 .audio-toggle span,
 .home-toggle span {
-  width: 24px;
-  height: 24px;
+  width: 23px;
+  height: 23px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -527,14 +532,14 @@ onUnmounted(() => {
   grid-column: 1 / -1;
   margin: 0;
   color: rgba(55, 82, 84, 0.78);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 10px 12px calc(86px + env(safe-area-inset-bottom, 0px));
+  padding: 9px 12px calc(82px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
@@ -553,7 +558,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 28;
-  padding: 0 12px calc(9px + env(safe-area-inset-bottom, 0px));
+  padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -718,14 +723,14 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 64px;
+  height: 60px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
   padding: 6px;
   border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 16px;
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
     radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
@@ -734,7 +739,7 @@ onUnmounted(() => {
 }
 
 .tab-item {
-  height: 50px;
+  height: 48px;
   min-width: 0;
   display: grid;
   place-items: center;
@@ -792,7 +797,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 8px 8px calc(80px + env(safe-area-inset-bottom, 0px));
+    padding: 7px 8px calc(76px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -804,8 +809,8 @@ onUnmounted(() => {
   }
 
   .hud-shell {
-    gap: 8px;
-    padding: 8px;
+    gap: 6px;
+    padding: 7px;
     border-radius: 14px;
   }
 
@@ -814,9 +819,9 @@ onUnmounted(() => {
   }
 
   .avatar-orb {
-    width: 38px;
-    height: 38px;
-    font-size: 17px;
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
   }
 
   .player-copy {
@@ -846,15 +851,15 @@ onUnmounted(() => {
   .resource-row {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 5px;
+    gap: 4px;
   }
 
   .resource-row :deep(.stat-chip) {
     flex-direction: column;
-    min-height: 48px;
+    min-height: 44px;
     justify-content: center;
-    gap: 3px;
-    padding: 6px 4px;
+    gap: 2px;
+    padding: 5px 3px;
   }
 
   .resource-row :deep(.stat-copy small) {
@@ -867,7 +872,7 @@ onUnmounted(() => {
 
   .audio-toggle,
   .home-toggle {
-    min-height: 44px;
+    min-height: 42px;
     justify-content: center;
     padding: 6px 4px;
   }
@@ -897,12 +902,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 60px;
+    height: 58px;
     border-radius: 15px;
   }
 
   .tab-item {
-    height: 48px;
+    height: 46px;
     font-size: 10px;
   }
 }

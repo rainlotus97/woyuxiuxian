@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { usePlayerStore } from '@/stores/playerStore'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -80,6 +81,17 @@ const router = createRouter({
       meta: { fullScreen: true }
     }
   ]
+})
+
+router.beforeEach((to) => {
+  if (!to.path.startsWith('/game')) return true
+
+  const playerStore = usePlayerStore()
+  if (!playerStore.created) {
+    return { path: '/', query: { redirect: to.fullPath } }
+  }
+
+  return true
 })
 
 export default router

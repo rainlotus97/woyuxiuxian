@@ -13,9 +13,9 @@
           <h1>我欲修仙</h1>
           <strong>挂机修炼、奇遇历险、宗门势力与 NPC 命运会在同一个世界时钟里推进。</strong>
           <div class="brand-tags" aria-label="当前版本重点">
-            <span>明亮主界</span>
-            <span>P0 可玩闭环</span>
-            <span>世界自演</span>
+            <span><Sparkles :size="13" />明亮主界</span>
+            <span><LockKeyhole :size="13" />本命锁定</span>
+            <span><VolumeX :size="13" />默认静音</span>
           </div>
         </div>
       </div>
@@ -68,6 +68,7 @@
 
         <div class="start-actions">
           <button class="primary-action" @click="handleStart">
+            <Play :size="18" />
             <span>开始修仙</span>
             <small>进入主循环</small>
           </button>
@@ -85,9 +86,9 @@
           <div class="save-profile">
             <div class="save-avatar">{{ playerStore.icon }}</div>
             <div>
-              <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
+              <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根 · {{ playerStore.quality }}</span>
               <strong>{{ playerStore.name }}</strong>
-              <p>创建信息已写入存档。当前版本优先完善 P0 主循环，进入后从任务台处理修炼、历险、故事、地图和宗门。</p>
+              <p>创建信息已写入存档。首页不再提供反复重选灵根和气质，后续变化交给角色成长、剧情、功法和机缘。</p>
             </div>
           </div>
 
@@ -105,6 +106,7 @@
             <p>先把挂机、历险、故事、人物、地图、宗门这六个 P0 入口跑通，再继续扩展战斗和大世界深度。</p>
           </div>
           <button class="primary-action compact" @click="handleContinue">
+            <Play :size="18" />
             <span>继续游戏</span>
             <small>主界总览</small>
           </button>
@@ -113,15 +115,15 @@
         <div class="save-stats">
           <div>
             <span>修为</span>
-            <strong>{{ playerStore.cultivation }}/{{ playerStore.maxCultivation }}</strong>
+            <strong>{{ formatAmount(playerStore.cultivation) }}/{{ formatAmount(playerStore.maxCultivation) }}</strong>
           </div>
           <div>
             <span>灵石</span>
-            <strong>{{ playerStore.gold }}</strong>
+            <strong>{{ formatAmount(playerStore.gold) }}</strong>
           </div>
           <div>
             <span>体力</span>
-            <strong>{{ playerStore.stamina }}/{{ playerStore.maxStamina }}</strong>
+            <strong>{{ formatAmount(playerStore.stamina) }}/{{ formatAmount(playerStore.maxStamina) }}</strong>
           </div>
         </div>
 
@@ -142,9 +144,11 @@
         <div class="start-actions">
           <div class="save-action-row">
             <button class="secondary-action" @click="handleSettings">
+              <Settings :size="16" />
               系统设置
             </button>
             <button class="secondary-action ghost" @click="handleStory">
+              <ScrollText :size="16" />
               命簿卷宗
             </button>
           </div>
@@ -169,12 +173,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { LockKeyhole, Play, ScrollText, Settings, Sparkles, VolumeX } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { usePlayerStore } from '@/stores/playerStore'
 import type { Element } from '@/types/unit'
 
 const router = useRouter()
+const route = useRoute()
 const playerStore = usePlayerStore()
 const { info } = useToast()
 
@@ -239,12 +245,12 @@ function applyProfile() {
 function handleStart() {
   applyProfile()
   info('本命已定，踏入修仙界。')
-  void router.push('/game/cultivation')
+  void router.push(getRedirectPath())
 }
 
 function handleContinue() {
   info('读取当前存档。')
-  void router.push('/game/cultivation')
+  void router.push(getRedirectPath())
 }
 
 function handleSettings() {
@@ -253,6 +259,17 @@ function handleSettings() {
 
 function handleStory() {
   void router.push('/game/story')
+}
+
+function getRedirectPath() {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect.startsWith('/game')) return redirect
+  return '/game/cultivation'
+}
+
+function formatAmount(value: number) {
+  if (Number.isInteger(value)) return String(value)
+  return value.toFixed(1)
 }
 </script>
 
@@ -264,10 +281,13 @@ function handleStory() {
   padding: 18px;
   color: #315257;
   background:
+    linear-gradient(90deg, rgba(69, 118, 104, 0.055) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(69, 118, 104, 0.045) 1px, transparent 1px),
     linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.3) 34% 35%, transparent 35% 100%),
     radial-gradient(circle at 16% 8%, rgba(255, 223, 142, 0.34), transparent 26%),
     radial-gradient(circle at 88% 10%, rgba(106, 208, 184, 0.22), transparent 34%),
     linear-gradient(135deg, rgba(247, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%);
+  background-size: 44px 44px, 44px 44px, auto, auto, auto, auto;
 }
 
 .start-shell {
@@ -284,14 +304,14 @@ function handleStory() {
 }
 
 .start-shell.has-save {
-  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.82fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(460px, 0.92fr);
 }
 
 .brand-panel,
 .guide-panel,
 .world-preview {
   border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 16px;
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(244, 252, 247, 0.78)),
     linear-gradient(90deg, rgba(255, 235, 170, 0.18), transparent 38%);
@@ -384,8 +404,9 @@ function handleStory() {
 .save-panel {
   align-content: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(241, 252, 247, 0.82)),
-    radial-gradient(circle at top right, rgba(255, 226, 145, 0.22), transparent 58%);
+    linear-gradient(180deg, rgba(255, 255, 250, 0.96), rgba(241, 252, 247, 0.86)),
+    radial-gradient(circle at top right, rgba(255, 226, 145, 0.3), transparent 58%),
+    linear-gradient(135deg, rgba(127, 205, 180, 0.16), transparent 42%);
 }
 
 .save-pass {
@@ -424,15 +445,15 @@ function handleStory() {
 
 .save-profile {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
+  grid-template-columns: 86px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding: 16px;
   border: 1px solid rgba(111, 157, 149, 0.18);
-  border-radius: 14px;
+  border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 252, 247, 0.66)),
-    linear-gradient(90deg, rgba(255, 236, 178, 0.26), transparent 48%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 252, 247, 0.7)),
+    linear-gradient(90deg, rgba(255, 236, 178, 0.34), transparent 52%);
 }
 
 .save-lock-row {
@@ -453,15 +474,18 @@ function handleStory() {
 }
 
 .save-avatar {
-  width: 78px;
+  width: 86px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid rgba(188, 141, 58, 0.22);
-  background: linear-gradient(145deg, #fff2bd, #91dfc2);
+  background:
+    linear-gradient(145deg, #fff2bd, #91dfc2),
+    repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
   color: #8e6227;
-  font-size: 32px;
+  font-size: 34px;
+  box-shadow: 0 16px 30px rgba(94, 144, 130, 0.18);
 }
 
 .save-profile div:last-child {
@@ -610,6 +634,7 @@ function handleStory() {
   display: inline-flex;
   min-height: 30px;
   align-items: center;
+  gap: 5px;
   padding: 0 10px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   border-radius: 10px;
@@ -721,11 +746,14 @@ function handleStory() {
   border: 1px solid rgba(188, 141, 58, 0.28);
   font-family: var(--font-game);
   cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .primary-action {
-  display: grid;
-  place-items: center;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  place-content: center;
+  align-items: center;
   gap: 4px;
   background:
     linear-gradient(180deg, #fff3c5, #bfe9d4),
@@ -739,6 +767,7 @@ function handleStory() {
 }
 
 .primary-action small {
+  grid-column: 1 / -1;
   color: rgba(88, 72, 44, 0.66);
   font-size: 11px;
 }
@@ -748,6 +777,10 @@ function handleStory() {
 }
 
 .secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   background: rgba(255, 255, 255, 0.68);
   color: #496463;
 }
@@ -755,6 +788,12 @@ function handleStory() {
 .secondary-action.ghost {
   border-color: rgba(111, 157, 149, 0.2);
   background: rgba(243, 252, 248, 0.64);
+}
+
+.primary-action:hover,
+.secondary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(104, 151, 132, 0.15);
 }
 
 .world-preview {
@@ -807,6 +846,18 @@ function handleStory() {
   .brand-panel {
     min-height: auto;
     grid-template-columns: 92px minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .brand-copy h1 {
+    font-size: 40px;
+  }
+
+  .brand-copy strong {
+    font-size: 14px;
+  }
+
+  .guide-panel {
     padding: 16px;
   }
 

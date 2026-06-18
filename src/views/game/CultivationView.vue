@@ -9,7 +9,10 @@
     >
       <div class="home-hero-layout">
         <div class="hero-main-card">
-          <div class="protagonist-token">{{ playerStore.icon }}</div>
+          <div class="protagonist-token">
+            <span>{{ playerStore.icon }}</span>
+            <small>{{ playerStore.realmInfo.fullName }}</small>
+          </div>
           <div class="hero-copy">
             <span class="hero-realm">{{ idleModeLabel }}</span>
             <strong>{{ playerStore.isIdling ? '主角正在行动' : '等待安排' }}</strong>
@@ -22,20 +25,6 @@
               <strong>+{{ offlineGains }} 修为</strong>
             </div>
             <GameActionButton icon="🎁" tone="gold" @click="claimOfflineGains">领取</GameActionButton>
-          </div>
-        </div>
-
-        <div class="world-pulse-card">
-          <div class="pulse-head">
-            <span>{{ worldStore.currentTimeLabel }}</span>
-            <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
-            <p>{{ latestPulseText }}</p>
-          </div>
-          <div class="p0-rail">
-            <div v-for="item in p0FocusItems" :key="item.label" class="p0-chip" :class="`tone-${item.tone}`">
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </div>
           </div>
         </div>
 
@@ -61,6 +50,20 @@
               <span>卷</span>
               <strong>继续故事</strong>
             </button>
+          </div>
+        </div>
+
+        <div class="world-pulse-card">
+          <div class="pulse-head">
+            <span>{{ worldStore.currentTimeLabel }}</span>
+            <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
+            <p>{{ latestPulseText }}</p>
+          </div>
+          <div class="p0-rail">
+            <div v-for="item in p0FocusItems" :key="item.label" class="p0-chip" :class="`tone-${item.tone}`">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
           </div>
         </div>
 
@@ -941,7 +944,7 @@ function handlePlayerFortune() {
 }
 
 .home-hero-layout {
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.72fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
   align-items: stretch;
 }
 
@@ -961,7 +964,7 @@ function handlePlayerFortune() {
 .hero-main-card {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 18px;
   background:
@@ -970,18 +973,31 @@ function handlePlayerFortune() {
 }
 
 .protagonist-token {
-  width: 78px;
+  width: 82px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 4px;
   border-radius: 18px;
   border: 1px solid rgba(188, 141, 58, 0.26);
   background:
     linear-gradient(145deg, #fff2bd, #90dfc2),
     repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
   color: #8e6227;
-  font-size: 30px;
   box-shadow: 0 16px 28px rgba(88, 146, 132, 0.18);
+}
+
+.protagonist-token span {
+  color: #8e6227;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.protagonist-token small {
+  color: rgba(115, 88, 42, 0.72);
+  font-size: 9px;
+  line-height: 1.2;
 }
 
 .hero-copy {
@@ -1002,7 +1018,7 @@ function handlePlayerFortune() {
 
 .hero-copy strong {
   color: #315257;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .hero-actions {
@@ -1025,7 +1041,7 @@ function handlePlayerFortune() {
 
 .world-pulse-card {
   align-content: space-between;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.2);
   border-radius: 18px;
   background:
@@ -1034,7 +1050,6 @@ function handlePlayerFortune() {
 }
 
 .quick-command-panel {
-  grid-column: 1 / -1;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 18px;
@@ -1073,13 +1088,13 @@ function handlePlayerFortune() {
 
 .quick-command-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .quick-command {
   min-width: 0;
-  min-height: 56px;
+  min-height: 54px;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
@@ -1138,7 +1153,7 @@ function handlePlayerFortune() {
 
 .pulse-head strong {
   color: #8b6226;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .p0-rail {
@@ -1254,7 +1269,7 @@ function handlePlayerFortune() {
 
 .loop-task-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1320,10 +1335,11 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 128px;
+  min-height: 96px;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 8px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 8px 9px;
   align-items: stretch;
   padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.18);
@@ -1429,7 +1445,7 @@ function handlePlayerFortune() {
 }
 
 .task-meta {
-  grid-column: 1 / -1;
+  grid-column: 2;
   width: fit-content;
   max-width: 100%;
   min-height: 24px;
@@ -1777,11 +1793,11 @@ function handlePlayerFortune() {
   }
 
   .loop-task-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero-main-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
   .protagonist-token {
@@ -1791,11 +1807,11 @@ function handlePlayerFortune() {
 
 @media (max-width: 720px) {
   .loop-task-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .loop-task-card {
-    min-height: 126px;
+    min-height: 88px;
   }
 
   .loop-readiness-strip {
@@ -1817,9 +1833,12 @@ function handlePlayerFortune() {
   }
 
   .hero-actions,
-  .p0-rail,
-  .quick-command-grid {
+  .p0-rail {
     grid-template-columns: 1fr;
+  }
+
+  .quick-command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .action-grid {
