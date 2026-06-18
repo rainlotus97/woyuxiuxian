@@ -131,7 +131,7 @@
             <div class="acceptance-side">
               <div class="acceptance-gap-list" aria-label="P0 验收缺口">
                 <button
-                  v-for="item in p0Acceptance.remainingItems.slice(0, 4)"
+                  v-for="item in p0Acceptance.remainingItems"
                   :key="item.id"
                   type="button"
                   :class="`gap-${item.state}`"
@@ -139,9 +139,6 @@
                 >
                   {{ item.label }} · {{ item.stateLabel }}
                 </button>
-                <span v-if="p0Acceptance.remainingCount > 4" class="gap-more">
-                  +{{ p0Acceptance.remainingCount - 4 }}
-                </span>
                 <span v-if="p0Acceptance.readyForP1" class="gap-closed">P0 验收完成</span>
               </div>
               <button
@@ -1588,7 +1585,7 @@ function handlePlayerFortune() {
 }
 
 .acceptance-side {
-  min-width: min(360px, 42vw);
+  min-width: min(430px, 48vw);
   display: grid;
   justify-items: end;
   gap: 8px;
@@ -1596,6 +1593,7 @@ function handlePlayerFortune() {
 
 .acceptance-gap-list span,
 .acceptance-gap-list button {
+  flex: 0 0 auto;
   min-height: 24px;
   display: inline-flex;
   align-items: center;
