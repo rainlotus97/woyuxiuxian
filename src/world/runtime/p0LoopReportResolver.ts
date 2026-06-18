@@ -1,11 +1,12 @@
 import type { P0LoopAcceptanceSummary } from './p0LoopAcceptanceResolver'
 import type { P0LoopAuditSummary } from './p0LoopAuditResolver'
 import type { P0LoopNextActionSummary } from './p0LoopNextActionResolver'
+import type { MainLoopReadinessKey } from './mainLoopReadinessResolver'
 
 export type P0LoopReportTone = 'jade' | 'gold' | 'rose' | 'mist'
 
 export interface P0LoopReportItem {
-  id: string
+  id: MainLoopReadinessKey
   label: string
   stateLabel: string
   detail: string
@@ -21,6 +22,7 @@ export interface P0LoopReportSummary {
   progressText: string
   progressPercent: number
   readyForP1: boolean
+  nextActionId: MainLoopReadinessKey
   nextActionLabel: string
   nextActionTitle: string
   nextActionReason: string
@@ -70,6 +72,7 @@ export function resolveP0LoopReport(input: {
     progressText: acceptance.progressText,
     progressPercent: acceptance.progressPercent,
     readyForP1: acceptance.readyForP1,
+    nextActionId: nextAction.primary.id,
     nextActionLabel: nextAction.primary.label,
     nextActionTitle: nextAction.primary.title,
     nextActionReason: nextAction.primary.reason,

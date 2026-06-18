@@ -111,9 +111,18 @@
         </div>
 
         <div class="p0-next-card">
-          <span>下一步</span>
-          <strong>{{ p0Report.nextActionTitle }}</strong>
-          <p>{{ p0Report.nextActionReason }}</p>
+          <div class="p0-next-copy">
+            <span>下一步</span>
+            <strong>{{ p0Report.nextActionTitle }}</strong>
+            <p>{{ p0Report.nextActionReason }}</p>
+          </div>
+          <button
+            type="button"
+            class="p0-next-action"
+            @click="handleP0ReportAction(p0Report.nextActionId)"
+          >
+            {{ p0Report.nextActionLabel }}
+          </button>
         </div>
 
         <div class="p0-report-columns">
@@ -150,7 +159,9 @@
                 <span>{{ item.stateLabel }}</span>
                 <strong>{{ item.label }}</strong>
                 <p>{{ item.detail }}</p>
-                <small>{{ item.nextAction }}</small>
+                <button type="button" @click="handleP0ReportAction(item.id)">
+                  {{ item.nextAction }}
+                </button>
               </article>
             </div>
           </div>
@@ -182,6 +193,7 @@ import { computed } from 'vue'
 import { Bell, Volume2, VolumeX } from 'lucide-vue-next'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import { useP0LoopActions } from '@/composables/useP0LoopActions'
 import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import {
   sfxBreakthrough,
@@ -194,11 +206,13 @@ import {
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import type { MainLoopReadinessKey } from '@/world/runtime/mainLoopReadinessResolver'
 
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
 const { p0Report } = useP0LoopStatus()
+const { handleP0LoopAction } = useP0LoopActions()
 
 const {
   sfxEnabled,
@@ -263,6 +277,10 @@ function handleStopBgm() {
   sfxClick()
   stopBgm()
   setBgmEnabled(false)
+}
+
+function handleP0ReportAction(id: MainLoopReadinessKey) {
+  handleP0LoopAction(id)
 }
 
 function playClick() {
@@ -524,13 +542,21 @@ function playItem() {
 
 .p0-next-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 5px;
+  align-items: center;
   padding: 12px;
   border: 1px solid rgba(194, 146, 66, 0.2);
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 251, 236, 0.82), rgba(242, 253, 247, 0.66)),
     radial-gradient(circle at top right, rgba(255, 220, 132, 0.16), transparent 60%);
+}
+
+.p0-next-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
 }
 
 .p0-next-card strong {
@@ -609,10 +635,31 @@ function playItem() {
   font-size: 13px;
 }
 
-.p0-gap-card small {
-  overflow: hidden;
+.p0-next-action,
+.p0-gap-card button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid rgba(194, 146, 66, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 251, 236, 0.86);
   color: #8b6226;
+  font-family: var(--font-game);
   font-size: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.p0-next-action {
+  min-width: 92px;
+}
+
+.p0-gap-card button {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -641,9 +688,14 @@ function playItem() {
 @media (max-width: 760px) {
   .settings-grid,
   .settings-hero,
+  .p0-next-card,
   .p0-report-head,
   .p0-report-columns {
     grid-template-columns: 1fr;
+  }
+
+  .p0-next-action {
+    width: fit-content;
   }
 
   .sound-orb {

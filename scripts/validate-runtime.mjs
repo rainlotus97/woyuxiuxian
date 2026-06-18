@@ -3159,6 +3159,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   })
   assert.equal(freshReport.stageLabel, '建立底座')
   assert.equal(freshReport.gateLabel, '继续 P0 验收')
+  assert.equal(freshReport.nextActionId, 'sect')
   assert.equal(freshReport.nextActionLabel, '宗门')
   assert.equal(freshReport.acceptedItems.length, 0)
   assert.equal(freshReport.remainingItems.length, 6)
@@ -3218,6 +3219,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   })
   assert.equal(sectClosedReport.stageLabel, '闭环复核')
   assert.equal(sectClosedReport.acceptedItems[0].label, '宗门')
+  assert.equal(sectClosedReport.nextActionId, 'story')
   assert.equal(sectClosedReport.nextActionLabel, '故事')
 
   assert.deepEqual(resolveP0LoopRouteTarget({
