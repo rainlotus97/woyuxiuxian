@@ -122,18 +122,23 @@ export interface NpcRuntimeState {
 
 export type WorldLogScope = 'player' | 'npc' | 'sect' | 'weather' | 'world'
 export type WorldLogSeverity = 'minor' | 'normal' | 'major' | 'legendary'
+export type WorldLogVisibility = 'briefing' | 'record' | 'hidden'
 
 export interface WorldLogEntry {
   id: string
   tick: number
+  lastTick: number
   timeLabel: string
   scope: WorldLogScope
   severity: WorldLogSeverity
+  visibility: WorldLogVisibility
   title: string
   text: string
   actorIds: string[]
   mapId?: string
   tags: string[]
+  dedupeKey: string
+  repeatCount: number
   revealed: boolean
 }
 

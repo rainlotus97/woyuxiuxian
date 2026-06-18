@@ -224,7 +224,7 @@
       <div class="log-list">
         <div v-for="log in recentLogs" :key="log.id" class="log-card" :class="`severity-${log.severity}`">
           <div class="log-head">
-            <strong>{{ log.title }}</strong>
+            <strong>{{ log.title }}<small v-if="log.repeatCount > 1">x{{ log.repeatCount }}</small></strong>
             <span>{{ log.timeLabel }}</span>
           </div>
           <p>{{ log.text }}</p>
@@ -761,6 +761,12 @@ function handleBriefingAction(item: WorldBriefingItem) {
 .log-head strong {
   color: #8b6226;
   font-size: 14px;
+}
+
+.log-head strong small {
+  margin-left: 6px;
+  color: rgba(139, 98, 38, 0.7);
+  font-size: 11px;
 }
 
 .overview-grid,

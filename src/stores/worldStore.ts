@@ -71,6 +71,12 @@ import {
   createPlayerJourney,
   resolveWorldDisasterTrigger
 } from '@/world/runtime/worldNarrativeResolver'
+import {
+  createWorldLogEntry,
+  getVisibleWorldLogs,
+  insertWorldLog,
+  normalizeWorldLogs
+} from '@/world/runtime/worldLogResolver'
 
 interface WorldState {
   clock: WorldClock
@@ -160,7 +166,7 @@ export const useWorldStore = defineStore('world', () => {
           mergedNpcDefinitions,
           parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates
         ),
-        logs: parsed.logs ?? defaults.logs,
+        logs: normalizeWorldLogs(parsed.logs ?? defaults.logs),
         playerJourneys: parsed.playerJourneys ?? defaults.playerJourneys,
         npcStories: parsed.npcStories ?? defaults.npcStories,
         areaAnomalies: parsed.areaAnomalies ?? defaults.areaAnomalies,
@@ -180,7 +186,7 @@ export const useWorldStore = defineStore('world', () => {
   const weather = ref<WorldWeather>(initialData.weather)
   const npcDefinitions = ref<NpcDefinition[]>([...initialData.npcDefinitions])
   const npcStates = ref<NpcRuntimeState[]>([...initialData.npcStates])
-  const logs = ref<WorldLogEntry[]>([...initialData.logs])
+  const logs = ref<WorldLogEntry[]>(normalizeWorldLogs(initialData.logs))
   const playerJourneys = ref<PlayerJourneyEntry[]>([...initialData.playerJourneys])
   const npcStories = ref<NpcStoryRecord[]>([...initialData.npcStories])
   const areaAnomalies = ref<WorldAreaAnomaly[]>([...initialData.areaAnomalies])
@@ -188,7 +194,7 @@ export const useWorldStore = defineStore('world', () => {
   const worldFlags = ref<string[]>([...initialData.worldFlags])
 
   const currentTimeLabel = computed(() => formatWorldTime(clock.value))
-  const visibleLogs = computed(() => logs.value.slice(0, 12))
+  const visibleLogs = computed(() => getVisibleWorldLogs(logs.value, 12))
   const recentPlayerJourneys = computed(() => playerJourneys.value.slice(0, 6))
   const importantNpcStories = computed(() => npcStories.value.slice(0, 6))
   const activeAreaAnomalies = computed(() => areaAnomalies.value.slice(0, 6))
@@ -680,7 +686,7 @@ export const useWorldStore = defineStore('world', () => {
     tags: string[],
     mapId?: string
   ) {
-    logs.value.unshift({
+    const entry = createWorldLogEntry({
       id: `world_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       tick: clock.value.totalTicks,
       timeLabel: currentTimeLabel.value,
@@ -693,9 +699,7 @@ export const useWorldStore = defineStore('world', () => {
       tags,
       revealed: true
     })
-    if (logs.value.length > 120) {
-      logs.value = logs.value.slice(0, 120)
-    }
+    logs.value = insertWorldLog(logs.value, entry, 120)
   }
 
   function recordPlayerJourney(

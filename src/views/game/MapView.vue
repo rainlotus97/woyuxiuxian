@@ -52,7 +52,7 @@
       >
         <div class="world-log-list">
           <div v-for="log in recentWorldLogs" :key="log.id" class="world-log-item">
-            <strong>{{ log.title }}</strong>
+            <strong>{{ log.title }}<small v-if="log.repeatCount > 1">x{{ log.repeatCount }}</small></strong>
             <p>{{ log.text }}</p>
             <small>{{ log.timeLabel }}</small>
           </div>
@@ -531,6 +531,12 @@ function handleChallenge(area: MapArea) {
 .world-log-item strong {
   color: #315257;
   font-size: 13px;
+}
+
+.world-log-item strong small {
+  margin-left: 6px;
+  color: rgba(49, 82, 87, 0.68);
+  font-size: 11px;
 }
 
 .world-log-item p {
