@@ -38,6 +38,7 @@ import {
   resolveSectJoin,
   resolveSectLeave
 } from '@/sect/runtime/sectMembershipResolver'
+import { resolveSectEventChoice } from '@/sect/runtime/sectEventResolver'
 import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
   getSectRecoveryOption,
@@ -673,29 +674,13 @@ export const useSectStore = defineStore('sect', () => {
 
   // 处理随机事件
   function handleEventChoice(choiceId: string): boolean {
-    if (!activeEvent.value) return false
+    const resolution = resolveSectEventChoice(activeEvent.value, choiceId)
+    if (!resolution.success) return false
 
-    const choice = activeEvent.value.choices.find(c => c.id === choiceId)
-    if (!choice) return false
-
-    // 应用效果
-    for (const effect of choice.outcome.effects) {
-      switch (effect.type) {
-        case 'gold':
-          const playerStore = usePlayerStore()
-          playerStore.addGold(effect.value as number)
-          break
-        case 'contribution':
-          addContribution(effect.value as number)
-          break
-        case 'reputation':
-          addReputation(effect.value as number)
-          break
-      }
-    }
-
-    activeEvent.value.handled = true
-    activeEvent.value.selectedChoice = choiceId
+    const playerStore = usePlayerStore()
+    playerStore.addGold(resolution.effects.gold)
+    addContribution(resolution.effects.contribution)
+    addReputation(resolution.effects.reputation)
     activeEvent.value = null
     return true
   }

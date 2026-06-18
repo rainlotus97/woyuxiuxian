@@ -219,6 +219,7 @@
   - 已让战争结算产出结构化 rewards / penalties 与最近战报，供宗门主循环界面消费
   - 已让主界总览新增 `worldBriefingResolver + WorldBriefingPanel`，把主角被俘、宗门战局、区域异动与关键 NPC 动向汇总为可操作要事
   - 已新增 `sectRecoveryResolver + SectRecoveryPanel`，让沦陷 / 重建状态可以通过重立山门、暗运资材、修复护山阵、安定弟子等行动恢复
+  - 已新增 `sectEventResolver`，统一宗门事件选择、效果汇总与事件处理状态
   - 已修正战后宗门世界态只写入败方所属宗门，避免胜方宗门被错误标成沦陷或重建
   - 待补：合并、沦陷后的更多玩法限制、跨宗门连锁反应
 - [~] 增加从弟子到宗主的晋升链
@@ -278,7 +279,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / event / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

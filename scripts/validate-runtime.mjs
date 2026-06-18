@@ -555,6 +555,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectJoin,
     resolveSectLeave
   } = await load('/src/sect/runtime/sectMembershipResolver.ts')
+  const { resolveSectEventChoice } = await load('/src/sect/runtime/sectEventResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const {
     resolveSectWarAdvance,
@@ -892,6 +893,39 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(readyLeave.canLeave, true)
   assert.equal(readyLeave.nextState?.worldCondition.status, 'stable')
   assert.equal(readyLeave.nextState?.activeDirective, 'balanced')
+
+  const eventChoice = resolveSectEventChoice({
+    id: 'event_fixture',
+    type: 'resource_discovery',
+    title: '灵矿显露',
+    description: '山门发现一处灵矿',
+    handled: false,
+    choices: [
+      {
+        id: 'claim',
+        text: '开采',
+        outcome: {
+          description: '获得资源',
+          effects: [
+            { type: 'gold', value: 120 },
+            { type: 'contribution', value: 8 },
+            { type: 'reputation', value: 3 },
+            { type: 'item', value: 'ore' }
+          ]
+        }
+      }
+    ]
+  }, 'claim')
+  assert.equal(eventChoice.success, true)
+  assert.equal(eventChoice.effects.gold, 120)
+  assert.equal(eventChoice.effects.contribution, 8)
+  assert.equal(eventChoice.effects.reputation, 3)
+  assert.deepEqual(eventChoice.effects.itemValues, ['ore'])
+  assert.equal(eventChoice.handledEvent?.handled, true)
+  assert.equal(eventChoice.handledEvent?.selectedChoice, 'claim')
+  const missingEventChoice = resolveSectEventChoice(null, 'claim')
+  assert.equal(missingEventChoice.success, false)
+  assert.equal(missingEventChoice.reason, 'missing_event')
 
   const warFixture = {
     id: 'war_fixture',
