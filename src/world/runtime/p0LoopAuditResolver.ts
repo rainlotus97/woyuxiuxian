@@ -46,7 +46,7 @@ function createChecklistItem(item: P0LoopClosureItem): P0LoopAuditChecklistItem 
     label: item.label,
     state: item.state,
     stateLabel: STATE_LABELS[item.state],
-    detail: item.evidence,
+    detail: item.evidenceDetail,
     nextAction: item.nextAction
   }
 }

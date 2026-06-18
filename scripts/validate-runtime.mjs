@@ -3010,6 +3010,8 @@ test('p0 loop closure summarizes observable result evidence', async () => {
 
   assert.equal(npcJourneyClosure.byId.npc.state, 'closed')
   assert.equal(npcJourneyClosure.byId.npc.evidence, '已有人物纪闻或互动行程')
+  assert.equal(npcJourneyClosure.byId.npc.evidenceDetail, '互动行程 1')
+  assert.deepEqual(npcJourneyClosure.byId.npc.evidenceSources, ['互动行程 1'])
   assert.equal(npcJourneyClosure.closedCount, 1)
 
   const storyOnlyClosure = resolveP0LoopClosure({
@@ -3032,6 +3034,8 @@ test('p0 loop closure summarizes observable result evidence', async () => {
 
   assert.equal(storyOnlyClosure.byId.story.state, 'closed')
   assert.equal(storyOnlyClosure.byId.story.evidence, '故事卷宗已有行程或节点进度')
+  assert.equal(storyOnlyClosure.byId.story.evidenceDetail, '故事行程 1')
+  assert.deepEqual(storyOnlyClosure.byId.story.evidenceSources, ['故事行程 1'])
   assert.equal(storyOnlyClosure.closedCount, 1)
 
   const richClosure = resolveP0LoopClosure({
@@ -3061,6 +3065,9 @@ test('p0 loop closure summarizes observable result evidence', async () => {
   assert.equal(richClosure.closedCount, 6)
   assert.equal(richClosure.counts.closed, 6)
   assert.equal(richClosure.byId.sect.state, 'closed')
+  assert.ok(richClosure.byId.map.evidenceDetail.includes('地图历史 1'))
+  assert.ok(richClosure.byId.map.evidenceSources.includes('区域异动 1'))
+  assert.ok(richClosure.byId.sect.evidenceSources.includes('已有宗门归属'))
   assert.match(richClosure.headline, /六项核心循环/)
 
   const blockedReadiness = resolveMainLoopReadiness({
@@ -3186,6 +3193,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(freshReport.acceptedItems.length, 0)
   assert.equal(freshReport.remainingItems.length, 6)
   assert.equal(freshReport.remainingItems[0].tone, 'gold')
+  assert.ok(freshReport.remainingItems.some(item => item.id === 'sect' && item.detail.includes('可拜山宗门')))
 
   const sectClosedReadiness = resolveMainLoopReadiness({
     ...baseInput,
@@ -3241,6 +3249,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   })
   assert.equal(sectClosedReport.stageLabel, '闭环复核')
   assert.equal(sectClosedReport.acceptedItems[0].label, '宗门')
+  assert.equal(sectClosedReport.acceptedItems[0].detail, '已有宗门归属，宗门行程 1')
   assert.equal(sectClosedReport.nextActionId, 'story')
   assert.equal(sectClosedReport.nextActionLabel, '故事')
 
@@ -3445,6 +3454,7 @@ test('p0 loop verification composes the full p0 acceptance gate', async () => {
   assert.equal(partial.p0Acceptance.acceptedCount, 2)
   assert.equal(partial.p0Acceptance.remainingCount, 4)
   assert.equal(partial.p0Report.readyForP1, false)
+  assert.ok(partial.p0Report.acceptedItems.some(item => item.id === 'story' && item.detail.includes('完成节点 1')))
   assert.deepEqual(partial.p0Acceptance.acceptedItems.map(item => item.id), ['story', 'sect'])
 
   const complete = resolveP0LoopVerification({

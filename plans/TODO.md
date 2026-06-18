@@ -111,6 +111,7 @@
   - 本轮补充验收缺口优先级校验：新档缺口跟随宗门推荐，宗门闭环后转向故事，被俘状态仍优先显示脱困相关缺口
   - 本轮新增 `p0LoopVerificationResolver`：把 readiness / closure / nextAction / audit / acceptance / report 串成纯 runtime 组合器，首页、主界、设置页和验证脚本共享同一条 P0 验收链路
   - 本轮补充 P0 整体验收链路校验：覆盖 0/6、部分闭环、6/6 readyForP1 三个状态，避免主界和设置页各自拼装导致门禁判断漂移
+  - 本轮补强 P0 闭环证据表达：`p0LoopClosureResolver` 输出 `evidenceDetail / evidenceSources`，首页/设置页可看到节点数、行程数、地图历史、区域异动、宗门归属等具体证据，不再只显示泛化结论
 
 ## P1 / P2 边界
 
