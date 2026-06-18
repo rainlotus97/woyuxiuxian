@@ -23,7 +23,7 @@
           <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
           <GameStatChip icon="👥" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
           <button class="audio-toggle" :class="{ active: bgmEnabled }" @click="handleToggleBgm">
-            <span>{{ bgmEnabled ? '音' : '静' }}</span>
+            <span><component :is="bgmEnabled ? Volume2 : VolumeX" :size="15" /></span>
             <small>{{ bgmEnabled ? '背景音' : '已静音' }}</small>
           </button>
         </div>
@@ -32,23 +32,25 @@
       </div>
     </header>
 
-    <main class="main-shell">
+    <main class="main-shell" @click="closeMenu">
       <RouterView />
     </main>
 
-    <footer class="nav-shell">
-      <GameSurface class="nav-surface" tone="jade" padding="md">
+    <div v-if="isMenuExpanded" class="nav-scrim" @click="closeMenu"></div>
+
+    <footer class="nav-shell" :class="{ expanded: isMenuExpanded }">
+      <GameSurface v-if="isMenuExpanded" class="nav-drawer" tone="jade" padding="md">
         <div class="nav-header">
           <div class="nav-copy">
-            <span class="nav-eyebrow">主循环</span>
-            <strong>{{ currentMenuItem?.name || '修仙界面' }}</strong>
+            <span class="nav-eyebrow">功能总览</span>
+            <strong>前往修仙界面</strong>
           </div>
-          <button class="menu-toggle" @click="toggleMenu">
-            <span>{{ isMenuExpanded ? '收起' : '展开' }}</span>
+          <button class="drawer-close" aria-label="收起菜单" @click="closeMenu">
+            <X :size="18" />
           </button>
         </div>
 
-        <div v-if="isMenuExpanded" class="menu-grid">
+        <div class="menu-grid">
           <RouterLink
             v-for="item in menuItems"
             :key="item.path"
@@ -57,27 +59,37 @@
             :class="{ active: isActive(item.path) }"
             @click="handleMenuClick"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-icon"><component :is="item.icon" :size="20" /></span>
             <div class="menu-copy">
               <strong>{{ item.name }}</strong>
               <small>{{ item.desc }}</small>
             </div>
           </RouterLink>
         </div>
-
-        <div v-else class="quick-bar">
-          <RouterLink
-            v-for="item in quickAccessItems"
-            :key="item.path"
-            :to="item.path"
-            class="quick-card"
-            :class="{ active: isActive(item.path) }"
-          >
-            <span class="quick-icon">{{ item.icon }}</span>
-            <span class="quick-label">{{ item.shortName }}</span>
-          </RouterLink>
-        </div>
       </GameSurface>
+
+      <nav class="tab-bar" aria-label="主循环导航">
+        <RouterLink
+          v-for="item in tabItems"
+          :key="item.path"
+          :to="item.path"
+          class="tab-item"
+          :class="{ active: isActive(item.path) }"
+        >
+          <component :is="item.icon" :size="21" />
+          <span>{{ item.shortName }}</span>
+        </RouterLink>
+
+        <button
+          class="tab-item tab-more"
+          :class="{ active: isMenuExpanded }"
+          type="button"
+          @click.stop="toggleMenu"
+        >
+          <component :is="isMenuExpanded ? X : Grid3X3" :size="21" />
+          <span>{{ isMenuExpanded ? '收起' : '更多' }}</span>
+        </button>
+      </nav>
     </footer>
 
     <AnnouncementModal />
@@ -86,8 +98,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import {
+  Backpack,
+  BookOpen,
+  Grid3X3,
+  Landmark,
+  Map,
+  ScrollText,
+  Settings,
+  Sparkles,
+  Store,
+  Swords,
+  UserRound,
+  UsersRound,
+  Volume2,
+  VolumeX,
+  X
+} from 'lucide-vue-next'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
@@ -103,7 +132,7 @@ interface MenuItem {
   name: string
   shortName: string
   desc: string
-  icon: string
+  icon: Component
 }
 
 const playerStore = usePlayerStore()
@@ -117,38 +146,20 @@ let worldTickTimer: number | null = null
 const WORLD_TICK_INTERVAL_MS = 60 * 1000
 
 const menuItems: MenuItem[] = [
-  { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '吐纳灵气，突破小境。', icon: '🧘' },
-  { path: '/game/story', name: '故事', shortName: '故事', desc: '主线、支线与人物因果。', icon: '📖' },
-  { path: '/game/adventure', name: '历险', shortName: '历险', desc: '历练刷图，搜罗材料。', icon: '⚔️' },
-  { path: '/game/map', name: '地图', shortName: '地图', desc: '查看界域、战线与风险。', icon: '🗺️' },
-  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '宗门关系、任务和战事。', icon: '🏛️' },
-  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '伙伴、灵兽与同行者。', icon: '👥' },
-  { path: '/game/skills', name: '功法', shortName: '功法', desc: '功法树、招式与搭配。', icon: '📜' },
-  { path: '/game/inventory', name: '背包', shortName: '背包', desc: '丹药、材料、法器与装备。', icon: '🎒' },
-  { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '补货、交易与稀有奇珍。', icon: '🏪' },
-  { path: '/game/profile', name: '角色', shortName: '角色', desc: '角色面板与成长总览。', icon: '👤' },
-  { path: '/game/settings', name: '设置', shortName: '设置', desc: '音画、存档与辅助选项。', icon: '⚙️' }
+  { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '吐纳灵气，突破小境。', icon: Sparkles },
+  { path: '/game/adventure', name: '历险', shortName: '历险', desc: '历练刷图，搜罗材料。', icon: Swords },
+  { path: '/game/story', name: '故事', shortName: '故事', desc: '主线、支线与人物因果。', icon: BookOpen },
+  { path: '/game/map', name: '地图', shortName: '地图', desc: '查看界域、战线与风险。', icon: Map },
+  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '宗门关系、任务和战事。', icon: Landmark },
+  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '伙伴、灵兽与同行者。', icon: UsersRound },
+  { path: '/game/skills', name: '功法', shortName: '功法', desc: '功法树、招式与搭配。', icon: ScrollText },
+  { path: '/game/inventory', name: '背包', shortName: '背包', desc: '丹药、材料、法器与装备。', icon: Backpack },
+  { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '补货、交易与稀有奇珍。', icon: Store },
+  { path: '/game/profile', name: '角色', shortName: '角色', desc: '角色面板与成长总览。', icon: UserRound },
+  { path: '/game/settings', name: '设置', shortName: '设置', desc: '音画、存档与辅助选项。', icon: Settings }
 ]
 
-const quickAccessItems = computed<MenuItem[]>(() => {
-  const currentPath = route.path
-  const items: MenuItem[] = [menuItems[0]!]
-  const currentItem = menuItems.find(item => item.path === currentPath)
-  if (currentItem && currentItem.path !== items[0]?.path) {
-    items.push(currentItem)
-  }
-
-  for (const item of menuItems) {
-    if (items.length >= 4) break
-    if (!items.some(existing => existing.path === item.path)) {
-      items.push(item)
-    }
-  }
-
-  return items.slice(0, 4)
-})
-
-const currentMenuItem = computed(() => menuItems.find(item => item.path === route.path) ?? null)
+const tabItems = computed<MenuItem[]>(() => menuItems.slice(0, 5))
 
 const weatherLabel = computed(() => {
   const labels: Record<typeof worldStore.weather, string> = {
@@ -251,6 +262,10 @@ function handleMenuClick() {
   isMenuExpanded.value = false
 }
 
+function closeMenu() {
+  isMenuExpanded.value = false
+}
+
 function handleToggleBgm() {
   toggleBgm()
   if (bgmEnabled.value) {
@@ -284,7 +299,7 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
   background:
     linear-gradient(180deg, #f2fffb 0%, #e5f4ef 48%, #dbece7 100%),
@@ -338,7 +353,8 @@ onUnmounted(() => {
 }
 
 .hud-shell,
-.nav-surface {
+.nav-drawer,
+.tab-bar {
   max-width: 1120px;
   margin: 0 auto;
 }
@@ -438,6 +454,7 @@ onUnmounted(() => {
   color: #4b6767;
   font-family: var(--font-game);
   cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .audio-toggle.active {
@@ -456,6 +473,10 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+.audio-toggle svg {
+  color: currentColor;
+}
+
 .audio-toggle small {
   font-size: 10px;
   font-weight: 700;
@@ -472,15 +493,40 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 12px;
+  padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
 }
 
 .nav-shell {
-  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 4;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.nav-shell > * {
+  pointer-events: auto;
+}
+
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(42, 68, 67, 0.16);
+  backdrop-filter: blur(3px);
+}
+
+.nav-drawer {
+  margin-bottom: 10px;
+  max-height: min(68vh, 560px);
+  overflow: auto;
+  border-radius: 22px;
+  box-shadow: 0 28px 72px rgba(58, 85, 82, 0.24);
 }
 
 .nav-header {
@@ -506,16 +552,15 @@ onUnmounted(() => {
   font-size: 18px;
 }
 
-.menu-toggle {
-  min-height: 40px;
-  padding: 0 16px;
+.drawer-close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
   border-radius: 999px;
   border: 1px solid rgba(188, 141, 58, 0.24);
   background: rgba(255, 251, 237, 0.82);
   color: #8b6226;
-  font-family: var(--font-game);
-  font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
 }
 
@@ -527,12 +572,14 @@ onUnmounted(() => {
 
 .menu-card {
   display: grid;
-  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
   align-content: start;
-  min-height: 120px;
-  padding: 14px;
+  min-height: 86px;
+  padding: 12px;
   text-decoration: none;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(103, 149, 144, 0.2);
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.94), rgba(241, 249, 244, 0.82)),
@@ -560,7 +607,7 @@ onUnmounted(() => {
   place-items: center;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
-  font-size: 20px;
+  color: #6d8f8d;
 }
 
 .menu-copy {
@@ -579,36 +626,53 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
-.quick-bar {
+.tab-bar {
+  height: 70px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  gap: 2px;
+  padding: 7px;
+  border: 1px solid rgba(102, 146, 141, 0.2);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
+    radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
+  box-shadow: 0 18px 48px rgba(57, 89, 84, 0.18);
+  backdrop-filter: blur(18px);
 }
 
-.quick-card {
+.tab-item {
+  height: 56px;
+  min-width: 0;
   display: grid;
-  justify-items: center;
-  gap: 6px;
-  padding: 10px 6px;
+  place-items: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: rgba(65, 91, 89, 0.74);
+  font-family: var(--font-game);
+  font-size: 11px;
+  line-height: 1;
   text-decoration: none;
-  border-radius: 18px;
-  border: 1px solid rgba(103, 149, 144, 0.18);
-  background: rgba(255, 255, 255, 0.58);
   cursor: pointer;
 }
 
-.quick-card.active {
-  border-color: rgba(188, 141, 58, 0.28);
-  background: rgba(255, 249, 233, 0.82);
+.tab-item svg {
+  display: block;
 }
 
-.quick-icon {
-  font-size: 18px;
+.tab-item.active {
+  background: rgba(255, 248, 229, 0.92);
+  color: #8b6226;
+  box-shadow: inset 0 0 0 1px rgba(194, 146, 66, 0.2);
 }
 
-.quick-label {
-  color: #496463;
-  font-size: 11px;
+.tab-more {
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 @media (max-width: 860px) {
@@ -627,25 +691,54 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 10px;
+    padding: 10px 10px calc(92px + env(safe-area-inset-bottom, 0px));
   }
 
-  .nav-shell,
   .top-shell {
     padding-inline: 10px;
   }
 
-  .menu-grid {
+  .nav-shell {
+    padding-inline: 10px;
+  }
+
+  .hud-shell {
+    gap: 8px;
+    padding: 9px;
+    border-radius: 18px;
+  }
+
+  .resource-row {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .quick-bar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .world-summary {
+    display: none;
+  }
+
+  .nav-drawer {
+    max-height: min(70vh, 520px);
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
   .menu-card {
-    min-height: 108px;
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  .tab-bar {
+    height: 66px;
+    border-radius: 20px;
+  }
+
+  .tab-item {
+    height: 52px;
+    font-size: 10px;
   }
 }
 </style>

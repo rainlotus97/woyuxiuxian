@@ -32,6 +32,32 @@
       </div>
     </GameSurface>
 
+    <GameSurface
+      tone="gold"
+      padding="md"
+      eyebrow="今日安排"
+      title="主循环任务台"
+      subtitle="优先处理挂机、历险、故事、人物、地图与宗门这些 P0 可玩入口。"
+    >
+      <div class="loop-task-grid">
+        <button
+          v-for="task in mainLoopTasks"
+          :key="task.id"
+          class="loop-task-card"
+          :class="[`tone-${task.tone}`, { active: task.active }]"
+          @click="handleTaskAction(task)"
+        >
+          <span class="task-icon">{{ task.icon }}</span>
+          <span class="task-copy">
+            <small>{{ task.label }}</small>
+            <strong>{{ task.title }}</strong>
+            <em>{{ task.summary }}</em>
+          </span>
+          <span class="task-meta">{{ task.meta }}</span>
+        </button>
+      </div>
+    </GameSurface>
+
     <div class="overview-grid">
       <GameSurface tone="gold" padding="md" eyebrow="修炼进程" title="境界推进" :subtitle="breakthroughHint">
         <div class="progress-stack">
@@ -274,6 +300,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { useStoryStore } from '@/story/storyStore'
 import type { IdleMode } from '@/types/world'
 import { getSectById } from '@/types/sect'
 import {
@@ -293,6 +320,7 @@ const playerStore = usePlayerStore()
 const mapStore = useMapStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const storyStore = useStoryStore()
 const router = useRouter()
 const { success, warning, info } = useToast()
 const { showItemAcquire } = useModal()
@@ -300,6 +328,19 @@ const { showItemAcquire } = useModal()
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
 let idleTimer: number | null = null
+
+interface MainLoopTask {
+  id: string
+  icon: string
+  label: string
+  title: string
+  summary: string
+  meta: string
+  tone: 'jade' | 'gold' | 'rose' | 'mist'
+  active?: boolean
+  route?: string
+  action?: 'toggleIdle'
+}
 
 const idleModes: Array<{ id: IdleMode; icon: string; label: string; description: string }> = [
   { id: 'cultivate', icon: '🧘', label: '闭关修炼', description: '稳定累积修为，适合准备突破。' },
@@ -518,6 +559,92 @@ const worldBriefings = computed(() => {
   })
 })
 
+const mainLoopTasks = computed<MainLoopTask[]>(() => {
+  const firstNpc = spotlightNpcs.value[0]
+  const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
+  const sectTitle = sectStore.currentSect ? sectStore.currentSect.name : '选择宗门'
+  const sectMeta = sectStore.currentSect
+    ? `${sectStore.positionName} · 贡献 ${sectStore.contribution}`
+    : `${sectStore.unlockedSectList.length} 个可选势力`
+  const hotspotTitle = hotspotArea.value
+    ? hotspotArea.value.name
+    : mapStore.currentRealm
+
+  return [
+    {
+      id: 'idle',
+      icon: playerStore.isIdling ? '停' : '修',
+      label: '挂机',
+      title: playerStore.isIdling ? `正在${idleModeLabel.value}` : '安排主角行动',
+      summary: playerStore.captivity.isCaptured
+        ? '被俘期间转入脱困循环'
+        : '切换闭关、游历、宗门差遣、采药或演练功法',
+      meta: playerStore.isIdling ? '点击停止' : '点击开始',
+      tone: playerStore.captivity.isCaptured ? 'rose' : playerStore.isIdling ? 'gold' : 'jade',
+      active: playerStore.isIdling,
+      action: 'toggleIdle'
+    },
+    {
+      id: 'adventure',
+      icon: '战',
+      label: '历险',
+      title: '前往界域历练',
+      summary: '挑战区域、消耗体力、获取丹药材料与战斗推进',
+      meta: `体力 ${playerStore.stamina}/${playerStore.maxStamina}`,
+      tone: playerStore.stamina > 0 ? 'jade' : 'mist',
+      route: '/game/adventure'
+    },
+    {
+      id: 'story',
+      icon: '卷',
+      label: '故事',
+      title: storyStore.currentNodeId ? '继续命簿卷宗' : '开启主线卷宗',
+      summary: '故事会解锁 NPC、伙伴、地图、宗门关系与剧情战',
+      meta: `${latestStoryLabel}`,
+      tone: 'gold',
+      route: '/game/story'
+    },
+    {
+      id: 'npc',
+      icon: '人',
+      label: '人物',
+      title: firstNpc ? firstNpc.name : '结识同行者',
+      summary: firstNpc
+        ? `${firstNpc.destinyRankLabel} · ${firstNpc.bondLabel} · ${firstNpc.goalLabel}`
+        : '重要 NPC 会自主成长、冲突、结盟或反目',
+      meta: `${worldStore.unlockedNpcDefinitions.length} 人`,
+      tone: firstNpc?.bondTone === 'hostile' ? 'rose' : 'jade',
+      route: '/game/companion'
+    },
+    {
+      id: 'map',
+      icon: '图',
+      label: '地图',
+      title: hotspotTitle,
+      summary: hotspotArea.value
+        ? `${hotspotArea.value.contested ? '战线争夺' : '区域高压'}${hotspotArea.value.anomalyTitle ? ` · ${hotspotArea.value.anomalyTitle}` : ''}`
+        : '查看界域、资源、宗门位置和风险变化',
+      meta: `${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`,
+      tone: hotspotArea.value ? 'rose' : 'mist',
+      route: '/game/map'
+    },
+    {
+      id: 'sect',
+      icon: '门',
+      label: '宗门',
+      title: sectTitle,
+      summary: sectStore.activeWar
+        ? '宗门战争正在推进，地图控制权与 NPC 命运会受影响'
+        : sectStore.currentSect
+          ? '处理任务、俸禄、设施、营救与外交'
+          : '先选择可加入宗门，建立长期归属与资源来源',
+      meta: sectMeta,
+      tone: sectStore.activeWar ? 'rose' : sectStore.currentSect ? 'gold' : 'mist',
+      route: '/game/sect'
+    }
+  ]
+})
+
 onMounted(() => {
   worldStore.simulateOffline()
 
@@ -663,13 +790,24 @@ function handleBriefingAction(item: WorldBriefingItem) {
   }
 }
 
+function handleTaskAction(task: MainLoopTask) {
+  if (task.action === 'toggleIdle') {
+    toggleIdle()
+    return
+  }
+
+  if (task.route) {
+    void router.push(task.route)
+  }
+}
+
 </script>
 
 <style scoped>
 .cultivation-view {
   display: grid;
   gap: 14px;
-  padding-bottom: 88px;
+  padding-bottom: 12px;
 }
 
 .hero-grid,
@@ -770,6 +908,118 @@ function handleBriefingAction(item: WorldBriefingItem) {
   margin-left: 6px;
   color: rgba(139, 98, 38, 0.7);
   font-size: 11px;
+}
+
+.loop-task-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.loop-task-card {
+  min-width: 0;
+  min-height: 116px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 10px 12px;
+  align-items: start;
+  padding: 13px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.9), rgba(241, 249, 244, 0.78)),
+    radial-gradient(circle at top right, rgba(158, 225, 207, 0.16), transparent 58%);
+  color: #315257;
+  font-family: var(--font-game);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.loop-task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(87, 126, 121, 0.14);
+}
+
+.loop-task-card.active,
+.loop-task-card.tone-gold {
+  border-color: rgba(194, 146, 66, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 238, 0.96), rgba(247, 240, 215, 0.84)),
+    radial-gradient(circle at top right, rgba(255, 212, 112, 0.2), transparent 58%);
+}
+
+.loop-task-card.tone-rose {
+  border-color: rgba(198, 121, 137, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 249, 0.96), rgba(248, 235, 236, 0.84)),
+    radial-gradient(circle at top right, rgba(244, 181, 188, 0.18), transparent 58%);
+}
+
+.loop-task-card.tone-mist {
+  border-color: rgba(119, 158, 178, 0.2);
+  background:
+    linear-gradient(180deg, rgba(247, 253, 255, 0.94), rgba(239, 248, 246, 0.82)),
+    radial-gradient(circle at top right, rgba(174, 218, 240, 0.16), transparent 58%);
+}
+
+.task-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #8b6226;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.task-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.task-copy small {
+  color: rgba(75, 100, 98, 0.66);
+  font-size: 10px;
+}
+
+.task-copy strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 14px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-copy em {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(53, 81, 83, 0.76);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.55;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.task-meta {
+  grid-column: 1 / -1;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(75, 100, 98, 0.76);
+  font-size: 10px;
 }
 
 .overview-grid,
@@ -1101,6 +1351,7 @@ function handleBriefingAction(item: WorldBriefingItem) {
 @media (max-width: 980px) {
   .hero-grid,
   .hero-grid.compact,
+  .loop-task-grid,
   .overview-grid,
   .world-grid,
   .log-list {
@@ -1113,7 +1364,14 @@ function handleBriefingAction(item: WorldBriefingItem) {
 }
 
 @media (max-width: 720px) {
-  .hero-header,
+  .loop-task-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loop-task-card {
+    min-height: 126px;
+  }
+
   .offline-banner {
     flex-direction: column;
     align-items: stretch;
