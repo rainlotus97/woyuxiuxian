@@ -620,6 +620,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     applyShopPurchases,
     canInventoryAcceptShopItem,
     createShopInventory,
+    resolveShopCatalogEntries,
     resolveShopMarketInfluence,
     resolveShopMerchantInfluence,
     resolveShopPurchase
@@ -1088,10 +1089,36 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok(merchantInfluence.tags.includes('人物商缘'))
   const merchantInventory = createShopInventory(merchantMarketContext)
   const merchantPill = merchantInventory.find(item => item.definition.id === 'shop_pill_001')
+  const merchantPrivatePill = merchantInventory.find(item => item.definition.id === 'merchant_pill_bai_ruoli_001')
   assert.ok(merchantPill, 'merchant shop should include qi gathering pill')
+  assert.ok(merchantPrivatePill, 'merchant shop should include private medicine item')
   assert.ok(merchantPill.stock >= stablePill.stock)
   assert.ok(merchantPill.price <= stablePill.price)
   assert.ok(merchantPill.tags.some(tag => tag.includes('白若璃')))
+  assert.ok(merchantPrivatePill.tags.some(tag => tag.includes('白若璃私货')))
+  assert.equal(merchantPrivatePill.definition.definitionId, 'pill_baicao_life')
+  const lowFavorMerchantContext = {
+    ...merchantMarketContext,
+    merchantNpcStates: merchantMarketContext.merchantNpcStates.map(merchant => ({
+      ...merchant,
+      relationship: { favor: 20, debt: 0, bond: 'stranger' }
+    }))
+  }
+  assert.equal(
+    resolveShopCatalogEntries(lowFavorMerchantContext).some(entry => entry.definition.id === 'merchant_pill_bai_ruoli_001'),
+    false
+  )
+  const merchantPrivatePurchase = resolveShopPurchase({
+    stockId: merchantPrivatePill.stockId,
+    inventory: [merchantPrivatePill],
+    purchasedByStockId: {},
+    gold: merchantPrivatePill.price,
+    contribution: 0,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(merchantPrivatePurchase.success, true)
+  assert.equal(merchantPrivatePurchase.inventoryItem?.definitionId, 'pill_baicao_life')
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)

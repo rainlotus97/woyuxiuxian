@@ -267,8 +267,9 @@
   - 已让护脉筑基丹、凝金丹等破境道具接入真实破境成功率、失败保留修为与消耗链路
   - 已让宗门限定货接入真实宗门 ID 与贡献兑换成本，购买时同时校验/扣除灵石与宗门贡献
   - 已新增 NPC 商人影响规则，让解锁人物的职业标签、位置与玩家关系影响坊市特定分类库存、价格和供货标签
+  - 已新增 NPC 商人专属商品池，满足人物标签与关系门槛后可注入私货并复用现有购买/入库链路
   - 已将 `ShopView` 切到统一亮色游戏 UI，支持分类、品质筛选、库存展示、宗门/天气标签与购买确认
-  - 待补：更多高阶破境/渡劫道具继续联动、NPC 商人事件与专属商品池
+  - 待补：更多高阶破境/渡劫道具继续联动、NPC 商人事件与更多专属商品
 - [ ] 打通丹药、食物、装备、功法、灵兽对战斗和挂机的影响
   - 已打通灵兽对战斗上阵与挂机成长的基础影响链路
   - 已新增 `characterProgressionResolver`，统一计算装备/功法属性加成与修炼收益来源
@@ -295,7 +296,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、battle status modifier rules、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、inventory item schema rules、character battle loadout / breakthrough rules、consumable effect rules、shop purchase / market influence / contribution exchange / merchant influence rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、battle status modifier rules、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、inventory item schema rules、character battle loadout / breakthrough rules、consumable effect rules、shop purchase / market influence / contribution exchange / merchant influence / merchant item rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

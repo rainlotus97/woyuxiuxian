@@ -11,6 +11,7 @@ import {
   type ShopItemDefinition,
   type ShopQuality
 } from '@/shop/config/shopCatalog'
+import { SHOP_MERCHANT_ITEM_RULES } from '@/shop/config/shopMerchantCatalog'
 
 export interface ShopInventoryContext {
   totalTicks: number
@@ -73,6 +74,11 @@ export interface ShopInventoryItem {
   maxStock: number
   tags: string[]
   limitedReason?: string
+}
+
+interface ShopCatalogEntry {
+  definition: ShopItemDefinition
+  merchantNames: string[]
 }
 
 export interface ShopFilter {
@@ -142,12 +148,7 @@ function canSeeSectItem(definition: ShopItemDefinition, context: ShopInventoryCo
 }
 
 function getMerchantCategoryBonuses(merchant: ShopMerchantNpcState): Array<Exclude<ShopCategoryId, 'all'>> {
-  const text = [
-    merchant.title,
-    merchant.constitution,
-    merchant.currentGoal,
-    ...merchant.tags
-  ].join(' ')
+  const text = getMerchantSearchText(merchant)
   const categories = new Set<Exclude<ShopCategoryId, 'all'>>()
 
   if (/炼丹|丹修|药|medicine|medicine_body|采药|seekTreasure/.test(text)) {
@@ -165,6 +166,15 @@ function getMerchantCategoryBonuses(merchant: ShopMerchantNpcState): Array<Exclu
   }
 
   return [...categories]
+}
+
+function getMerchantSearchText(merchant: ShopMerchantNpcState) {
+  return [
+    merchant.title,
+    merchant.constitution,
+    merchant.currentGoal,
+    ...merchant.tags
+  ].join(' ')
 }
 
 function getMerchantRelationshipWeight(merchant: ShopMerchantNpcState) {
@@ -340,6 +350,44 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
   }
 }
 
+export function resolveShopCatalogEntries(context: ShopInventoryContext): ShopCatalogEntry[] {
+  const baseEntries = SHOP_CATALOG.map(definition => ({
+    definition,
+    merchantNames: []
+  }))
+  const merchantEntries = resolveShopMerchantItemEntries(context)
+  return [...baseEntries, ...merchantEntries]
+}
+
+function resolveShopMerchantItemEntries(context: ShopInventoryContext): ShopCatalogEntry[] {
+  const entries: ShopCatalogEntry[] = []
+  const seenIds = new Set<string>()
+
+  for (const merchant of context.merchantNpcStates ?? []) {
+    if (merchant.hpState === 'dead' || merchant.hpState === 'captured') continue
+    const searchText = getMerchantSearchText(merchant)
+
+    for (const rule of SHOP_MERCHANT_ITEM_RULES) {
+      if (seenIds.has(rule.item.id)) continue
+      const matched = rule.matchKeywords.some(keyword => searchText.includes(keyword))
+      if (!matched) continue
+      if ((rule.minFavor ?? -Infinity) > merchant.relationship.favor) continue
+      if ((rule.minDebt ?? -Infinity) > merchant.relationship.debt) continue
+
+      entries.push({
+        definition: {
+          ...rule.item,
+          description: `${rule.item.description} 供货人：${merchant.name}。`
+        },
+        merchantNames: [merchant.name]
+      })
+      seenIds.add(rule.item.id)
+    }
+  }
+
+  return entries
+}
+
 function getStock(
   definition: ShopItemDefinition,
   context: ShopInventoryContext,
@@ -388,7 +436,8 @@ function getTags(
   definition: ShopItemDefinition,
   context: ShopInventoryContext,
   marketInfluence: ShopMarketInfluence,
-  merchantInfluence: ShopMerchantInfluence
+  merchantInfluence: ShopMerchantInfluence,
+  itemMerchantNames: string[]
 ) {
   const tags: string[] = []
   if (definition.sectIds?.length) {
@@ -400,7 +449,7 @@ function getTags(
   const merchantTags = categoryMerchantModifier > 1
     ? merchantInfluence.merchantNames.map(name => `${name}供货`)
     : []
-  return [...tags, ...marketInfluence.tags, ...merchantInfluence.tags, ...merchantTags]
+  return [...tags, ...marketInfluence.tags, ...merchantInfluence.tags, ...merchantTags, ...itemMerchantNames.map(name => `${name}私货`)]
 }
 
 export function createShopInventory(context: ShopInventoryContext): ShopInventoryItem[] {
@@ -408,7 +457,7 @@ export function createShopInventory(context: ShopInventoryContext): ShopInventor
   const marketInfluence = resolveShopMarketInfluence(context)
   const merchantInfluence = resolveShopMerchantInfluence(context)
 
-  return SHOP_CATALOG.flatMap(definition => {
+  return resolveShopCatalogEntries(context).flatMap(({ definition, merchantNames }) => {
     const availability = getDefinitionAvailability(definition, context)
     if (!availability.available) return []
 
@@ -421,7 +470,7 @@ export function createShopInventory(context: ShopInventoryContext): ShopInventor
       price: getPrice(definition, context, bucket, marketInfluence, merchantInfluence),
       stock,
       maxStock: definition.stockRange[1],
-      tags: getTags(definition, context, marketInfluence, merchantInfluence),
+      tags: getTags(definition, context, marketInfluence, merchantInfluence, merchantNames),
       limitedReason: availability.reason
     }]
   }).sort((a, b) => {
