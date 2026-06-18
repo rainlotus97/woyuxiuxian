@@ -172,8 +172,9 @@ import SectOverviewPanel from '@/components/sect/SectOverviewPanel.vue'
 import SectRecoveryPanel from '@/components/sect/SectRecoveryPanel.vue'
 import SectRecruitPanel from '@/components/sect/SectRecruitPanel.vue'
 import SectTasksPanel from '@/components/sect/SectTasksPanel.vue'
-import { SECT_FACILITIES, getSectById } from '@/types/sect'
+import { SECT_FACILITIES } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
+import { useSectCrisis } from '@/composables/useSectCrisis'
 import { useSectDuty } from '@/composables/useSectDuty'
 import { useSectMembership } from '@/composables/useSectMembership'
 import { useSectProgression } from '@/composables/useSectProgression'
@@ -185,13 +186,9 @@ import {
   canAuthorityAccessFacility
 } from '@/sect/runtime/sectPositionResolver'
 import type { SectRecoveryActionId } from '@/sect/runtime/sectRecoveryResolver'
-import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
-import { useWorldStore } from '@/stores/worldStore'
 
 const sectStore = useSectStore()
-const playerStore = usePlayerStore()
-const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
 const {
   activeDirectiveLabel,
@@ -226,6 +223,12 @@ const {
   claimTaskReward: claimTaskRewardWithJourney,
   claimAllCompletedTaskRewards: claimAllCompletedTaskRewardsWithJourney
 } = useSectRewards()
+const {
+  applyRecoveryAction: applyRecoveryActionWithJourney,
+  rescueNpc: rescueNpcWithJourney,
+  declareWar: declareWarWithJourney,
+  handleEventChoice: handleEventChoiceWithJourney
+} = useSectCrisis()
 
 const activeTab = ref<'tasks' | 'facilities' | 'diplomacy'>('tasks')
 const showFacilityModal = ref(false)
@@ -327,7 +330,7 @@ function handleHarvestReady() {
 }
 
 function handleRecoveryAction(actionId: SectRecoveryActionId) {
-  const result = sectStore.applyRecoveryAction(actionId)
+  const result = applyRecoveryActionWithJourney(actionId)
   if (!result.success) {
     warning(result.message)
     return
@@ -338,29 +341,13 @@ function handleRecoveryAction(actionId: SectRecoveryActionId) {
 }
 
 function handleRescueNpc(npcId: string) {
-  const target = capturedNpcRescueTarget.value
-  if (!target || target.id !== npcId) {
-    warning('当前没有可营救的宗门人物')
-    return
-  }
-  if (sectStore.contribution < NPC_RESCUE_COST.contribution) {
-    warning(`贡献不足，需要 ${NPC_RESCUE_COST.contribution}`)
-    return
-  }
-  if (playerStore.gold < NPC_RESCUE_COST.gold) {
-    warning(`灵石不足，需要 ${NPC_RESCUE_COST.gold}`)
+  const result = rescueNpcWithJourney(npcId, capturedNpcRescueTarget.value, NPC_RESCUE_COST)
+  if (!result.success) {
+    warning(result.reason)
     return
   }
 
-  if (!worldStore.rescueCapturedNpc(npcId, sectStore.joinedSectId)) {
-    warning('营救失败，目标状态已变化')
-    return
-  }
-
-  sectStore.addContribution(-NPC_RESCUE_COST.contribution)
-  playerStore.addGold(-NPC_RESCUE_COST.gold)
-
-  success(`${target.name}已被救回`)
+  success(`${result.targetName ?? '同门'}已被救回`)
   info('对方仍需疗伤，但已脱离囚局')
 }
 
@@ -373,16 +360,16 @@ function handleLeaveSect() {
 }
 
 function handleDeclareWar(sectId: string) {
-  const target = getSectById(sectId)
-  if (sectStore.declareWar(sectId)) {
-    success(`已向${target?.name ?? '目标宗门'}宣战`)
+  const result = declareWarWithJourney(sectId)
+  if (result.success) {
+    success(`已向${result.targetName ?? '目标宗门'}宣战`)
   } else {
     warning('当前职位不足或已有战事，无法宣战')
   }
 }
 
 function handleEventChoice(choiceId: string) {
-  if (sectStore.handleEventChoice(choiceId)) {
+  if (handleEventChoiceWithJourney(choiceId).success) {
     success('已处理宗门事件')
   } else {
     warning('事件处理失败')

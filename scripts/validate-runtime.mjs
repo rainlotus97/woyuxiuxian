@@ -2873,6 +2873,71 @@ test('player fortune resolver creates deterministic fortune rewards', async () =
   assert.equal(fortune.tags.includes('fortune'), true)
 })
 
+test('sect crisis journey resolver records recovery rescue war and event choices', async () => {
+  const { resolveSectCrisisJourney } = await load('/src/sect/runtime/sectCrisisJourneyResolver.ts')
+
+  const recovery = resolveSectCrisisJourney({
+    action: 'recovery',
+    sectName: '青云宗',
+    recoveryTitle: '山门重燃',
+    recoveryMessage: '宗门已经从沦陷废墟中重新立起。',
+    recoveryActionId: 'raise_banner',
+    contributionCost: 80,
+    goldCost: 260,
+    hpRestore: 30,
+    progressGain: 46
+  })
+  assert.equal(recovery.title, '山门重燃')
+  assert.ok(recovery.text.includes('青云宗'))
+  assert.ok(recovery.tags.includes('recovery'))
+  assert.ok(recovery.tags.includes('raise_banner'))
+  assert.ok(recovery.rewards.some(reward => reward.type === 'contribution' && reward.value === -80))
+  assert.ok(recovery.rewards.some(reward => reward.type === 'gold' && reward.value === -260))
+  assert.ok(recovery.rewards.some(reward => reward.type === 'flag' && reward.label === '恢复进度' && reward.value === 46))
+
+  const rescue = resolveSectCrisisJourney({
+    action: 'npc_rescue',
+    sectName: '青云宗',
+    npcName: '苏清鸢',
+    contributionCost: 38,
+    goldCost: 180
+  })
+  assert.equal(rescue.title, '苏清鸢脱困')
+  assert.ok(rescue.tags.includes('rescue'))
+  assert.ok(rescue.rewards.some(reward => reward.type === 'reputation' && reward.label === '营救'))
+
+  const war = resolveSectCrisisJourney({
+    action: 'war_declaration',
+    sectName: '青云宗',
+    targetSectName: '血魔宗'
+  })
+  assert.equal(war.title, '青云宗宣战')
+  assert.ok(war.text.includes('血魔宗'))
+  assert.ok(war.tags.includes('declaration'))
+
+  const eventChoice = resolveSectCrisisJourney({
+    action: 'event_choice',
+    sectName: '青云宗',
+    eventTitle: '灵矿争端',
+    choiceText: '调停',
+    effects: {
+      gold: 25,
+      contribution: 12,
+      reputation: 4,
+      relationValues: ['friendly:药王谷'],
+      itemValues: ['灵矿契书']
+    }
+  })
+  assert.equal(eventChoice.title, '青云宗宗门事件')
+  assert.ok(eventChoice.text.includes('灵矿争端'))
+  assert.ok(eventChoice.tags.includes('event'))
+  assert.ok(eventChoice.rewards.some(reward => reward.type === 'gold' && reward.value === 25))
+  assert.ok(eventChoice.rewards.some(reward => reward.type === 'contribution' && reward.value === 12))
+  assert.ok(eventChoice.rewards.some(reward => reward.type === 'reputation' && reward.value === 4))
+  assert.ok(eventChoice.rewards.some(reward => reward.type === 'flag' && reward.value === 'friendly:药王谷'))
+  assert.ok(eventChoice.rewards.some(reward => reward.type === 'item' && reward.label === '灵矿契书'))
+})
+
 test('story run report summarizes effect writebacks', async () => {
   const { resolveStoryRunReport } = await load('/src/story/runtime/storyRunReportResolver.ts')
 
