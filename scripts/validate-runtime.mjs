@@ -2295,6 +2295,88 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.deepEqual(quietWorldTick.events, [])
 })
 
+test('story gameplay runtime resolves non-battle outcomes', async () => {
+  const {
+    applyStoryGameplayAreaPatch,
+    resolveStoryGameplay
+  } = await load('/src/story/runtime/storyGameplayRuntime.ts')
+
+  const context = {
+    player: {
+      cultivation: 260,
+      stamina: 18,
+      maxStamina: 100,
+      gold: 100,
+      consumeStamina: () => true
+    },
+    world: {
+      currentTimeLabel: '修仙历1年1月1日 午时',
+      npcDefinitions: [
+        { id: 'su_qingyuan', name: '苏清鸢', homeMapId: 'qingyun_mountain' },
+        { id: 'npc_su_qingyuan', name: '苏清鸢', homeMapId: 'qingyun_mountain' }
+      ],
+      unlockedNpcDefinitions: [
+        { id: 'su_qingyuan', name: '苏清鸢', homeMapId: 'qingyun_mountain' },
+        { id: 'npc_su_qingyuan', name: '苏清鸢', homeMapId: 'qingyun_mountain' }
+      ]
+    },
+    map: {
+      getAreaState: areaId => areaId === 'qingyun_mountain'
+        ? { stability: 52, pressure: 18, contested: false }
+        : null
+    }
+  }
+
+  const collect = resolveStoryGameplay({
+    type: 'collect',
+    targetId: '灵草',
+    params: {
+      required: 2,
+      itemName: '剧情灵草',
+      itemId: 'story_spirit_herb',
+      areaId: 'qingyun_mountain'
+    }
+  }, context)
+  assert.equal(collect.result.success, true)
+  assert.equal(collect.reward.item?.name, '剧情灵草')
+  assert.equal(collect.reward.item?.quantity, 2)
+  assert.equal(collect.areaPatch?.areaId, 'qingyun_mountain')
+  assert.equal(collect.areaPatch?.pressureDelta, -1)
+  assert.equal(collect.log.scope, 'player')
+  assert.ok(Array.isArray(collect.result.data?.rewards))
+
+  const dialog = resolveStoryGameplay({
+    type: 'dialog',
+    targetId: 'C001',
+    params: { favorDelta: 8 }
+  }, context)
+  assert.equal(dialog.result.success, true)
+  assert.equal(dialog.relationshipDeltas[0]?.npcId, 'npc_su_qingyuan')
+  assert.equal(dialog.relationshipDeltas[0]?.favorDelta, 8)
+  assert.equal(dialog.log.scope, 'npc')
+
+  const explore = resolveStoryGameplay({
+    type: 'explore',
+    targetId: 'qingyun_mountain',
+    params: { unlockArea: true, stabilityDelta: 4, pressureDelta: -6 }
+  }, context)
+  assert.equal(explore.result.success, true)
+  assert.equal(explore.areaPatch?.unlock, true)
+  const patchedArea = applyStoryGameplayAreaPatch(explore.areaPatch, context.map.getAreaState('qingyun_mountain'))
+  assert.equal(patchedArea.stability, 56)
+  assert.equal(patchedArea.pressure, 12)
+
+  const failed = resolveStoryGameplay({
+    type: 'puzzle',
+    targetId: 'ancient_lock',
+    params: { difficulty: 12, staminaCost: 40 }
+  }, context)
+  assert.equal(failed.result.success, false)
+  assert.equal(failed.reward.cultivation, 0)
+  assert.equal(failed.areaPatch, undefined)
+  assert.equal(failed.log.tags.includes('failure'), true)
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 

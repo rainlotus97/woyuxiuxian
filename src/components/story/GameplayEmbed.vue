@@ -91,6 +91,10 @@
       <div v-if="showResult" class="gameplay-result" :class="resultClass">
         <span class="result-icon">{{ resultIcon }}</span>
         <span class="result-text">{{ resultText }}</span>
+        <p v-if="resultDetail" class="result-detail">{{ resultDetail }}</p>
+        <div v-if="resultRewards.length > 0" class="result-rewards">
+          <span v-for="reward in resultRewards" :key="reward">{{ reward }}</span>
+        </div>
       </div>
     </Transition>
   </div>
@@ -123,6 +127,7 @@ const collectProgress = computed(() =>
 // 结果显示
 const showResult = ref(false)
 const resultSuccess = ref(false)
+const lastResult = ref<GameplayResult | null>(null)
 
 // 计算属性
 const gameplayIcon = computed(() => {
@@ -166,12 +171,25 @@ const startButtonText = computed(() => {
 
 const resultClass = computed(() => resultSuccess.value ? 'success' : 'failure')
 const resultIcon = computed(() => resultSuccess.value ? '✓' : '✗')
-const resultText = computed(() => resultSuccess.value ? '成功' : '失败')
+const resultText = computed(() => {
+  const label = lastResult.value?.data?.resultLabel
+  if (typeof label === 'string') return label
+  return resultSuccess.value ? '成功' : '失败'
+})
+const resultDetail = computed(() => {
+  const text = lastResult.value?.data?.text
+  return typeof text === 'string' ? text : ''
+})
+const resultRewards = computed(() => {
+  const rewards = lastResult.value?.data?.rewards
+  return Array.isArray(rewards) ? rewards.filter((item): item is string => typeof item === 'string') : []
+})
 
 // 方法
 async function handleStart() {
   // 模拟玩法执行（实际应由外部处理器完成）
   const result = await gameplayBridge.execute()
+  lastResult.value = result
   showResult.value = true
   resultSuccess.value = result.success
 
@@ -190,15 +208,21 @@ function handleSkip() {
 watch(() => props.gameplayType, () => {
   showResult.value = false
   collectedCount.value = 0
+  lastResult.value = null
 })
 </script>
 
 <style scoped>
 .gameplay-embed {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(30, 30, 50, 0.6) 100%);
-  border-radius: 12px;
-  padding: 24px;
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.96), rgba(240, 249, 244, 0.9)),
+    radial-gradient(circle at top, rgba(255, 227, 150, 0.18), transparent 62%);
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid rgba(188, 141, 58, 0.26);
+  color: #315257;
+  box-shadow: 0 22px 48px rgba(88, 123, 116, 0.18);
   animation: embed-appear 0.3s ease-out;
 }
 
@@ -219,7 +243,7 @@ watch(() => props.gameplayType, () => {
   gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(103, 149, 144, 0.16);
 }
 
 .gameplay-icon {
@@ -228,7 +252,7 @@ watch(() => props.gameplayType, () => {
 
 .gameplay-title {
   font-size: 20px;
-  color: #ffd700;
+  color: #8b6226;
   margin: 0;
 }
 
@@ -255,7 +279,7 @@ watch(() => props.gameplayType, () => {
 .explore-desc,
 .puzzle-desc,
 .custom-desc {
-  color: #e8e8e8;
+  color: #315257;
   font-size: 16px;
   margin: 0 0 12px 0;
 }
@@ -266,7 +290,7 @@ watch(() => props.gameplayType, () => {
 .explore-hint,
 .puzzle-hint,
 .custom-hint {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(53, 81, 83, 0.72);
   font-size: 14px;
   margin: 0;
 }
@@ -282,8 +306,8 @@ watch(() => props.gameplayType, () => {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  background: rgba(255, 0, 0, 0.1);
-  border: 2px solid rgba(255, 0, 0, 0.3);
+  background: rgba(255, 245, 247, 0.78);
+  border: 1px solid rgba(198, 121, 137, 0.22);
   border-radius: 12px;
 }
 
@@ -293,7 +317,7 @@ watch(() => props.gameplayType, () => {
 }
 
 .enemy-name {
-  color: #ff6b6b;
+  color: #9b4353;
   font-weight: bold;
 }
 
@@ -308,19 +332,19 @@ watch(() => props.gameplayType, () => {
 .progress-bar {
   flex: 1;
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(103, 149, 144, 0.12);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ffd700 0%, #ff8c00 100%);
+  background: linear-gradient(90deg, #8ecfb6 0%, #d4a342 100%);
   transition: width 0.3s ease-out;
 }
 
 .progress-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(53, 81, 83, 0.78);
   font-size: 14px;
   min-width: 60px;
 }
@@ -341,27 +365,27 @@ watch(() => props.gameplayType, () => {
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 140, 0, 0.3) 100%);
-  border: 2px solid rgba(255, 215, 0, 0.5);
-  color: #ffd700;
+  background: linear-gradient(180deg, #fff3c5, #bfe9d4);
+  border: 1px solid rgba(188, 141, 58, 0.32);
+  color: #735022;
   font-weight: bold;
 }
 
 .btn.primary:hover {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.4) 0%, rgba(255, 140, 0, 0.4) 100%);
-  border-color: rgba(255, 215, 0, 0.7);
+  background: linear-gradient(180deg, #fff0b2, #a9dfc7);
+  border-color: rgba(188, 141, 58, 0.48);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 12px 24px rgba(104, 151, 132, 0.16);
 }
 
 .btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #e8e8e8;
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  color: #496463;
 }
 
 .btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 /* 结果显示 */
@@ -374,28 +398,59 @@ watch(() => props.gameplayType, () => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 24px 48px;
+  width: min(360px, calc(100% - 32px));
+  padding: 20px;
   border-radius: 12px;
+  text-align: center;
   z-index: 10;
+  box-shadow: 0 18px 36px rgba(58, 85, 82, 0.22);
 }
 
 .gameplay-result.success {
-  background: rgba(74, 222, 128, 0.9);
+  background: rgba(238, 252, 247, 0.96);
+  border: 1px solid rgba(103, 149, 144, 0.24);
 }
 
 .gameplay-result.failure {
-  background: rgba(248, 113, 113, 0.9);
+  background: rgba(255, 245, 247, 0.96);
+  border: 1px solid rgba(198, 121, 137, 0.24);
 }
 
 .result-icon {
-  font-size: 48px;
-  color: white;
+  font-size: 36px;
+  color: #8b6226;
 }
 
 .result-text {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
-  color: white;
+  color: #315257;
+}
+
+.result-detail {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.76);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.result-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.result-rewards span {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 248, 229, 0.86);
+  border: 1px solid rgba(194, 146, 66, 0.2);
+  color: #8b6226;
+  font-size: 10px;
 }
 
 /* 动画 */

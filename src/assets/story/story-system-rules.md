@@ -242,6 +242,22 @@ ID: V1M05
 1. 若同时声明 `胜利后跳转 / 败北后跳转 / 脱离后跳转`，代码优先按实际战斗结果分流。
 2. 若未声明专用结果节点，则回落到 `完成后跳转 / 失败跳转`。
 3. 非战斗玩法当前只保证 `完成后跳转 / 失败跳转`，其余专用结果字段预留给后续扩展。
+4. 非战斗玩法不允许只当“点一下通过”。`收集 / 升级 / 探索 / 对话 / 解谜 / 自定义` 会通过统一运行时写回玩家、地图、NPC 关系与世界日志，推荐按下列参数表达真实结果：
+
+| 参数 | 适用玩法 | 示例 | 说明 |
+|------|----------|------|------|
+| required | 收集/探索/解谜 | `required=3` | 需求数量或步骤数，会影响体力消耗和奖励倍率 |
+| difficulty | 全部非战斗 | `difficulty=2` | 难度，会结合玩家修为、体力、区域压力决定成败 |
+| staminaCost | 全部非战斗 | `staminaCost=6` | 覆盖默认体力消耗 |
+| areaId / mapId | 收集/探索/解谜/自定义 | `areaId=qingyun_mountain` | 关联地图区域，用于区域稳定/压力写回 |
+| npcId | 对话/自定义 | `npcId=su_qingyuan` | 关联 NPC，优先写故事映射后的 world NPC id |
+| itemName / itemId / quantity | 收集/探索/解谜/自定义 | `itemName=剧情灵草,itemId=story_spirit_herb,quantity=2` | 写入背包物品 |
+| cultivation / gold / stamina | 全部非战斗 | `cultivation=30,gold=10` | 直接奖励修为、灵石或体力 |
+| skillId / skillExp | 升级/解谜/自定义 | `skillId=sword_basic,skillExp=20` | 写入已学功法熟练度 |
+| favorDelta | 对话/自定义 | `favorDelta=8` | 写入对应 NPC 对玩家的关系变化 |
+| stabilityDelta / pressureDelta | 探索/收集/解谜/自定义 | `stabilityDelta=4,pressureDelta=-6` | 写入区域态势 |
+| unlockArea | 探索/自定义 | `unlockArea=true` | 同步开放地图与玩家历练区域 |
+| title / text / label | 全部非战斗 | `title=古井探查,text=你在井底发现残阵。` | 覆盖结果日志和反馈文案 |
 
 ---
 
