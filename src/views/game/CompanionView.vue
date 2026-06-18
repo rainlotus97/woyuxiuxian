@@ -21,7 +21,38 @@
           <strong>可结识人物</strong>
           <p>与世界中的关键人物互动会提升好感，并把关系变化写入世界日志与人物纪闻。</p>
         </div>
-        <div class="bond-count">{{ worldStore.npcCompanionCandidates.length }}</div>
+        <div class="bond-hero-actions">
+          <button class="observe-btn" :disabled="!canObserveNpcActivity" @click="handleObserveNpcActivity">
+            <span>闻</span>
+            <strong>探听一时辰</strong>
+          </button>
+          <div class="bond-count">{{ worldStore.npcCompanionCandidates.length }}</div>
+        </div>
+      </div>
+
+      <div class="activity-panel">
+        <div class="activity-head">
+          <div>
+            <span>人物动向</span>
+            <strong>{{ npcActivityInsight?.totalEvents ? `${npcActivityInsight.totalEvents} 条新纪闻` : '静候消息' }}</strong>
+          </div>
+          <small>{{ npcActivityInsight?.timeLabel ?? worldStore.currentTimeLabel }}</small>
+        </div>
+        <div class="activity-list">
+          <div
+            v-for="item in activityItems"
+            :key="item.id"
+            class="activity-item"
+            :class="`tone-${item.tone}`"
+          >
+            <span class="activity-label">{{ item.label }}</span>
+            <div class="activity-copy">
+              <strong>{{ item.title }}</strong>
+              <p>{{ item.text }}</p>
+              <small>{{ item.npcName }} · {{ item.timeLabel }}</small>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="npc-bond-list">
@@ -285,22 +316,59 @@ import { useWorldStore } from '@/stores/worldStore'
 import { COMPANION_QUALITY_CONFIG, GACHA_CONFIG, type GachaResult } from '@/types/companion'
 import { SKILL_DEFINITIONS } from '@/types/skill'
 import { useToast } from '@/composables/useToast'
+import { useNpcActivityInsight } from '@/composables/useNpcActivityInsight'
 import type { NpcInteractionKind } from '@/world/runtime/npcCompanionResolver'
 
 const companionStore = useCompanionStore()
 const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
+const {
+  canObserve: canObserveNpcActivity,
+  lastInsight: npcActivityInsight,
+  observeOneTick: observeNpcActivityOneTick
+} = useNpcActivityInsight()
 
 const activeTab = ref<'bonds' | 'companions' | 'gacha' | 'formation'>('bonds')
 const selectedCompanionId = ref<string | null>(null)
 const gachaResults = ref<GachaResult[]>([])
 
 const tabs = [
-  { id: 'bonds' as const, name: '缘分', icon: '🤝' },
-  { id: 'companions' as const, name: '伙伴', icon: '👥' },
-  { id: 'gacha' as const, name: '招募', icon: '🎰' },
-  { id: 'formation' as const, name: '上阵', icon: '⚔️' }
+  { id: 'bonds' as const, name: '缘分', icon: '缘' },
+  { id: 'companions' as const, name: '伙伴', icon: '伴' },
+  { id: 'gacha' as const, name: '招募', icon: '招' },
+  { id: 'formation' as const, name: '上阵', icon: '阵' }
 ]
+
+const activityItems = computed(() => {
+  if (npcActivityInsight.value) return npcActivityInsight.value.items
+  const latest = worldStore.importantNpcStoryViews.slice(0, 2)
+  if (latest.length > 0) {
+    return latest.map(view => ({
+      id: view.entry.id,
+      npcId: view.entry.npcId,
+      npcName: view.actorNames[0] ?? '人物',
+      label: '纪闻',
+      title: view.entry.title,
+      text: view.entry.text,
+      timeLabel: view.entry.timeLabel,
+      severity: view.entry.severity,
+      tags: view.entry.tags,
+      tone: view.entry.severity === 'legendary' ? 'rose' as const : view.entry.severity === 'major' ? 'gold' as const : 'jade' as const
+    }))
+  }
+  return [{
+    id: 'npc_activity_empty',
+    npcId: null,
+    npcName: '天下人物',
+    label: '提示',
+    title: '可主动探听',
+    text: '点击探听一时辰，会推进世界时钟并汇总新出现的人物纪闻、破境、受伤、谋算或关系变化。',
+    timeLabel: worldStore.currentTimeLabel,
+    severity: 'minor' as const,
+    tags: ['npc'],
+    tone: 'mist' as const
+  }]
+})
 
 // 选中的伙伴详情
 const selectedCompanionDef = computed(() => {
@@ -414,6 +482,19 @@ function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
   success(result.title)
   info(`好感 +${result.favorDelta}`)
 }
+
+function handleObserveNpcActivity() {
+  if (!canObserveNpcActivity.value) {
+    warning('尚未结识可追踪人物')
+    return
+  }
+  const insight = observeNpcActivityOneTick()
+  if (insight.totalEvents > 0) {
+    success(`探听到 ${insight.totalEvents} 条人物动向`)
+  } else {
+    info('这一时辰没有新的关键人物动向')
+  }
+}
 </script>
 
 <style scoped>
@@ -458,6 +539,51 @@ function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
   line-height: 1.6;
 }
 
+.bond-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.observe-btn {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(188, 141, 58, 0.24);
+  border-radius: 16px;
+  background: rgba(255, 249, 231, 0.86);
+  color: #8b6226;
+  font-family: var(--font-game);
+  cursor: pointer;
+}
+
+.observe-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.observe-btn span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #8b6226;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.observe-btn strong {
+  color: #8b6226;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .bond-count {
   width: 54px;
   height: 54px;
@@ -469,6 +595,120 @@ function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
   color: #8b6226;
   font-size: 22px;
   font-weight: 800;
+}
+
+.activity-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(247, 253, 255, 0.92), rgba(241, 249, 244, 0.82)),
+    radial-gradient(circle at top right, rgba(174, 218, 240, 0.14), transparent 58%);
+  box-shadow: 0 12px 28px rgba(87, 126, 121, 0.1);
+}
+
+.activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activity-head div {
+  display: grid;
+  gap: 4px;
+}
+
+.activity-head span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.activity-head strong {
+  color: #315257;
+  font-size: 15px;
+}
+
+.activity-head small {
+  color: rgba(73, 97, 95, 0.62);
+  font-size: 10px;
+  text-align: right;
+}
+
+.activity-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.activity-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.activity-item.tone-gold {
+  border-color: rgba(188, 141, 58, 0.22);
+  background: rgba(255, 250, 236, 0.78);
+}
+
+.activity-item.tone-rose {
+  border-color: rgba(198, 121, 137, 0.2);
+  background: rgba(255, 248, 249, 0.76);
+}
+
+.activity-item.tone-mist {
+  border-color: rgba(119, 158, 178, 0.18);
+  background: rgba(247, 253, 255, 0.72);
+}
+
+.activity-label {
+  min-width: 42px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #8b6226;
+  font-size: 10px;
+}
+
+.activity-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.activity-copy strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-copy p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgba(53, 81, 83, 0.76);
+  font-size: 11px;
+  line-height: 1.55;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.activity-copy small {
+  color: rgba(73, 97, 95, 0.62);
+  font-size: 10px;
 }
 
 .npc-bond-list {
@@ -1164,12 +1404,22 @@ function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
 }
 
 @media (max-width: 720px) {
+  .activity-list,
   .npc-bond-list {
     grid-template-columns: 1fr;
   }
 
   .bond-hero {
-    align-items: flex-start;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bond-hero-actions {
+    justify-content: space-between;
+  }
+
+  .observe-btn {
+    flex: 1;
   }
 }
 

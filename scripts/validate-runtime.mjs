@@ -2377,6 +2377,84 @@ test('story gameplay runtime resolves non-battle outcomes', async () => {
   assert.equal(failed.log.tags.includes('failure'), true)
 })
 
+test('npc activity insight summarizes new npc events', async () => {
+  const { resolveNpcActivityInsight } = await load('/src/world/runtime/npcActivityInsightResolver.ts')
+
+  const previousNpcStoryIds = new Set(['old_story'])
+  const previousLogIds = new Set(['old_log'])
+  const definitions = [
+    { id: 'npc_su', name: '苏清鸢', role: 'main' },
+    { id: 'npc_xue', name: '薛焰', role: 'enemy' }
+  ]
+
+  const insight = resolveNpcActivityInsight({
+    timeLabel: '修仙历1年1月1日 午时',
+    npcDefinitions: definitions,
+    previousNpcStoryIds,
+    previousLogIds,
+    npcStories: [
+      {
+        id: 'old_story',
+        tick: 1,
+        timeLabel: '修仙历1年1月1日 巳时',
+        npcId: 'npc_su',
+        title: '旧纪闻',
+        text: '旧事。',
+        severity: 'normal',
+        tags: ['npc']
+      },
+      {
+        id: 'new_story',
+        tick: 2,
+        timeLabel: '修仙历1年1月1日 午时',
+        npcId: 'npc_su',
+        title: '苏清鸢破境',
+        text: '苏清鸢在青云山悟出新的剑意。',
+        severity: 'major',
+        tags: ['npc', 'breakthrough']
+      }
+    ],
+    logs: [
+      {
+        id: 'new_log',
+        tick: 2,
+        lastTick: 2,
+        timeLabel: '修仙历1年1月1日 午时',
+        scope: 'npc',
+        severity: 'legendary',
+        visibility: 'briefing',
+        title: '薛焰设伏',
+        text: '薛焰在血海截杀同行者。',
+        actorIds: ['npc_xue'],
+        tags: ['npc', 'scheme'],
+        dedupeKey: 'npc:scheme',
+        repeatCount: 1,
+        revealed: true
+      }
+    ]
+  })
+
+  assert.equal(insight.totalEvents, 2)
+  assert.equal(insight.items[0].npcName, '苏清鸢')
+  assert.equal(insight.items[0].label, '破境')
+  assert.equal(insight.items[0].tone, 'gold')
+  assert.equal(insight.items[1].npcName, '薛焰')
+  assert.equal(insight.items[1].label, '谋算')
+  assert.equal(insight.items[1].tone, 'rose')
+
+  const quiet = resolveNpcActivityInsight({
+    timeLabel: '修仙历1年1月1日 未时',
+    npcDefinitions: definitions,
+    previousNpcStoryIds: new Set(['new_story']),
+    previousLogIds: new Set(['new_log']),
+    npcStories: [],
+    logs: []
+  })
+  assert.equal(quiet.totalEvents, 0)
+  assert.equal(quiet.items[0].label, '静观')
+  assert.equal(quiet.items[0].tone, 'mist')
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 
