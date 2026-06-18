@@ -130,10 +130,16 @@
         <div class="priority-board">
           <div class="priority-title">
             <span>P0 当前目标</span>
-            <strong>主入口、主界壳层、六项基础入口先稳定</strong>
+            <strong>{{ p0Audit.title }} · {{ p0Audit.progressText }}</strong>
+            <small>{{ p0Acceptance.headline }}</small>
           </div>
           <div class="priority-grid">
-            <div v-for="item in priorityItems" :key="item.title" class="priority-item">
+            <div
+              v-for="item in priorityItems"
+              :key="item.title"
+              class="priority-item"
+              :class="`state-${item.state}`"
+            >
               <span>{{ item.icon }}</span>
               <strong>{{ item.title }}</strong>
               <small>{{ item.desc }}</small>
@@ -172,9 +178,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { LockKeyhole, Play, ScrollText, Settings, Sparkles, VolumeX } from 'lucide-vue-next'
+import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import { useToast } from '@/composables/useToast'
 import { usePlayerStore } from '@/stores/playerStore'
 import type { Element } from '@/types/unit'
@@ -183,6 +190,7 @@ const router = useRouter()
 const route = useRoute()
 const playerStore = usePlayerStore()
 const { info } = useToast()
+const { p0Audit, p0Acceptance } = useP0LoopStatus()
 
 const draftName = ref(playerStore.name || '云逸')
 const draftElement = ref<Element>(playerStore.element)
@@ -210,14 +218,21 @@ const creationSteps = [
   { index: '三', label: '入世' }
 ]
 
-const priorityItems = [
-  { icon: '修', title: '挂机', desc: '开始、停止、收益和离线反馈稳定。' },
-  { icon: '游', title: '历险', desc: '消耗体力、触发战斗和获得掉落。' },
-  { icon: '卷', title: '故事', desc: '主线解锁人物、地图、宗门与剧情战。' },
-  { icon: '人', title: 'NPC', desc: '人物关系和世界日志持续变化。' },
-  { icon: '图', title: '地图', desc: '区域风险、处置和宗门位置可见。' },
-  { icon: '门', title: '宗门', desc: '拜山、任务、俸禄和战事入口可用。' }
-]
+const priorityIcons = {
+  idle: '修',
+  adventure: '游',
+  story: '卷',
+  npc: '人',
+  map: '图',
+  sect: '门'
+} as const
+
+const priorityItems = computed(() => p0Audit.value.checklist.map(item => ({
+  icon: priorityIcons[item.id],
+  title: item.label,
+  desc: `${item.stateLabel} · ${item.detail}`,
+  state: item.state
+})))
 
 const roadmapCards = [
   {
@@ -594,6 +609,12 @@ function formatAmount(value: number) {
   font-size: 15px;
 }
 
+.priority-title small {
+  color: rgba(49, 82, 87, 0.7);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .priority-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -608,6 +629,21 @@ function formatAmount(value: number) {
   border: 1px solid rgba(111, 157, 149, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
+}
+
+.priority-item.state-closed {
+  border-color: rgba(88, 164, 143, 0.22);
+  background: rgba(239, 252, 247, 0.72);
+}
+
+.priority-item.state-actionable {
+  border-color: rgba(194, 146, 66, 0.2);
+  background: rgba(255, 249, 232, 0.72);
+}
+
+.priority-item.state-blocked {
+  border-color: rgba(199, 121, 138, 0.22);
+  background: rgba(255, 244, 247, 0.72);
 }
 
 .priority-item span {
