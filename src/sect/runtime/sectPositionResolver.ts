@@ -20,6 +20,20 @@ export interface SectAuthorityState {
   availableDirectives: SectDirectiveId[]
 }
 
+export interface SectPromotionResolution {
+  canPromote: boolean
+  reason: 'ready' | 'no_next_position' | 'contribution_shortage'
+  nextPositionLevel: number
+  nextContribution: number
+  contributionCost: number
+}
+
+export interface SectDirectiveChangeResolution {
+  canChange: boolean
+  reason: 'ready' | 'locked'
+  directive: SectDirectiveId
+}
+
 const POSITION_FACILITY_TIER: Record<number, 1 | 2 | 3 | 4> = {
   1: 1,
   2: 2,
@@ -57,6 +71,59 @@ export function resolveSectAuthority(input: SectAuthoritySnapshot): SectAuthorit
     canLeadSect: input.positionLevel >= 6,
     canUseFacilityTier: POSITION_FACILITY_TIER[input.positionLevel] ?? 1,
     availableDirectives
+  }
+}
+
+export function resolveSectPromotion(input: {
+  positionLevel: number
+  contribution: number
+}): SectPromotionResolution {
+  const nextPosition = getPosition(input.positionLevel + 1) ?? null
+  if (!nextPosition) {
+    return {
+      canPromote: false,
+      reason: 'no_next_position',
+      nextPositionLevel: input.positionLevel,
+      nextContribution: input.contribution,
+      contributionCost: 0
+    }
+  }
+
+  if (input.contribution < nextPosition.requiredContribution) {
+    return {
+      canPromote: false,
+      reason: 'contribution_shortage',
+      nextPositionLevel: input.positionLevel,
+      nextContribution: input.contribution,
+      contributionCost: nextPosition.requiredContribution
+    }
+  }
+
+  return {
+    canPromote: true,
+    reason: 'ready',
+    nextPositionLevel: nextPosition.level,
+    nextContribution: input.contribution - nextPosition.requiredContribution,
+    contributionCost: nextPosition.requiredContribution
+  }
+}
+
+export function resolveSectDirectiveChange(input: {
+  availableDirectives: SectDirectiveId[]
+  directive: SectDirectiveId
+}): SectDirectiveChangeResolution {
+  if (!input.availableDirectives.includes(input.directive)) {
+    return {
+      canChange: false,
+      reason: 'locked',
+      directive: input.directive
+    }
+  }
+
+  return {
+    canChange: true,
+    reason: 'ready',
+    directive: input.directive
   }
 }
 

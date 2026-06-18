@@ -18,7 +18,9 @@ import {
   generateRandomTask
 } from '@/types/sect'
 import {
+  resolveSectDirectiveChange,
   resolveSectAuthority,
+  resolveSectPromotion,
   type SectDirectiveId
 } from '@/sect/runtime/sectPositionResolver'
 import {
@@ -423,12 +425,14 @@ export const useSectStore = defineStore('sect', () => {
 
   // 晋升职位
   function promotePosition(): boolean {
-    if (!authorityState.value.canPromote || !authorityState.value.nextPosition) {
-      return false
-    }
-    // 扣除贡献点
-    contribution.value -= authorityState.value.nextPosition.requiredContribution
-    positionLevel.value++
+    const promotion = resolveSectPromotion({
+      positionLevel: positionLevel.value,
+      contribution: contribution.value
+    })
+    if (!promotion.canPromote) return false
+
+    contribution.value = promotion.nextContribution
+    positionLevel.value = promotion.nextPositionLevel
     return true
   }
 
@@ -936,10 +940,13 @@ export const useSectStore = defineStore('sect', () => {
   }
 
   function setActiveDirective(directive: SectDirectiveId) {
-    if (!authorityState.value.availableDirectives.includes(directive)) {
-      return false
-    }
-    activeDirective.value = directive
+    const change = resolveSectDirectiveChange({
+      availableDirectives: authorityState.value.availableDirectives,
+      directive
+    })
+    if (!change.canChange) return false
+
+    activeDirective.value = change.directive
     return true
   }
 

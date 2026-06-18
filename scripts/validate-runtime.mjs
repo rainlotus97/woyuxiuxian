@@ -524,7 +524,12 @@ test('world narrative creates anomaly records with area context', async () => {
 
 test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveAreaGameplayAccess } = await load('/src/map/runtime/mapAreaAccessResolver.ts')
-  const { resolveSectAuthority, canAuthorityAccessFacility } = await load('/src/sect/runtime/sectPositionResolver.ts')
+  const {
+    resolveSectAuthority,
+    canAuthorityAccessFacility,
+    resolveSectDirectiveChange,
+    resolveSectPromotion
+  } = await load('/src/sect/runtime/sectPositionResolver.ts')
   const { resolveSectStipend } = await load('/src/sect/runtime/sectStipendResolver.ts')
   const {
     resolveGardenAccelerateCost,
@@ -590,6 +595,24 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(authority.canDeclareWar, true)
   assert.equal(authority.availableDirectives.includes('warfare'), true)
   assert.equal(canAuthorityAccessFacility(authority.canUseFacilityTier, 5), false)
+  const promoted = resolveSectPromotion({ positionLevel: 1, contribution: 100 })
+  assert.equal(promoted.canPromote, true)
+  assert.equal(promoted.nextPositionLevel, 2)
+  assert.equal(promoted.nextContribution, 0)
+  const blockedPromotion = resolveSectPromotion({ positionLevel: 1, contribution: 99 })
+  assert.equal(blockedPromotion.canPromote, false)
+  assert.equal(blockedPromotion.reason, 'contribution_shortage')
+  const directiveChange = resolveSectDirectiveChange({
+    availableDirectives: authority.availableDirectives,
+    directive: 'warfare'
+  })
+  assert.equal(directiveChange.canChange, true)
+  const blockedDirectiveChange = resolveSectDirectiveChange({
+    availableDirectives: ['balanced'],
+    directive: 'warfare'
+  })
+  assert.equal(blockedDirectiveChange.canChange, false)
+  assert.equal(blockedDirectiveChange.reason, 'locked')
 
   const position = { level: 4, name: '执事', requiredContribution: 1500, privileges: [], dailySalary: 150 }
   const readyStipend = resolveSectStipend({
