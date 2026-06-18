@@ -13,6 +13,7 @@ import {
 import type { Realm, UnitStats } from '@/types/unit'
 import { ELEMENT_COLORS, QUALITY_COLORS, REALM_ORDER } from '@/types/unit'
 import type { CharacterProgressionSource } from '@/character/runtime/characterProgressionResolver'
+import { resolveInventorySchemaSummary } from '@/character/runtime/inventorySchemaSummaryResolver'
 
 export type CharacterPanelTab = 'overview' | 'inventory' | 'skills'
 export type InventoryFilter = 'all' | InventoryItem['type']
@@ -158,6 +159,10 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     return playerStore.characterProgression.sources
       .filter(source => source.target === 'cultivation')
       .slice(0, 6)
+  })
+
+  const inventorySchemaSummary = computed(() => {
+    return resolveInventorySchemaSummary(playerStore.inventory)
   })
 
   const characterSummary = computed(() => ({
@@ -447,6 +452,7 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     learnedSkillCards,
     passiveBonusRows,
     cultivationSourceRows,
+    inventorySchemaSummary,
     characterSummary,
     getEquipmentFromItem,
     selectInventoryItem,

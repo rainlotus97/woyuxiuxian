@@ -111,6 +111,7 @@
         eyebrow="随身包裹"
         title="背包"
       >
+        <InventorySchemaPanel :summary="loadout.inventorySchemaSummary.value" />
         <InventoryGrid
           :filters="loadout.inventoryFilterOptions.value"
           :active-filter="loadout.inventoryFilter.value"
@@ -243,6 +244,7 @@ import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import EquipmentLoadout from '@/components/character/EquipmentLoadout.vue'
 import InventoryGrid from '@/components/character/InventoryGrid.vue'
+import InventorySchemaPanel from '@/components/character/InventorySchemaPanel.vue'
 import SkillTreePanel from '@/components/character/SkillTreePanel.vue'
 import { useCharacterLoadout, type CharacterPanelTab } from '@/composables/useCharacterLoadout'
 import type { UnitStats } from '@/types/unit'

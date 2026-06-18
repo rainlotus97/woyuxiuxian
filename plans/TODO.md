@@ -260,8 +260,9 @@
   - 已新增 `inventoryItemSchemaResolver`，统一旧物品、坊市、药园、历练掉落入库时的 `definitionId` 归一和别名回填
   - 已为 `inventoryItemSchemaResolver` 增加 schema diagnostics，可检测缺失定义、别名归一、装备 ID 缺失与非法数量
   - 已新增 `inventoryDropResolver`，统一历练/战斗掉落到背包物品的 `definitionId`、类型映射与堆叠聚合
+  - 已新增 `inventorySchemaSummaryResolver + InventorySchemaPanel`，在背包页展示物品定义数量、分类统计与 schema 归一诊断
   - 已建立 `src/shop/config/shopCatalog.ts`，将坊市商品定义收口到统一目录，并补入分类、品质、库存范围、境界与宗门限制字段
-  - 待补：更多物品来源迁移、分类筛选与 schema 校验 UI
+  - 待补：更多物品来源迁移、背包定义详情与异常物品修复入口
 - [~] 坊市支持分类、稀有度、宗门限定、动态库存
   - 已建立 `shopInventoryResolver`，让世界时间、天气、玩家境界、宗门解锁与宗门状态影响上架、库存和价格
   - 已新增 `shopStore`，持久化本轮购买数量、手动换货种子，并让购买真实扣减库存

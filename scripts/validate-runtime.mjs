@@ -807,6 +807,10 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveDropDefinitionId
   } = await load('/src/character/runtime/inventoryDropResolver.ts')
   const {
+    resolveInventorySchemaIssueSeverity,
+    resolveInventorySchemaSummary
+  } = await load('/src/character/runtime/inventorySchemaSummaryResolver.ts')
+  const {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
@@ -992,6 +996,17 @@ test('map and sect rules block invalid gameplay paths', async () => {
     'definition_alias',
     'invalid_quantity'
   ])
+  assert.equal(resolveInventorySchemaIssueSeverity('invalid_quantity'), 'warning')
+  const itemSchemaSummary = resolveInventorySchemaSummary([
+    { id: 'legacy_weapon', name: '玄铁剑', icon: '剑', type: 'equipment', quality: 'fine', quantity: 1 },
+    { id: 'shop_herb', definitionId: 'material_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 0 },
+    { id: 'pill_healing', definitionId: 'pill_healing', name: '疗伤丹', icon: '药', type: 'consumable', quality: 'common', quantity: 2 }
+  ])
+  assert.equal(itemSchemaSummary.totalItems, 3)
+  assert.equal(itemSchemaSummary.equipmentItems, 1)
+  assert.equal(itemSchemaSummary.warningCount, 2)
+  assert.equal(itemSchemaSummary.infoCount, 2)
+  assert.equal(itemSchemaSummary.normalizedDefinitionCount, 3)
 
   const consumableFixture = {
     id: 'pill_fixture',
