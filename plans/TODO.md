@@ -234,7 +234,7 @@
   - 已新增 `sectStipendResolver`，统一宗门俸禄预览、领取冷却与方略加成贡献，避免 UI 展示与实际领取分裂
   - 已新增 `sectGardenResolver`，统一药园槽位、种子可用性、种植校验、成熟判断、加速费用/结算与方略加成收获产量
   - 已新增 `sectAlchemyResolver`，统一炼丹配方可用性、材料校验、成功率、消耗与产出物品生成
-  - 已新增 `sectTaskResolver`，统一宗门任务进度推进、单个领奖与一键领奖聚合
+  - 已新增 `sectTaskResolver`，统一宗门任务生成/刷新、进度推进、单个领奖与一键领奖聚合
   - 已新增 `sectFacilityResolver`，统一宗门设施初始等级、等级读取与升级门槛/资源校验
   - 已新增 `sectWarRewardResolver`，统一宗门战争胜负奖励、惩罚、战报与战后山门损耗结算
   - 已新增 `sectWarLifecycleResolver`，统一宣战建模、战局比分推进与胜负结束判定

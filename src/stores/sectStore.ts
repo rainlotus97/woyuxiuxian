@@ -22,13 +22,12 @@ import {
   type SectDirectiveId
 } from '@/sect/runtime/sectPositionResolver'
 import {
-  applyDirectiveToTaskRewards
-} from '@/sect/runtime/sectDirectiveEffects'
-import {
   resolveManualSectTaskProgress,
+  resolveSectTaskGeneration,
   resolveSectTaskClaim,
   resolveSectTaskClaimAll,
-  resolveSectTaskProgress
+  resolveSectTaskProgress,
+  resolveSectTaskRefresh
 } from '@/sect/runtime/sectTaskResolver'
 import {
   resolveFacilityLevel,
@@ -548,29 +547,32 @@ export const useSectStore = defineStore('sect', () => {
 
   // 生成任务
   function generateTasks(type: SectTaskType) {
-    if (!joinedSectId.value) return
-    const count = type === 'daily' ? 3 : type === 'weekly' ? 2 : 1
-    for (let i = 0; i < count; i++) {
-      const task = applyDirectiveToTaskRewards(generateRandomTask(type, joinedSectId.value), activeDirective.value)
-      tasks.value.push(task)
+    const generation = resolveSectTaskGeneration({
+      joinedSectId: joinedSectId.value,
+      type,
+      directive: activeDirective.value,
+      generateTask: generateRandomTask
+    })
+    if (generation.generatedCount > 0) {
+      tasks.value.push(...generation.tasks)
     }
   }
 
   // 刷新任务
   function refreshTasks() {
-    if (!joinedSectId.value) return
     const now = Date.now()
-    const shouldRefreshDaily = now - lastTaskRefresh.value > 24 * 60 * 60 * 1000
-    const shouldRefreshWeekly = now - lastTaskRefresh.value > 7 * 24 * 60 * 60 * 1000
-
-    if (shouldRefreshDaily || shouldRefreshWeekly) {
-      // 清除过期任务
-      tasks.value = tasks.value.filter(t => t.type === 'special')
-      lastTaskRefresh.value = now
-
-      // 生成新任务
-      generateTasks('daily')
-      generateTasks('weekly')
+    const refresh = resolveSectTaskRefresh({
+      joinedSectId: joinedSectId.value,
+      tasks: tasks.value,
+      lastRefreshAt: lastTaskRefresh.value,
+      now
+    })
+    if (refresh.shouldRefresh) {
+      tasks.value = refresh.retainedTasks
+      lastTaskRefresh.value = refresh.nextRefreshAt
+      for (const type of refresh.taskTypes) {
+        generateTasks(type)
+      }
     }
   }
 

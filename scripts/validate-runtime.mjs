@@ -540,9 +540,11 @@ test('map and sect rules block invalid gameplay paths', async () => {
   } = await load('/src/sect/runtime/sectAlchemyResolver.ts')
   const {
     resolveManualSectTaskProgress,
+    resolveSectTaskGeneration,
     resolveSectTaskClaim,
     resolveSectTaskClaimAll,
-    resolveSectTaskProgress
+    resolveSectTaskProgress,
+    resolveSectTaskRefresh
   } = await load('/src/sect/runtime/sectTaskResolver.ts')
   const {
     resolveFacilityLevel,
@@ -779,6 +781,56 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(claimAll.reward.contribution, 10)
   assert.equal(claimAll.reward.gold, 20)
   assert.equal(claimAll.reward.exp, 5)
+
+  const generatedDailyTasks = resolveSectTaskGeneration({
+    joinedSectId: 'qingyun_sect',
+    type: 'daily',
+    directive: 'warfare',
+    generateTask: (type, sectId) => ({
+      id: `${type}_${sectId}`,
+      name: '巡山',
+      description: '巡山任务',
+      type,
+      requirements: { type: 'battle', target: 'monster', count: 1 },
+      rewards: { contribution: 10, gold: 10 },
+      progress: 0,
+      completed: false,
+      claimed: false
+    })
+  })
+  assert.equal(generatedDailyTasks.generatedCount, 3)
+  assert.equal(generatedDailyTasks.tasks[0].rewards.contribution, 11)
+  const blockedGeneratedTasks = resolveSectTaskGeneration({
+    joinedSectId: null,
+    type: 'weekly',
+    directive: 'balanced',
+    generateTask: () => {
+      throw new Error('should not generate task without joined sect')
+    }
+  })
+  assert.equal(blockedGeneratedTasks.generatedCount, 0)
+  const refreshedTasks = resolveSectTaskRefresh({
+    joinedSectId: 'qingyun_sect',
+    tasks: [
+      ...taskFixture,
+      {
+        id: 'special_task',
+        name: '宗门密令',
+        description: '特殊任务',
+        type: 'special',
+        requirements: { type: 'explore', target: 'any', count: 1 },
+        rewards: { contribution: 1, gold: 1 },
+        progress: 0,
+        completed: false,
+        claimed: false
+      }
+    ],
+    lastRefreshAt: 0,
+    now: 24 * 60 * 60 * 1000 + 1
+  })
+  assert.equal(refreshedTasks.shouldRefresh, true)
+  assert.deepEqual(refreshedTasks.taskTypes, ['daily', 'weekly'])
+  assert.deepEqual(refreshedTasks.retainedTasks.map(task => task.id), ['special_task'])
 
   const facilityLevels = resolveInitialFacilityLevels(SECT_FACILITIES)
   assert.equal(resolveFacilityLevel(facilityLevels, 'alchemy_furnace'), 1)

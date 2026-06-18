@@ -1,5 +1,6 @@
-import type { SectTask } from '@/types/sect'
+import type { SectTask, SectTaskType } from '@/types/sect'
 import type { SectDirectiveId } from './sectPositionResolver'
+import { applyDirectiveToTaskRewards } from './sectDirectiveEffects'
 
 export interface SectTaskProgressResolution {
   tasks: SectTask[]
@@ -23,6 +24,18 @@ export interface SectTaskClaimResolution {
 export interface SectTaskClaimAllResolution {
   taskIds: string[]
   reward: SectTaskReward
+}
+
+export interface SectTaskGenerationResolution {
+  tasks: SectTask[]
+  generatedCount: number
+}
+
+export interface SectTaskRefreshResolution {
+  shouldRefresh: boolean
+  taskTypes: SectTaskType[]
+  retainedTasks: SectTask[]
+  nextRefreshAt: number
 }
 
 const EMPTY_REWARD: SectTaskReward = {
@@ -96,6 +109,65 @@ export function resolveSectTaskClaimAll(tasks: SectTask[], directive: SectDirect
     )
 }
 
+export function resolveSectTaskGeneration(input: {
+  joinedSectId: string | null
+  type: SectTaskType
+  directive: SectDirectiveId
+  generateTask: (type: SectTaskType, sectId: string) => SectTask
+}): SectTaskGenerationResolution {
+  if (!input.joinedSectId) {
+    return {
+      tasks: [],
+      generatedCount: 0
+    }
+  }
+
+  const generatedCount = getSectTaskGenerationCount(input.type)
+  const tasks = Array.from({ length: generatedCount }, () => {
+    return applyDirectiveToTaskRewards(input.generateTask(input.type, input.joinedSectId as string), input.directive)
+  })
+
+  return {
+    tasks,
+    generatedCount
+  }
+}
+
+export function resolveSectTaskRefresh(input: {
+  joinedSectId: string | null
+  tasks: SectTask[]
+  lastRefreshAt: number
+  now: number
+}): SectTaskRefreshResolution {
+  if (!input.joinedSectId) {
+    return {
+      shouldRefresh: false,
+      taskTypes: [],
+      retainedTasks: input.tasks,
+      nextRefreshAt: input.lastRefreshAt
+    }
+  }
+
+  const elapsed = input.now - input.lastRefreshAt
+  const shouldRefreshDaily = elapsed > 24 * 60 * 60 * 1000
+  const shouldRefreshWeekly = elapsed > 7 * 24 * 60 * 60 * 1000
+  if (!shouldRefreshDaily && !shouldRefreshWeekly) {
+    return {
+      shouldRefresh: false,
+      taskTypes: [],
+      retainedTasks: input.tasks,
+      nextRefreshAt: input.lastRefreshAt
+    }
+  }
+
+  return {
+    shouldRefresh: true,
+    taskTypes: ['daily', 'weekly'],
+    retainedTasks: input.tasks.filter(task => task.type === 'special'),
+    nextRefreshAt: input.now
+  }
+}
+
 function resolveTaskProgress(
   tasks: SectTask[],
   shouldAdvance: (task: SectTask) => boolean
@@ -132,4 +204,10 @@ function resolveTaskReward(task: SectTask, directive: SectDirectiveId): SectTask
     exp: task.rewards.exp ?? 0,
     reputation: directive === 'warfare' ? 14 : 10
   }
+}
+
+function getSectTaskGenerationCount(type: SectTaskType) {
+  if (type === 'daily') return 3
+  if (type === 'weekly') return 2
+  return 1
 }
