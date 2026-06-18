@@ -528,7 +528,9 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveSectStipend } = await load('/src/sect/runtime/sectStipendResolver.ts')
   const {
     resolveGardenAccelerateCost,
+    resolveGardenAcceleration,
     resolveGardenHarvest,
+    resolveGardenPlanting,
     resolveGardenSlotCount
   } = await load('/src/sect/runtime/sectGardenResolver.ts')
   const {
@@ -638,6 +640,51 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(unready.success, false)
   assert.ok(unready.message.includes('尚未成熟'))
   assert.equal(resolveGardenAccelerateCost({ crop: { ...matureCrop, readyAt: 61_000 }, now: 1000 }), 10)
+
+  const planted = resolveGardenPlanting({
+    joinedSectId: 'qingyun_sect',
+    seedId: seed.id,
+    seed,
+    slotIndex: 0,
+    slotCount: 1,
+    occupiedCrop: null,
+    gardenLevel: 1,
+    gold: 10,
+    now: 1000
+  })
+  assert.equal(planted.success, true)
+  assert.equal(planted.goldCost, 10)
+  assert.equal(planted.crop?.readyAt, 1000 + seed.growTime * 60 * 1000)
+  const blockedPlant = resolveGardenPlanting({
+    joinedSectId: 'qingyun_sect',
+    seedId: seed.id,
+    seed,
+    slotIndex: 0,
+    slotCount: 1,
+    occupiedCrop: null,
+    gardenLevel: 1,
+    gold: 9,
+    now: 1000
+  })
+  assert.equal(blockedPlant.success, false)
+  assert.ok(blockedPlant.message.includes('灵石不足'))
+  const accelerated = resolveGardenAcceleration({
+    joinedSectId: 'qingyun_sect',
+    crop: { ...matureCrop, readyAt: 61_000 },
+    gold: 10,
+    now: 1000
+  })
+  assert.equal(accelerated.success, true)
+  assert.equal(accelerated.goldCost, 10)
+  assert.equal(accelerated.readyAt, 1000)
+  const blockedAcceleration = resolveGardenAcceleration({
+    joinedSectId: 'qingyun_sect',
+    crop: { ...matureCrop, readyAt: 61_000 },
+    gold: 9,
+    now: 1000
+  })
+  assert.equal(blockedAcceleration.success, false)
+  assert.ok(blockedAcceleration.message.includes('灵石不足'))
 
   assert.equal(resolveAvailableAlchemyRecipes(ALCHEMY_RECIPES, 1).every(recipe => recipe.requiredFacilityLevel <= 1), true)
   const recipe = getAlchemyRecipeById('pill_hp_small')

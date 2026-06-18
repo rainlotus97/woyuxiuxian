@@ -231,7 +231,7 @@
   - 已修复药园灵草与炼丹材料标识不一致导致的资源链断裂，改为优先按 `definitionId` 归并和消耗材料
   - 已建立 `sectDirectiveEffects`，让修炼/资材/战备方略真实影响任务奖励、俸禄贡献、炼丹成功率、药园产量与战争回报
   - 已新增 `sectStipendResolver`，统一宗门俸禄预览、领取冷却与方略加成贡献，避免 UI 展示与实际领取分裂
-  - 已新增 `sectGardenResolver`，统一药园槽位、种子可用性、成熟判断、加速费用与方略加成收获产量
+  - 已新增 `sectGardenResolver`，统一药园槽位、种子可用性、种植校验、成熟判断、加速费用/结算与方略加成收获产量
   - 已新增 `sectAlchemyResolver`，统一炼丹配方可用性、材料校验、成功率、消耗与产出物品生成
   - 已新增 `sectTaskResolver`，统一宗门任务进度推进、单个领奖与一键领奖聚合
   - 已新增 `sectFacilityResolver`，统一宗门设施初始等级、等级读取与升级门槛/资源校验

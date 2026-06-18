@@ -54,8 +54,9 @@ import {
 } from '@/sect/runtime/sectWarLifecycleResolver'
 import {
   resolveAvailableSeeds,
-  resolveGardenAccelerateCost,
+  resolveGardenAcceleration,
   resolveGardenHarvest,
+  resolveGardenPlanting,
   resolveGardenSlotCount
 } from '@/sect/runtime/sectGardenResolver'
 import {
@@ -867,45 +868,28 @@ export const useSectStore = defineStore('sect', () => {
 
   // 种植
   function plantSeed(seedId: string, slotIndex: number): { success: boolean; message: string } {
-    if (!joinedSectId.value) {
-      return { success: false, message: '未加入宗门' }
-    }
-
     const gardenLevel = getFacilityLevel('medicine_garden')
     const seed = getSeedById(seedId)
-    if (!seed) {
-      return { success: false, message: '种子不存在' }
-    }
-
-    if (gardenLevel < seed.requiredGardenLevel) {
-      return { success: false, message: `药园等级不足，需要${seed.requiredGardenLevel}级` }
-    }
-
-    if (slotIndex < 0 || slotIndex >= gardenSlotCount.value) {
-      return { success: false, message: '无效的槽位' }
-    }
-
-    if (gardenSlots.value[slotIndex]) {
-      return { success: false, message: '该槽位已有作物' }
-    }
-
-    // 检查并消耗灵石
     const playerStore = usePlayerStore()
-    if (playerStore.gold < seed.buyPrice) {
-      return { success: false, message: `灵石不足，需要${seed.buyPrice}灵石` }
-    }
-    playerStore.addGold(-seed.buyPrice)
-
-    // 种植
     const now = Date.now()
-    gardenSlots.value[slotIndex] = {
+    const result = resolveGardenPlanting({
+      joinedSectId: joinedSectId.value,
       seedId,
-      plantedAt: now,
-      readyAt: now + seed.growTime * 60 * 1000,
-      slotIndex
+      seed,
+      slotIndex,
+      slotCount: gardenSlotCount.value,
+      occupiedCrop: gardenSlots.value[slotIndex] ?? null,
+      gardenLevel,
+      gold: playerStore.gold,
+      now
+    })
+    if (!result.success || !result.crop) {
+      return result
     }
 
-    return { success: true, message: `种植成功，${seed.growTime}分钟后可收获` }
+    playerStore.addGold(-result.goldCost)
+    gardenSlots.value[slotIndex] = result.crop
+    return { success: true, message: result.message }
   }
 
   // 收获
@@ -946,30 +930,22 @@ export const useSectStore = defineStore('sect', () => {
 
   // 加速成熟（消耗灵石）
   function accelerateCrop(slotIndex: number): { success: boolean; message: string } {
-    if (!joinedSectId.value) {
-      return { success: false, message: '未加入宗门' }
-    }
-
     const crop = gardenSlots.value[slotIndex]
-    if (!crop) {
-      return { success: false, message: '该槽位没有作物' }
-    }
-
-    if (Date.now() >= crop.readyAt) {
-      return { success: false, message: '作物已成熟，请直接收获' }
-    }
-
-    const cost = resolveGardenAccelerateCost({ crop, now: Date.now() })
-
     const playerStore = usePlayerStore()
-    if (playerStore.gold < cost) {
-      return { success: false, message: `灵石不足，需要${cost}灵石` }
+    const result = resolveGardenAcceleration({
+      joinedSectId: joinedSectId.value,
+      crop: crop ?? null,
+      gold: playerStore.gold,
+      now: Date.now()
+    })
+    if (!result.success || result.readyAt === undefined || !crop) {
+      return result
     }
 
-    playerStore.addGold(-cost)
-    crop.readyAt = Date.now()
+    playerStore.addGold(-result.goldCost)
+    crop.readyAt = result.readyAt
 
-    return { success: true, message: '加速成功，作物已成熟' }
+    return { success: true, message: result.message }
   }
 
   function setActiveDirective(directive: SectDirectiveId) {

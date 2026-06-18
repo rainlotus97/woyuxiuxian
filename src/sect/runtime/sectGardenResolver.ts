@@ -18,6 +18,20 @@ export interface SectGardenHarvestResult {
   }
 }
 
+export interface SectGardenPlantResult {
+  success: boolean
+  message: string
+  goldCost: number
+  crop?: PlantedCrop
+}
+
+export interface SectGardenAccelerateResult {
+  success: boolean
+  message: string
+  goldCost: number
+  readyAt?: number
+}
+
 export function resolveGardenSlotCount(gardenLevel: number) {
   return Math.min(3, 1 + Math.floor(gardenLevel / 2))
 }
@@ -32,6 +46,85 @@ export function resolveGardenAccelerateCost(input: {
 }) {
   if (!input.crop || input.now >= input.crop.readyAt) return 0
   return Math.ceil((input.crop.readyAt - input.now) / 60000) * 10
+}
+
+export function resolveGardenPlanting(input: {
+  joinedSectId: string | null
+  seedId: string
+  seed: SeedDefinition | undefined
+  slotIndex: number
+  slotCount: number
+  occupiedCrop: PlantedCrop | null
+  gardenLevel: number
+  gold: number
+  now: number
+}): SectGardenPlantResult {
+  if (!input.joinedSectId) {
+    return createPlantFailure('未加入宗门')
+  }
+
+  if (!input.seed) {
+    return createPlantFailure('种子不存在')
+  }
+
+  if (input.gardenLevel < input.seed.requiredGardenLevel) {
+    return createPlantFailure(`药园等级不足，需要${input.seed.requiredGardenLevel}级`)
+  }
+
+  if (input.slotIndex < 0 || input.slotIndex >= input.slotCount) {
+    return createPlantFailure('无效的槽位')
+  }
+
+  if (input.occupiedCrop) {
+    return createPlantFailure('该槽位已有作物')
+  }
+
+  if (input.gold < input.seed.buyPrice) {
+    return createPlantFailure(`灵石不足，需要${input.seed.buyPrice}灵石`, input.seed.buyPrice)
+  }
+
+  return {
+    success: true,
+    message: `种植成功，${input.seed.growTime}分钟后可收获`,
+    goldCost: input.seed.buyPrice,
+    crop: {
+      seedId: input.seedId,
+      plantedAt: input.now,
+      readyAt: input.now + input.seed.growTime * 60 * 1000,
+      slotIndex: input.slotIndex
+    }
+  }
+}
+
+export function resolveGardenAcceleration(input: {
+  joinedSectId: string | null
+  crop: PlantedCrop | null
+  gold: number
+  now: number
+}): SectGardenAccelerateResult {
+  if (!input.joinedSectId) {
+    return createAccelerateFailure('未加入宗门')
+  }
+
+  if (!input.crop) {
+    return createAccelerateFailure('该槽位没有作物')
+  }
+
+  if (input.now >= input.crop.readyAt) {
+    return createAccelerateFailure('作物已成熟，请直接收获')
+  }
+
+  const goldCost = resolveGardenAccelerateCost({ crop: input.crop, now: input.now })
+  if (input.gold < goldCost) {
+    return createAccelerateFailure(`灵石不足，需要${goldCost}灵石`, goldCost)
+  }
+
+  return {
+    success: true,
+    message: '加速成功，作物已成熟',
+    goldCost,
+    readyAt: input.now
+  }
 }
 
 export function resolveGardenHarvest(input: {
@@ -92,4 +185,20 @@ export function resolveGardenHarvest(input: {
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(0.999999, value))
+}
+
+function createPlantFailure(message: string, goldCost = 0): SectGardenPlantResult {
+  return {
+    success: false,
+    message,
+    goldCost
+  }
+}
+
+function createAccelerateFailure(message: string, goldCost = 0): SectGardenAccelerateResult {
+  return {
+    success: false,
+    message,
+    goldCost
+  }
 }
