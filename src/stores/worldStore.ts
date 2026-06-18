@@ -83,6 +83,11 @@ import {
   resolveNpcStoryContextView,
   resolveWorldLogContextView
 } from '@/world/runtime/worldLogContextResolver'
+import {
+  resolveNpcCompanionCandidates,
+  resolveNpcPlayerInteraction,
+  type NpcInteractionKind
+} from '@/world/runtime/npcCompanionResolver'
 
 interface WorldState {
   clock: WorldClock
@@ -213,6 +218,13 @@ export const useWorldStore = defineStore('world', () => {
   })))
   const activeAreaAnomalies = computed(() => areaAnomalies.value.slice(0, 6))
   const unlockedNpcDefinitions = computed(() => npcDefinitions.value.filter(definition => unlockedNpcIds.value.includes(definition.id)))
+  const npcCompanionCandidates = computed(() => resolveNpcCompanionCandidates({
+    definitions: npcDefinitions.value,
+    states: npcStates.value,
+    unlockedNpcIds: unlockedNpcIds.value,
+    getRelationship: getRelationshipState,
+    getLocationName: getAreaLabel
+  }))
   const importantNpcStates = computed(() => {
     return npcStates.value
       .map(state => {
@@ -979,6 +991,43 @@ export const useWorldStore = defineStore('world', () => {
     return true
   }
 
+  function interactWithNpc(npcId: string, kind?: NpcInteractionKind) {
+    const definition = npcDefinitions.value.find(item => item.id === npcId)
+    const state = npcStates.value.find(item => item.id === npcId)
+    if (!definition || !state || !unlockedNpcIds.value.includes(npcId)) {
+      return null
+    }
+
+    const relationship = getRelationshipState(npcId)
+    const result = resolveNpcPlayerInteraction({
+      definition,
+      state,
+      relationship,
+      clock: clock.value,
+      kind
+    })
+    if (!result) return null
+
+    addLog(
+      'npc',
+      result.severity,
+      result.title,
+      result.text,
+      [npcId],
+      ['npc', 'relationship', result.nextBond],
+      state.locationMapId
+    )
+    appendNpcStory(
+      npcId,
+      result.title,
+      result.text,
+      result.severity,
+      state.locationMapId,
+      ['relationship', result.nextBond]
+    )
+    return result
+  }
+
   function recordMerchantTradeEvent(input: {
     log: {
       scope: WorldLogEntry['scope']
@@ -1052,6 +1101,7 @@ export const useWorldStore = defineStore('world', () => {
     importantNpcStoryViews,
     activeAreaAnomalies,
     unlockedNpcDefinitions,
+    npcCompanionCandidates,
     importantNpcStates,
     setIdleMode,
     simulateOffline,
@@ -1067,6 +1117,7 @@ export const useWorldStore = defineStore('world', () => {
     getCapturedNpcRescueTarget,
     rescueCapturedNpc,
     applyStoryRelationshipChange,
+    interactWithNpc,
     recordMerchantTradeEvent,
     addWorldFlag,
     hasWorldFlag

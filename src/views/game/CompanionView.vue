@@ -14,6 +14,39 @@
     </div>
 
     <!-- 伙伴列表 -->
+    <div v-if="activeTab === 'bonds'" class="npc-bond-panel">
+      <div class="bond-hero">
+        <div>
+          <span>人物缘分</span>
+          <strong>可结识人物</strong>
+          <p>与世界中的关键人物互动会提升好感，并把关系变化写入世界日志与人物纪闻。</p>
+        </div>
+        <div class="bond-count">{{ worldStore.npcCompanionCandidates.length }}</div>
+      </div>
+
+      <div class="npc-bond-list">
+        <button
+          v-for="candidate in worldStore.npcCompanionCandidates"
+          :key="candidate.id"
+          class="npc-bond-card"
+          :class="`bond-${candidate.bond}`"
+          @click="handleNpcInteraction(candidate.id, candidate.canInvite ? 'invite' : 'greet')"
+        >
+          <div class="npc-mark">{{ candidate.name.slice(0, 1) }}</div>
+          <div class="npc-bond-copy">
+            <span>{{ candidate.title }} · {{ candidate.realm }} · {{ candidate.locationName }}</span>
+            <strong>{{ candidate.name }}</strong>
+            <p>{{ candidate.summary }}</p>
+            <div class="npc-bond-meta">
+              <em>{{ candidate.statusLabel }}</em>
+              <em>好感 {{ candidate.favor }}</em>
+            </div>
+          </div>
+          <span class="npc-action">{{ candidate.actionLabel }}</span>
+        </button>
+      </div>
+    </div>
+
     <div v-if="activeTab === 'companions'" class="companions-panel">
       <div v-if="companionStore.ownedCompanionDetails.length === 0" class="empty-state">
         <div class="empty-icon">👥</div>
@@ -248,18 +281,22 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useCompanionStore } from '@/stores/companionStore'
+import { useWorldStore } from '@/stores/worldStore'
 import { COMPANION_QUALITY_CONFIG, GACHA_CONFIG, type GachaResult } from '@/types/companion'
 import { SKILL_DEFINITIONS } from '@/types/skill'
 import { useToast } from '@/composables/useToast'
+import type { NpcInteractionKind } from '@/world/runtime/npcCompanionResolver'
 
 const companionStore = useCompanionStore()
+const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
 
-const activeTab = ref<'companions' | 'gacha' | 'formation'>('companions')
+const activeTab = ref<'bonds' | 'companions' | 'gacha' | 'formation'>('bonds')
 const selectedCompanionId = ref<string | null>(null)
 const gachaResults = ref<GachaResult[]>([])
 
 const tabs = [
+  { id: 'bonds' as const, name: '缘分', icon: '🤝' },
   { id: 'companions' as const, name: '伙伴', icon: '👥' },
   { id: 'gacha' as const, name: '招募', icon: '🎰' },
   { id: 'formation' as const, name: '上阵', icon: '⚔️' }
@@ -366,11 +403,168 @@ function handleStarUp() {
     }
   }
 }
+
+function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
+  const result = worldStore.interactWithNpc(npcId, kind)
+  if (!result) {
+    warning('当前无法互动')
+    return
+  }
+
+  success(result.title)
+  info(`好感 +${result.favorDelta}`)
+}
 </script>
 
 <style scoped>
 .companion-view {
   padding-bottom: 16px;
+}
+
+.bond-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid rgba(188, 141, 58, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 238, 0.96), rgba(241, 249, 244, 0.84)),
+    radial-gradient(circle at top right, rgba(255, 212, 112, 0.18), transparent 58%);
+  box-shadow: 0 16px 34px rgba(87, 126, 121, 0.12);
+}
+
+.bond-hero div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.bond-hero span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.bond-hero strong {
+  color: #8b6226;
+  font-size: 18px;
+}
+
+.bond-hero p {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.76);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.bond-count {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #8b6226;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.npc-bond-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.npc-bond-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #315257;
+  font-family: var(--font-game);
+  text-align: left;
+  cursor: pointer;
+}
+
+.npc-bond-card.bond-friend,
+.npc-bond-card.bond-companion,
+.npc-bond-card.bond-lover {
+  border-color: rgba(188, 141, 58, 0.26);
+  background: rgba(255, 250, 236, 0.88);
+}
+
+.npc-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 238, 180, 0.96), rgba(125, 216, 191, 0.78));
+  color: #8b6226;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.npc-bond-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.npc-bond-copy span {
+  overflow: hidden;
+  color: rgba(73, 97, 95, 0.66);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.npc-bond-copy strong {
+  color: #315257;
+  font-size: 15px;
+}
+
+.npc-bond-copy p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgba(53, 81, 83, 0.78);
+  font-size: 12px;
+  line-height: 1.55;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.npc-bond-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.npc-bond-meta em,
+.npc-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(73, 97, 95, 0.78);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.npc-action {
+  grid-column: 1 / -1;
+  width: fit-content;
+  color: #8b6226;
+  background: rgba(255, 249, 233, 0.9);
 }
 
 /* 功能标签 */
@@ -966,6 +1160,16 @@ function handleStarUp() {
 
   .formation-slot {
     height: 80px;
+  }
+}
+
+@media (max-width: 720px) {
+  .npc-bond-list {
+    grid-template-columns: 1fr;
+  }
+
+  .bond-hero {
+    align-items: flex-start;
   }
 }
 
