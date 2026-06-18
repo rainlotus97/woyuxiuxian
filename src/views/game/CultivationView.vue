@@ -63,11 +63,23 @@
       subtitle="优先处理挂机、历险、故事、人物、地图与宗门这些 P0 可玩入口。"
     >
       <div class="loop-task-grid">
+        <div class="loop-readiness-strip">
+          <div>
+            <span>P0 状态</span>
+            <strong>{{ loopReadiness.headline }}</strong>
+          </div>
+          <div class="readiness-counts">
+            <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
+            <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
+            <span class="state-blocked">阻塞 {{ loopReadiness.counts.blocked }}</span>
+          </div>
+        </div>
+
         <button
           v-for="task in mainLoopTasks"
           :key="task.id"
           class="loop-task-card"
-          :class="[`tone-${task.tone}`, { active: task.active }]"
+          :class="[`tone-${task.tone}`, `state-${task.readiness.state}`, { active: task.active }]"
           @click="handleTaskAction(task)"
         >
           <span class="task-icon">{{ task.icon }}</span>
@@ -75,6 +87,7 @@
             <small>{{ task.label }}</small>
             <strong>{{ task.title }}</strong>
             <em>{{ task.summary }}</em>
+            <i>{{ task.readiness.reason }}</i>
           </span>
           <span class="task-meta">{{ task.meta }}</span>
         </button>
@@ -338,6 +351,11 @@ import { useStoryStore } from '@/story/storyStore'
 import type { IdleMode } from '@/types/world'
 import { getSectById } from '@/types/sect'
 import {
+  resolveMainLoopReadiness,
+  type MainLoopReadinessItem,
+  type MainLoopReadinessKey
+} from '@/world/runtime/mainLoopReadinessResolver'
+import {
   formatJourneyRewards,
   getAnomalyIcon,
   getBondLabel,
@@ -366,13 +384,14 @@ const offlineGains = ref(0)
 let idleTimer: number | null = null
 
 interface MainLoopTask {
-  id: string
+  id: MainLoopReadinessKey
   icon: string
   label: string
   title: string
   summary: string
   meta: string
   tone: 'jade' | 'gold' | 'rose' | 'mist'
+  readiness: MainLoopReadinessItem
   active?: boolean
   route?: string
   action?: 'toggleIdle'
@@ -590,6 +609,39 @@ const { worldBriefings } = useWorldBriefings({
   latestLog: latestLogBriefing
 })
 
+const loopReadiness = computed(() => resolveMainLoopReadiness({
+  player: {
+    isCaptured: playerStore.captivity.isCaptured,
+    isIdling: playerStore.isIdling,
+    stamina: playerStore.stamina,
+    maxStamina: playerStore.maxStamina,
+    canBreakthrough: playerStore.canBreakthrough
+  },
+  world: {
+    unlockedNpcCount: worldStore.unlockedNpcDefinitions.length,
+    worldBriefingCount: worldBriefings.value.length,
+    hasRecentJourney: recentJourneys.value.length > 0
+  },
+  story: {
+    currentNodeId: storyStore.currentNodeId,
+    completedCount: storyStore.completedCount,
+    isInitialized: storyStore.isInitialized
+  },
+  map: {
+    conqueredCount: mapStore.conqueredCountInCurrentRealm,
+    totalAreaCount: mapStore.currentRealmAreas.length,
+    hasHotspot: Boolean(hotspotArea.value)
+  },
+  sect: {
+    joined: Boolean(sectStore.currentSect),
+    joinableCount: sectStore.joinCandidates.filter(candidate => candidate.canJoin).length,
+    activeWar: Boolean(sectStore.activeWar),
+    completedTaskCount: sectStore.completedTasks.length,
+    availableTaskCount: sectStore.dailyTasks.length + sectStore.weeklyTasks.length,
+    canClaimSalary: sectStore.canClaimSalary
+  }
+}))
+
 const mainLoopTasks = computed<MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
   const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
@@ -608,11 +660,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: playerStore.isIdling ? '停' : '修',
       label: '挂机',
       title: playerStore.isIdling ? `正在${idleModeLabel.value}` : '安排主角行动',
-      summary: playerStore.captivity.isCaptured
-        ? '被俘期间转入脱困循环'
-        : '切换闭关、游历、宗门差遣、采药或演练功法',
-      meta: playerStore.isIdling ? '点击停止' : '点击开始',
-      tone: playerStore.captivity.isCaptured ? 'rose' : playerStore.isIdling ? 'gold' : 'jade',
+      summary: loopReadiness.value.byId.idle.actionHint,
+      meta: loopReadiness.value.byId.idle.label,
+      tone: loopReadiness.value.byId.idle.tone,
+      readiness: loopReadiness.value.byId.idle,
       active: playerStore.isIdling,
       action: 'toggleIdle'
     },
@@ -621,9 +672,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: '战',
       label: '历险',
       title: '前往界域历练',
-      summary: '挑战区域、消耗体力、获取丹药材料与战斗推进',
+      summary: loopReadiness.value.byId.adventure.actionHint,
       meta: `体力 ${playerStore.stamina}/${playerStore.maxStamina}`,
-      tone: playerStore.stamina > 0 ? 'jade' : 'mist',
+      tone: loopReadiness.value.byId.adventure.tone,
+      readiness: loopReadiness.value.byId.adventure,
       route: '/game/adventure'
     },
     {
@@ -631,9 +683,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: '卷',
       label: '故事',
       title: storyStore.currentNodeId ? '继续命簿卷宗' : '开启主线卷宗',
-      summary: '故事会解锁 NPC、伙伴、地图、宗门关系与剧情战',
+      summary: loopReadiness.value.byId.story.actionHint,
       meta: `${latestStoryLabel}`,
-      tone: 'gold',
+      tone: loopReadiness.value.byId.story.tone,
+      readiness: loopReadiness.value.byId.story,
       route: '/game/story'
     },
     {
@@ -641,11 +694,12 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: '人',
       label: '人物',
       title: firstNpc ? firstNpc.name : '结识同行者',
-      summary: firstNpc
-        ? `${firstNpc.destinyRankLabel} · ${firstNpc.bondLabel} · ${firstNpc.goalLabel}`
-        : '重要 NPC 会自主成长、冲突、结盟或反目',
-      meta: `${worldStore.unlockedNpcDefinitions.length} 人`,
-      tone: firstNpc?.bondTone === 'hostile' ? 'rose' : 'jade',
+      summary: loopReadiness.value.byId.npc.actionHint,
+      meta: firstNpc
+        ? `${firstNpc.destinyRankLabel} · ${firstNpc.bondLabel}`
+        : `${worldStore.unlockedNpcDefinitions.length} 人`,
+      tone: loopReadiness.value.byId.npc.tone,
+      readiness: loopReadiness.value.byId.npc,
       route: '/game/companion'
     },
     {
@@ -653,11 +707,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: '图',
       label: '地图',
       title: hotspotTitle,
-      summary: hotspotArea.value
-        ? `${hotspotArea.value.contested ? '战线争夺' : '区域高压'}${hotspotArea.value.anomalyTitle ? ` · ${hotspotArea.value.anomalyTitle}` : ''}`
-        : '查看界域、资源、宗门位置和风险变化',
+      summary: loopReadiness.value.byId.map.actionHint,
       meta: `${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`,
-      tone: hotspotArea.value ? 'rose' : 'mist',
+      tone: loopReadiness.value.byId.map.tone,
+      readiness: loopReadiness.value.byId.map,
       route: '/game/map'
     },
     {
@@ -665,13 +718,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       icon: '门',
       label: '宗门',
       title: sectTitle,
-      summary: sectStore.activeWar
-        ? '宗门战争正在推进，地图控制权与 NPC 命运会受影响'
-        : sectStore.currentSect
-          ? '处理任务、俸禄、设施、营救与外交'
-          : '先选择可加入宗门，建立长期归属与资源来源',
+      summary: loopReadiness.value.byId.sect.actionHint,
       meta: sectMeta,
-      tone: sectStore.activeWar ? 'rose' : sectStore.currentSect ? 'gold' : 'mist',
+      tone: loopReadiness.value.byId.sect.tone,
+      readiness: loopReadiness.value.byId.sect,
       route: '/game/sect'
     }
   ]
@@ -1027,9 +1077,70 @@ function handleAdvanceWorld() {
   gap: 8px;
 }
 
+.loop-readiness-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.76), rgba(241, 249, 244, 0.62)),
+    radial-gradient(circle at top right, rgba(255, 213, 112, 0.16), transparent 62%);
+}
+
+.loop-readiness-strip > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loop-readiness-strip span {
+  color: rgba(75, 100, 98, 0.66);
+  font-size: 10px;
+}
+
+.loop-readiness-strip strong {
+  color: #315257;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.readiness-counts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.readiness-counts span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  background: rgba(255, 255, 255, 0.66);
+  font-size: 10px;
+}
+
+.readiness-counts .state-ready {
+  color: #497c66;
+}
+
+.readiness-counts .state-warning {
+  color: #8b6226;
+}
+
+.readiness-counts .state-blocked {
+  color: #8a4959;
+}
+
 .loop-task-card {
   min-width: 0;
-  min-height: 124px;
+  min-height: 152px;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
@@ -1075,6 +1186,14 @@ function handleAdvanceWorld() {
     radial-gradient(circle at top right, rgba(174, 218, 240, 0.16), transparent 58%);
 }
 
+.loop-task-card.state-blocked {
+  border-color: rgba(198, 121, 137, 0.3);
+}
+
+.loop-task-card.state-warning {
+  border-color: rgba(194, 146, 66, 0.3);
+}
+
 .task-icon {
   width: 40px;
   height: 40px;
@@ -1114,6 +1233,17 @@ function handleAdvanceWorld() {
   font-size: 10px;
   font-style: normal;
   line-height: 1.55;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.task-copy i {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(49, 82, 87, 0.62);
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.5;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -1485,7 +1615,16 @@ function handleAdvanceWorld() {
   }
 
   .loop-task-card {
-    min-height: 126px;
+    min-height: 148px;
+  }
+
+  .loop-readiness-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .readiness-counts {
+    justify-content: flex-start;
   }
 
   .offline-banner {

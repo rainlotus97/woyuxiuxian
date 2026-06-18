@@ -2517,6 +2517,64 @@ test('adventure sweep resolver returns structured rewards', async () => {
   assert.equal(blocked.staminaCost, 9)
 })
 
+test('main loop readiness summarizes p0 action states', async () => {
+  const { resolveMainLoopReadiness } = await load('/src/world/runtime/mainLoopReadinessResolver.ts')
+
+  const baseInput = {
+    player: {
+      isCaptured: false,
+      isIdling: false,
+      stamina: 80,
+      maxStamina: 100,
+      canBreakthrough: false
+    },
+    world: {
+      unlockedNpcCount: 5,
+      worldBriefingCount: 2,
+      hasRecentJourney: false
+    },
+    story: {
+      currentNodeId: null,
+      completedCount: 0,
+      isInitialized: false
+    },
+    map: {
+      conqueredCount: 0,
+      totalAreaCount: 6,
+      hasHotspot: true
+    },
+    sect: {
+      joined: false,
+      joinableCount: 1,
+      activeWar: false,
+      completedTaskCount: 0,
+      availableTaskCount: 0,
+      canClaimSalary: false
+    }
+  }
+
+  const summary = resolveMainLoopReadiness(baseInput)
+  assert.equal(summary.items.length, 6)
+  assert.equal(summary.byId.idle.state, 'ready')
+  assert.equal(summary.byId.story.state, 'warning')
+  assert.equal(summary.byId.sect.label, '可拜山')
+  assert.equal(summary.counts.warning, 3)
+  assert.match(summary.headline, /需要处理/)
+
+  const captured = resolveMainLoopReadiness({
+    ...baseInput,
+    player: {
+      ...baseInput.player,
+      isCaptured: true,
+      stamina: 0
+    }
+  })
+  assert.equal(captured.byId.idle.state, 'blocked')
+  assert.equal(captured.byId.adventure.state, 'blocked')
+  assert.equal(captured.counts.blocked, 2)
+  assert.match(captured.headline, /阻塞/)
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 
