@@ -8,7 +8,14 @@ import type {
 
 const DAMAGE_OVER_TIME_DEFAULTS: Partial<Record<StatusEffectType, number>> = {
   poison: 8,
-  burn: 10
+  burn: 10,
+  bleed: 6
+}
+
+const DAMAGE_OVER_TIME_LABELS: Partial<Record<StatusEffectType, string>> = {
+  poison: '毒伤',
+  burn: '灼烧',
+  bleed: '流血'
 }
 
 export function cloneStatusEffect(status: StatusEffect): StatusEffect {
@@ -120,10 +127,11 @@ export function processTurnStartStatuses(actor: BattleRuntimeUnit): BattleTurnSt
   for (const status of actor.statusEffects) {
     if (!actor.isAlive) break
 
-    if (status.type === 'poison' || status.type === 'burn') {
+    if (status.type === 'poison' || status.type === 'burn' || status.type === 'bleed') {
       const rawDamage = Math.max(1, Math.floor(status.value ?? DAMAGE_OVER_TIME_DEFAULTS[status.type] ?? 6))
       const { remainingDamage, negated } = resolveIncomingDamage(actor, rawDamage)
       const damage = Math.min(actor.stats.currentHp, remainingDamage)
+      const label = DAMAGE_OVER_TIME_LABELS[status.type] ?? '异伤'
 
       if (damage > 0) {
         actor.stats.currentHp = Math.max(0, actor.stats.currentHp - damage)
@@ -133,9 +141,9 @@ export function processTurnStartStatuses(actor: BattleRuntimeUnit): BattleTurnSt
           amount: damage,
           isCrit: false
         })
-        logs.push(`${actor.name}受到${status.type === 'poison' ? '毒伤' : '灼烧'}侵蚀，损失${damage}点气血。`)
+        logs.push(`${actor.name}受到${label}侵蚀，损失${damage}点气血。`)
       } else if (negated > 0) {
-        logs.push(`${actor.name}处于无敌状态，抵消了${status.type === 'poison' ? '毒伤' : '灼烧'}侵蚀。`)
+        logs.push(`${actor.name}处于无敌状态，抵消了${label}侵蚀。`)
       }
 
       if (actor.stats.currentHp <= 0) {

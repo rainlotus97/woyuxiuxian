@@ -123,6 +123,7 @@ export class BattleRuntime {
       .filter(unit => unit.stats.currentHp < unit.stats.maxHp)
       .sort((a, b) => a.stats.currentHp / a.stats.maxHp - b.stats.currentHp / b.stats.maxHp)
     const availableSkills = this.getAvailableSkills(actor.id)
+    const target = [...enemies].sort((a, b) => a.stats.currentHp - b.stats.currentHp)[0]
 
     const teamHeal = availableSkills.find(skill => skill.effects.some(effect => effect.type === 'heal' && effect.targetType === 'all_allies')) ?? null
     if (teamHeal && woundedAllies.length >= 2) {
@@ -154,10 +155,28 @@ export class BattleRuntime {
       return { type: 'skill', actorId: actor.id, targetIds: [], skillId: summonSkill.id }
     }
 
+    const controlSkill = availableSkills.find(skill => skill.effects.some(effect => {
+      const statusType = effect.statusEffect?.type
+      if (!statusType || (target && hasStatusEffect(target, statusType))) return false
+      return statusType === 'spirit_seal'
+        || statusType === 'vulnerable'
+        || statusType === 'freeze'
+        || statusType === 'stun'
+        || statusType === 'debuff_atk'
+        || statusType === 'debuff_def'
+    })) ?? null
+    if (controlSkill && target && Math.random() < 0.56) {
+      return {
+        type: 'skill',
+        actorId: actor.id,
+        targetIds: resolveCommandTargetIds({ type: 'skill', actorId: actor.id, targetIds: [target.id], skillId: controlSkill.id }, actor, this.units, controlSkill),
+        skillId: controlSkill.id
+      }
+    }
+
     const damageSkill = availableSkills
       .filter(item => item.effects.some(effect => effect.type === 'damage'))
       .sort((a, b) => this.getSpiritFireCost(b) - this.getSpiritFireCost(a))[0] ?? null
-    const target = [...enemies].sort((a, b) => a.stats.currentHp - b.stats.currentHp)[0]
     if (damageSkill && target && this.spiritFire >= this.getSpiritFireCost(damageSkill) && Math.random() < 0.68) {
       return {
         type: 'skill',
@@ -386,13 +405,16 @@ export class BattleRuntime {
     const labels: Record<string, string> = {
       poison: '中毒',
       burn: '灼烧',
+      bleed: '流血',
       freeze: '冰封',
       stun: '眩晕',
+      spirit_seal: '禁法',
       buff_atk: '攻势提升',
       buff_def: '护体',
       buff_spd: '身法提升',
       debuff_atk: '攻势受挫',
       debuff_def: '防御受创',
+      vulnerable: '易伤',
       shield: '护盾',
       invincible: '无敌'
     }

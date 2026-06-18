@@ -109,13 +109,16 @@ function getStatusEffectClass(type: StatusEffectType): string {
   const classes: Record<StatusEffectType, string> = {
     poison: 'bg-purple-500 text-white',
     burn: 'bg-orange-500 text-white',
+    bleed: 'bg-rose-600 text-white',
     freeze: 'bg-cyan-500 text-white',
     stun: 'bg-yellow-500 text-black',
+    spirit_seal: 'bg-indigo-600 text-white',
     buff_atk: 'bg-red-500 text-white',
     buff_def: 'bg-blue-500 text-white',
     buff_spd: 'bg-green-500 text-white',
     debuff_atk: 'bg-gray-500 text-white',
     debuff_def: 'bg-gray-500 text-white',
+    vulnerable: 'bg-pink-500 text-white',
     shield: 'bg-gray-300 text-black',
     invincible: 'bg-yellow-300 text-black'
   }
@@ -127,13 +130,16 @@ function getStatusEffectIcon(type: StatusEffectType): string {
   const icons: Record<StatusEffectType, string> = {
     poison: '毒',
     burn: '燃',
+    bleed: '血',
     freeze: '冻',
     stun: '晕',
+    spirit_seal: '封',
     buff_atk: '攻',
     buff_def: '防',
     buff_spd: '速',
     debuff_atk: '弱',
     debuff_def: '破',
+    vulnerable: '伤',
     shield: '盾',
     invincible: '无'
   }

@@ -200,6 +200,104 @@ test('battle status runtime negates damage while invincible', async () => {
   assert.ok(turnStart.logs.some(log => log.includes('无敌状态')))
 })
 
+test('enemy battle skills apply exclusive status effects', async () => {
+  const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
+  const { createUnit } = await load('/src/types/unit.ts')
+  const originalRandom = Math.random
+  Math.random = () => 0
+
+  try {
+    const ally = createUnit({
+      id: 'sealed_ally',
+      name: '被封弟子',
+      type: 'protagonist',
+      skills: ['sword_qi'],
+      stats: {
+        maxHp: 180,
+        currentHp: 180,
+        maxMp: 80,
+        currentMp: 80,
+        attack: 35,
+        defense: 6,
+        speed: 100,
+        critRate: 0,
+        critDamage: 1.5
+      }
+    })
+    const enemy = createUnit({
+      id: 'status_enemy',
+      name: '上古守卫',
+      type: 'enemy',
+      skills: ['ancient_seal', 'ancient_curse', 'shadow_strike'],
+      stats: {
+        maxHp: 320,
+        currentHp: 320,
+        maxMp: 120,
+        currentMp: 120,
+        attack: 45,
+        defense: 20,
+        speed: 80,
+        critRate: 0,
+        critDamage: 1.5
+      }
+    })
+
+    const runtime = new BattleRuntime([ally], [enemy])
+    runtime.spiritFire = runtime.maxSpiritFire
+    const seal = runtime.resolveCommand({
+      type: 'skill',
+      actorId: 'status_enemy',
+      targetIds: ['sealed_ally'],
+      skillId: 'ancient_seal'
+    })
+    assert.ok(seal, 'ancient seal should resolve')
+    runtime.applyResolvedCommand(seal)
+
+    const sealedAlly = runtime.units.find(unit => unit.id === 'sealed_ally')
+    assert.ok(sealedAlly?.statusEffects.some(effect => effect.type === 'spirit_seal'))
+    assert.equal(runtime.getAvailableSkills('sealed_ally').length, 0)
+    assert.ok(runtime.resolveCommand({ type: 'attack', actorId: 'sealed_ally', targetIds: ['status_enemy'] }), 'sealed unit should still attack')
+    assert.equal(runtime.resolveCommand({
+      type: 'skill',
+      actorId: 'sealed_ally',
+      targetIds: ['status_enemy'],
+      skillId: 'sword_qi'
+    }), null)
+
+    runtime.finishAction()
+    runtime.spiritFire = runtime.maxSpiritFire
+    const curse = runtime.resolveCommand({
+      type: 'skill',
+      actorId: 'status_enemy',
+      targetIds: ['sealed_ally'],
+      skillId: 'ancient_curse'
+    })
+    assert.ok(curse, 'ancient curse should resolve')
+    runtime.applyResolvedCommand(curse)
+    assert.ok(sealedAlly?.statusEffects.some(effect => effect.type === 'vulnerable'))
+
+    runtime.finishAction()
+    runtime.spiritFire = runtime.maxSpiritFire
+    const bleed = runtime.resolveCommand({
+      type: 'skill',
+      actorId: 'status_enemy',
+      targetIds: ['sealed_ally'],
+      skillId: 'shadow_strike'
+    })
+    assert.ok(bleed, 'shadow strike should resolve')
+    runtime.applyResolvedCommand(bleed)
+    assert.ok(sealedAlly?.statusEffects.some(effect => effect.type === 'bleed'))
+
+    const hpBeforeBleed = sealedAlly?.stats.currentHp ?? 0
+    const turnStart = processTurnStartStatuses(sealedAlly)
+    assert.ok((sealedAlly?.stats.currentHp ?? 0) < hpBeforeBleed)
+    assert.ok(turnStart.logs.some(log => log.includes('流血')))
+  } finally {
+    Math.random = originalRandom
+  }
+})
+
 test('story parser reads node choices and gameplay effects', async () => {
   const { storyParser } = await load('/src/story/parser/index.ts')
   const content = `---

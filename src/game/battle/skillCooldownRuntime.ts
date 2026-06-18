@@ -28,5 +28,8 @@ export function withRuntimeSkillCooldown(skill: Skill, unit: BattleRuntimeUnit):
 }
 
 export function canUseRuntimeSkill(skill: Skill, unit: BattleRuntimeUnit) {
+  if (unit.statusEffects.some(effect => effect.type === 'spirit_seal' && effect.duration > 0)) {
+    return false
+  }
   return skill.currentCooldown <= 0 && skill.mpCost <= unit.stats.currentMp
 }

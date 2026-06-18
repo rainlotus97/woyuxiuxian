@@ -36,14 +36,14 @@
   - 已建立 `src/game/battle/config/{skills,skillTrees,enemies,areas}.ts`
   - 已将 `types/skill.ts`、`types/adventure.ts` 收口为类型、helper 与兼容导出层
   - 已让战斗会话直接消费 `src/game/battle/config`，后续扩展战斗内容不再继续堆进 `types/*`
-- [~] 增加 buff/debuff runtime
+- [x] 增加 buff/debuff runtime
   - 已拆出 `targeting`、`commandResolver`、`statusRuntime`、`runtimeTypes`
   - 已支持单体/群体/自身目标解析
   - 已支持 buff/debuff 状态附加与回合开始结算入口
   - 已支持召唤 effect runtime 建模与战场实体生成
   - 已新增 `skillCooldownRuntime`，让技能冷却随角色回合递减，并统一影响手动命令、自动战斗与 runtime 校验
   - 已让无敌状态接入统一入伤结算，直伤与持续伤害都会被正确抵消
-  - 待补：更多敌人专属状态
+  - 已新增流血、禁法、易伤等敌人专属状态，并补入影袭、古咒、古印封灵、冰牢、相位偏移、龙威震魂等敌方技能定义
 - [~] 增加护盾、治疗、持续伤害、召唤物支持
   - 已支持单体治疗、群体治疗、自身护盾、毒/灼烧持续伤害
   - 已支持护盾吸收伤害与 DOT 回合开始扣血

@@ -97,13 +97,16 @@ export const ELEMENT_COUNTER: Record<Element, Element> = {
 export type StatusEffectType =
   | 'poison'      // 中毒 - 持续伤害
   | 'burn'        // 燃烧 - 持续火焰伤害
+  | 'bleed'       // 流血 - 敌人专属持续伤害
   | 'freeze'      // 冰冻 - 跳过回合
   | 'stun'         // 眩晕 - 跳过回合
+  | 'spirit_seal' // 禁法 - 无法释放技能
   | 'buff_atk'    // 攻击增益
   | 'buff_def'    // 防御增益
   | 'buff_spd'    // 速度增益
   | 'debuff_atk'  // 攻击减弱
   | 'debuff_def'  // 防御减弱
+  | 'vulnerable'  // 易伤 - 承受伤害提升
   | 'shield'      // 护盾
   | 'invincible'   // 无敌
 

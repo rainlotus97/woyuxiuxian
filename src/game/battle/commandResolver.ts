@@ -45,6 +45,9 @@ function applyStatusModifiers(
     if (effect.type === 'debuff_def') {
       modifier *= 1 + (effect.value ?? 0.2)
     }
+    if (effect.type === 'vulnerable') {
+      modifier *= 1 + (effect.value ?? 0.25)
+    }
   }
 
   return amount * modifier

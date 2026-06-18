@@ -359,6 +359,177 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     prerequisites: ['poison_fog'],
     unlockRealm: '金丹'
   },
+  shadow_strike: {
+    id: 'shadow_strike',
+    name: '影袭',
+    description: '暗影系敌人的突袭，造成伤害并撕裂伤口。',
+    icon: '影',
+    category: 'attack',
+    branch: 'special',
+    tier: 2,
+    mpCost: 16,
+    cooldown: 2,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'damage',
+        targetType: 'single_enemy',
+        baseValue: 28,
+        scaling: 0.95,
+        element: '雷',
+        statusEffect: {
+          type: 'bleed',
+          chance: 0.45,
+          duration: 2,
+          value: 7
+        }
+      }
+    ],
+    unlockRealm: '炼气'
+  },
+  ancient_curse: {
+    id: 'ancient_curse',
+    name: '古咒',
+    description: '古老咒文削弱目标护体，使其更易受伤。',
+    icon: '咒',
+    category: 'support',
+    branch: 'special',
+    tier: 2,
+    mpCost: 18,
+    cooldown: 3,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'special',
+        targetType: 'single_enemy',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'vulnerable',
+          chance: 1,
+          duration: 2,
+          value: 0.3
+        }
+      }
+    ],
+    unlockRealm: '筑基'
+  },
+  ancient_seal: {
+    id: 'ancient_seal',
+    name: '古印封灵',
+    description: '上古守卫封住目标灵机，使其短时无法施展技能。',
+    icon: '封',
+    category: 'support',
+    branch: 'special',
+    tier: 3,
+    mpCost: 26,
+    cooldown: 4,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'special',
+        targetType: 'single_enemy',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'spirit_seal',
+          chance: 1,
+          duration: 1
+        }
+      }
+    ],
+    unlockRealm: '金丹'
+  },
+  ice_prison: {
+    id: 'ice_prison',
+    name: '冰牢',
+    description: '雪魔凝出冰牢，封住目标行动。',
+    icon: '牢',
+    category: 'support',
+    branch: 'special',
+    tier: 3,
+    mpCost: 30,
+    cooldown: 4,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'special',
+        targetType: 'single_enemy',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'freeze',
+          chance: 0.75,
+          duration: 1
+        }
+      }
+    ],
+    unlockRealm: '筑基'
+  },
+  phase_shift: {
+    id: 'phase_shift',
+    name: '相位偏移',
+    description: '虚空系敌人短暂遁入虚隙，抵消下一段伤害。',
+    icon: '相',
+    category: 'defense',
+    branch: 'special',
+    tier: 3,
+    mpCost: 24,
+    cooldown: 5,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'buff',
+        targetType: 'self',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'invincible',
+          chance: 1,
+          duration: 1
+        }
+      }
+    ],
+    unlockRealm: '金丹'
+  },
+  dragon_roar: {
+    id: 'dragon_roar',
+    name: '龙威震魂',
+    description: '龙威压制敌方灵机，削弱攻势并可能禁法。',
+    icon: '吼',
+    category: 'support',
+    branch: 'special',
+    tier: 4,
+    mpCost: 38,
+    cooldown: 5,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'debuff',
+        targetType: 'all_enemies',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'debuff_atk',
+          chance: 1,
+          duration: 2,
+          value: 0.22
+        }
+      },
+      {
+        type: 'special',
+        targetType: 'all_enemies',
+        baseValue: 0,
+        scaling: 0,
+        statusEffect: {
+          type: 'spirit_seal',
+          chance: 0.35,
+          duration: 1
+        }
+      }
+    ],
+    unlockRealm: '元婴'
+  },
   demon_summon: {
     id: 'demon_summon',
     name: '魔侍召来',
