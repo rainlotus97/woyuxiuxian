@@ -526,6 +526,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveAreaGameplayAccess } = await load('/src/map/runtime/mapAreaAccessResolver.ts')
   const { resolveSectAuthority, canAuthorityAccessFacility } = await load('/src/sect/runtime/sectPositionResolver.ts')
   const { resolveSectStipend } = await load('/src/sect/runtime/sectStipendResolver.ts')
+  const {
+    resolveGardenAccelerateCost,
+    resolveGardenHarvest,
+    resolveGardenSlotCount
+  } = await load('/src/sect/runtime/sectGardenResolver.ts')
+  const { getSeedById } = await load('/src/types/garden.ts')
 
   const blocked = resolveAreaGameplayAccess({
     areaName: '青云山',
@@ -574,6 +580,41 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(cooldownStipend.canClaim, false)
   assert.equal(cooldownStipend.reason, 'cooldown')
+
+  assert.equal(resolveGardenSlotCount(1), 1)
+  assert.equal(resolveGardenSlotCount(5), 3)
+  const seed = getSeedById('seed_spirit_grass')
+  assert.ok(seed, 'fixture seed should exist')
+  const matureCrop = { seedId: seed.id, plantedAt: 0, readyAt: 1000, slotIndex: 0 }
+  const harvest = resolveGardenHarvest({
+    joinedSectId: 'qingyun_sect',
+    slotIndex: 0,
+    slotCount: 1,
+    crop: matureCrop,
+    seed,
+    gardenLevel: 3,
+    directive: 'supply',
+    now: 1000,
+    random: 0
+  })
+  assert.equal(harvest.success, true)
+  assert.equal(harvest.quantity, 2)
+  assert.equal(harvest.item?.definitionId, 'herb_spirit_grass')
+
+  const unready = resolveGardenHarvest({
+    joinedSectId: 'qingyun_sect',
+    slotIndex: 0,
+    slotCount: 1,
+    crop: { ...matureCrop, readyAt: 61_000 },
+    seed,
+    gardenLevel: 1,
+    directive: 'balanced',
+    now: 1000,
+    random: 0
+  })
+  assert.equal(unready.success, false)
+  assert.ok(unready.message.includes('尚未成熟'))
+  assert.equal(resolveGardenAccelerateCost({ crop: { ...matureCrop, readyAt: 61_000 }, now: 1000 }), 10)
 })
 
 const results = await Promise.all(diagnostics)

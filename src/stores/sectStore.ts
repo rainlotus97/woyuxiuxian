@@ -34,6 +34,12 @@ import {
 } from '@/sect/runtime/sectRecoveryResolver'
 import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
+import {
+  resolveAvailableSeeds,
+  resolveGardenAccelerateCost,
+  resolveGardenHarvest,
+  resolveGardenSlotCount
+} from '@/sect/runtime/sectGardenResolver'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
 import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
@@ -976,13 +982,13 @@ export const useSectStore = defineStore('sect', () => {
   // 获取药园槽位数量（基于药园等级）
   const gardenSlotCount = computed(() => {
     const gardenLevel = getFacilityLevel('medicine_garden')
-    return Math.min(3, 1 + Math.floor(gardenLevel / 2))  // 1级1槽位，3级2槽位，5级3槽位
+    return resolveGardenSlotCount(gardenLevel)
   })
 
   // 获取可用的种子
   const availableSeeds = computed(() => {
     const gardenLevel = getFacilityLevel('medicine_garden')
-    return SEEDS.filter(s => s.requiredGardenLevel <= gardenLevel)
+    return resolveAvailableSeeds(SEEDS, gardenLevel)
   })
 
   // 种植
@@ -1030,53 +1036,25 @@ export const useSectStore = defineStore('sect', () => {
 
   // 收获
   function harvestCrop(slotIndex: number): { success: boolean; message: string; quantity?: number; item?: { name: string; icon: string } } {
-    if (!joinedSectId.value) {
-      return { success: false, message: '未加入宗门' }
-    }
-
-    if (slotIndex < 0 || slotIndex >= gardenSlotCount.value) {
-      return { success: false, message: '无效的槽位' }
-    }
-
-    const crop = gardenSlots.value[slotIndex]
-    if (!crop) {
-      return { success: false, message: '该槽位没有作物' }
-    }
-
+    const crop = gardenSlots.value[slotIndex] ?? null
     const now = Date.now()
-    if (now < crop.readyAt) {
-      const remainingMinutes = Math.ceil((crop.readyAt - now) / 60000)
-      return { success: false, message: `作物尚未成熟，还需${remainingMinutes}分钟` }
+    const result = resolveGardenHarvest({
+      joinedSectId: joinedSectId.value,
+      slotIndex,
+      slotCount: gardenSlotCount.value,
+      crop,
+      seed: crop ? getSeedById(crop.seedId) : undefined,
+      gardenLevel: getFacilityLevel('medicine_garden'),
+      directive: activeDirective.value,
+      now,
+      random: Math.random()
+    })
+    if (!result.success || !result.item || !result.quantity) {
+      return result
     }
 
-    const seed = getSeedById(crop.seedId)
-    if (!seed) {
-      return { success: false, message: '种子数据异常' }
-    }
-
-    const gardenLevel = getFacilityLevel('medicine_garden')
-
-    // 计算产量 = 基础产量 + 设施加成(每级+10%)
-    const baseQuantity = Math.floor(
-      Math.random() * (seed.harvest.maxQuantity - seed.harvest.minQuantity + 1)
-    ) + seed.harvest.minQuantity
-    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
-    const bonus = Math.floor(baseQuantity * gardenLevel * 0.1 * directiveEffects.herbYieldMultiplier)
-    const totalQuantity = baseQuantity + bonus
-
-    // 添加到背包
     const playerStore = usePlayerStore()
-    const harvestedItem = {
-      id: `${seed.harvest.itemId}_${Date.now()}`,
-      definitionId: seed.harvest.itemId,
-      name: seed.harvest.itemName,
-      icon: seed.harvest.icon,
-      type: 'material' as const,
-      quality: seed.quality,
-      quantity: totalQuantity,
-      description: `从药园收获的${seed.harvest.itemName}`
-    }
-    playerStore.addToInventory(harvestedItem)
+    playerStore.addToInventory(result.item)
 
     // 清空槽位
     gardenSlots.value[slotIndex] = null
@@ -1086,9 +1064,9 @@ export const useSectStore = defineStore('sect', () => {
 
     return {
       success: true,
-      message: `收获成功，获得${seed.harvest.itemName}x${totalQuantity}`,
-      quantity: totalQuantity,
-      item: { name: seed.harvest.itemName, icon: seed.harvest.icon }
+      message: result.message,
+      quantity: result.quantity,
+      item: { name: result.item.name, icon: result.item.icon }
     }
   }
 
@@ -1107,9 +1085,7 @@ export const useSectStore = defineStore('sect', () => {
       return { success: false, message: '作物已成熟，请直接收获' }
     }
 
-    // 计算加速费用（每分钟10灵石）
-    const remainingMinutes = Math.ceil((crop.readyAt - Date.now()) / 60000)
-    const cost = remainingMinutes * 10
+    const cost = resolveGardenAccelerateCost({ crop, now: Date.now() })
 
     const playerStore = usePlayerStore()
     if (playerStore.gold < cost) {
