@@ -58,6 +58,13 @@
       </div>
     </GameSurface>
 
+    <WorldAdvancePanel
+      :time-label="worldStore.currentTimeLabel"
+      :summary="lastAdvanceSummary"
+      :can-advance="canAdvanceWorld"
+      @advance="handleAdvanceWorld"
+    />
+
     <div class="overview-grid">
       <GameSurface tone="gold" padding="md" eyebrow="修炼进程" title="境界推进" :subtitle="breakthroughHint">
         <div class="progress-stack">
@@ -292,12 +299,14 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import WorldAdvancePanel from '@/components/world/WorldAdvancePanel.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
+import { useWorldAdvanceSummary } from '@/composables/useWorldAdvanceSummary'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -323,6 +332,11 @@ const router = useRouter()
 const { success, warning, info } = useToast()
 const { showItemAcquire } = useModal()
 const { handleWorldBriefingAction } = useWorldBriefingActions()
+const {
+  canAdvance: canAdvanceWorld,
+  lastSummary: lastAdvanceSummary,
+  advanceOneTick
+} = useWorldAdvanceSummary()
 
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
@@ -739,6 +753,15 @@ function handleTaskAction(task: MainLoopTask) {
 
   if (task.route) {
     void router.push(task.route)
+  }
+}
+
+function handleAdvanceWorld() {
+  const summary = advanceOneTick()
+  if (summary.totalEvents > 0) {
+    success(`世界推进到${summary.timeLabel}，新增 ${summary.totalEvents} 条结果`)
+  } else {
+    info(`世界推进到${summary.timeLabel}`)
   }
 }
 
