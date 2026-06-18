@@ -1,8 +1,10 @@
 <template>
   <div class="cultivation-view">
     <GameSurface
+      class="main-loop-surface"
       tone="mist"
       padding="lg"
+      compact
       eyebrow="主循环"
       title="修仙行动台"
       :subtitle="heroSubtitle"
@@ -936,6 +938,22 @@ function handlePlayerFortune() {
   padding-bottom: 12px;
 }
 
+.main-loop-surface {
+  border-radius: 18px;
+}
+
+.main-loop-surface :deep(.surface-header) {
+  margin-bottom: 10px;
+}
+
+.main-loop-surface :deep(.surface-copy strong) {
+  font-size: 17px;
+}
+
+.main-loop-surface :deep(.surface-copy p) {
+  max-width: 780px;
+}
+
 .home-hero-layout,
 .overview-grid,
 .world-grid {
@@ -966,9 +984,9 @@ function handlePlayerFortune() {
   align-items: center;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.72), rgba(241, 249, 244, 0.58)),
+    linear-gradient(180deg, rgba(255, 255, 252, 0.58), rgba(241, 249, 244, 0.4)),
     radial-gradient(circle at 12% 20%, rgba(255, 223, 147, 0.22), transparent 44%);
 }
 
@@ -1043,18 +1061,18 @@ function handlePlayerFortune() {
   align-content: space-between;
   padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.2);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 251, 236, 0.76), rgba(239, 252, 246, 0.58)),
+    linear-gradient(180deg, rgba(255, 251, 236, 0.62), rgba(239, 252, 246, 0.44)),
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.22), transparent 62%);
 }
 
 .quick-command-panel {
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.78), rgba(241, 249, 244, 0.64)),
+    linear-gradient(180deg, rgba(255, 255, 252, 0.62), rgba(241, 249, 244, 0.48)),
     radial-gradient(circle at top right, rgba(141, 223, 197, 0.16), transparent 62%);
 }
 
@@ -1063,9 +1081,9 @@ function handlePlayerFortune() {
   gap: 10px;
   padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.18);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 252, 240, 0.76), rgba(241, 250, 245, 0.62)),
+    linear-gradient(180deg, rgba(255, 252, 240, 0.58), rgba(241, 250, 245, 0.44)),
     radial-gradient(circle at 18% 0%, rgba(255, 224, 150, 0.2), transparent 48%);
 }
 
@@ -1335,7 +1353,7 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 96px;
+  min-height: 88px;
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   grid-template-rows: 1fr auto;
@@ -1343,7 +1361,7 @@ function handlePlayerFortune() {
   align-items: stretch;
   padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.9), rgba(241, 249, 244, 0.78)),
     radial-gradient(circle at top right, rgba(158, 225, 207, 0.16), transparent 58%);

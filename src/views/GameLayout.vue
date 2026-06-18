@@ -383,7 +383,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 0;
+  padding: calc(5px + env(safe-area-inset-top, 0px)) 10px 0;
   z-index: 6;
 }
 
@@ -398,10 +398,10 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
   align-items: center;
-  gap: 7px 12px;
-  padding: 8px 10px;
+  gap: 6px 10px;
+  padding: 7px 9px;
   border: 1px solid rgba(101, 152, 145, 0.2);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.84), rgba(242, 251, 246, 0.68)),
     linear-gradient(90deg, rgba(255, 238, 184, 0.2), transparent 46%);
@@ -539,10 +539,11 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 9px 12px calc(82px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px calc(74px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .content-stage {
@@ -558,7 +559,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 28;
-  padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 0 10px calc(7px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -723,14 +724,14 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 60px;
+  height: 56px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
   padding: 6px;
   border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
     radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
@@ -739,14 +740,14 @@ onUnmounted(() => {
 }
 
 .tab-item {
-  height: 48px;
+  height: 44px;
   min-width: 0;
   display: grid;
   place-items: center;
   gap: 3px;
   padding: 4px 2px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 10px;
   background: transparent;
   color: rgba(65, 91, 89, 0.74);
   font-family: var(--font-game);
@@ -797,7 +798,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 7px 8px calc(76px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 8px calc(70px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -902,12 +903,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 58px;
+    height: 54px;
     border-radius: 15px;
   }
 
   .tab-item {
-    height: 46px;
+    height: 42px;
     font-size: 10px;
   }
 }

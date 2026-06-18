@@ -86,6 +86,16 @@ import { ALL_AREAS } from '@/types/map'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
 
+export interface SectTaskRewardClaimResult {
+  success: boolean
+  taskId: string | null
+  taskName: string | null
+  contribution: number
+  gold: number
+  exp: number
+  reputation: number
+}
+
 // 宗门状态接口
 interface SectState {
   joinedSectId: string | null
@@ -515,10 +525,20 @@ export const useSectStore = defineStore('sect', () => {
   }
 
   // 领取任务奖励
-  function claimTaskReward(taskId: string): boolean {
+  function claimTaskReward(taskId: string): SectTaskRewardClaimResult {
     const task = tasks.value.find(t => t.id === taskId)
     const claim = resolveSectTaskClaim(task, activeDirective.value)
-    if (!claim.canClaim || !claim.taskId) return false
+    if (!claim.canClaim || !claim.taskId) {
+      return {
+        success: false,
+        taskId: null,
+        taskName: task?.name ?? null,
+        contribution: 0,
+        gold: 0,
+        exp: 0,
+        reputation: 0
+      }
+    }
 
     tasks.value = tasks.value.map(item => item.id === claim.taskId ? { ...item, claimed: true } : item)
     addContribution(claim.reward.contribution)
@@ -528,7 +548,15 @@ export const useSectStore = defineStore('sect', () => {
     if (claim.reward.exp > 0) {
       playerStore.addCultivation(claim.reward.exp)
     }
-    return true
+    return {
+      success: true,
+      taskId: claim.taskId,
+      taskName: task?.name ?? null,
+      contribution: claim.reward.contribution,
+      gold: claim.reward.gold,
+      exp: claim.reward.exp,
+      reputation: claim.reward.reputation
+    }
   }
 
   function claimAllCompletedTaskRewards() {

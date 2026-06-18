@@ -1,11 +1,12 @@
 import type { PlayerJourneyEntry, WorldLogEntry } from '@/types/world'
 
-export type SectRewardJourneyAction = 'stipend' | 'task_claim_all'
+export type SectRewardJourneyAction = 'stipend' | 'task_claim' | 'task_claim_all'
 
 export interface SectRewardJourneyInput {
   action: SectRewardJourneyAction
   sectName: string
   positionName?: string | null
+  taskName?: string | null
   claimedCount?: number
   rewards: {
     contribution?: number
@@ -33,6 +34,17 @@ export function resolveSectRewardJourney(input: SectRewardJourneyInput): SectRew
       text: `你在${input.sectName}领取了${positionText}，山门资源补入行囊，贡献也随日常考绩记入宗卷。`,
       rewards,
       tags: ['sect', 'reward', 'stipend']
+    }
+  }
+
+  if (input.action === 'task_claim') {
+    const taskName = input.taskName ?? '宗门任务'
+    return {
+      severity: 'minor',
+      title: `${input.sectName}${taskName}结算`,
+      text: `你领取了${taskName}奖励，贡献、灵石与修为收益已记入当前修炼循环。`,
+      rewards,
+      tags: ['sect', 'reward', 'task']
     }
   }
 

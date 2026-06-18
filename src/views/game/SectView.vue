@@ -217,6 +217,7 @@ const { lastDuty, handleSectDuty: resolveSectDuty } = useSectDuty()
 const { joinSect: joinSectWithJourney, leaveSect: leaveSectWithJourney } = useSectMembership()
 const {
   claimDailySalary: claimDailySalaryWithJourney,
+  claimTaskReward: claimTaskRewardWithJourney,
   claimAllCompletedTaskRewards: claimAllCompletedTaskRewardsWithJourney
 } = useSectRewards()
 
@@ -247,8 +248,15 @@ function handlePromote() {
 }
 
 function handleClaimReward(taskId: string) {
-  if (sectStore.claimTaskReward(taskId)) {
-    success('任务奖励已领取')
+  const result = claimTaskRewardWithJourney(taskId)
+  if (!result.success) {
+    warning('暂无可领取的宗门奖励')
+    return
+  }
+
+  success(`${result.taskName ?? '宗门任务'}奖励已领取`)
+  if (result.contribution > 0 || result.gold > 0 || result.exp > 0) {
+    info(`获得 ${result.contribution} 贡献、${result.gold} 灵石${result.exp > 0 ? `、${result.exp} 修为` : ''}`)
   }
 }
 

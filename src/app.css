@@ -12,10 +12,12 @@
 }
 
 :root {
+  color-scheme: light;
+
   /* 修仙主题配色（RGB 数值） */
-  --color-bg: 20 22 30;           /* 深邃夜空 - 道法自然 */
-  --color-panel: 35 38 52;        /* 玄玉灰 - 灵台清明 */
-  --color-text: 232 228 217;      /* 道骨白 - 返璞归真 */
+  --color-bg: 240 249 244;        /* 晨雾青白 - 主循环底色 */
+  --color-panel: 255 255 250;     /* 宣纸白 - 面板底色 */
+  --color-text: 49 82 87;         /* 青墨色 - 正文 */
 
   /* 修仙核心色 */
   --color-accent: #7eb8da;        /* 天青色 - 仙气飘渺 */
@@ -83,13 +85,20 @@ html {
   -webkit-overflow-scrolling: auto;
 }
 
-/* 全局基础样�� */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 全局基础样式 */
 body {
   margin: 0;
-  background-color: rgb(var(--color-bg));
+  background-color: #eef8f1;
   background-image:
-    radial-gradient(ellipse at top, rgba(126, 184, 218, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom, rgba(200, 164, 92, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 12% 0%, rgba(255, 223, 138, 0.22), transparent 30%),
+    radial-gradient(circle at 86% 0%, rgba(115, 212, 190, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%);
   color: rgb(var(--color-text));
   font-family: var(--font-game);
   min-width: 320px;
@@ -101,11 +110,7 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   width: 100%;
-  /* iOS 安全区域 - 只设置顶部和左右，底部由导航栏处理 */
   padding: 0;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* 图片和图标使用像素化渲染 */
@@ -123,6 +128,7 @@ img, .pixelated {
   padding: 0 !important;
   max-width: none !important;
   margin: 0;
+  text-align: initial;
 }
 
 /* 移动端字体放大 */
@@ -138,9 +144,27 @@ img, .pixelated {
   }
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 button {
   background-color: transparent;
   background-image: none;
+  color: inherit;
+  border: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(194, 146, 66, 0.55);
+  outline-offset: 3px;
 }
 
 /* 修仙风按钮 */

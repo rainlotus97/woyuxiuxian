@@ -22,6 +22,17 @@ export interface SectTaskClaimAllResult {
   journey: SectRewardJourneyResult | null
 }
 
+export interface SectTaskClaimResult {
+  success: boolean
+  taskId: string | null
+  taskName: string | null
+  contribution: number
+  gold: number
+  exp: number
+  reputation: number
+  journey: SectRewardJourneyResult | null
+}
+
 export function useSectRewards() {
   const mapStore = useMapStore()
   const sectStore = useSectStore()
@@ -87,6 +98,34 @@ export function useSectRewards() {
     }
   }
 
+  function claimTaskReward(taskId: string): SectTaskClaimResult {
+    const sect = sectStore.currentSect
+    const result = sectStore.claimTaskReward(taskId)
+    if (!result.success || !sect) {
+      return {
+        ...result,
+        journey: null
+      }
+    }
+
+    const journey = resolveSectRewardJourney({
+      action: 'task_claim',
+      sectName: sect.name,
+      taskName: result.taskName,
+      rewards: {
+        contribution: result.contribution,
+        gold: result.gold,
+        cultivation: result.exp
+      }
+    })
+    recordJourney(journey, sect.areaId)
+
+    return {
+      ...result,
+      journey
+    }
+  }
+
   function recordJourney(journey: SectRewardJourneyResult, areaId: string) {
     lastRewardJourney.value = journey
     const area = mapStore.getAreaInfo(areaId)
@@ -99,6 +138,7 @@ export function useSectRewards() {
   return {
     lastRewardJourney,
     claimDailySalary,
+    claimTaskReward,
     claimAllCompletedTaskRewards
   }
 }

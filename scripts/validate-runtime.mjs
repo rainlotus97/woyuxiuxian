@@ -1220,6 +1220,17 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(stipendJourney.rewards.length, 2)
   assert.ok(stipendJourney.tags.includes('stipend'))
 
+  const singleTaskRewardJourney = resolveSectRewardJourney({
+    action: 'task_claim',
+    sectName: '青云宗',
+    taskName: '巡山除妖',
+    rewards: { contribution: 20, gold: 80, cultivation: 8 }
+  })
+  assert.equal(singleTaskRewardJourney.severity, 'minor')
+  assert.ok(singleTaskRewardJourney.title.includes('巡山除妖'))
+  assert.ok(singleTaskRewardJourney.text.includes('巡山除妖奖励'))
+  assert.ok(singleTaskRewardJourney.tags.includes('task'))
+
   const taskRewardJourney = resolveSectRewardJourney({
     action: 'task_claim_all',
     sectName: '青云宗',
