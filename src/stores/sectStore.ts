@@ -17,6 +17,14 @@ import {
   getSectById,
   generateRandomTask
 } from '@/types/sect'
+import {
+  resolveSectAuthority,
+  type SectDirectiveId
+} from '@/sect/runtime/sectPositionResolver'
+import {
+  applyDirectiveToTaskRewards,
+  getSectDirectiveEffects
+} from '@/sect/runtime/sectDirectiveEffects'
 import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import { useMapStore } from './mapStore'
@@ -62,6 +70,7 @@ interface SectState {
   lastSalaryClaim: number
   gardenSlots: (PlantedCrop | null)[]  // 药园槽位
   lastWarReport: SectWarReport | null
+  activeDirective: SectDirectiveId
 }
 
 // 默认宗门状态
@@ -87,7 +96,8 @@ function getDefaultSectState(): SectState {
     lastTaskRefresh: Date.now(),
     lastSalaryClaim: 0,
     gardenSlots: [null, null, null],  // 默认3个药园槽位
-    lastWarReport: null
+    lastWarReport: null,
+    activeDirective: 'balanced'
   }
 }
 
@@ -138,6 +148,7 @@ export const useSectStore = defineStore('sect', () => {
   const lastSalaryClaim = ref<number>(initialData.lastSalaryClaim)
   const gardenSlots = ref<(PlantedCrop | null)[]>(initialData.gardenSlots || [null, null, null])
   const lastWarReport = ref<SectWarReport | null>(initialData.lastWarReport ?? null)
+  const activeDirective = ref<SectDirectiveId>(initialData.activeDirective ?? 'balanced')
 
   // ====== 计算属性 ======
 
@@ -152,6 +163,11 @@ export const useSectStore = defineStore('sect', () => {
     return SECT_POSITIONS.find(p => p.level === positionLevel.value) ?? null
   })
 
+  const authorityState = computed(() => resolveSectAuthority({
+    positionLevel: positionLevel.value,
+    contribution: contribution.value
+  }))
+
   // 职位名称
   const positionName = computed<string>(() => {
     return currentPosition.value?.name ?? '外门弟子'
@@ -159,15 +175,12 @@ export const useSectStore = defineStore('sect', () => {
 
   // 下一个职位
   const nextPosition = computed<SectPosition | null>(() => {
-    const nextLevel = positionLevel.value + 1
-    if (nextLevel > SECT_POSITIONS.length) return null
-    return SECT_POSITIONS.find(p => p.level === nextLevel) ?? null
+    return authorityState.value.nextPosition
   })
 
   // 是否可以晋升
   const canPromote = computed<boolean>(() => {
-    if (!nextPosition.value) return false
-    return contribution.value >= nextPosition.value.requiredContribution
+    return authorityState.value.canPromote
   })
 
   // 宗门血量百分比
@@ -220,7 +233,8 @@ export const useSectStore = defineStore('sect', () => {
         lastTaskRefresh: lastTaskRefresh.value,
         lastSalaryClaim: lastSalaryClaim.value,
         gardenSlots: toRaw(gardenSlots.value),
-        lastWarReport: toRaw(lastWarReport.value)
+        lastWarReport: toRaw(lastWarReport.value),
+        activeDirective: activeDirective.value
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -282,6 +296,7 @@ export const useSectStore = defineStore('sect', () => {
       lastUpdatedTick: null
     }
     lastWarReport.value = null
+    activeDirective.value = 'balanced'
     return true
   }
 
@@ -294,11 +309,11 @@ export const useSectStore = defineStore('sect', () => {
 
   // 晋升职位
   function promotePosition(): boolean {
-    if (!canPromote.value || !nextPosition.value) {
+    if (!authorityState.value.canPromote || !authorityState.value.nextPosition) {
       return false
     }
     // 扣除贡献点
-    contribution.value -= nextPosition.value.requiredContribution
+    contribution.value -= authorityState.value.nextPosition.requiredContribution
     positionLevel.value++
     return true
   }
@@ -373,7 +388,7 @@ export const useSectStore = defineStore('sect', () => {
     // 发放奖励
     task.claimed = true
     addContribution(task.rewards.contribution)
-    addReputation(10)
+    addReputation(activeDirective.value === 'warfare' ? 14 : 10)
     const playerStore = usePlayerStore()
     playerStore.addGold(task.rewards.gold)
     if (task.rewards.exp) {
@@ -441,7 +456,7 @@ export const useSectStore = defineStore('sect', () => {
     if (!joinedSectId.value) return
     const count = type === 'daily' ? 3 : type === 'weekly' ? 2 : 1
     for (let i = 0; i < count; i++) {
-      const task = generateRandomTask(type, joinedSectId.value)
+      const task = applyDirectiveToTaskRewards(generateRandomTask(type, joinedSectId.value), activeDirective.value)
       tasks.value.push(task)
     }
   }
@@ -509,7 +524,7 @@ export const useSectStore = defineStore('sect', () => {
   // 发起战争
   function declareWar(targetSectId: string): boolean {
     if (!joinedSectId.value) return false
-    if (positionLevel.value < 4) return false
+    if (!authorityState.value.canDeclareWar) return false
     if (activeWar.value) return false
 
     const targetSect = getSectById(targetSectId)
@@ -559,10 +574,19 @@ export const useSectStore = defineStore('sect', () => {
     const war = activeWar.value
     if (!war) return null
 
+    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
     const winner = attackerWon ? 'attacker' : 'defender'
     const rewards = attackerWon
-      ? { contribution: 500, gold: 1000, reputation: 100 }
-      : { contribution: 200, gold: 500, reputation: 0 }
+      ? {
+          contribution: Math.max(1, Math.floor(500 * directiveEffects.taskContributionMultiplier * directiveEffects.warRewardMultiplier)),
+          gold: Math.max(1, Math.floor(1000 * directiveEffects.taskGoldMultiplier * directiveEffects.warRewardMultiplier)),
+          reputation: Math.max(0, Math.floor(100 * directiveEffects.warRewardMultiplier))
+        }
+      : {
+          contribution: Math.max(1, Math.floor(200 * directiveEffects.taskContributionMultiplier)),
+          gold: Math.max(1, Math.floor(500 * directiveEffects.taskGoldMultiplier)),
+          reputation: 0
+        }
     const penalties = attackerWon
       ? { contribution: 0, reputation: 0 }
       : { contribution: 200, reputation: 100 }
@@ -735,10 +759,14 @@ export const useSectStore = defineStore('sect', () => {
     const salary = currentPosition.value.dailySalary
     const playerStore = usePlayerStore()
     playerStore.addGold(salary)
-    addContribution(Math.floor(salary / 2))
+    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
+    addContribution(Math.max(1, Math.floor((salary / 2) * directiveEffects.taskContributionMultiplier)))
     lastSalaryClaim.value = now
 
-    return { gold: salary, contribution: Math.floor(salary / 2) }
+    return {
+      gold: salary,
+      contribution: Math.max(1, Math.floor((salary / 2) * directiveEffects.taskContributionMultiplier))
+    }
   }
 
   // 检查是否可以领取俸禄
@@ -796,8 +824,9 @@ export const useSectStore = defineStore('sect', () => {
       }
     }
 
+    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
     // 计算成功率 = 基础成功率 + 设施加成(每级+5%)
-    const successRate = recipe.baseSuccessRate + furnaceLevel * 0.05
+    const successRate = Math.max(0.05, Math.min(0.98, recipe.baseSuccessRate + furnaceLevel * 0.05 + directiveEffects.alchemySuccessBonus))
     const success = Math.random() < successRate
 
     if (success) {
@@ -913,7 +942,8 @@ export const useSectStore = defineStore('sect', () => {
     const baseQuantity = Math.floor(
       Math.random() * (seed.harvest.maxQuantity - seed.harvest.minQuantity + 1)
     ) + seed.harvest.minQuantity
-    const bonus = Math.floor(baseQuantity * gardenLevel * 0.1)
+    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
+    const bonus = Math.floor(baseQuantity * gardenLevel * 0.1 * directiveEffects.herbYieldMultiplier)
     const totalQuantity = baseQuantity + bonus
 
     // 添加到背包
@@ -974,6 +1004,14 @@ export const useSectStore = defineStore('sect', () => {
     return { success: true, message: '加速成功，作物已成熟' }
   }
 
+  function setActiveDirective(directive: SectDirectiveId) {
+    if (!authorityState.value.availableDirectives.includes(directive)) {
+      return false
+    }
+    activeDirective.value = directive
+    return true
+  }
+
   const readyGardenSlots = computed(() => {
     const now = Date.now()
     return gardenSlots.value.filter((slot, index) => index < gardenSlotCount.value && slot && slot.readyAt <= now).length
@@ -1029,10 +1067,12 @@ export const useSectStore = defineStore('sect', () => {
     lastSalaryClaim,
     gardenSlots,
     lastWarReport,
+    activeDirective,
 
     // 计算属性
     currentSect,
     currentPosition,
+    authorityState,
     positionName,
     nextPosition,
     canPromote,
@@ -1080,6 +1120,7 @@ export const useSectStore = defineStore('sect', () => {
     harvestCrop,
     harvestAllReadyCrops,
     accelerateCrop,
+    setActiveDirective,
     saveToStorage
   }
 })

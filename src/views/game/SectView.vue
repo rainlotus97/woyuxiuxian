@@ -15,6 +15,8 @@
         :position-name="sectStore.positionName"
         :next-position-name="sectStore.nextPosition?.name ?? null"
         :can-promote="sectStore.canPromote"
+        :authority-label="authorityLabel"
+        :directive-label="activeDirectiveLabel"
         :contribution="sectStore.contribution"
         :reputation="sectStore.reputation"
         :salary="sectStore.currentPosition?.dailySalary || 0"
@@ -67,6 +69,15 @@
         @open-facility="handleUseFacility"
         @go-tab="handleTabSelect"
         @ack-war-report="handleAcknowledgeWarReport"
+      />
+
+      <SectDirectivePanel
+        :authority-label="authorityLabel"
+        :authority-description="authorityDescription"
+        :active-directive="sectStore.activeDirective"
+        :active-directive-label="activeDirectiveLabel"
+        :directives="directiveOptions"
+        @change-directive="handleDirectiveChange"
       />
 
       <SectTasksPanel
@@ -142,6 +153,7 @@ import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import FacilityModal from '@/components/sect/FacilityModal.vue'
 import SectCyclePanel from '@/components/sect/SectCyclePanel.vue'
+import SectDirectivePanel from '@/components/sect/SectDirectivePanel.vue'
 import SectDiplomacyPanel from '@/components/sect/SectDiplomacyPanel.vue'
 import SectFacilitiesPanel from '@/components/sect/SectFacilitiesPanel.vue'
 import SectOverviewPanel from '@/components/sect/SectOverviewPanel.vue'
@@ -150,6 +162,13 @@ import SectTasksPanel from '@/components/sect/SectTasksPanel.vue'
 import type { SectEvent } from '@/types/sect'
 import { ALL_SECTS, SECT_FACILITIES, getSectById } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
+import {
+  type SectDirectiveId,
+  getAuthorityLevelLabel,
+  getDirectiveDescription,
+  getDirectiveLabel,
+  canAuthorityAccessFacility
+} from '@/sect/runtime/sectPositionResolver'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { getSectRelationDescription, getSectSurfaceTone, getSectWorldStatusLabel, type SectDiplomacyRow } from '@/components/sect/sectUi'
@@ -237,7 +256,7 @@ const diplomacyRows = computed<SectDiplomacyRow[]>(() => {
         realm: sect.realm,
         relation,
         description: getSectRelationDescription(relation),
-        canDeclareWar: sectStore.positionLevel >= 4 && !sectStore.activeWar && relation !== 'at_war'
+        canDeclareWar: sectStore.authorityState.canDeclareWar && !sectStore.activeWar && relation !== 'at_war'
       }
     })
 })
@@ -278,6 +297,32 @@ const facilitySummary = computed(() => {
   return '炼丹炉决定丹药层级，药园决定灵草供给。两者等级越高，宗门经济链越完整。'
 })
 
+const authorityLabel = computed(() => {
+  return getAuthorityLevelLabel(sectStore.authorityState.authorityLevel)
+})
+
+const authorityDescription = computed(() => {
+  if (!sectStore.authorityState.canIssueDirectives) {
+    return '当前仍处弟子层级，主要负责执行宗门差遣，尚不能调整山门方略。'
+  }
+  if (sectStore.authorityState.canLeadSect) {
+    return '你已进入掌权层级，可调整宗门方略并主导外交、战备与资源分配。'
+  }
+  return '你已拥有调度部分山门资源的权限，不同方略会影响任务、药园、炼丹和战局回报。'
+})
+
+const activeDirectiveLabel = computed(() => {
+  return getDirectiveLabel(sectStore.activeDirective)
+})
+
+const directiveOptions = computed(() => {
+  return sectStore.authorityState.availableDirectives.map(id => ({
+    id,
+    label: getDirectiveLabel(id),
+    description: getDirectiveDescription(id)
+  }))
+})
+
 const activeWarLabel = computed(() => {
   const war = sectStore.activeWar
   if (!war) return '暂无战事'
@@ -315,6 +360,14 @@ function handleClaimAllRewards() {
 
   success(`已领取 ${result.claimedCount} 项宗门奖励`)
   info(`获得 ${result.totalContribution} 贡献、${result.totalGold} 灵石${result.totalExp > 0 ? `、${result.totalExp} 修为` : ''}`)
+}
+
+function handleDirectiveChange(directive: SectDirectiveId) {
+  if (sectStore.setActiveDirective(directive)) {
+    success(`宗门方略已切换为${getDirectiveLabel(directive)}`)
+  } else {
+    warning('当前职位尚无法执行该方略')
+  }
 }
 
 function handleUpgradeFacility(facilityId: string) {
@@ -374,7 +427,10 @@ function handleTabSelect(tabId: 'tasks' | 'facilities' | 'diplomacy') {
 }
 
 function canUseFacility(facilityId: string) {
-  return facilityId === 'alchemy_furnace' || facilityId === 'medicine_garden'
+  const facility = SECT_FACILITIES.find(item => item.id === facilityId)
+  if (!facility) return false
+  if (facilityId !== 'alchemy_furnace' && facilityId !== 'medicine_garden') return false
+  return canAuthorityAccessFacility(sectStore.authorityState.canUseFacilityTier, facility.unlockPosition)
 }
 
 function handleUseFacility(facilityId: string) {

@@ -8,6 +8,7 @@
             <span class="sect-pill">{{ worldStatusLabel }}</span>
             <strong>{{ sect.name }}</strong>
             <small>{{ positionName }} · {{ sect.specialty }} · {{ sect.realm }}</small>
+            <small>{{ authorityLabel }} · {{ directiveLabel }}</small>
           </div>
         </div>
 
@@ -85,6 +86,8 @@ const props = defineProps<{
   positionName: string
   nextPositionName: string | null
   canPromote: boolean
+  authorityLabel: string
+  directiveLabel: string
   contribution: number
   reputation: number
   salary: number
