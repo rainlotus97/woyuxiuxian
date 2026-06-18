@@ -5,6 +5,7 @@ import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM
 import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
+import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
 import {
   SKILL_DEFINITIONS,
   SKILL_TREE,
@@ -660,48 +661,26 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 使用消耗品
   function useConsumable(itemId: string): { success: boolean; message?: string; buffType?: string } {
-    const item = inventory.value.find(i => i.id === itemId)
-    if (!item || item.type !== 'consumable') {
-      return { success: false, message: '物品不存在或不是消耗品' }
-    }
+    const result = resolveConsumableUse({
+      itemId,
+      inventory: inventory.value,
+      baseStats: baseStats.value,
+      totalStats: totalStats.value
+    })
+    if (!result.success) return { success: false, message: result.message }
 
-    // 应用效果
-    if (item.effects) {
-      for (const effect of item.effects) {
-        switch (effect.type) {
-          case 'cultivation':
-            addCultivation(effect.value)
-            break
-          case 'mp':
-            baseStats.value.currentMp = Math.min(
-              baseStats.value.currentMp + effect.value,
-              totalStats.value.maxMp
-            )
-            break
-          case 'hp':
-            baseStats.value.currentHp = Math.min(
-              baseStats.value.currentHp + effect.value,
-              totalStats.value.maxHp
-            )
-            break
-          case 'buff_atk':
-          case 'buff_def':
-          case 'buff_spd':
-            // 战斗buff，添加到临时buff列表
-            addBuff({
-              type: effect.type,
-              value: effect.value,
-              duration: (effect as { duration?: number }).duration || 3,
-              icon: effect.type === 'buff_atk' ? '攻' : effect.type === 'buff_def' ? '防' : '速'
-            })
-            break
-        }
-      }
+    if (result.delta.cultivation > 0) addCultivation(result.delta.cultivation)
+    if (result.delta.hp > 0) {
+      baseStats.value.currentHp = Math.min(baseStats.value.currentHp + result.delta.hp, totalStats.value.maxHp)
     }
+    if (result.delta.mp > 0) {
+      baseStats.value.currentMp = Math.min(baseStats.value.currentMp + result.delta.mp, totalStats.value.maxMp)
+    }
+    for (const buff of result.delta.buffs) addBuff(buff)
 
     // 减少数量
     removeFromInventory(itemId)
-    return { success: true, message: `使用了 ${item.name}` }
+    return { success: true, message: result.message }
   }
 
   // 添加临时buff

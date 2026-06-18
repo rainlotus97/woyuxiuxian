@@ -529,6 +529,10 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveInventoryMaterialQuantity
   } = await load('/src/character/runtime/inventoryMaterialResolver.ts')
   const {
+    resolveConsumableEffectDelta,
+    resolveConsumableUse
+  } = await load('/src/character/runtime/consumableEffectResolver.ts')
+  const {
     applyShopPurchases,
     canInventoryAcceptShopItem,
     resolveShopPurchase
@@ -617,6 +621,66 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const blockedMaterialConsumption = resolveInventoryMaterialConsumption(inventoryFixture, 'herb_spirit_grass', 9)
   assert.equal(blockedMaterialConsumption.success, false)
   assert.equal(blockedMaterialConsumption.remainingQuantity, 4)
+
+  const consumableFixture = {
+    id: 'pill_fixture',
+    definitionId: 'pill_fixture',
+    name: '试炼合丹',
+    icon: '丹',
+    type: 'consumable',
+    quality: 'fine',
+    quantity: 1,
+    effects: [
+      { type: 'add_cultivation', value: 120 },
+      { type: 'restore_hp', value: 200 },
+      { type: 'mp', value: 30 },
+      { type: 'buff_atk', value: 0.2, duration: 4 }
+    ]
+  }
+  const consumableDelta = resolveConsumableEffectDelta({
+    item: consumableFixture,
+    baseStats: { currentHp: 80, currentMp: 40 },
+    totalStats: { maxHp: 150, maxMp: 100 }
+  })
+  assert.equal(consumableDelta.cultivation, 120)
+  assert.equal(consumableDelta.hp, 70)
+  assert.equal(consumableDelta.mp, 30)
+  assert.equal(consumableDelta.buffs[0]?.type, 'buff_atk')
+  assert.equal(consumableDelta.buffs[0]?.duration, 4)
+  const consumableReady = resolveConsumableUse({
+    itemId: 'pill_fixture',
+    inventory: [consumableFixture],
+    baseStats: { currentHp: 150, currentMp: 40 },
+    totalStats: { maxHp: 150, maxMp: 100 }
+  })
+  assert.equal(consumableReady.success, true)
+  assert.equal(consumableReady.delta.hp, 0)
+  assert.equal(consumableReady.delta.mp, 30)
+  const consumableBlocked = resolveConsumableUse({
+    itemId: 'unknown_item',
+    inventory: [consumableFixture],
+    baseStats: { currentHp: 150, currentMp: 100 },
+    totalStats: { maxHp: 150, maxMp: 100 }
+  })
+  assert.equal(consumableBlocked.success, false)
+  assert.equal(consumableBlocked.reason, 'missing_item')
+  const noEffectConsumable = resolveConsumableUse({
+    itemId: 'no_effect',
+    inventory: [{
+      id: 'no_effect',
+      name: '未接入丹药',
+      icon: '丹',
+      type: 'consumable',
+      quality: 'common',
+      quantity: 1,
+      effects: [{ type: 'unknown_effect', value: 1 }]
+    }],
+    baseStats: { currentHp: 150, currentMp: 100 },
+    totalStats: { maxHp: 150, maxMp: 100 }
+  })
+  assert.equal(noEffectConsumable.success, false)
+  assert.equal(noEffectConsumable.reason, 'no_effect')
+  assert.deepEqual(noEffectConsumable.delta.ignoredEffects, ['unknown_effect'])
 
   const shopItem = {
     stockId: 'shop_pill_001:0',
