@@ -603,7 +603,9 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const {
     normalizeInventoryItemSchema,
     normalizeInventoryItemsSchema,
-    resolveInventoryDefinitionId
+    resolveInventoryDefinitionId,
+    validateInventoryItemSchema,
+    validateInventoryItemsSchema
   } = await load('/src/character/runtime/inventoryItemSchemaResolver.ts')
   const {
     resolveConsumableEffectDelta,
@@ -735,6 +737,20 @@ test('map and sect rules block invalid gameplay paths', async () => {
     { id: 'garden_herb', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 }
   ])
   assert.equal(resolveInventoryMaterialQuantity(normalizedInventory, 'herb_spirit_grass'), 3)
+  assert.deepEqual(
+    validateInventoryItemSchema(normalizedLegacyEquipment).map(diagnostic => diagnostic.type),
+    []
+  )
+  const itemSchemaDiagnostics = validateInventoryItemsSchema([
+    { id: 'legacy_weapon', name: '玄铁剑', icon: '剑', type: 'equipment', quality: 'fine', quantity: 1 },
+    { id: 'shop_herb', definitionId: 'material_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 0 }
+  ])
+  assert.deepEqual(itemSchemaDiagnostics.map(diagnostic => diagnostic.type), [
+    'missing_definition_id',
+    'equipment_id_missing',
+    'definition_alias',
+    'invalid_quantity'
+  ])
 
   const consumableFixture = {
     id: 'pill_fixture',

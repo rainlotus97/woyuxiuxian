@@ -1,5 +1,19 @@
 import type { InventoryItem } from '@/stores/playerStore'
 
+export type InventoryItemSchemaDiagnosticType =
+  | 'missing_definition_id'
+  | 'definition_alias'
+  | 'equipment_id_missing'
+  | 'invalid_quantity'
+
+export interface InventoryItemSchemaDiagnostic {
+  type: InventoryItemSchemaDiagnosticType
+  itemId: string
+  message: string
+  before?: string | number
+  after?: string | number
+}
+
 const EQUIPMENT_DEFINITION_BY_NAME: Record<string, string> = {
   新手木剑: 'weapon_001',
   玄铁剑: 'weapon_002',
@@ -59,6 +73,56 @@ export function normalizeInventoryItemSchema(item: InventoryItem): InventoryItem
 
 export function normalizeInventoryItemsSchema(items: InventoryItem[]) {
   return items.map(normalizeInventoryItemSchema)
+}
+
+export function validateInventoryItemSchema(item: InventoryItem): InventoryItemSchemaDiagnostic[] {
+  const diagnostics: InventoryItemSchemaDiagnostic[] = []
+  const rawDefinitionId = item.definitionId ?? item.equipmentId
+  const resolvedDefinitionId = resolveInventoryDefinitionId(item)
+
+  if (!rawDefinitionId) {
+    diagnostics.push({
+      type: 'missing_definition_id',
+      itemId: item.id,
+      message: `${item.name} 缺少 definitionId，已按名称或物品 ID 回填。`,
+      after: resolvedDefinitionId
+    })
+  }
+
+  if (rawDefinitionId && rawDefinitionId !== resolvedDefinitionId) {
+    diagnostics.push({
+      type: 'definition_alias',
+      itemId: item.id,
+      message: `${item.name} 的 definitionId 已从别名归一。`,
+      before: rawDefinitionId,
+      after: resolvedDefinitionId
+    })
+  }
+
+  if (item.type === 'equipment' && !item.equipmentId) {
+    diagnostics.push({
+      type: 'equipment_id_missing',
+      itemId: item.id,
+      message: `${item.name} 是装备但缺少 equipmentId，已按 definitionId 回填。`,
+      after: resolvedDefinitionId
+    })
+  }
+
+  if (!Number.isFinite(item.quantity) || item.quantity < 1 || Math.floor(item.quantity) !== item.quantity) {
+    diagnostics.push({
+      type: 'invalid_quantity',
+      itemId: item.id,
+      message: `${item.name} 数量非法，已归一为正整数。`,
+      before: item.quantity,
+      after: Math.max(1, Math.floor(item.quantity || 1))
+    })
+  }
+
+  return diagnostics
+}
+
+export function validateInventoryItemsSchema(items: InventoryItem[]) {
+  return items.flatMap(validateInventoryItemSchema)
 }
 
 export function resolveInventoryDefinitionId(item: InventoryItem) {

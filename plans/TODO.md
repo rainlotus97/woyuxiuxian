@@ -256,6 +256,7 @@
   - 已为 `InventoryItem` 增加 `definitionId`，先打通宗门药园 / 炼丹 / 坊市 / 世界采药 / 历练掉落的统一物品标识
   - 已新增 `inventoryMaterialResolver`，统一材料按 `definitionId / id / name` 的数量统计与消耗快照
   - 已新增 `inventoryItemSchemaResolver`，统一旧物品、坊市、药园、历练掉落入库时的 `definitionId` 归一和别名回填
+  - 已为 `inventoryItemSchemaResolver` 增加 schema diagnostics，可检测缺失定义、别名归一、装备 ID 缺失与非法数量
   - 已建立 `src/shop/config/shopCatalog.ts`，将坊市商品定义收口到统一目录，并补入分类、品质、库存范围、境界与宗门限制字段
   - 待补：更多物品来源迁移、分类筛选与 schema 校验
 - [~] 坊市支持分类、稀有度、宗门限定、动态库存
