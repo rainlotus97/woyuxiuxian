@@ -31,6 +31,11 @@ import {
   resolveSectTaskClaimAll,
   resolveSectTaskProgress
 } from '@/sect/runtime/sectTaskResolver'
+import {
+  resolveFacilityLevel,
+  resolveFacilityUpgrade,
+  resolveInitialFacilityLevels
+} from '@/sect/runtime/sectFacilityResolver'
 import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
   getSectRecoveryOption,
@@ -318,12 +323,7 @@ export const useSectStore = defineStore('sect', () => {
     reputation.value = 0
     sectHp.value = sect.maxHp
     sectMaxHp.value = sect.maxHp
-    facilityLevels.value = {}
-
-    // 初始化设施等级
-    for (const facility of SECT_FACILITIES) {
-      facilityLevels.value[facility.id] = 1
-    }
+    facilityLevels.value = resolveInitialFacilityLevels(SECT_FACILITIES)
 
     // 生成初始任务
     generateTasks('daily')
@@ -585,37 +585,26 @@ export const useSectStore = defineStore('sect', () => {
 
   // 获取设施等级
   function getFacilityLevel(facilityId: string): number {
-    return facilityLevels.value[facilityId] ?? 1
+    return resolveFacilityLevel(facilityLevels.value, facilityId)
   }
 
   // 升级设施
   function upgradeFacility(facilityId: string): boolean {
     const facility = SECT_FACILITIES.find(f => f.id === facilityId)
-    if (!facility || !joinedSectId.value) return false
-
-    // 检查职位要求
-    if (positionLevel.value < facility.unlockPosition) {
-      return false
-    }
-
-    const currentLevel = getFacilityLevel(facilityId)
-    if (currentLevel >= facility.maxLevel) {
-      return false
-    }
-
-    // 检查资源
     const playerStore = usePlayerStore()
-    if (playerStore.gold < facility.upgradeCost.gold) {
-      return false
-    }
-    if (contribution.value < facility.upgradeCost.contribution) {
-      return false
-    }
+    const upgrade = resolveFacilityUpgrade({
+      facility,
+      joinedSectId: joinedSectId.value,
+      positionLevel: positionLevel.value,
+      currentLevel: getFacilityLevel(facilityId),
+      gold: playerStore.gold,
+      contribution: contribution.value
+    })
+    if (!upgrade.canUpgrade) return false
 
-    // 扣除资源
-    playerStore.addGold(-facility.upgradeCost.gold)
-    contribution.value -= facility.upgradeCost.contribution
-    facilityLevels.value[facilityId] = currentLevel + 1
+    playerStore.addGold(-upgrade.goldCost)
+    contribution.value -= upgrade.contributionCost
+    facilityLevels.value[facilityId] = upgrade.nextLevel
     return true
   }
 

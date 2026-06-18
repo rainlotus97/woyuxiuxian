@@ -542,8 +542,14 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectTaskClaimAll,
     resolveSectTaskProgress
   } = await load('/src/sect/runtime/sectTaskResolver.ts')
+  const {
+    resolveFacilityLevel,
+    resolveFacilityUpgrade,
+    resolveInitialFacilityLevels
+  } = await load('/src/sect/runtime/sectFacilityResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
   const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
+  const { SECT_FACILITIES } = await load('/src/types/sect.ts')
 
   const blocked = resolveAreaGameplayAccess({
     areaName: '青云山',
@@ -717,6 +723,32 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(claimAll.reward.contribution, 10)
   assert.equal(claimAll.reward.gold, 20)
   assert.equal(claimAll.reward.exp, 5)
+
+  const facilityLevels = resolveInitialFacilityLevels(SECT_FACILITIES)
+  assert.equal(resolveFacilityLevel(facilityLevels, 'alchemy_furnace'), 1)
+  assert.equal(resolveFacilityLevel({}, 'unknown_facility'), 1)
+  const alchemyFurnace = SECT_FACILITIES.find(facility => facility.id === 'alchemy_furnace')
+  assert.ok(alchemyFurnace, 'fixture facility should exist')
+  const upgradeReady = resolveFacilityUpgrade({
+    facility: alchemyFurnace,
+    joinedSectId: 'qingyun_sect',
+    positionLevel: 1,
+    currentLevel: 1,
+    gold: 500,
+    contribution: 50
+  })
+  assert.equal(upgradeReady.canUpgrade, true)
+  assert.equal(upgradeReady.nextLevel, 2)
+  const upgradeBlocked = resolveFacilityUpgrade({
+    facility: alchemyFurnace,
+    joinedSectId: 'qingyun_sect',
+    positionLevel: 1,
+    currentLevel: 1,
+    gold: 499,
+    contribution: 50
+  })
+  assert.equal(upgradeBlocked.canUpgrade, false)
+  assert.equal(upgradeBlocked.reason, 'gold_shortage')
 })
 
 const results = await Promise.all(diagnostics)
