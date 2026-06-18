@@ -387,9 +387,10 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
       mp: '灵力',
       buff_atk: '攻击增益',
       buff_def: '防御增益',
-      buff_spd: '身法增益'
+      buff_spd: '身法增益',
+      breakthrough_success: '破境成功率'
     }
-    const value = effect.type.startsWith('buff_')
+    const value = effect.type.startsWith('buff_') || effect.type === 'breakthrough_success'
       ? `+${(effect.value * 100).toFixed(0)}%`
       : `+${effect.value}`
     return `${labels[effect.type] ?? effect.type} ${value}${effect.duration ? ` / ${effect.duration}手` : ''}`

@@ -53,6 +53,12 @@
           />
         </div>
 
+        <div v-if="playerStore.nextRealm" class="breakthrough-forecast">
+          <span>破境 {{ playerStore.realm }} -> {{ playerStore.nextRealm }}</span>
+          <strong>{{ formatPercent(playerStore.breakthroughPreview.successRate) }}</strong>
+          <em>{{ playerStore.breakthroughPreview.selectedAid?.name ?? '无护持丹药' }}</em>
+        </div>
+
         <template #footer>
           <div class="action-grid">
             <GameActionButton
@@ -336,7 +342,7 @@ const staminaRecoverLabel = computed(() => {
 
 const breakthroughHint = computed(() => {
   if (playerStore.isMaxRealm && playerStore.realmLevel === 9) return '已抵达当前版本的最高境界。'
-  if (playerStore.canBreakthrough && playerStore.nextRealm) return `条件已满，可突破至${playerStore.nextRealm}。`
+  if (playerStore.canBreakthrough && playerStore.nextRealm) return `${playerStore.breakthroughPreview.message}，当前成功率 ${formatPercent(playerStore.breakthroughPreview.successRate)}。`
   if (playerStore.realmLevel === 9 && playerStore.nextRealm) return `${playerStore.realm}九层圆满后，可手动突破至${playerStore.nextRealm}。`
   return `挂机中每秒自动获得 ${playerStore.cultivationPerSecond} 修为。`
 })
@@ -599,21 +605,23 @@ function handleMeditate() {
 }
 
 function handleBreakthrough() {
-  if (!playerStore.canBreakthrough) {
-    warning('条件不足，无法突破')
+  if (!playerStore.breakthroughPreview.canAttempt) {
+    warning(playerStore.breakthroughPreview.message)
     return
   }
 
   const oldRealm = playerStore.realm
-  const nextRealm = playerStore.nextRealm
+  const nextRealm = playerStore.breakthroughPreview.nextRealm
   if (!nextRealm) {
     warning('已达最高境界')
     return
   }
 
+  const aidName = playerStore.breakthroughPreview.selectedAid?.name
   sfxBreakthrough()
-  if (playerStore.breakthrough()) {
-    success(`突破成功！进入${nextRealm}一层`)
+  const result = playerStore.attemptBreakthrough([worldStore.clock.totalTicks, Date.now()])
+  if (result.success) {
+    success(`${aidName ? `${aidName}护持，` : ''}突破成功！进入${nextRealm}一层`)
     showItemAcquire({
       name: `${nextRealm}境界`,
       quantity: 1,
@@ -621,7 +629,13 @@ function handleBreakthrough() {
       icon: '境界',
       description: `从${oldRealm}突破至${nextRealm}`
     })
+  } else {
+    warning(`${aidName ? `${aidName}已消耗，` : ''}破境失败，修为保留 ${result.failureCultivation}/${playerStore.maxCultivation}`)
   }
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`
 }
 
 function handleIdleModeChange(mode: IdleMode) {
@@ -782,6 +796,34 @@ function handleBriefingAction(item: WorldBriefingItem) {
 .overview-grid,
 .world-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.breakthrough-forecast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(188, 141, 58, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 250, 234, 0.72);
+}
+
+.breakthrough-forecast span,
+.breakthrough-forecast em {
+  min-width: 0;
+  color: rgba(81, 93, 86, 0.78);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.breakthrough-forecast strong {
+  color: #8b6226;
+  font-size: 16px;
+}
+
+.breakthrough-forecast em {
+  grid-column: 1 / -1;
 }
 
 .action-grid {

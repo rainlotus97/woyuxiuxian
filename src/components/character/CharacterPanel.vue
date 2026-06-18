@@ -264,7 +264,9 @@ const tabs: Array<{ id: CharacterPanelTab; label: string; icon: string }> = [
 const summary = computed(() => loadout.characterSummary.value)
 
 const breakthroughHint = computed(() => {
-  if (loadout.playerStore.canBreakthrough) return '境界圆满，可准备突破'
+  if (loadout.playerStore.canBreakthrough) {
+    return `境界圆满，破境成功率 ${formatPercent(loadout.playerStore.breakthroughPreview.successRate)}`
+  }
   if (loadout.playerStore.realmLevel === 9) return '九层圆满后可尝试破境'
   return '挂机修炼、丹药和奇遇都会推动修为'
 })

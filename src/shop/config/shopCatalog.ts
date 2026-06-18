@@ -219,8 +219,8 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     type: 'consumable',
     quality: 'excellent',
     basePrice: 360,
-    description: '突破筑基时稳固经脉。当前作为高阶消耗品入库，后续接入渡劫成功率。',
-    effects: [{ type: 'cultivation', value: 120 }],
+    description: '突破筑基时稳固经脉，提高破境成功率并降低失败损失。',
+    effects: [{ type: 'breakthrough_success', value: 0.18 }],
     minRealm: '炼气',
     stockRange: [0, 2],
     refreshWeight: 0.55
@@ -234,8 +234,8 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     type: 'consumable',
     quality: 'supreme',
     basePrice: 980,
-    description: '为凝结金丹准备的珍贵丹药。后续接入破境和天劫系统。',
-    effects: [{ type: 'cultivation', value: 260 }],
+    description: '为凝结金丹准备的珍贵丹药，提高破境成功率并降低失败损失。',
+    effects: [{ type: 'breakthrough_success', value: 0.24 }],
     minRealm: '筑基',
     stockRange: [0, 1],
     refreshWeight: 0.26

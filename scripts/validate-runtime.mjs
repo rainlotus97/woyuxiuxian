@@ -611,6 +611,10 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
+  const {
+    resolveBreakthroughAttempt,
+    resolveBreakthroughPreview
+  } = await load('/src/character/runtime/characterBreakthroughResolver.ts')
   const { resolveCharacterBattleUnit } = await load('/src/character/runtime/characterBattleLoadoutResolver.ts')
   const {
     applyShopPurchases,
@@ -813,6 +817,68 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(noEffectConsumable.success, false)
   assert.equal(noEffectConsumable.reason, 'no_effect')
   assert.deepEqual(noEffectConsumable.delta.ignoredEffects, ['unknown_effect'])
+  const foundationAid = {
+    id: 'foundation_aid',
+    definitionId: 'pill_foundation_guard',
+    name: '护脉筑基丹',
+    icon: '基',
+    type: 'consumable',
+    quality: 'excellent',
+    quantity: 1,
+    effects: [{ type: 'breakthrough_success', value: 0.18 }]
+  }
+  const noAidBreakthrough = resolveBreakthroughPreview({
+    realm: '炼气',
+    realmLevel: 9,
+    cultivation: 100,
+    maxCultivation: 100,
+    inventory: []
+  })
+  const aidedBreakthrough = resolveBreakthroughPreview({
+    realm: '炼气',
+    realmLevel: 9,
+    cultivation: 100,
+    maxCultivation: 100,
+    inventory: [foundationAid]
+  })
+  assert.equal(noAidBreakthrough.canAttempt, true)
+  assert.equal(noAidBreakthrough.nextRealm, '筑基')
+  assert.ok(aidedBreakthrough.successRate > noAidBreakthrough.successRate)
+  assert.equal(aidedBreakthrough.selectedAid?.itemId, 'foundation_aid')
+  const blockedBreakthrough = resolveBreakthroughPreview({
+    realm: '炼气',
+    realmLevel: 8,
+    cultivation: 100,
+    maxCultivation: 100,
+    inventory: [foundationAid]
+  })
+  assert.equal(blockedBreakthrough.canAttempt, false)
+  assert.equal(blockedBreakthrough.reason, 'not_peak')
+  const successBreakthrough = resolveBreakthroughAttempt({
+    realm: '炼气',
+    realmLevel: 9,
+    cultivation: 100,
+    maxCultivation: 100,
+    inventory: [foundationAid],
+    selectedAidItemId: 'foundation_aid',
+    seedParts: ['runtime-success-0']
+  })
+  assert.equal(successBreakthrough.success, true)
+  assert.equal(successBreakthrough.consumedItemId, 'foundation_aid')
+  assert.equal(successBreakthrough.nextRealm, '筑基')
+  assert.equal(successBreakthrough.nextMaxCultivation, 150)
+  assert.equal(successBreakthrough.skillPointsGained, 1)
+  const failedBreakthrough = resolveBreakthroughAttempt({
+    realm: '化神',
+    realmLevel: 9,
+    cultivation: 1000,
+    maxCultivation: 1000,
+    inventory: [],
+    seedParts: ['runtime-fail-0']
+  })
+  assert.equal(failedBreakthrough.success, false)
+  assert.ok(failedBreakthrough.failureCultivation > 0)
+  assert.ok(failedBreakthrough.failureCultivation < 1000)
 
   const characterBattleUnit = resolveCharacterBattleUnit({
     id: 'player_fixture',

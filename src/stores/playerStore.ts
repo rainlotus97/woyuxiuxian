@@ -4,6 +4,14 @@ import type { Unit, Realm, Quality, Element, UnitStats, StatusEffect } from '@/t
 import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM_CULTIVATION_PER_SECOND, calculateBaseStats } from '@/types/unit'
 import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
+import {
+  resolveBreakthroughAttempt,
+  resolveBreakthroughPreview
+} from '@/character/runtime/characterBreakthroughResolver'
+import type {
+  BreakthroughAttemptResolution,
+  BreakthroughPreview
+} from '@/character/runtime/characterBreakthroughResolver'
 import { resolveCharacterBattleUnit } from '@/character/runtime/characterBattleLoadoutResolver'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
@@ -343,6 +351,14 @@ export const usePlayerStore = defineStore('player', () => {
     realmLevel.value === 9 && cultivation.value >= maxCultivation.value && nextRealm.value !== null
   )
 
+  const breakthroughPreview = computed<BreakthroughPreview>(() => resolveBreakthroughPreview({
+    realm: realm.value,
+    realmLevel: realmLevel.value,
+    cultivation: cultivation.value,
+    maxCultivation: maxCultivation.value,
+    inventory: inventory.value
+  }))
+
   // 是否已达到最高境界
   const isMaxRealm = computed(() => nextRealm.value === null)
 
@@ -449,26 +465,52 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  // 突破境界（炼气9层 -> 筑基1层）
-  function breakthrough(): boolean {
-    if (!canBreakthrough.value) return false
+  function applyBreakthroughSuccess(result: BreakthroughAttemptResolution) {
+    if (!result.nextRealm) return false
 
-    const next = nextRealm.value
-    if (!next) return false // 已是最高境界
-
-    realm.value = next
+    realm.value = result.nextRealm
     realmLevel.value = 1
     cultivation.value = 0
-    maxCultivation.value = Math.floor(maxCultivation.value * 1.5)
+    maxCultivation.value = result.nextMaxCultivation
 
     recalculateStats()
 
-    // 突破境界时获得技能点（境界越高获得越多）
-    const realmIndex = REALM_ORDER.indexOf(next)
-    const pointsGained = Math.max(1, realmIndex) // 筑基1点，金丹2点，元婴3点...
-    skillPoints.value += pointsGained
-
+    skillPoints.value += result.skillPointsGained
     return true
+  }
+
+  function consumeBreakthroughAid(itemId: string | null) {
+    if (!itemId) return
+    removeFromInventory(itemId)
+  }
+
+  function attemptBreakthrough(seedParts: Array<number | string> = []): BreakthroughAttemptResolution {
+    const result = resolveBreakthroughAttempt({
+      realm: realm.value,
+      realmLevel: realmLevel.value,
+      cultivation: cultivation.value,
+      maxCultivation: maxCultivation.value,
+      inventory: inventory.value,
+      selectedAidItemId: breakthroughPreview.value.selectedAid?.itemId ?? null,
+      seedParts
+    })
+
+    if (!result.canAttempt) return result
+
+    consumeBreakthroughAid(result.consumedItemId)
+
+    if (result.success) {
+      applyBreakthroughSuccess(result)
+    } else {
+      cultivation.value = Math.max(0, Math.min(maxCultivation.value, result.failureCultivation))
+    }
+
+    return result
+  }
+
+  // 突破境界（炼气9层 -> 筑基1层）
+  function breakthrough(): boolean {
+    return attemptBreakthrough().success
   }
 
   // 增加技能点
@@ -1036,7 +1078,7 @@ export const usePlayerStore = defineStore('player', () => {
     staminaRecoverRate, staminaRecoverSeconds, staminaPercent, nextRecoverCountdown,
 
     // 计算属性
-    realmInfo, cultivationProgress, canBreakthrough, nextRealm, isMaxRealm, realmColor, realmPrimaryColor, cultivationPerSecond,
+    realmInfo, cultivationProgress, canBreakthrough, breakthroughPreview, nextRealm, isMaxRealm, realmColor, realmPrimaryColor, cultivationPerSecond,
 
     // 技能系统方法
     hasLearnedSkill, getLearnedSkill, canLearnSkill, learnSkill, upgradeSkill, addSkillExp,
@@ -1044,7 +1086,7 @@ export const usePlayerStore = defineStore('player', () => {
     addSkillPoints,
 
     // 方法
-    addCultivation, levelUp, breakthrough,
+    addCultivation, levelUp, breakthrough, attemptBreakthrough,
     equip, unequip, recalculateEquipmentBonuses,
     addToInventory, removeFromInventory, useConsumable,
     addBuff, removeBuff, clearBuffs,
