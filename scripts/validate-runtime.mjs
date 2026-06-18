@@ -532,6 +532,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
+  const { resolveCharacterBattleUnit } = await load('/src/character/runtime/characterBattleLoadoutResolver.ts')
   const {
     applyShopPurchases,
     canInventoryAcceptShopItem,
@@ -681,6 +682,36 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(noEffectConsumable.success, false)
   assert.equal(noEffectConsumable.reason, 'no_effect')
   assert.deepEqual(noEffectConsumable.delta.ignoredEffects, ['unknown_effect'])
+
+  const characterBattleUnit = resolveCharacterBattleUnit({
+    id: 'player_fixture',
+    name: '试炼修士',
+    icon: '修',
+    element: '木',
+    realm: '筑基',
+    realmLevel: 3,
+    quality: '灵品',
+    level: 12,
+    stats: {
+      maxHp: 300,
+      currentHp: 240,
+      maxMp: 160,
+      currentMp: 120,
+      attack: 55,
+      defense: 32,
+      speed: 128,
+      critRate: 0.12,
+      critDamage: 1.6
+    },
+    skillIds: ['sword_qi', 'heal_light'],
+    statusEffects: [{ type: 'buff_atk', value: 0.2, duration: 3, icon: '攻' }]
+  })
+  assert.equal(characterBattleUnit.type, 'protagonist')
+  assert.equal(characterBattleUnit.realm, '筑基')
+  assert.deepEqual(characterBattleUnit.skills, ['sword_qi', 'heal_light'])
+  assert.equal(characterBattleUnit.statusEffects[0]?.type, 'buff_atk')
+  assert.equal(characterBattleUnit.stats.attack, 55)
+  assert.equal(characterBattleUnit.isAlive, true)
 
   const shopItem = {
     stockId: 'shop_pill_001:0',

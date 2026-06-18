@@ -266,6 +266,7 @@
 - [ ] 打通丹药、食物、装备、功法、灵兽对战斗和挂机的影响
   - 已打通灵兽对战斗上阵与挂机成长的基础影响链路
   - 已新增 `characterProgressionResolver`，统一计算装备/功法属性加成与修炼收益来源
+  - 已新增 `characterBattleLoadoutResolver`，统一角色属性、已学功法与丹药临时 buff 转换为战斗单位，避免战斗出场规则散在 `playerStore`
   - 已新增 `consumableEffectResolver`，统一消耗品效果归一、治疗/回灵上限、修为增益与战斗 buff 生成，避免丹药效果继续堆在 `playerStore`
   - 已让 `聚气诀 / 静心诀` 真实影响挂机修为速度，并让装备灵力/身法加成转化为吐纳效率
   - 已在人物总览展示修为/秒、调息增幅与修炼收益来源
@@ -286,7 +287,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、consumable effect rules、shop purchase rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、character battle loadout rules、consumable effect rules、shop purchase rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

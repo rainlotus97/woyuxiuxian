@@ -4,6 +4,7 @@ import type { Unit, Realm, Quality, Element, UnitStats, StatusEffect } from '@/t
 import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM_CULTIVATION_PER_SECOND, calculateBaseStats } from '@/types/unit'
 import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
+import { resolveCharacterBattleUnit } from '@/character/runtime/characterBattleLoadoutResolver'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
 import {
@@ -886,24 +887,19 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 转换为战斗单位
   function toBattleUnit(): Unit {
-    // 获取已学习技能的ID列表
-    const skillIds = learnedSkills.value.map(ls => ls.id)
-
-    return {
+    return resolveCharacterBattleUnit({
       id: id.value,
       name: name.value,
-      type: 'protagonist',
+      icon: icon.value,
       element: element.value,
       realm: realm.value,
       realmLevel: realmLevel.value,
       quality: quality.value,
       level: level.value,
       stats: { ...totalStats.value },
-      skills: skillIds,
-      statusEffects: [...temporaryBuffs.value],
-      isAlive: true,
-      icon: icon.value
-    }
+      skillIds: learnedSkills.value.map(skill => skill.id),
+      statusEffects: temporaryBuffs.value
+    })
   }
 
   // ====== 体力值系统方法 ======
