@@ -128,18 +128,29 @@
               </small>
               <small v-else>可以开始安排 P1 的大世界、战斗和宗门深化。</small>
             </div>
-            <div class="acceptance-gap-list" aria-label="P0 验收缺口">
-              <span
-                v-for="item in p0Acceptance.remainingItems.slice(0, 4)"
-                :key="item.id"
-                :class="`gap-${item.state}`"
+            <div class="acceptance-side">
+              <div class="acceptance-gap-list" aria-label="P0 验收缺口">
+                <span
+                  v-for="item in p0Acceptance.remainingItems.slice(0, 4)"
+                  :key="item.id"
+                  :class="`gap-${item.state}`"
+                >
+                  {{ item.label }} · {{ item.stateLabel }}
+                </span>
+                <span v-if="p0Acceptance.remainingCount > 4" class="gap-more">
+                  +{{ p0Acceptance.remainingCount - 4 }}
+                </span>
+                <span v-if="p0Acceptance.readyForP1" class="gap-closed">P0 验收完成</span>
+              </div>
+              <button
+                v-if="p0Acceptance.primaryGap"
+                type="button"
+                class="acceptance-action"
+                @click="handleAcceptancePrimaryGap"
               >
-                {{ item.label }} · {{ item.stateLabel }}
-              </span>
-              <span v-if="p0Acceptance.remainingCount > 4" class="gap-more">
-                +{{ p0Acceptance.remainingCount - 4 }}
-              </span>
-              <span v-if="p0Acceptance.readyForP1" class="gap-closed">P0 验收完成</span>
+                <span>{{ p0Acceptance.primaryGap.nextAction }}</span>
+                <strong>处理缺口</strong>
+              </button>
             </div>
           </div>
 
@@ -1030,6 +1041,15 @@ function handleNextP0Action() {
   }
 }
 
+function handleAcceptancePrimaryGap() {
+  const gapId = p0Acceptance.value.primaryGap?.id
+  if (!gapId) return
+  const task = mainLoopTasks.value.find(item => item.id === gapId)
+  if (task) {
+    handleTaskAction(task)
+  }
+}
+
 function handleAdvanceWorld() {
   const summary = advanceOneTick()
   if (summary.totalEvents > 0) {
@@ -1561,6 +1581,13 @@ function handlePlayerFortune() {
   gap: 6px;
 }
 
+.acceptance-side {
+  min-width: min(360px, 42vw);
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
 .acceptance-gap-list span {
   min-height: 24px;
   display: inline-flex;
@@ -1590,6 +1617,42 @@ function handlePlayerFortune() {
   color: #2f746b;
   border-color: rgba(88, 164, 143, 0.22);
   background: rgba(238, 253, 247, 0.9);
+}
+
+.acceptance-action {
+  min-width: 132px;
+  min-height: 42px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid rgba(194, 146, 66, 0.24);
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 235, 0.92), rgba(242, 253, 247, 0.76)),
+    radial-gradient(circle at top right, rgba(255, 220, 132, 0.18), transparent 60%);
+  color: #315257;
+  font-family: var(--font-game);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.acceptance-action span {
+  max-width: 100%;
+  overflow: hidden;
+  color: #8b6226;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acceptance-action strong {
+  color: #315257;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .loop-readiness-strip > div:first-child {
@@ -2260,6 +2323,11 @@ function handlePlayerFortune() {
 
   .acceptance-gap-list {
     justify-content: flex-start;
+  }
+
+  .acceptance-side {
+    min-width: 0;
+    justify-items: start;
   }
 
   .readiness-counts {
