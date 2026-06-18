@@ -155,6 +155,7 @@
   - 已让设伏/俘获消息向同地图、同宗门相关 NPC 传播，推动第三方关系波动
   - 已让重要 NPC 被俘进入 `WorldBriefingPanel`，作为宗门追责/救援玩法入口
   - 已在宗门页接入“营救同门”动作，可消耗贡献/灵石救回本宗被俘 NPC，并写回世界日志与人物纪闻
+  - 已新增 `npcPlayerPressureResolver`，让高好感/高仇恨/同宗门关系基于玩家当前行动焦点触发护行、追踪与盯梢事件
   - 待补：更复杂的行动分发、宗门层级追责、跨区域长期追踪链
 - [~] 实现 NPC 自主行动结果写回世界日志
   - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
@@ -163,6 +164,7 @@
   - 已让 `CultivationView` 消费 `importantNpcStates + visibleLogs`，将 NPC 动向与世界异闻抬到主首页
   - 已新增 `npcStories / playerJourneys / areaAnomalies`，让重要 NPC 纪闻、主角挂机日志与区域异动有独立承载
   - 已让 NPC 行动、社交冲突、破境、战争 aftermath 写回 `notoriety`，支持“谁正在冒头”的持续演化
+  - 已让 NPC 对玩家的关系压力事件写入世界日志与人物纪闻，并可影响玩家修为/灵石收益
   - 待补：更丰富的事件模版、地图/宗门上下文、日志去重与可见性分级
 - [~] 实现重要 NPC 的“故事化事件记录”
   - 已将 NPC 破境、冲突、提携等结果沉淀为 `npcStories`

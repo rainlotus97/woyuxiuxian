@@ -1,4 +1,5 @@
 import type {
+  IdleMode,
   NpcGoal,
   NpcHealthState,
   NpcDefinition,
@@ -16,6 +17,9 @@ export interface WorldRuntimeNpcContext {
   npcState: NpcRuntimeState
   playerRelationship: RelationshipState
   playerGold: number
+  playerSectId: string | null
+  playerFocusMapId: string | null
+  idleMode: IdleMode
 }
 
 export interface WorldRuntimeNpcSocialContext {

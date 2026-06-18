@@ -1,5 +1,6 @@
 import type { WorldRuntimeNpcActionResult, WorldRuntimeNpcContext } from './worldRuntimeTypes'
 import { resolveRelationshipDrivenNpcAction } from './npcRelationshipActionResolver'
+import { resolvePlayerPressureNpcAction } from './npcPlayerPressureResolver'
 import { resolveLineageDrivenNpcAction } from './npcLineageActionResolver'
 import { getNpcPotentialScore } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
@@ -182,6 +183,7 @@ function resolveCrueltyAction(context: WorldRuntimeNpcContext) {
 export function resolveNpcAction(context: WorldRuntimeNpcContext) {
   return resolveRecoveryAction(context)
     || resolveRelationshipDrivenNpcAction(context)
+    || resolvePlayerPressureNpcAction(context)
     || resolveLineageDrivenNpcAction(context)
     || resolveAmbitionAction(context)
     || resolveBreakthroughAction(context)

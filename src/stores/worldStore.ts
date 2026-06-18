@@ -481,8 +481,10 @@ export const useWorldStore = defineStore('world', () => {
 
   function resolveNpcActions() {
     const playerStore = usePlayerStore()
+    const sectStore = useSectStore()
     const engagedNpcIds = new Set<string>()
     const definitionMap = new Map(npcDefinitions.value.map(definition => [definition.id, definition]))
+    const playerFocusMapId = getPlayerFocusMapId()
     for (const npc of npcStates.value) {
       const def = npcDefinitions.value.find(item => item.id === npc.id)
       if (!def || npc.hpState === 'dead' || npc.hpState === 'captured') continue
@@ -493,7 +495,10 @@ export const useWorldStore = defineStore('world', () => {
         npcDefinition: def,
         npcState: npc,
         playerRelationship,
-        playerGold: playerStore.gold
+        playerGold: playerStore.gold,
+        playerSectId: sectStore.joinedSectId,
+        playerFocusMapId,
+        idleMode: idleMode.value
       })
 
       if (!result) {
@@ -740,6 +745,18 @@ export const useWorldStore = defineStore('world', () => {
   function getAreaLabel(areaId?: string) {
     if (!areaId) return '未知地带'
     return getAreaById(areaId)?.name ?? areaId
+  }
+
+  function getPlayerFocusMapId() {
+    const mapStore = useMapStore()
+    const sectStore = useSectStore()
+    if (idleMode.value === 'sectDuty') {
+      return sectStore.currentSect?.areaId ?? activeAreaAnomalies.value[0]?.areaId ?? mapStore.currentRealmAreas[0]?.id ?? null
+    }
+    if (idleMode.value === 'adventure' || idleMode.value === 'gatherHerbs') {
+      return activeAreaAnomalies.value[0]?.areaId ?? mapStore.currentRealmAreas[0]?.id ?? null
+    }
+    return sectStore.currentSect?.areaId ?? mapStore.currentRealmAreas[0]?.id ?? null
   }
 
   function getNpcDisplayProfile(npcId: string) {
