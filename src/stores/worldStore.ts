@@ -42,6 +42,11 @@ import {
 } from '@/world/runtime/npcRoster'
 import { resolveWarAftermath } from '@/world/runtime/warAftermathResolver'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
+import {
+  getPlayerCaptivityForecast,
+  resolvePlayerCaptivityEscape,
+  resolvePlayerCaptivityTick
+} from '@/world/runtime/playerCaptivityResolver'
 import { getAreaById } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import type {
@@ -199,6 +204,7 @@ export const useWorldStore = defineStore('world', () => {
       .filter((item): item is NonNullable<typeof item> => Boolean(item))
       .sort((a, b) => b.spotlightScore - a.spotlightScore)
   })
+  const lastCaptivityEscapeTick = ref<number | null>(null)
 
   function saveToStorage() {
     const data: WorldState = {
@@ -362,6 +368,37 @@ export const useWorldStore = defineStore('world', () => {
     const mapStore = useMapStore()
     const mode = idleMode.value
     const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 60))
+
+    if (playerStore.captivity.isCaptured) {
+      const captorName = playerStore.captivity.captorSectId
+        ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+        : '敌对势力'
+      const shouldRecordCaptivityJourney = Boolean(
+        (clock.value.totalTicks - (playerStore.captivity.sinceTick ?? clock.value.totalTicks)) % 4 === 0
+      )
+      const captivityResult = resolvePlayerCaptivityTick({
+        currentTick: clock.value.totalTicks,
+        sinceTick: playerStore.captivity.sinceTick,
+        captorName,
+        realm: playerStore.realm,
+        realmLevel: playerStore.realmLevel,
+        weather: weather.value,
+        sectReputation: useSectStore().reputation
+      })
+      playerStore.addCultivation(captivityResult.cultivationGain)
+      if (captivityResult.narrative || shouldRecordCaptivityJourney) {
+        recordPlayerJourney(
+          captivityResult.narrative?.severity ?? 'normal',
+          captivityResult.narrative?.title ?? '囚中运气',
+          captivityResult.narrative?.text ?? `你在${captorName}的囚禁中压缩呼吸与灵力流转，勉强维持修行进度。`,
+          [{ type: 'cultivation', label: '修为', value: captivityResult.cultivationGain }],
+          undefined,
+          captivityResult.narrative?.tags ?? ['captivity', 'survival']
+        )
+      }
+      return
+    }
+
     if (mode === 'cultivate') {
       const gain = weather.value === 'rain' ? Math.floor(baseGain * 1.1) : baseGain
       playerStore.addCultivation(gain)
@@ -694,6 +731,77 @@ export const useWorldStore = defineStore('world', () => {
     }
   }
 
+  function getCaptivityForecast() {
+    const playerStore = usePlayerStore()
+    if (!playerStore.captivity.isCaptured) return null
+
+    const captorName = playerStore.captivity.captorSectId
+      ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+      : '敌对势力'
+
+    return getPlayerCaptivityForecast({
+      currentTick: clock.value.totalTicks,
+      sinceTick: playerStore.captivity.sinceTick,
+      captorName,
+      realm: playerStore.realm,
+      realmLevel: playerStore.realmLevel,
+      weather: weather.value,
+      sectReputation: useSectStore().reputation
+    })
+  }
+
+  function canAttemptCaptivityEscape() {
+    const playerStore = usePlayerStore()
+    if (!playerStore.captivity.isCaptured) return false
+    return lastCaptivityEscapeTick.value !== clock.value.totalTicks
+  }
+
+  function attemptCaptivityEscape() {
+    const playerStore = usePlayerStore()
+    if (!playerStore.captivity.isCaptured || !canAttemptCaptivityEscape()) {
+      return null
+    }
+
+    const captorName = playerStore.captivity.captorSectId
+      ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+      : '敌对势力'
+    const result = resolvePlayerCaptivityEscape({
+      currentTick: clock.value.totalTicks,
+      sinceTick: playerStore.captivity.sinceTick,
+      captorName,
+      realm: playerStore.realm,
+      realmLevel: playerStore.realmLevel,
+      weather: weather.value,
+      sectReputation: useSectStore().reputation
+    })
+
+    lastCaptivityEscapeTick.value = clock.value.totalTicks
+    playerStore.addCultivation(result.cultivationGain)
+    recordPlayerJourney(
+      result.narrative.severity,
+      result.narrative.title,
+      result.narrative.text,
+      [{ type: 'cultivation', label: '修为', value: result.cultivationGain }],
+      undefined,
+      result.narrative.tags
+    )
+
+    if (result.success) {
+      playerStore.clearCaptivity()
+      addLog('world', 'legendary', '重获自由', `你已经摆脱${captorName}的控制，重新回到可行动状态。`, ['player'], ['captivity', 'escape', 'success'])
+      const sectStore = useSectStore()
+      if (sectStore.worldCondition.status === 'collapsed' || sectStore.worldCondition.status === 'rebuilding') {
+        sectStore.applyWorldCondition({
+          status: 'rebuilding',
+          occupiedBySectId: null,
+          lastUpdatedTick: clock.value.totalTicks
+        })
+      }
+    }
+
+    return result
+  }
+
   function unlockNpc(npcId: string, reason?: string) {
     const definition = npcDefinitions.value.find(item => item.id === npcId)
     if (!definition) return false
@@ -789,6 +897,7 @@ export const useWorldStore = defineStore('world', () => {
     areaAnomalies,
     unlockedNpcIds,
     worldFlags,
+    lastCaptivityEscapeTick,
     currentTimeLabel,
     visibleLogs,
     recentPlayerJourneys,
@@ -804,6 +913,9 @@ export const useWorldStore = defineStore('world', () => {
     isNpcUnlocked,
     getRelationshipState,
     getNpcDisplayProfile,
+    getCaptivityForecast,
+    canAttemptCaptivityEscape,
+    attemptCaptivityEscape,
     applyStoryRelationshipChange,
     addWorldFlag,
     hasWorldFlag

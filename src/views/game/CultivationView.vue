@@ -99,6 +99,23 @@
     </div>
 
     <div class="world-grid">
+      <WorldBriefingPanel :items="worldBriefings" @action="handleBriefingAction" />
+
+      <GameSurface tone="mist" padding="md" eyebrow="挂机见闻" title="主角行程" subtitle="挂机期间，主角会留下自己的经历、收获和奇遇。">
+        <div class="journey-list">
+          <div v-for="journey in recentJourneys" :key="journey.id" class="log-card" :class="`severity-${journey.severity}`">
+            <div class="log-head">
+              <strong>{{ journey.title }}</strong>
+              <span>{{ journey.timeLabel }}</span>
+            </div>
+            <p>{{ journey.text }}</p>
+            <small class="log-reward">{{ formatJourneyRewards(journey.rewards) }}</small>
+          </div>
+        </div>
+      </GameSurface>
+    </div>
+
+    <div class="world-grid">
       <GameSurface
         :tone="sectPanelTone"
         padding="md"
@@ -179,19 +196,6 @@
     </div>
 
     <div class="world-grid">
-      <GameSurface tone="gold" padding="md" eyebrow="挂机见闻" title="主角行程" subtitle="挂机期间，主角会留下自己的经历、收获和奇遇。">
-        <div class="journey-list">
-          <div v-for="journey in recentJourneys" :key="journey.id" class="log-card" :class="`severity-${journey.severity}`">
-            <div class="log-head">
-              <strong>{{ journey.title }}</strong>
-              <span>{{ journey.timeLabel }}</span>
-            </div>
-            <p>{{ journey.text }}</p>
-            <small class="log-reward">{{ formatJourneyRewards(journey.rewards) }}</small>
-          </div>
-        </div>
-      </GameSurface>
-
       <GameSurface tone="mist" padding="md" eyebrow="天地异变" title="区域异动" subtitle="灾害、遗迹、妖潮与灵脉会改变地图压力与修炼节奏。">
         <div class="journey-list">
           <div v-for="anomaly in areaAnomalies" :key="anomaly.id" class="anomaly-card" :class="`severity-${anomaly.severity}`">
@@ -234,13 +238,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { useAudio, sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
+import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -254,10 +261,16 @@ import {
   getNpcGoalLabel,
   getNpcHealthLabel
 } from '@/components/world/worldUi'
+import {
+  resolveWorldBriefings,
+  type WorldBriefingItem
+} from '@/world/runtime/worldBriefingResolver'
 
 const playerStore = usePlayerStore()
+const mapStore = useMapStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const router = useRouter()
 const { success, warning, info } = useToast()
 const { startCultivationBgm } = useAudio()
 const { showItemAcquire } = useModal()
@@ -379,6 +392,75 @@ const recentLogs = computed(() => worldStore.visibleLogs.slice(0, 4))
 const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4))
 const npcStories = computed(() => worldStore.importantNpcStories.slice(0, 4))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
+const captivityForecast = computed(() => worldStore.getCaptivityForecast())
+
+const hotspotArea = computed(() => {
+  const ranked = Object.values(mapStore.areaStates)
+    .filter(state => state.riskLevel === 'danger' || state.riskLevel === 'chaos' || state.contested)
+    .sort((a, b) => {
+      const scoreA = a.pressure + (a.riskLevel === 'chaos' ? 30 : a.riskLevel === 'danger' ? 20 : 8) + (a.contested ? 12 : 0)
+      const scoreB = b.pressure + (b.riskLevel === 'chaos' ? 30 : b.riskLevel === 'danger' ? 20 : 8) + (b.contested ? 12 : 0)
+      return scoreB - scoreA
+    })[0]
+
+  if (!ranked) return null
+
+  const area = mapStore.getAreaInfo(ranked.areaId)
+  const anomaly = areaAnomalies.value.find(item => item.areaId === ranked.areaId)
+  if (!area) return null
+
+  return {
+    name: area.name,
+    riskLevel: ranked.riskLevel,
+    contested: ranked.contested,
+    anomalyTitle: anomaly?.title ?? null
+  }
+})
+
+const worldBriefings = computed(() => {
+  return resolveWorldBriefings({
+    captivity: {
+      isCaptured: playerStore.captivity.isCaptured,
+      captorName: playerStore.captivity.captorSectId
+        ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+        : null,
+      forecastLabel: captivityForecast.value?.label,
+      forecastHint: captivityForecast.value?.hint,
+      canAttemptEscape: worldStore.canAttemptCaptivityEscape()
+    },
+    sect: {
+      name: sectStore.currentSect?.name ?? null,
+      status: sectStore.currentSect ? sectStore.worldCondition.status : null,
+      activeWar: Boolean(sectStore.activeWar)
+    },
+    hotspotArea: hotspotArea.value,
+    spotlightNpc: spotlightNpcs.value[0]
+      ? {
+          name: spotlightNpcs.value[0].name,
+          goalLabel: spotlightNpcs.value[0].goalLabel,
+          bondLabel: spotlightNpcs.value[0].bondLabel,
+          hpLabel: spotlightNpcs.value[0].hpLabel,
+          destinyRankLabel: spotlightNpcs.value[0].destinyRankLabel,
+          notorietyLabel: spotlightNpcs.value[0].notorietyLabel,
+          bondTone: spotlightNpcs.value[0].bondTone
+        }
+      : null,
+    latestNpcStory: npcStories.value[0]
+      ? {
+          title: npcStories.value[0].title,
+          severity: npcStories.value[0].severity,
+          timeLabel: npcStories.value[0].timeLabel
+        }
+      : null,
+    latestLog: recentLogs.value[0]
+      ? {
+          title: recentLogs.value[0].title,
+          severity: recentLogs.value[0].severity,
+          timeLabel: recentLogs.value[0].timeLabel
+        }
+      : null
+  })
+})
 
 onMounted(() => {
   startCultivationBgm()
@@ -492,6 +574,29 @@ function handleIdleModeChange(mode: IdleMode) {
   worldStore.setIdleMode(mode)
   if (playerStore.isIdling) {
     info(`挂机安排已切换为${worldStore.getIdleModeLabel(mode)}`)
+  }
+}
+
+function handleBriefingAction(item: WorldBriefingItem) {
+  if (!item.action || item.action.disabled) return
+
+  if (item.action.kind === 'escape') {
+    const result = worldStore.attemptCaptivityEscape()
+    if (!result) {
+      warning('当前无法再次尝试脱困')
+      return
+    }
+
+    if (result.success) {
+      success('你已成功脱困')
+    } else {
+      info('本次脱困未成，但你已摸清更多守备痕迹')
+    }
+    return
+  }
+
+  if (item.action.kind === 'route' && item.action.path) {
+    void router.push(item.action.path)
   }
 }
 
