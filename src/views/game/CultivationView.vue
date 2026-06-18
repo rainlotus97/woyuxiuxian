@@ -386,6 +386,7 @@ import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import type { IdleMode } from '@/types/world'
 import { getSectById } from '@/types/sect'
+import { isMapAreaUnlocked } from '@/map/runtime/mapAreaUnlockResolver'
 import {
   resolveMainLoopReadiness,
   type MainLoopReadinessItem,
@@ -397,6 +398,10 @@ import {
 } from '@/world/runtime/p0LoopClosureResolver'
 import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
 import { resolveP0LoopAudit } from '@/world/runtime/p0LoopAuditResolver'
+import {
+  resolveP0LoopRouteTarget,
+  type P0LoopRouteTarget
+} from '@/world/runtime/p0LoopRouteResolver'
 import {
   formatJourneyRewards,
   getAnomalyIcon,
@@ -437,7 +442,7 @@ interface MainLoopTask {
   readiness: MainLoopReadinessItem
   closure: P0LoopClosureItem
   active?: boolean
-  route?: string
+  route?: P0LoopRouteTarget
   action?: 'toggleIdle'
 }
 
@@ -637,7 +642,17 @@ const latestActionFeedbackTitle = computed(() => {
 })
 
 const hotspotArea = computed(() => {
+  const accessibleAreaIds = new Set(
+    mapStore.currentRealmAreas
+      .filter(area => isMapAreaUnlocked({
+        area,
+        playerRealm: playerStore.realm,
+        playerRealmLevel: playerStore.realmLevel
+      }))
+      .map(area => area.id)
+  )
   const ranked = Object.values(mapStore.areaStates)
+    .filter(state => accessibleAreaIds.has(state.areaId))
     .filter(state => state.riskLevel === 'danger' || state.riskLevel === 'chaos' || state.contested)
     .sort((a, b) => {
       const scoreA = a.pressure + (a.riskLevel === 'chaos' ? 30 : a.riskLevel === 'danger' ? 20 : 8) + (a.contested ? 12 : 0)
@@ -652,6 +667,7 @@ const hotspotArea = computed(() => {
   if (!area) return null
 
   return {
+    id: area.id,
     name: area.name,
     riskLevel: ranked.riskLevel,
     contested: ranked.contested,
@@ -794,7 +810,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.adventure.tone,
       readiness: loopReadiness.value.byId.adventure,
       closure: p0LoopClosure.value.byId.adventure,
-      route: '/game/adventure'
+      route: resolveP0LoopRouteTarget({ id: 'adventure' })
     },
     {
       id: 'story',
@@ -806,7 +822,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.story.tone,
       readiness: loopReadiness.value.byId.story,
       closure: p0LoopClosure.value.byId.story,
-      route: '/game/story'
+      route: resolveP0LoopRouteTarget({ id: 'story' })
     },
     {
       id: 'npc',
@@ -820,7 +836,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.npc.tone,
       readiness: loopReadiness.value.byId.npc,
       closure: p0LoopClosure.value.byId.npc,
-      route: '/game/companion'
+      route: resolveP0LoopRouteTarget({ id: 'npc' })
     },
     {
       id: 'map',
@@ -832,7 +848,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.map.tone,
       readiness: loopReadiness.value.byId.map,
       closure: p0LoopClosure.value.byId.map,
-      route: '/game/map'
+      route: resolveP0LoopRouteTarget({ id: 'map', hotspotAreaId: hotspotArea.value?.id })
     },
     {
       id: 'sect',
@@ -844,7 +860,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.sect.tone,
       readiness: loopReadiness.value.byId.sect,
       closure: p0LoopClosure.value.byId.sect,
-      route: '/game/sect'
+      route: resolveP0LoopRouteTarget({ id: 'sect' })
     }
   ]
 })

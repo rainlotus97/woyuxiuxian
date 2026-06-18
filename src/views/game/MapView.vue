@@ -285,8 +285,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
@@ -302,6 +302,7 @@ import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import type { MapAreaActionKind } from '@/map/runtime/mapAreaActionResolver'
 import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
+import { isMapAreaUnlocked } from '@/map/runtime/mapAreaUnlockResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -312,6 +313,7 @@ import { getSectById } from '@/types/sect'
 import { getAnomalyIcon } from '@/components/world/worldUi'
 
 const router = useRouter()
+const route = useRoute()
 const mapStore = useMapStore()
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
@@ -451,14 +453,29 @@ function getSeasonIcon(season: string): string {
 }
 
 function isAreaUnlocked(area: MapArea): boolean {
-  const realmOrder = ['炼气', '筑基', '金丹', '元婴', '化神', '渡劫', '大乘', '仙人']
-  const playerRealmIndex = realmOrder.indexOf(playerStore.realm)
-  const requiredRealmIndex = realmOrder.indexOf(area.requiredRealm)
-
-  if (playerRealmIndex > requiredRealmIndex) return true
-  if (playerRealmIndex === requiredRealmIndex && playerStore.realmLevel >= area.requiredRealmLevel) return true
-  return false
+  return isMapAreaUnlocked({
+    area,
+    playerRealm: playerStore.realm,
+    playerRealmLevel: playerStore.realmLevel
+  })
 }
+
+function syncSelectedAreaFromRoute(areaId: unknown) {
+  if (typeof areaId !== 'string') return
+  const area = mapStore.getAreaInfo(areaId)
+  if (!area) return
+  if (!mapStore.realmUnlockStatus[area.realm] || !isAreaUnlocked(area)) return
+  if (mapStore.currentRealm !== area.realm) {
+    mapStore.switchRealm(area.realm)
+  }
+  selectedArea.value = area
+}
+
+watch(
+  () => route.query.areaId,
+  areaId => syncSelectedAreaFromRoute(areaId),
+  { immediate: true }
+)
 
 function getSectName(sectId: string): string {
   const sect = getSectById(sectId)

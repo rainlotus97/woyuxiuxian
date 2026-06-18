@@ -2961,6 +2961,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   const { resolveP0LoopClosure } = await load('/src/world/runtime/p0LoopClosureResolver.ts')
   const { resolveP0LoopNextAction } = await load('/src/world/runtime/p0LoopNextActionResolver.ts')
   const { resolveP0LoopAudit } = await load('/src/world/runtime/p0LoopAuditResolver.ts')
+  const { resolveP0LoopRouteTarget } = await load('/src/world/runtime/p0LoopRouteResolver.ts')
 
   const baseInput = {
     player: {
@@ -3070,6 +3071,15 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(sectClosedAudit.progressText, 'P0 1/6')
   assert.equal(sectClosedAudit.progressPercent, 17)
 
+  assert.deepEqual(resolveP0LoopRouteTarget({
+    id: 'map',
+    hotspotAreaId: 'qingyun_mountain'
+  }), {
+    path: '/game/map',
+    query: { areaId: 'qingyun_mountain' }
+  })
+  assert.equal(resolveP0LoopRouteTarget({ id: 'map' }), '/game/map')
+
   const blockedReadiness = resolveMainLoopReadiness({
     ...baseInput,
     player: {
@@ -3153,6 +3163,35 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(richAudit.stage, 'ready_for_p1')
   assert.equal(richAudit.progressText, 'P0 6/6')
   assert.equal(richAudit.progressPercent, 100)
+})
+
+test('map area unlock resolver gates route focus by realm requirement', async () => {
+  const { isMapAreaUnlocked } = await load('/src/map/runtime/mapAreaUnlockResolver.ts')
+
+  const qingyun = {
+    requiredRealm: '炼气',
+    requiredRealmLevel: 1
+  }
+  const bloodSea = {
+    requiredRealm: '金丹',
+    requiredRealmLevel: 5
+  }
+
+  assert.equal(isMapAreaUnlocked({
+    area: qingyun,
+    playerRealm: '炼气',
+    playerRealmLevel: 1
+  }), true)
+  assert.equal(isMapAreaUnlocked({
+    area: bloodSea,
+    playerRealm: '炼气',
+    playerRealmLevel: 1
+  }), false)
+  assert.equal(isMapAreaUnlocked({
+    area: bloodSea,
+    playerRealm: '元婴',
+    playerRealmLevel: 1
+  }), true)
 })
 
 test('player fortune resolver creates deterministic fortune rewards', async () => {
