@@ -18,6 +18,10 @@
           <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" compact />
           <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" compact />
           <GameStatChip icon="人" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" compact />
+          <RouterLink class="home-toggle" to="/" aria-label="返回首页">
+            <span><Home :size="15" /></span>
+            <small>首页</small>
+          </RouterLink>
           <button
             class="audio-toggle"
             :class="{ active: bgmEnabled }"
@@ -120,6 +124,7 @@ import {
   Backpack,
   BookOpen,
   Grid3X3,
+  Home,
   Landmark,
   Map,
   ScrollText,
@@ -469,7 +474,8 @@ onUnmounted(() => {
   gap: 7px;
 }
 
-.audio-toggle {
+.audio-toggle,
+.home-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -484,13 +490,18 @@ onUnmounted(() => {
   transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
+.home-toggle {
+  text-decoration: none;
+}
+
 .audio-toggle.active {
   border-color: rgba(188, 141, 58, 0.28);
   background: rgba(255, 249, 233, 0.82);
   color: #8b6226;
 }
 
-.audio-toggle span {
+.audio-toggle span,
+.home-toggle span {
   width: 24px;
   height: 24px;
   display: grid;
@@ -500,11 +511,13 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-.audio-toggle svg {
+.audio-toggle svg,
+.home-toggle svg {
   color: currentColor;
 }
 
-.audio-toggle small {
+.audio-toggle small,
+.home-toggle small {
   font-size: 10px;
   font-weight: 700;
 }
@@ -817,7 +830,7 @@ onUnmounted(() => {
 
   .resource-row {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 5px;
   }
 
@@ -837,13 +850,15 @@ onUnmounted(() => {
     font-size: 10px;
   }
 
-  .audio-toggle {
+  .audio-toggle,
+  .home-toggle {
     min-height: 44px;
     justify-content: center;
     padding: 6px 4px;
   }
 
-  .audio-toggle small {
+  .audio-toggle small,
+  .home-toggle small {
     display: none;
   }
 

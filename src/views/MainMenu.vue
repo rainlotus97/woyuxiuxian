@@ -1,6 +1,6 @@
 <template>
   <main class="main-menu">
-    <section class="start-shell">
+    <section class="start-shell" :class="{ 'has-save': playerStore.created }">
       <div class="brand-panel">
         <div class="brand-art" aria-hidden="true">
           <div class="moon-ring">
@@ -13,14 +13,14 @@
           <h1>我欲修仙</h1>
           <strong>挂机修炼、奇遇历险、宗门势力与 NPC 命运会在同一个世界时钟里推进。</strong>
           <div class="brand-tags" aria-label="当前版本重点">
-            <span>P0 主循环</span>
-            <span>NPC 命运</span>
-            <span>宗门势力</span>
+            <span>明亮主界</span>
+            <span>P0 可玩闭环</span>
+            <span>世界自演</span>
           </div>
         </div>
       </div>
 
-      <div v-if="!playerStore.created" class="guide-panel">
+      <div v-if="!playerStore.created" class="guide-panel creation-panel">
         <div class="guide-head">
           <span>首次创建</span>
           <strong>定下本命</strong>
@@ -61,6 +61,11 @@
           </div>
         </div>
 
+        <div class="creation-lock-note">
+          <strong>创建后锁定</strong>
+          <p>本命设定会写入存档。首页后续只显示继续入口，灵根、气质、头像不再从这里反复改动。</p>
+        </div>
+
         <div class="start-actions">
           <button class="primary-action" @click="handleStart">
             <span>开始修仙</span>
@@ -73,7 +78,7 @@
         <div class="guide-head">
           <span>当前存档</span>
           <strong>继续修途</strong>
-          <p>已有角色只保留继续入口。首页不再提供灵根、头像、气质重选，避免破坏长期养成和剧情分支。</p>
+          <p>这里是存档入口，不是重新创建界面。本命已定，后续变化来自修炼、奇遇、人物关系、宗门与故事。</p>
         </div>
 
         <div class="save-profile">
@@ -83,6 +88,18 @@
             <strong>{{ playerStore.name }}</strong>
             <p>本命已定，首页只负责进入主循环。灵根、气质和头像后续不在这里反复改动。</p>
           </div>
+        </div>
+
+        <div class="save-next-step">
+          <div>
+            <span>推荐先做</span>
+            <strong>进入主界任务台</strong>
+            <p>先把挂机、历险、故事、人物、地图、宗门这六个 P0 入口跑通，再继续扩展战斗和大世界深度。</p>
+          </div>
+          <button class="primary-action compact" @click="handleContinue">
+            <span>继续游戏</span>
+            <small>主界总览</small>
+          </button>
         </div>
 
         <div class="save-stats">
@@ -101,11 +118,6 @@
         </div>
 
         <div class="resume-brief">
-          <div class="resume-card primary">
-            <span>下一步</span>
-            <strong>主界任务台</strong>
-            <p>先处理挂机、历险、故事、人物、地图与宗门这些 P0 核心循环。</p>
-          </div>
           <div class="resume-card">
             <span>本命锁定</span>
             <strong>{{ playerStore.element }}灵根</strong>
@@ -133,10 +145,6 @@
         </div>
 
         <div class="start-actions">
-          <button class="primary-action" @click="handleContinue">
-            <span>进入主循环</span>
-            <small>继续当前进度</small>
-          </button>
           <div class="save-action-row">
             <button class="secondary-action" @click="handleSettings">
               系统设置
@@ -280,6 +288,10 @@ function handleStory() {
   align-content: center;
 }
 
+.start-shell.has-save {
+  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.82fr);
+}
+
 .brand-panel,
 .guide-panel,
 .world-preview {
@@ -381,6 +393,35 @@ function handleStory() {
     radial-gradient(circle at top right, rgba(255, 226, 145, 0.22), transparent 58%);
 }
 
+.creation-lock-note,
+.save-next-step {
+  border: 1px solid rgba(188, 141, 58, 0.22);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 236, 0.78), rgba(241, 252, 247, 0.64)),
+    radial-gradient(circle at top right, rgba(255, 213, 112, 0.18), transparent 64%);
+}
+
+.creation-lock-note {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.creation-lock-note strong,
+.save-next-step strong {
+  color: #8e6227;
+  font-size: 14px;
+}
+
+.creation-lock-note p,
+.save-next-step p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.72);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 .save-profile {
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr);
@@ -427,6 +468,24 @@ function handleStory() {
   color: rgba(49, 82, 87, 0.72);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.save-next-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+}
+
+.save-next-step > div {
+  display: grid;
+  gap: 6px;
+}
+
+.save-next-step span {
+  color: rgba(70, 99, 96, 0.68);
+  font-size: 12px;
 }
 
 .save-stats {
@@ -708,6 +767,10 @@ function handleStory() {
   font-size: 11px;
 }
 
+.primary-action.compact {
+  min-height: 66px;
+}
+
 .secondary-action {
   background: rgba(255, 255, 255, 0.68);
   color: #496463;
@@ -800,6 +863,7 @@ function handleStory() {
   }
 
   .resume-brief,
+  .save-next-step,
   .save-stats,
   .save-action-row,
   .priority-grid {

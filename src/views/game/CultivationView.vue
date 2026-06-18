@@ -4,15 +4,30 @@
       tone="mist"
       padding="lg"
       eyebrow="主界总览"
-      title="修途总览"
+      title="修仙主界"
       :subtitle="heroSubtitle"
     >
-      <div class="hero-grid compact">
-        <div class="hero-main">
+      <div class="home-hero-layout">
+        <div class="hero-main-card">
+          <div class="protagonist-token">{{ playerStore.icon }}</div>
           <div class="hero-copy">
             <span class="hero-realm">{{ idleModeLabel }}</span>
             <strong>{{ playerStore.isIdling ? '主角正在行动' : '等待安排' }}</strong>
             <p>{{ heroSummary }}</p>
+          </div>
+
+          <div class="hero-actions">
+            <GameActionButton
+              :icon="playerStore.isIdling ? '停' : '修'"
+              :tone="playerStore.isIdling ? 'rose' : 'jade'"
+              block
+              @click="toggleIdle"
+            >
+              {{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}
+            </GameActionButton>
+            <GameActionButton icon="历" tone="gold" block @click="router.push('/game/adventure')">
+              前往历险
+            </GameActionButton>
           </div>
 
           <div v-if="offlineGains > 0" class="offline-banner">
@@ -24,10 +39,18 @@
           </div>
         </div>
 
-        <div class="hero-stats">
-          <GameStatChip icon="⚡" label="体力" :value="`${playerStore.stamina}/${playerStore.maxStamina}`" tone="gold" />
-          <GameStatChip icon="📜" label="世界异闻" :value="recentLogs.length" tone="rose" />
-          <GameStatChip icon="🧭" label="待办要事" :value="worldBriefings.length" tone="jade" />
+        <div class="world-pulse-card">
+          <div class="pulse-head">
+            <span>{{ worldStore.currentTimeLabel }}</span>
+            <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
+            <p>{{ latestPulseText }}</p>
+          </div>
+          <div class="p0-rail">
+            <div v-for="item in p0FocusItems" :key="item.label" class="p0-chip" :class="`tone-${item.tone}`">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
         </div>
       </div>
     </GameSurface>
@@ -475,6 +498,37 @@ const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4
 const npcStories = computed(() => worldStore.importantNpcStoryViews.slice(0, 4))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
 
+const latestPulseText = computed(() => {
+  if (playerStore.captivity.isCaptured) return '主角被俘，当前主循环应优先处理脱困、赎回或宗门营救。'
+  if (recentLogs.value[0]) return recentLogs.value[0].entry.title
+  if (npcStories.value[0]) return npcStories.value[0].entry.title
+  if (areaAnomalies.value[0]) return areaAnomalies.value[0].title
+  return '暂无紧急异动，适合安排挂机、历险或推进主线。'
+})
+
+const p0FocusItems = computed(() => [
+  {
+    label: '体力',
+    value: `${playerStore.stamina}/${playerStore.maxStamina}`,
+    tone: playerStore.stamina > 0 ? 'gold' : 'mist'
+  },
+  {
+    label: '要事',
+    value: worldBriefings.value.length,
+    tone: worldBriefings.value.length > 0 ? 'rose' : 'jade'
+  },
+  {
+    label: '人物',
+    value: worldStore.unlockedNpcDefinitions.length,
+    tone: 'jade'
+  },
+  {
+    label: '宗门',
+    value: sectStore.currentSect ? sectStore.positionName : '未入门',
+    tone: sectStore.currentSect ? 'gold' : 'mist'
+  }
+])
+
 const hotspotArea = computed(() => {
   const ranked = Object.values(mapStore.areaStates)
     .filter(state => state.riskLevel === 'danger' || state.riskLevel === 'chaos' || state.contested)
@@ -774,32 +828,53 @@ function handleAdvanceWorld() {
   padding-bottom: 12px;
 }
 
-.hero-grid,
+.home-hero-layout,
 .overview-grid,
 .world-grid {
   display: grid;
   gap: 14px;
 }
 
-.hero-grid {
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  align-items: start;
+.home-hero-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  align-items: stretch;
 }
 
-.hero-grid.compact {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.hero-main,
+.hero-main-card,
 .hero-copy,
-.hero-stats,
+.world-pulse-card,
 .progress-stack,
 .sect-panel,
 .log-list,
 .journey-list {
   display: grid;
   gap: 12px;
+}
+
+.hero-main-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.72), rgba(241, 249, 244, 0.58)),
+    radial-gradient(circle at 12% 20%, rgba(255, 223, 147, 0.22), transparent 44%);
+}
+
+.protagonist-token {
+  width: 78px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 1px solid rgba(188, 141, 58, 0.26);
+  background:
+    linear-gradient(145deg, #fff2bd, #90dfc2),
+    repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
+  color: #8e6227;
+  font-size: 30px;
+  box-shadow: 0 16px 28px rgba(88, 146, 132, 0.18);
 }
 
 .hero-copy {
@@ -823,7 +898,15 @@ function handleAdvanceWorld() {
   font-size: 20px;
 }
 
+.hero-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .hero-copy p,
+.pulse-head p,
 .empty-state p,
 .sect-event-banner p,
 .log-card p {
@@ -833,9 +916,73 @@ function handleAdvanceWorld() {
   line-height: 1.65;
 }
 
-.hero-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: min(520px, 45vw);
+.world-pulse-card {
+  align-content: space-between;
+  padding: 14px;
+  border: 1px solid rgba(188, 141, 58, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 236, 0.76), rgba(239, 252, 246, 0.58)),
+    radial-gradient(circle at top right, rgba(255, 213, 112, 0.22), transparent 62%);
+}
+
+.pulse-head {
+  display: grid;
+  gap: 6px;
+}
+
+.pulse-head span {
+  color: rgba(115, 88, 42, 0.72);
+  font-size: 11px;
+}
+
+.pulse-head strong {
+  color: #8b6226;
+  font-size: 18px;
+}
+
+.p0-rail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.p0-chip {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.p0-chip span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 10px;
+}
+
+.p0-chip strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p0-chip.tone-gold {
+  border-color: rgba(188, 141, 58, 0.22);
+  background: rgba(255, 250, 236, 0.78);
+}
+
+.p0-chip.tone-rose {
+  border-color: rgba(198, 121, 137, 0.2);
+  background: rgba(255, 244, 247, 0.78);
+}
+
+.p0-chip.tone-mist {
+  border-color: rgba(119, 158, 178, 0.18);
+  background: rgba(247, 253, 255, 0.76);
 }
 
 .offline-banner {
@@ -1312,8 +1459,7 @@ function handleAdvanceWorld() {
 }
 
 @media (max-width: 980px) {
-  .hero-grid,
-  .hero-grid.compact,
+  .home-hero-layout,
   .overview-grid,
   .world-grid,
   .log-list {
@@ -1324,8 +1470,12 @@ function handleAdvanceWorld() {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .hero-stats {
-    min-width: 0;
+  .hero-main-card {
+    grid-template-columns: 1fr;
+  }
+
+  .protagonist-token {
+    width: 64px;
   }
 }
 
@@ -1343,7 +1493,8 @@ function handleAdvanceWorld() {
     align-items: stretch;
   }
 
-  .hero-stats {
+  .hero-actions,
+  .p0-rail {
     grid-template-columns: 1fr;
   }
 

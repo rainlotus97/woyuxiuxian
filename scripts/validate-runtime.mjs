@@ -2455,6 +2455,68 @@ test('npc activity insight summarizes new npc events', async () => {
   assert.equal(quiet.items[0].tone, 'mist')
 })
 
+test('adventure sweep resolver returns structured rewards', async () => {
+  const { resolveAdventureSweep } = await load('/src/map/runtime/adventureSweepResolver.ts')
+
+  const area = {
+    id: 'test_valley',
+    name: '试炼谷',
+    expReward: { min: 10, max: 10 },
+    goldReward: { min: 5, max: 5 },
+    drops: [
+      {
+        id: 'herb',
+        name: '灵草',
+        icon: '草',
+        type: 'material',
+        quality: 'common',
+        minQuantity: 1,
+        maxQuantity: 1,
+        dropRate: 1
+      }
+    ]
+  }
+  const access = {
+    sweepAllowed: true,
+    sweepCost: 9,
+    entryReason: '可扫荡'
+  }
+  const encounter = {
+    rewardMultiplier: 2,
+    riskLevel: 'watch',
+    statusText: '灵气翻涌'
+  }
+  const result = resolveAdventureSweep({
+    area,
+    access,
+    encounter,
+    sweepCount: 3,
+    rollReward: range => range.min,
+    resolveDrops: drops => drops.map(item => ({ item, quantity: 1 }))
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.cultivationGain, 60)
+  assert.equal(result.goldGain, 30)
+  assert.equal(result.drops[0]?.quantity, 3)
+  assert.equal(result.riskLabel, '灵气翻涌')
+  assert.deepEqual(result.taskProgress, [
+    { type: 'battle', target: 'monster', times: 3 },
+    { type: 'explore', target: 'test_valley', times: 3 }
+  ])
+
+  const blocked = resolveAdventureSweep({
+    area,
+    access: { ...access, sweepAllowed: false, entryReason: '战线封锁' },
+    encounter: null,
+    rollReward: range => range.min,
+    resolveDrops: () => []
+  })
+  assert.equal(blocked.success, false)
+  assert.equal(blocked.reason, '战线封锁')
+  assert.equal(blocked.staminaCost, 9)
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 

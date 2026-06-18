@@ -47,6 +47,28 @@
       />
     </GameSurface>
 
+    <GameSurface
+      v-if="lastSweepFeedback"
+      tone="realm"
+      padding="md"
+      eyebrow="历练回报"
+      title="最近扫荡"
+      :subtitle="lastSweepFeedback.result.summary"
+    >
+      <div class="sweep-feedback">
+        <div class="sweep-stat-row">
+          <GameStatChip icon="修" label="修为" :value="lastSweepFeedback.result.cultivationGain" tone="gold" />
+          <GameStatChip icon="石" label="灵石" :value="lastSweepFeedback.result.goldGain" tone="jade" />
+          <GameStatChip icon="险" label="态势" :value="lastSweepFeedback.result.riskLabel" tone="rose" />
+        </div>
+        <div class="sweep-drops">
+          <span>掉落</span>
+          <strong v-if="lastSweepFeedback.dropMessages.length === 0">未获得额外物品</strong>
+          <strong v-else>{{ lastSweepFeedback.dropMessages.slice(0, 4).join('、') }}</strong>
+        </div>
+      </div>
+    </GameSurface>
+
     <div class="section-header">
       <div>
         <span class="section-eyebrow">历练图册</span>
@@ -228,13 +250,9 @@ import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
-import {
-  createInventoryItemsFromDrops,
-  mergeEncounterDrops
-} from '@/character/runtime/inventoryDropResolver'
+import { useAdventureSweep } from '@/composables/useAdventureSweep'
 import { resolveAreaGameplayAccess, type AreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
-import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -245,9 +263,7 @@ import {
   REALM_PRIMARY_COLOR,
   getRealmRequirementText,
   isAreaUnlocked,
-  rollReward,
   type AreaDefinition,
-  type DropItem,
   type Realm
 } from '@/types/adventure'
 
@@ -257,6 +273,7 @@ const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
 const { info, warning, success } = useToast()
+const { lastSweepFeedback, applySweep } = useAdventureSweep()
 
 const showBuyStaminaModal = ref(false)
 
@@ -411,66 +428,17 @@ function handleChallenge(area: AreaDefinition) {
 
 function handleSweep(area: AreaDefinition) {
   const access = getAreaAccess(area)
-  if (!access.sweepAllowed) {
-    warning(access.entryReason)
-    return
-  }
-
-  const sweepCost = access.sweepCost
-  if (playerStore.stamina < sweepCost) {
-    warning(`体力不足！需要${sweepCost}点体力`)
-    return
-  }
-
-  playerStore.consumeStamina(sweepCost)
-
-  let totalExp = 0
-  let totalGold = 0
-  const allDrops: Array<{ item: DropItem; quantity: number }> = []
   const encounter = getAreaEncounterHint(area)
-  const rewardMultiplier = encounter?.rewardMultiplier ?? 1
-
-  for (let index = 0; index < 3; index++) {
-    totalExp += Math.max(1, Math.floor(rollReward(area.expReward) * rewardMultiplier))
-    totalGold += Math.max(1, Math.floor(rollReward(area.goldReward) * rewardMultiplier))
-
-    const drops = resolveEncounterDrops(area.drops, encounter)
-    for (const drop of drops) {
-      allDrops.push(drop)
-    }
+  const result = applySweep(area, access, encounter)
+  if (!result.success) {
+    warning(result.reason)
+    return
   }
 
-  playerStore.addCultivation(totalExp)
-  playerStore.addGold(totalGold)
-
-  const dropMessages: string[] = []
-  const inventoryItems = createInventoryItemsFromDrops(mergeEncounterDrops(allDrops), {
-    idPrefix: `sweep_drop_${area.id}`,
-    serial: Date.now()
-  })
-  for (const item of inventoryItems) {
-    const added = playerStore.addToInventory(item)
-    if (added) {
-      dropMessages.push(`${item.icon}${item.name} x${item.quantity}`)
-    }
-  }
-
-  const progress = playerStore.getAreaProgress(area.id)
-  if (progress) {
-    playerStore.updateAreaProgress(area.id, {
-      clearCount: progress.clearCount + 3,
-      stars: Math.max(progress.stars, 1)
-    })
-  }
-
-  success(`扫荡完成！获得 ${totalExp} 修为, ${totalGold} 灵石`)
-  if (dropMessages.length > 0) {
+  success(result.summary)
+  if (lastSweepFeedback.value?.dropMessages.length) {
+    const dropMessages = lastSweepFeedback.value.dropMessages
     info(`获得物品: ${dropMessages.slice(0, 3).join(', ')}${dropMessages.length > 3 ? '...' : ''}`)
-  }
-
-  for (let index = 0; index < 3; index++) {
-    sectStore.updateTaskProgress('battle', 'monster')
-    sectStore.updateTaskProgress('explore', area.id)
   }
 }
 
@@ -556,6 +524,37 @@ onUnmounted(() => {
 
 .stamina-panel {
   margin-top: -2px;
+}
+
+.sweep-feedback {
+  display: grid;
+  gap: 12px;
+}
+
+.sweep-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sweep-drops {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.sweep-drops span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.sweep-drops strong {
+  color: #315257;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .section-header {
@@ -870,6 +869,10 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .hero-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .sweep-stat-row {
     grid-template-columns: 1fr;
   }
 
