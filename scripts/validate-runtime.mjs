@@ -3079,6 +3079,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   const { resolveP0LoopNextAction } = await load('/src/world/runtime/p0LoopNextActionResolver.ts')
   const { resolveP0LoopAudit } = await load('/src/world/runtime/p0LoopAuditResolver.ts')
   const { resolveP0LoopAcceptance } = await load('/src/world/runtime/p0LoopAcceptanceResolver.ts')
+  const { resolveP0LoopReport } = await load('/src/world/runtime/p0LoopReportResolver.ts')
   const { resolveP0LoopRouteTarget } = await load('/src/world/runtime/p0LoopRouteResolver.ts')
 
   const baseInput = {
@@ -3151,6 +3152,18 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(freshAcceptance.remainingCount, 6)
   assert.equal(freshAcceptance.primaryGap.id, 'sect')
 
+  const freshReport = resolveP0LoopReport({
+    audit: freshAudit,
+    acceptance: freshAcceptance,
+    nextAction
+  })
+  assert.equal(freshReport.stageLabel, '建立底座')
+  assert.equal(freshReport.gateLabel, '继续 P0 验收')
+  assert.equal(freshReport.nextActionLabel, '宗门')
+  assert.equal(freshReport.acceptedItems.length, 0)
+  assert.equal(freshReport.remainingItems.length, 6)
+  assert.equal(freshReport.remainingItems[0].tone, 'gold')
+
   const sectClosedReadiness = resolveMainLoopReadiness({
     ...baseInput,
     sect: {
@@ -3198,6 +3211,14 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(sectClosedAcceptance.remainingCount, 5)
   assert.equal(sectClosedAcceptance.acceptedItems[0].id, 'sect')
   assert.equal(sectClosedAcceptance.primaryGap.id, 'story')
+  const sectClosedReport = resolveP0LoopReport({
+    audit: sectClosedAudit,
+    acceptance: sectClosedAcceptance,
+    nextAction: sectClosedNextAction
+  })
+  assert.equal(sectClosedReport.stageLabel, '闭环复核')
+  assert.equal(sectClosedReport.acceptedItems[0].label, '宗门')
+  assert.equal(sectClosedReport.nextActionLabel, '故事')
 
   assert.deepEqual(resolveP0LoopRouteTarget({
     id: 'map',

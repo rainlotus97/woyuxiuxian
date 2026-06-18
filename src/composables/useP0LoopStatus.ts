@@ -11,6 +11,7 @@ import { resolveP0LoopClosure } from '@/world/runtime/p0LoopClosureResolver'
 import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
 import { resolveP0LoopAudit } from '@/world/runtime/p0LoopAuditResolver'
 import { resolveP0LoopAcceptance } from '@/world/runtime/p0LoopAcceptanceResolver'
+import { resolveP0LoopReport } from '@/world/runtime/p0LoopReportResolver'
 
 export interface P0LoopHotspotArea extends WorldBriefingHotspotInput {
   id: string
@@ -134,6 +135,11 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
   }))
 
   const p0Acceptance = computed(() => resolveP0LoopAcceptance(p0Audit.value))
+  const p0Report = computed(() => resolveP0LoopReport({
+    audit: p0Audit.value,
+    acceptance: p0Acceptance.value,
+    nextAction: p0NextAction.value
+  }))
 
   return {
     hotspotArea,
@@ -141,6 +147,7 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
     p0LoopClosure,
     p0NextAction,
     p0Audit,
-    p0Acceptance
+    p0Acceptance,
+    p0Report
   }
 }

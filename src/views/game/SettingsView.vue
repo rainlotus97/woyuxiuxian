@@ -92,6 +92,72 @@
       </GameSurface>
     </div>
 
+    <GameSurface
+      tone="mist"
+      padding="md"
+      eyebrow="P0 验收"
+      title="当前计划"
+      :subtitle="p0Report.headline"
+    >
+      <div class="p0-report">
+        <div class="p0-report-head">
+          <div>
+            <span>{{ p0Report.stageLabel }} · {{ p0Report.gateLabel }}</span>
+            <strong>{{ p0Report.progressText }}</strong>
+          </div>
+          <i class="p0-report-meter" aria-hidden="true">
+            <b :style="{ width: `${p0Report.progressPercent}%` }"></b>
+          </i>
+        </div>
+
+        <div class="p0-next-card">
+          <span>下一步</span>
+          <strong>{{ p0Report.nextActionTitle }}</strong>
+          <p>{{ p0Report.nextActionReason }}</p>
+        </div>
+
+        <div class="p0-report-columns">
+          <div class="p0-report-column">
+            <div class="p0-column-title">
+              <span>已闭环</span>
+              <strong>{{ p0Report.acceptedCount }}</strong>
+            </div>
+            <div class="p0-chip-list">
+              <span
+                v-for="item in p0Report.acceptedItems"
+                :key="item.id"
+                class="p0-report-chip"
+                :class="`p0-tone-${item.tone}`"
+              >
+                {{ item.label }} · {{ item.stateLabel }}
+              </span>
+              <span v-if="p0Report.acceptedItems.length === 0" class="p0-report-empty">暂无闭环项</span>
+            </div>
+          </div>
+
+          <div class="p0-report-column">
+            <div class="p0-column-title">
+              <span>待补</span>
+              <strong>{{ p0Report.remainingCount }}</strong>
+            </div>
+            <div class="p0-gap-list">
+              <article
+                v-for="item in p0Report.remainingItems"
+                :key="item.id"
+                class="p0-gap-card"
+                :class="`p0-tone-${item.tone}`"
+              >
+                <span>{{ item.stateLabel }}</span>
+                <strong>{{ item.label }}</strong>
+                <p>{{ item.detail }}</p>
+                <small>{{ item.nextAction }}</small>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </GameSurface>
+
     <GameSurface tone="realm" padding="md" eyebrow="试听" title="音效校验" subtitle="用于确认当前设备是否允许网页音频播放。">
       <div class="sfx-row">
         <GameActionButton icon="点" tone="jade" @click="playClick">
@@ -116,6 +182,7 @@ import { computed } from 'vue'
 import { Bell, Volume2, VolumeX } from 'lucide-vue-next'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import {
   sfxBreakthrough,
   sfxClick,
@@ -131,6 +198,7 @@ import { useWorldStore } from '@/stores/worldStore'
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const { p0Report } = useP0LoopStatus()
 
 const {
   sfxEnabled,
@@ -408,6 +476,162 @@ function playItem() {
   background: rgba(255, 255, 255, 0.58);
 }
 
+.p0-report {
+  display: grid;
+  gap: 12px;
+}
+
+.p0-report-head {
+  display: grid;
+  grid-template-columns: minmax(0, 0.4fr) minmax(180px, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.p0-report-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.p0-report-head span,
+.p0-next-card span,
+.p0-column-title span,
+.p0-gap-card span {
+  color: rgba(67, 92, 90, 0.68);
+  font-size: 11px;
+}
+
+.p0-report-head strong {
+  color: #8b6226;
+  font-size: 18px;
+}
+
+.p0-report-meter {
+  height: 10px;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(103, 149, 144, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(103, 149, 144, 0.1);
+}
+
+.p0-report-meter b {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #74d3b7, #ffd66f);
+}
+
+.p0-next-card {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(194, 146, 66, 0.2);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 236, 0.82), rgba(242, 253, 247, 0.66)),
+    radial-gradient(circle at top right, rgba(255, 220, 132, 0.16), transparent 60%);
+}
+
+.p0-next-card strong {
+  color: #315257;
+  font-size: 14px;
+}
+
+.p0-next-card p,
+.p0-gap-card p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.72);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.p0-report-columns {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.25fr);
+  gap: 12px;
+}
+
+.p0-report-column,
+.p0-chip-list,
+.p0-gap-list {
+  display: grid;
+  gap: 8px;
+}
+
+.p0-column-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.p0-column-title strong {
+  color: #8b6226;
+  font-size: 14px;
+}
+
+.p0-chip-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.p0-report-chip,
+.p0-report-empty {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(49, 82, 87, 0.74);
+  font-size: 10px;
+  text-align: center;
+}
+
+.p0-gap-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.p0-gap-card {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.p0-gap-card strong {
+  color: #315257;
+  font-size: 13px;
+}
+
+.p0-gap-card small {
+  overflow: hidden;
+  color: #8b6226;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p0-tone-jade {
+  border-color: rgba(88, 164, 143, 0.22);
+  background: rgba(239, 252, 247, 0.84);
+}
+
+.p0-tone-gold {
+  border-color: rgba(194, 146, 66, 0.22);
+  background: rgba(255, 249, 232, 0.84);
+}
+
+.p0-tone-rose {
+  border-color: rgba(199, 121, 138, 0.22);
+  background: rgba(255, 244, 247, 0.84);
+}
+
 .sfx-row {
   display: flex;
   flex-wrap: wrap;
@@ -416,7 +640,9 @@ function playItem() {
 
 @media (max-width: 760px) {
   .settings-grid,
-  .settings-hero {
+  .settings-hero,
+  .p0-report-head,
+  .p0-report-columns {
     grid-template-columns: 1fr;
   }
 
@@ -426,14 +652,18 @@ function playItem() {
   }
 
   .track-grid,
-  .save-grid {
+  .save-grid,
+  .p0-chip-list,
+  .p0-gap-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 430px) {
   .track-grid,
-  .save-grid {
+  .save-grid,
+  .p0-chip-list,
+  .p0-gap-list {
     grid-template-columns: 1fr;
   }
 }
