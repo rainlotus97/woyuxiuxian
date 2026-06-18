@@ -4,9 +4,10 @@ import { usePlayerStore } from './playerStore'
 import { useSectStore } from './sectStore'
 import { useWorldStore } from './worldStore'
 import {
+  applyShopPurchases,
   createShopInventory,
   filterShopInventory,
-  shopItemToInventoryItem,
+  resolveShopPurchase,
   type ShopFilter,
   type ShopInventoryItem
 } from '@/shop/runtime/shopInventoryResolver'
@@ -61,12 +62,7 @@ export const useShopStore = defineStore('shop', () => {
   const baseInventory = computed(() => createShopInventory(context.value))
 
   const inventory = computed<ShopInventoryItem[]>(() => {
-    return baseInventory.value
-      .map(item => ({
-        ...item,
-        stock: Math.max(0, item.stock - (purchasedByStockId.value[item.stockId] ?? 0))
-      }))
-      .filter(item => item.stock > 0)
+    return applyShopPurchases(baseInventory.value, purchasedByStockId.value)
   })
 
   const filteredInventory = computed(() => filterShopInventory(inventory.value, {
@@ -94,40 +90,36 @@ export const useShopStore = defineStore('shop', () => {
     if (filter.quality) activeQuality.value = filter.quality
   }
 
-  function canInventoryAccept(item: ShopInventoryItem) {
-    if (!playerStore.isInventoryFull) return true
-    if (item.definition.type === 'equipment') return false
-
-    return playerStore.inventory.some(inventoryItem => {
-      if (inventoryItem.type !== item.definition.type) return false
-      if (inventoryItem.definitionId && item.definition.definitionId) {
-        return inventoryItem.definitionId === item.definition.definitionId
-      }
-      return inventoryItem.name === item.definition.name
-    })
-  }
-
   function canBuy(item: ShopInventoryItem) {
-    if (item.stock <= 0) return false
-    if (playerStore.gold < item.price) return false
-    return canInventoryAccept(item)
+    return resolveShopPurchase({
+      stockId: item.stockId,
+      inventory: inventory.value,
+      purchasedByStockId: purchasedByStockId.value,
+      gold: playerStore.gold,
+      playerInventory: playerStore.inventory,
+      isInventoryFull: playerStore.isInventoryFull
+    }).success
   }
 
   function buy(stockId: string) {
-    const item = inventory.value.find(entry => entry.stockId === stockId)
-    if (!item) return { success: false, message: '此物已经售罄' }
-    if (playerStore.gold < item.price) return { success: false, message: '灵石不足' }
-    if (!canInventoryAccept(item)) {
-      return { success: false, message: '背包已满' }
+    const purchase = resolveShopPurchase({
+      stockId,
+      inventory: inventory.value,
+      purchasedByStockId: purchasedByStockId.value,
+      gold: playerStore.gold,
+      playerInventory: playerStore.inventory,
+      isInventoryFull: playerStore.isInventoryFull
+    })
+    if (!purchase.success || !purchase.inventoryItem || !purchase.purchasedItem || !purchase.stockId) {
+      return { success: false, message: purchase.message }
     }
 
-    const inventoryItem = shopItemToInventoryItem(item)
-    const added = playerStore.addToInventory(inventoryItem)
+    const added = playerStore.addToInventory(purchase.inventoryItem)
     if (!added) return { success: false, message: '背包已满' }
 
-    playerStore.gold -= item.price
-    purchasedByStockId.value[item.stockId] = (purchasedByStockId.value[item.stockId] ?? 0) + 1
-    return { success: true, message: `购买了 ${item.definition.name}`, item }
+    playerStore.gold -= purchase.price
+    purchasedByStockId.value[purchase.stockId] = purchase.nextPurchasedQuantity
+    return { success: true, message: purchase.message, item: purchase.purchasedItem }
   }
 
   function refreshMarket() {

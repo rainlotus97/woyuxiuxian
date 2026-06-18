@@ -1,6 +1,7 @@
 import type { Realm } from '@/types/unit'
 import type { WorldWeather } from '@/types/world'
 import type { SectWorldCondition } from '@/types/sect'
+import type { InventoryItem } from '@/stores/playerStore'
 import { REALM_ORDER } from '@/types/unit'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
 import {
@@ -33,6 +34,17 @@ export interface ShopInventoryItem {
 export interface ShopFilter {
   category: ShopCategoryId
   quality: 'all' | ShopQuality
+}
+
+export interface ShopPurchaseResolution {
+  success: boolean
+  reason: 'ready' | 'sold_out' | 'gold_shortage' | 'inventory_full'
+  message: string
+  stockId: string | null
+  price: number
+  nextPurchasedQuantity: number
+  purchasedItem?: ShopInventoryItem
+  inventoryItem?: ReturnType<typeof shopItemToInventoryItem>
 }
 
 const WEATHER_PRICE_MODIFIERS: Partial<Record<WorldWeather, number>> = {
@@ -154,6 +166,69 @@ export function filterShopInventory(items: ShopInventoryItem[], filter: ShopFilt
   })
 }
 
+export function applyShopPurchases(items: ShopInventoryItem[], purchasedByStockId: Record<string, number>) {
+  return items
+    .map(item => ({
+      ...item,
+      stock: Math.max(0, item.stock - (purchasedByStockId[item.stockId] ?? 0))
+    }))
+    .filter(item => item.stock > 0)
+}
+
+export function canInventoryAcceptShopItem(input: {
+  item: ShopInventoryItem
+  inventory: InventoryItem[]
+  isInventoryFull: boolean
+}) {
+  if (!input.isInventoryFull) return true
+  if (input.item.definition.type === 'equipment') return false
+
+  return input.inventory.some(inventoryItem => {
+    if (inventoryItem.type !== input.item.definition.type) return false
+    if (inventoryItem.definitionId && input.item.definition.definitionId) {
+      return inventoryItem.definitionId === input.item.definition.definitionId
+    }
+    return inventoryItem.name === input.item.definition.name
+  })
+}
+
+export function resolveShopPurchase(input: {
+  stockId: string
+  inventory: ShopInventoryItem[]
+  purchasedByStockId: Record<string, number>
+  gold: number
+  playerInventory: InventoryItem[]
+  isInventoryFull: boolean
+}): ShopPurchaseResolution {
+  const item = input.inventory.find(entry => entry.stockId === input.stockId)
+  if (!item || item.stock <= 0) {
+    return createPurchaseFailure('sold_out', '此物已经售罄')
+  }
+
+  if (input.gold < item.price) {
+    return createPurchaseFailure('gold_shortage', '灵石不足', item)
+  }
+
+  if (!canInventoryAcceptShopItem({
+    item,
+    inventory: input.playerInventory,
+    isInventoryFull: input.isInventoryFull
+  })) {
+    return createPurchaseFailure('inventory_full', '背包已满', item)
+  }
+
+  return {
+    success: true,
+    reason: 'ready',
+    message: `购买了 ${item.definition.name}`,
+    stockId: item.stockId,
+    price: item.price,
+    nextPurchasedQuantity: (input.purchasedByStockId[item.stockId] ?? 0) + 1,
+    purchasedItem: item,
+    inventoryItem: shopItemToInventoryItem(item)
+  }
+}
+
 export function shopItemToInventoryItem(item: ShopInventoryItem, quantity = 1) {
   const definition = item.definition
   return {
@@ -167,5 +242,20 @@ export function shopItemToInventoryItem(item: ShopInventoryItem, quantity = 1) {
     quantity,
     description: definition.description,
     effects: definition.effects ? definition.effects.map(effect => ({ ...effect })) : undefined
+  }
+}
+
+function createPurchaseFailure(
+  reason: Exclude<ShopPurchaseResolution['reason'], 'ready'>,
+  message: string,
+  item?: ShopInventoryItem
+): ShopPurchaseResolution {
+  return {
+    success: false,
+    reason,
+    message,
+    stockId: item?.stockId ?? null,
+    price: item?.price ?? 0,
+    nextPurchasedQuantity: 0
   }
 }

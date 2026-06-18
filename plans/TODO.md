@@ -257,6 +257,7 @@
 - [~] 坊市支持分类、稀有度、宗门限定、动态库存
   - 已建立 `shopInventoryResolver`，让世界时间、天气、玩家境界、宗门解锁与宗门状态影响上架、库存和价格
   - 已新增 `shopStore`，持久化本轮购买数量、手动换货种子，并让购买真实扣减库存
+  - 已扩展 `shopInventoryResolver`，统一库存扣减、购买校验、背包可接收判断与购买物品转换，避免交易规则继续堆在 store
   - 已将 `ShopView` 切到统一亮色游戏 UI，支持分类、品质筛选、库存展示、宗门/天气标签与购买确认
   - 待补：价格/库存与具体地图控制权、NPC 商人、宗门功勋兑换、破境成功率道具的真实消耗链路继续联动
 - [ ] 打通丹药、食物、装备、功法、灵兽对战斗和挂机的影响
@@ -281,7 +282,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、shop purchase rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

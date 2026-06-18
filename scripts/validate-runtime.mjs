@@ -529,6 +529,11 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveInventoryMaterialQuantity
   } = await load('/src/character/runtime/inventoryMaterialResolver.ts')
   const {
+    applyShopPurchases,
+    canInventoryAcceptShopItem,
+    resolveShopPurchase
+  } = await load('/src/shop/runtime/shopInventoryResolver.ts')
+  const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
     resolveSectDirectiveChange,
@@ -612,6 +617,106 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const blockedMaterialConsumption = resolveInventoryMaterialConsumption(inventoryFixture, 'herb_spirit_grass', 9)
   assert.equal(blockedMaterialConsumption.success, false)
   assert.equal(blockedMaterialConsumption.remainingQuantity, 4)
+
+  const shopItem = {
+    stockId: 'shop_pill_001:0',
+    definition: {
+      id: 'shop_pill_001',
+      definitionId: 'pill_qi_gathering',
+      name: '聚气丹',
+      icon: '丹',
+      category: 'pill',
+      type: 'consumable',
+      quality: 'fine',
+      basePrice: 50,
+      description: '服用后增加50修为。',
+      effects: [{ type: 'cultivation', value: 50 }],
+      stockRange: [1, 3],
+      refreshWeight: 1
+    },
+    price: 50,
+    stock: 2,
+    maxStock: 3,
+    tags: []
+  }
+  const shopEquipment = {
+    stockId: 'shop_weapon_001:0',
+    definition: {
+      id: 'shop_weapon_001',
+      definitionId: 'weapon_001',
+      name: '新手木剑',
+      icon: '木',
+      category: 'equipment',
+      type: 'equipment',
+      quality: 'common',
+      basePrice: 50,
+      description: '攻击+5。',
+      equipmentId: 'weapon_001',
+      stockRange: [1, 1],
+      refreshWeight: 1
+    },
+    price: 50,
+    stock: 1,
+    maxStock: 1,
+    tags: []
+  }
+  assert.equal(applyShopPurchases([shopItem], { [shopItem.stockId]: 1 }).at(0)?.stock, 1)
+  assert.equal(applyShopPurchases([shopItem], { [shopItem.stockId]: 2 }).length, 0)
+  assert.equal(canInventoryAcceptShopItem({
+    item: shopItem,
+    inventory: [
+      { id: 'pill_stack', definitionId: 'pill_qi_gathering', name: '聚气丹', icon: '丹', type: 'consumable', quality: 'fine', quantity: 1 }
+    ],
+    isInventoryFull: true
+  }), true)
+  assert.equal(canInventoryAcceptShopItem({
+    item: shopEquipment,
+    inventory: [],
+    isInventoryFull: true
+  }), false)
+  const purchaseReady = resolveShopPurchase({
+    stockId: shopItem.stockId,
+    inventory: [shopItem],
+    purchasedByStockId: {},
+    gold: 50,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(purchaseReady.success, true)
+  assert.equal(purchaseReady.price, 50)
+  assert.equal(purchaseReady.nextPurchasedQuantity, 1)
+  assert.equal(purchaseReady.purchasedItem?.definition.name, '聚气丹')
+  assert.equal(purchaseReady.inventoryItem?.definitionId, 'pill_qi_gathering')
+  const purchaseSoldOut = resolveShopPurchase({
+    stockId: shopItem.stockId,
+    inventory: [],
+    purchasedByStockId: {},
+    gold: 50,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(purchaseSoldOut.success, false)
+  assert.equal(purchaseSoldOut.reason, 'sold_out')
+  const purchaseGoldBlocked = resolveShopPurchase({
+    stockId: shopItem.stockId,
+    inventory: [shopItem],
+    purchasedByStockId: {},
+    gold: 49,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(purchaseGoldBlocked.success, false)
+  assert.equal(purchaseGoldBlocked.reason, 'gold_shortage')
+  const purchaseInventoryBlocked = resolveShopPurchase({
+    stockId: shopEquipment.stockId,
+    inventory: [shopEquipment],
+    purchasedByStockId: {},
+    gold: 50,
+    playerInventory: [],
+    isInventoryFull: true
+  })
+  assert.equal(purchaseInventoryBlocked.success, false)
+  assert.equal(purchaseInventoryBlocked.reason, 'inventory_full')
 
   const authority = resolveSectAuthority({ positionLevel: 5, contribution: 10000 })
   assert.equal(authority.canDeclareWar, true)
