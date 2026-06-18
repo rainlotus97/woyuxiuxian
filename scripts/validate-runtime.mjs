@@ -2961,6 +2961,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   const { resolveP0LoopClosure } = await load('/src/world/runtime/p0LoopClosureResolver.ts')
   const { resolveP0LoopNextAction } = await load('/src/world/runtime/p0LoopNextActionResolver.ts')
   const { resolveP0LoopAudit } = await load('/src/world/runtime/p0LoopAuditResolver.ts')
+  const { resolveP0LoopAcceptance } = await load('/src/world/runtime/p0LoopAcceptanceResolver.ts')
   const { resolveP0LoopRouteTarget } = await load('/src/world/runtime/p0LoopRouteResolver.ts')
 
   const baseInput = {
@@ -3027,6 +3028,11 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(freshAudit.progressText, 'P0 0/6')
   assert.equal(freshAudit.progressPercent, 0)
   assert.equal(freshAudit.checklist.length, 6)
+  const freshAcceptance = resolveP0LoopAcceptance(freshAudit)
+  assert.equal(freshAcceptance.state, 'verifying')
+  assert.equal(freshAcceptance.readyForP1, false)
+  assert.equal(freshAcceptance.remainingCount, 6)
+  assert.equal(freshAcceptance.primaryGap.id, 'idle')
 
   const sectClosedReadiness = resolveMainLoopReadiness({
     ...baseInput,
@@ -3070,6 +3076,10 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(sectClosedAudit.stage, 'verifying')
   assert.equal(sectClosedAudit.progressText, 'P0 1/6')
   assert.equal(sectClosedAudit.progressPercent, 17)
+  const sectClosedAcceptance = resolveP0LoopAcceptance(sectClosedAudit)
+  assert.equal(sectClosedAcceptance.acceptedCount, 1)
+  assert.equal(sectClosedAcceptance.remainingCount, 5)
+  assert.equal(sectClosedAcceptance.acceptedItems[0].id, 'sect')
 
   assert.deepEqual(resolveP0LoopRouteTarget({
     id: 'map',
@@ -3110,6 +3120,13 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   })
   assert.equal(blockedNextAction.primary.kind, 'unblock')
   assert.equal(blockedNextAction.primary.id, 'idle')
+  const blockedAcceptance = resolveP0LoopAcceptance(resolveP0LoopAudit({
+    closure: blockedClosure,
+    nextAction: blockedNextAction
+  }))
+  assert.equal(blockedAcceptance.state, 'blocked')
+  assert.equal(blockedAcceptance.blockedCount, 2)
+  assert.equal(blockedAcceptance.primaryGap.id, 'idle')
 
   const richReadiness = resolveMainLoopReadiness({
     ...baseInput,
@@ -3163,6 +3180,11 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(richAudit.stage, 'ready_for_p1')
   assert.equal(richAudit.progressText, 'P0 6/6')
   assert.equal(richAudit.progressPercent, 100)
+  const richAcceptance = resolveP0LoopAcceptance(richAudit)
+  assert.equal(richAcceptance.state, 'accepted')
+  assert.equal(richAcceptance.readyForP1, true)
+  assert.equal(richAcceptance.remainingCount, 0)
+  assert.equal(richAcceptance.primaryGap, null)
 })
 
 test('map area unlock resolver gates route focus by realm requirement', async () => {

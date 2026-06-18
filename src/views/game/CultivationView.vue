@@ -119,6 +119,30 @@
             </div>
           </div>
 
+          <div class="p0-acceptance-panel" :class="`state-${p0Acceptance.state}`">
+            <div class="acceptance-copy">
+              <span>{{ p0Acceptance.gateLabel }}</span>
+              <strong>{{ p0Acceptance.headline }}</strong>
+              <small v-if="p0Acceptance.primaryGap">
+                当前缺口：{{ p0Acceptance.primaryGap.label }} · {{ p0Acceptance.primaryGap.detail }}
+              </small>
+              <small v-else>可以开始安排 P1 的大世界、战斗和宗门深化。</small>
+            </div>
+            <div class="acceptance-gap-list" aria-label="P0 验收缺口">
+              <span
+                v-for="item in p0Acceptance.remainingItems.slice(0, 4)"
+                :key="item.id"
+                :class="`gap-${item.state}`"
+              >
+                {{ item.label }} · {{ item.stateLabel }}
+              </span>
+              <span v-if="p0Acceptance.remainingCount > 4" class="gap-more">
+                +{{ p0Acceptance.remainingCount - 4 }}
+              </span>
+              <span v-if="p0Acceptance.readyForP1" class="gap-closed">P0 验收完成</span>
+            </div>
+          </div>
+
           <div class="loop-task-grid" aria-label="P0 主循环入口">
             <button
               v-for="task in mainLoopTasks"
@@ -398,6 +422,7 @@ import {
 } from '@/world/runtime/p0LoopClosureResolver'
 import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
 import { resolveP0LoopAudit } from '@/world/runtime/p0LoopAuditResolver'
+import { resolveP0LoopAcceptance } from '@/world/runtime/p0LoopAcceptanceResolver'
 import {
   resolveP0LoopRouteTarget,
   type P0LoopRouteTarget
@@ -771,6 +796,8 @@ const p0Audit = computed(() => resolveP0LoopAudit({
   closure: p0LoopClosure.value,
   nextAction: p0NextAction.value
 }))
+
+const p0Acceptance = computed(() => resolveP0LoopAcceptance(p0Audit.value))
 
 const mainLoopTasks = computed<MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
@@ -1473,6 +1500,98 @@ function handlePlayerFortune() {
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.16), transparent 62%);
 }
 
+.p0-acceptance-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.72), rgba(241, 249, 244, 0.58)),
+    radial-gradient(circle at top right, rgba(141, 223, 197, 0.14), transparent 60%);
+}
+
+.p0-acceptance-panel.state-accepted {
+  border-color: rgba(88, 164, 143, 0.22);
+  background: rgba(239, 252, 247, 0.84);
+}
+
+.p0-acceptance-panel.state-blocked {
+  border-color: rgba(199, 121, 138, 0.22);
+  background: rgba(255, 244, 247, 0.84);
+}
+
+.acceptance-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.acceptance-copy span {
+  color: #8b6226;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.acceptance-copy strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acceptance-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(53, 81, 83, 0.68);
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.acceptance-gap-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.acceptance-gap-list span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  background: rgba(255, 255, 255, 0.66);
+  color: rgba(73, 97, 95, 0.74);
+  font-size: 10px;
+}
+
+.acceptance-gap-list .gap-blocked {
+  color: #9b4353;
+  border-color: rgba(199, 121, 138, 0.2);
+  background: rgba(255, 242, 245, 0.86);
+}
+
+.acceptance-gap-list .gap-actionable,
+.acceptance-gap-list .gap-more {
+  color: #8b6226;
+  border-color: rgba(194, 146, 66, 0.2);
+  background: rgba(255, 248, 230, 0.84);
+}
+
+.acceptance-gap-list .gap-closed {
+  color: #2f746b;
+  border-color: rgba(88, 164, 143, 0.22);
+  background: rgba(238, 253, 247, 0.9);
+}
+
 .loop-readiness-strip > div:first-child {
   display: grid;
   gap: 4px;
@@ -2133,6 +2252,14 @@ function handlePlayerFortune() {
   .loop-readiness-strip {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .p0-acceptance-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .acceptance-gap-list {
+    justify-content: flex-start;
   }
 
   .readiness-counts {
