@@ -111,6 +111,10 @@ export type StatusEffectType =
   | 'invincible'   // 无敌
   | 'food_cultivation' // 食物调息 - 提升挂机修炼收益
   | 'food_stamina'     // 食物补给 - 恢复体力或延长游历耐力
+  | 'lifesteal'        // 吸血 - 造成伤害后恢复气血
+  | 'dodge'            // 闪避 - 概率规避直接伤害
+  | 'counter'          // 反击 - 预留装备反击效果
+  | 'element_damage'   // 五行增伤 - 预留装备元素伤害
 
 export interface StatusEffect {
   type: StatusEffectType

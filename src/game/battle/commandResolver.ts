@@ -14,7 +14,11 @@ import {
   resolveStatusEffectFromSkill
 } from './statusRuntime'
 import { prepareSummons } from './summonRuntime'
-import { resolveBattleDamageModifier } from './battleStatusModifierResolver'
+import {
+  resolveBattleDamageModifier,
+  resolveBattleDodgeChance,
+  resolveBattleLifestealAmount
+} from './battleStatusModifierResolver'
 
 const BASIC_ATTACK_EFFECT: SkillEffect = {
   type: 'damage',
@@ -138,6 +142,21 @@ export function applyPreparedEffects(
     if (!target.isAlive && preparedEffect.effectType !== 'heal') continue
 
     if (preparedEffect.effectType === 'damage') {
+      const dodgeChance = resolveBattleDodgeChance({ statusEffects: target.statusEffects })
+      if (dodgeChance > 0 && Math.random() < dodgeChance) {
+        appliedEffects.push({
+          actorId: preparedEffect.actorId,
+          targetId: preparedEffect.targetId,
+          effectType: 'damage',
+          amount: 0,
+          absorbed: preparedEffect.rawAmount,
+          isCrit: preparedEffect.isCrit,
+          isHeal: false,
+          targetDefeated: false
+        })
+        continue
+      }
+
       const { remainingDamage, absorbed, negated } = resolveIncomingDamage(target, preparedEffect.rawAmount)
       const damage = Math.min(target.stats.currentHp, remainingDamage)
       target.stats.currentHp = Math.max(0, target.stats.currentHp - damage)
@@ -155,6 +174,28 @@ export function applyPreparedEffects(
         isHeal: false,
         targetDefeated: !target.isAlive
       })
+
+      const attacker = units.find(unit => unit.id === preparedEffect.actorId)
+      if (attacker && attacker.isAlive && damage > 0) {
+        const lifesteal = resolveBattleLifestealAmount({
+          damage,
+          attackerStatuses: attacker.statusEffects,
+          missingHp: Math.max(0, attacker.stats.maxHp - attacker.stats.currentHp)
+        })
+        if (lifesteal > 0) {
+          attacker.stats.currentHp = Math.min(attacker.stats.maxHp, attacker.stats.currentHp + lifesteal)
+          appliedEffects.push({
+            actorId: preparedEffect.actorId,
+            targetId: preparedEffect.actorId,
+            effectType: 'heal',
+            amount: lifesteal,
+            absorbed: 0,
+            isCrit: false,
+            isHeal: true,
+            targetDefeated: false
+          })
+        }
+      }
       continue
     }
 

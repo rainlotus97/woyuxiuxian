@@ -2,6 +2,7 @@ import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill } from '@/types/skill'
 import { getSkillDefinition } from '@/types/skill'
 import type { StatusEffect, UnitStats } from '@/types/unit'
+import { resolveEquipmentEffects } from './characterEquipmentEffectResolver'
 import { resolveFoodProgressionEffects } from './characterFoodEffectResolver'
 
 export type CharacterProgressionSourceKind = 'equipment' | 'skill' | 'food'
@@ -63,6 +64,19 @@ export function resolveCharacterProgression(
         description: '灵力与身法转化为吐纳效率'
       })
     }
+  }
+
+  const equipmentEffects = resolveEquipmentEffects(equipment)
+  addStatBonuses(equipmentStatBonuses, equipmentEffects.statBonuses)
+  for (const [stat, value] of Object.entries(equipmentEffects.statBonuses)) {
+    sources.push({
+      id: `equipment-effect:${stat}`,
+      kind: 'equipment',
+      target: 'stat',
+      label: '装备特效',
+      valueLabel: `+${formatStatValue(stat as keyof UnitStats, value ?? 0)}`,
+      description: '装备特殊效果转化为常驻属性'
+    })
   }
 
   for (const learned of learnedSkills) {

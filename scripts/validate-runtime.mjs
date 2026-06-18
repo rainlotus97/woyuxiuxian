@@ -148,6 +148,8 @@ test('battle status runtime negates damage while invincible', async () => {
   const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
   const {
     resolveBattleDamageModifier,
+    resolveBattleDodgeChance,
+    resolveBattleLifestealAmount,
     resolveBattleSpeedModifier
   } = await load('/src/game/battle/battleStatusModifierResolver.ts')
   const { createUnit } = await load('/src/types/unit.ts')
@@ -214,6 +216,22 @@ test('battle status runtime negates damage while invincible', async () => {
   assert.equal(resolveBattleSpeedModifier({
     statusEffects: [{ type: 'buff_spd', duration: 2, value: 0.5, sourceId: 'pill' }]
   }), 1.5)
+  assert.equal(resolveBattleDodgeChance({
+    statusEffects: [{ type: 'dodge', duration: 999, value: 0.1, sourceId: '九天玄甲' }]
+  }), 0.1)
+  assert.equal(resolveBattleDodgeChance({
+    statusEffects: [{ type: 'dodge', duration: 999, value: 0.8, sourceId: '九天玄甲' }]
+  }), 0.65)
+  assert.equal(resolveBattleLifestealAmount({
+    damage: 80,
+    missingHp: 20,
+    attackerStatuses: [{ type: 'lifesteal', duration: 999, value: 0.1, sourceId: '混沌古剑' }]
+  }), 8)
+  assert.equal(resolveBattleLifestealAmount({
+    damage: 500,
+    missingHp: 20,
+    attackerStatuses: [{ type: 'lifesteal', duration: 999, value: 0.1, sourceId: '混沌古剑' }]
+  }), 20)
 
   const slowAlly = createUnit({
     id: 'slow_ready',
@@ -612,6 +630,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
   const { tickFoodProgressionEffects } = await load('/src/character/runtime/characterFoodEffectResolver.ts')
+  const { resolveEquipmentEffects } = await load('/src/character/runtime/characterEquipmentEffectResolver.ts')
   const { resolveCharacterProgression } = await load('/src/character/runtime/characterProgressionResolver.ts')
   const {
     resolveBreakthroughAttempt,
@@ -851,6 +870,48 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const tickedFoodBuffs = tickFoodProgressionEffects(foodReady.delta.buffs)
   assert.equal(tickedFoodBuffs[0]?.duration, 2)
   assert.equal(tickFoodProgressionEffects([{ ...foodReady.delta.buffs[0], duration: 1 }]).length, 0)
+  const equipmentEffectFixtures = [
+    {
+      id: 'weapon_lifesteal_fixture',
+      name: '试炼血剑',
+      icon: '血',
+      type: 'weapon',
+      quality: 'legendary',
+      level: 1,
+      description: '测试吸血。',
+      bonuses: { attack: 10 },
+      effects: [{ type: 'lifesteal', value: 0.1, description: '吸血10%' }]
+    },
+    {
+      id: 'armor_dodge_fixture',
+      name: '试炼影衣',
+      icon: '影',
+      type: 'armor',
+      quality: 'supreme',
+      level: 1,
+      description: '测试闪避。',
+      bonuses: { defense: 8 },
+      effects: [{ type: 'dodge', value: 0.12, description: '闪避12%' }]
+    },
+    {
+      id: 'accessory_crit_fixture',
+      name: '试炼会心符',
+      icon: '会',
+      type: 'accessory',
+      quality: 'excellent',
+      level: 1,
+      description: '测试会心。',
+      bonuses: {},
+      effects: [{ type: 'crit_bonus', value: 0.05, description: '会心+5%' }]
+    }
+  ]
+  const equipmentEffects = resolveEquipmentEffects(equipmentEffectFixtures)
+  assert.equal(equipmentEffects.battleStatusEffects.some(effect => effect.type === 'lifesteal' && effect.sourceId === '试炼血剑'), true)
+  assert.equal(equipmentEffects.battleStatusEffects.some(effect => effect.type === 'dodge' && effect.sourceId === '试炼影衣'), true)
+  assert.equal(equipmentEffects.statBonuses.critRate, 0.05)
+  const equipmentProgression = resolveCharacterProgression([equipmentEffectFixtures[2]], [])
+  assert.equal(equipmentProgression.equipmentStatBonuses.critRate, 0.05)
+  assert.ok(equipmentProgression.sources.some(source => source.id === 'equipment-effect:critRate'))
   const foundationAid = {
     id: 'foundation_aid',
     definitionId: 'pill_foundation_guard',

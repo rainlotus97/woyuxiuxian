@@ -13,6 +13,7 @@ import type {
   BreakthroughPreview
 } from '@/character/runtime/characterBreakthroughResolver'
 import { resolveCharacterBattleUnit } from '@/character/runtime/characterBattleLoadoutResolver'
+import { resolveEquipmentEffects } from '@/character/runtime/characterEquipmentEffectResolver'
 import { tickFoodProgressionEffects } from '@/character/runtime/characterFoodEffectResolver'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
@@ -949,7 +950,10 @@ export const usePlayerStore = defineStore('player', () => {
       level: level.value,
       stats: { ...totalStats.value },
       skillIds: learnedSkills.value.map(skill => skill.id),
-      statusEffects: temporaryBuffs.value
+      statusEffects: [
+        ...temporaryBuffs.value,
+        ...resolveEquipmentEffects(allEquipped.value).battleStatusEffects
+      ]
     })
   }
 

@@ -122,7 +122,11 @@ function getStatusEffectClass(type: StatusEffectType): string {
     shield: 'bg-gray-300 text-black',
     invincible: 'bg-yellow-300 text-black',
     food_cultivation: 'bg-emerald-200 text-emerald-900',
-    food_stamina: 'bg-lime-200 text-lime-900'
+    food_stamina: 'bg-lime-200 text-lime-900',
+    lifesteal: 'bg-red-200 text-red-900',
+    dodge: 'bg-teal-200 text-teal-900',
+    counter: 'bg-amber-200 text-amber-900',
+    element_damage: 'bg-sky-200 text-sky-900'
   }
   return classes[type] || 'bg-gray-500 text-white'
 }
@@ -145,7 +149,11 @@ function getStatusEffectIcon(type: StatusEffectType): string {
     shield: '盾',
     invincible: '无',
     food_cultivation: '食',
-    food_stamina: '补'
+    food_stamina: '补',
+    lifesteal: '吸',
+    dodge: '闪',
+    counter: '反',
+    element_damage: '行'
   }
   return icons[type] || '?'
 }

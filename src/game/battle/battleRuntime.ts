@@ -422,7 +422,13 @@ export class BattleRuntime {
       debuff_def: '防御受创',
       vulnerable: '易伤',
       shield: '护盾',
-      invincible: '无敌'
+      invincible: '无敌',
+      lifesteal: '吸血',
+      dodge: '闪避',
+      counter: '反击',
+      element_damage: '五行增伤',
+      food_cultivation: '灵食调息',
+      food_stamina: '灵食补给'
     }
     return labels[type] ?? '异象'
   }

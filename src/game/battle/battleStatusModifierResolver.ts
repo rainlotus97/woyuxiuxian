@@ -41,3 +41,26 @@ export function resolveBattleSpeedModifier(input: BattleStatusModifierInput) {
   }
   return Math.max(0.05, modifier)
 }
+
+export function resolveBattleLifestealAmount(input: {
+  damage: number
+  attackerStatuses: StatusEffect[]
+  missingHp: number
+}) {
+  if (input.damage <= 0 || input.missingHp <= 0) return 0
+  let rate = 0
+  for (const effect of input.attackerStatuses) {
+    if (effect.duration <= 0) continue
+    if (effect.type === 'lifesteal') rate += Math.max(0, effect.value ?? 0)
+  }
+  return Math.min(input.missingHp, Math.floor(input.damage * rate))
+}
+
+export function resolveBattleDodgeChance(input: BattleStatusModifierInput) {
+  let chance = 0
+  for (const effect of input.statusEffects) {
+    if (effect.duration <= 0) continue
+    if (effect.type === 'dodge') chance += Math.max(0, effect.value ?? 0)
+  }
+  return Math.min(0.65, chance)
+}
