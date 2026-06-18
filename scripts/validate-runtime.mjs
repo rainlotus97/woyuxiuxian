@@ -801,6 +801,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
     validateInventoryItemsSchema
   } = await load('/src/character/runtime/inventoryItemSchemaResolver.ts')
   const {
+    createInventoryItemFromDrop,
+    createInventoryItemsFromDrops,
+    mergeEncounterDrops,
+    resolveDropDefinitionId
+  } = await load('/src/character/runtime/inventoryDropResolver.ts')
+  const {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
@@ -945,6 +951,28 @@ test('map and sect rules block invalid gameplay paths', async () => {
     quality: 'common',
     quantity: 1
   }), 'weapon_001')
+  const mergedDrops = mergeEncounterDrops([
+    {
+      item: { id: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 1 },
+      quantity: 2
+    },
+    {
+      item: { id: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 1 },
+      quantity: 3
+    },
+    {
+      item: { id: 'pill_healing', name: '疗伤丹', icon: '药', type: 'consumable', quality: 'common', minQuantity: 1, maxQuantity: 1, dropRate: 1 },
+      quantity: 1
+    }
+  ])
+  assert.equal(mergedDrops.length, 2)
+  assert.equal(mergedDrops.find(drop => drop.item.id === 'herb_spirit_grass')?.quantity, 5)
+  assert.equal(resolveDropDefinitionId(mergedDrops[0].item), mergedDrops[0].item.id)
+  const dropInventoryItem = createInventoryItemFromDrop(mergedDrops[0], { idPrefix: 'runtime_drop', serial: 1 })
+  assert.equal(dropInventoryItem.definitionId, 'herb_spirit_grass')
+  assert.equal(dropInventoryItem.quantity, 5)
+  const dropInventoryItems = createInventoryItemsFromDrops(mergedDrops, { idPrefix: 'runtime_drop' })
+  assert.equal(dropInventoryItems.find(item => item.definitionId === 'pill_healing')?.type, 'consumable')
   const normalizedInventory = normalizeInventoryItemsSchema([
     normalizedShopHerb,
     { id: 'garden_herb', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 }

@@ -37,6 +37,7 @@ import {
   resolveBattleSkillProgression,
   toSkillProgressInput
 } from '@/character/runtime/characterSkillProgressResolver'
+import { createInventoryItemsFromDrops } from '@/character/runtime/inventoryDropResolver'
 import {
   completeRouteGameplaySession,
   getRouteGameplaySession
@@ -576,16 +577,12 @@ export function useBattleSession() {
         sectStore.updateTaskProgress('battle', 'monster')
         sectStore.updateTaskProgress('explore', currentArea.value.id)
         const drops = resolveEncounterDrops(currentArea.value.drops, activeMapEncounter.value)
-        for (const drop of drops) {
-          playerStore.addToInventory({
-            id: `drop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-            name: drop.item.name,
-            icon: drop.item.icon,
-            type: drop.item.type === 'equipment' ? 'equipment' : 'material',
-            quality: drop.item.quality,
-            quantity: drop.quantity,
-            description: drop.item.description
-          })
+        const inventoryItems = createInventoryItemsFromDrops(drops, {
+          idPrefix: `battle_drop_${currentArea.value.id}`,
+          serial: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        })
+        for (const item of inventoryItems) {
+          playerStore.addToInventory(item)
         }
         playerStore.clearArea(currentArea.value.id, 0, 3)
       }

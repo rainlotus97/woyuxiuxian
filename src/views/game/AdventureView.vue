@@ -228,6 +228,10 @@ import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
+import {
+  createInventoryItemsFromDrops,
+  mergeEncounterDrops
+} from '@/character/runtime/inventoryDropResolver'
 import { resolveAreaGameplayAccess, type AreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
@@ -422,7 +426,7 @@ function handleSweep(area: AreaDefinition) {
 
   let totalExp = 0
   let totalGold = 0
-  const allDrops: Map<string, { item: DropItem; quantity: number }> = new Map()
+  const allDrops: Array<{ item: DropItem; quantity: number }> = []
   const encounter = getAreaEncounterHint(area)
   const rewardMultiplier = encounter?.rewardMultiplier ?? 1
 
@@ -432,12 +436,7 @@ function handleSweep(area: AreaDefinition) {
 
     const drops = resolveEncounterDrops(area.drops, encounter)
     for (const drop of drops) {
-      const existing = allDrops.get(drop.item.id)
-      if (existing) {
-        existing.quantity += drop.quantity
-      } else {
-        allDrops.set(drop.item.id, { item: drop.item, quantity: drop.quantity })
-      }
+      allDrops.push(drop)
     }
   }
 
@@ -445,19 +444,14 @@ function handleSweep(area: AreaDefinition) {
   playerStore.addGold(totalGold)
 
   const dropMessages: string[] = []
-  for (const [, drop] of allDrops) {
-    const added = playerStore.addToInventory({
-      id: `drop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      definitionId: drop.item.id,
-      name: drop.item.name,
-      icon: drop.item.icon,
-      type: drop.item.type === 'equipment' ? 'equipment' : 'material',
-      quality: drop.item.quality,
-      quantity: drop.quantity,
-      description: drop.item.description
-    })
+  const inventoryItems = createInventoryItemsFromDrops(mergeEncounterDrops(allDrops), {
+    idPrefix: `sweep_drop_${area.id}`,
+    serial: Date.now()
+  })
+  for (const item of inventoryItems) {
+    const added = playerStore.addToInventory(item)
     if (added) {
-      dropMessages.push(`${drop.item.icon}${drop.item.name} x${drop.quantity}`)
+      dropMessages.push(`${item.icon}${item.name} x${item.quantity}`)
     }
   }
 
