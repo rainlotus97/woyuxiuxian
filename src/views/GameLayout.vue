@@ -1,10 +1,6 @@
 <template>
   <div class="game-layout">
-    <div class="layout-backdrop">
-      <div class="mist mist-a"></div>
-      <div class="mist mist-b"></div>
-      <div class="mist mist-c"></div>
-    </div>
+    <div class="layout-backdrop"></div>
 
     <header class="top-shell">
       <div class="hud-shell" :class="`tone-${sectAlertTone}`">
@@ -33,17 +29,20 @@
           </button>
         </div>
 
-        <p class="world-summary">{{ sectAlertSummary }}</p>
+        <p class="world-summary">
+          <span>{{ currentSectionName }}</span>
+          {{ sectAlertSummary }}
+        </p>
       </div>
     </header>
 
-    <main class="main-shell" @click="closeMenu">
+    <main class="main-shell" @click="handleMainClick">
       <div class="content-stage">
         <RouterView />
       </div>
     </main>
 
-    <div v-if="isMenuExpanded" class="nav-scrim" @click="closeMenu"></div>
+    <div v-if="isMenuExpanded" class="nav-scrim" aria-hidden="true" @click="closeMenu"></div>
 
     <footer class="nav-shell" :class="{ expanded: isMenuExpanded }">
       <GameSurface v-if="isMenuExpanded" class="nav-drawer" tone="jade" padding="md">
@@ -168,6 +167,10 @@ const menuItems: MenuItem[] = [
 
 const tabItems = computed<MenuItem[]>(() => menuItems.slice(0, 5))
 
+const currentSectionName = computed(() => {
+  return menuItems.find(item => item.path === route.path)?.name ?? '修途'
+})
+
 const weatherLabel = computed(() => {
   const labels: Record<typeof worldStore.weather, string> = {
     clear: '天朗气清',
@@ -273,6 +276,10 @@ function closeMenu() {
   isMenuExpanded.value = false
 }
 
+function handleMainClick() {
+  if (isMenuExpanded.value) closeMenu()
+}
+
 function handleToggleBgm() {
   toggleBgm()
 }
@@ -315,8 +322,9 @@ onUnmounted(() => {
   height: 100dvh;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #f2fffb 0%, #e5f4ef 48%, #dbece7 100%),
-    radial-gradient(circle at top, rgba(126, 212, 188, 0.22), transparent 48%);
+    linear-gradient(180deg, #f5fff8 0%, #eef9f1 48%, #e4f1ea 100%),
+    repeating-linear-gradient(90deg, rgba(87, 137, 125, 0.04) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.035) 0 1px, transparent 1px 72px);
 }
 
 .layout-backdrop {
@@ -326,32 +334,25 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.mist {
+.layout-backdrop::before {
+  content: '';
   position: absolute;
-  border-radius: 999px;
-  filter: blur(34px);
-  opacity: 0.52;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 0 34%, rgba(255, 238, 185, 0.24) 34% 35%, transparent 35% 100%),
+    linear-gradient(25deg, transparent 0 62%, rgba(122, 180, 154, 0.16) 62% 63%, transparent 63% 100%);
+  opacity: 0.8;
 }
 
-.mist-a {
-  inset: 4% auto auto -8%;
-  width: 240px;
-  height: 240px;
-  background: rgba(132, 223, 198, 0.36);
-}
-
-.mist-b {
-  inset: auto 8% 20% auto;
-  width: 220px;
-  height: 220px;
-  background: rgba(251, 225, 162, 0.32);
-}
-
-.mist-c {
-  inset: auto auto -12% 18%;
-  width: 280px;
-  height: 220px;
-  background: rgba(179, 220, 230, 0.28);
+.layout-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(65, 102, 97, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(65, 102, 97, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 72%);
 }
 
 .top-shell,
@@ -363,6 +364,7 @@ onUnmounted(() => {
 
 .top-shell {
   padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
+  z-index: 6;
 }
 
 .hud-shell,
@@ -379,9 +381,11 @@ onUnmounted(() => {
   gap: 10px 16px;
   padding: 10px;
   border: 1px solid rgba(101, 152, 145, 0.2);
-  border-radius: 20px;
-  background: rgba(255, 255, 250, 0.78);
-  box-shadow: 0 18px 40px rgba(88, 123, 116, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(242, 251, 246, 0.76)),
+    linear-gradient(90deg, rgba(255, 238, 184, 0.24), transparent 46%);
+  box-shadow: 0 12px 30px rgba(88, 123, 116, 0.12);
   backdrop-filter: blur(16px);
 }
 
@@ -406,7 +410,8 @@ onUnmounted(() => {
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: 12px;
+  border: 1px solid rgba(188, 141, 58, 0.22);
   background: linear-gradient(135deg, #fff0b0, #73d4be);
   color: #8e6227;
   font-size: 20px;
@@ -433,7 +438,7 @@ onUnmounted(() => {
   width: fit-content;
   align-items: center;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 10px;
   border: 1px solid rgba(123, 166, 176, 0.2);
   background: rgba(255, 255, 255, 0.74);
   font-size: 11px;
@@ -516,6 +521,7 @@ onUnmounted(() => {
   width: min(1120px, 100%);
   margin: 0 auto;
   position: relative;
+  z-index: 1;
 }
 
 .nav-shell {
@@ -523,9 +529,13 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 12;
+  z-index: 20;
   padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
+}
+
+.nav-shell.expanded {
+  z-index: 32;
 }
 
 .nav-shell:not(.expanded) {
@@ -539,8 +549,8 @@ onUnmounted(() => {
 .nav-scrim {
   position: fixed;
   inset: 0;
-  z-index: 10;
-  background: rgba(42, 68, 67, 0.16);
+  z-index: 24;
+  background: rgba(48, 78, 74, 0.14);
   backdrop-filter: blur(3px);
   cursor: pointer;
 }
@@ -549,7 +559,7 @@ onUnmounted(() => {
   margin-bottom: 10px;
   max-height: min(68vh, 560px);
   overflow: auto;
-  border-radius: 22px;
+  border-radius: 18px;
   box-shadow: 0 28px 72px rgba(58, 85, 82, 0.24);
 }
 
@@ -581,7 +591,7 @@ onUnmounted(() => {
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: 12px;
   border: 1px solid rgba(188, 141, 58, 0.24);
   background: rgba(255, 251, 237, 0.82);
   color: #8b6226;
@@ -603,7 +613,7 @@ onUnmounted(() => {
   min-height: 86px;
   padding: 12px;
   text-decoration: none;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(103, 149, 144, 0.2);
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.94), rgba(241, 249, 244, 0.82)),
@@ -629,7 +639,7 @@ onUnmounted(() => {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
   color: #6d8f8d;
 }
@@ -658,7 +668,7 @@ onUnmounted(() => {
   gap: 2px;
   padding: 7px;
   border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 22px;
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
     radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
@@ -674,7 +684,7 @@ onUnmounted(() => {
   gap: 3px;
   padding: 4px 2px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   background: transparent;
   color: rgba(65, 91, 89, 0.74);
   font-family: var(--font-game);
@@ -692,6 +702,16 @@ onUnmounted(() => {
   background: rgba(255, 248, 229, 0.92);
   color: #8b6226;
   box-shadow: inset 0 0 0 1px rgba(194, 146, 66, 0.2);
+}
+
+.world-summary span {
+  display: inline-flex;
+  margin-right: 8px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(188, 141, 58, 0.24);
+  background: rgba(255, 248, 229, 0.72);
+  color: #8b6226;
 }
 
 .tab-more {
@@ -818,7 +838,7 @@ onUnmounted(() => {
 
   .tab-bar {
     height: 66px;
-    border-radius: 20px;
+    border-radius: 16px;
   }
 
   .tab-item {

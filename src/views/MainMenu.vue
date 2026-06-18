@@ -2,7 +2,10 @@
   <main class="main-menu">
     <section class="start-shell">
       <div class="brand-panel">
-        <span class="seal">修</span>
+        <div class="seal-stack">
+          <span class="seal">修</span>
+          <small>云海初开</small>
+        </div>
         <div class="brand-copy">
           <p>2D 文字修仙 · 世界自演</p>
           <h1>我欲修仙</h1>
@@ -72,7 +75,7 @@
           <div>
             <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
             <strong>{{ playerStore.name }}</strong>
-            <p>本命已定，不在首页重复改动。后续成长通过角色、功法、宗门、人物和剧情推进。</p>
+            <p>本命已定，首页只负责进入主循环。灵根、气质和头像后续不在这里反复改动。</p>
           </div>
         </div>
 
@@ -95,17 +98,17 @@
           <div class="resume-card primary">
             <span>下一步</span>
             <strong>主界任务台</strong>
-            <p>进入后先处理挂机、历险、故事、人物、地图与宗门这些核心循环。</p>
+            <p>先处理挂机、历险、故事、人物、地图与宗门这些 P0 核心循环。</p>
           </div>
           <div class="resume-card">
-            <span>本命</span>
-            <strong>不可重复改动</strong>
-            <p>灵根与气质已经写入存档，避免每次打开游戏都像重新建号。</p>
+            <span>本命锁定</span>
+            <strong>{{ playerStore.element }}灵根</strong>
+            <p>角色创建信息已写入存档，成长转移到角色、功法和剧情系统。</p>
           </div>
           <div class="resume-card">
             <span>声音</span>
             <strong>默认静音</strong>
-            <p>背景音需要进入游戏后手动开启，也可以在系统设置中关闭音效。</p>
+            <p>背景音需要手动开启，避免进入游戏立即播放不好听的占位 BGM。</p>
           </div>
         </div>
 
@@ -201,12 +204,12 @@ function handleSettings() {
   min-height: 100vh;
   min-height: 100dvh;
   overflow: auto;
-  padding: 28px;
+  padding: 24px;
   color: #315257;
   background:
-    linear-gradient(180deg, rgba(239, 255, 250, 0.98), rgba(222, 239, 233, 0.95)),
-    radial-gradient(circle at 18% 14%, rgba(129, 211, 183, 0.26), transparent 34%),
-    radial-gradient(circle at 84% 22%, rgba(244, 205, 118, 0.24), transparent 30%);
+    linear-gradient(135deg, rgba(243, 255, 248, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%),
+    repeating-linear-gradient(90deg, rgba(82, 139, 127, 0.05) 0 1px, transparent 1px 76px),
+    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.045) 0 1px, transparent 1px 76px);
 }
 
 .start-shell {
@@ -226,8 +229,10 @@ function handleSettings() {
 .guide-panel,
 .world-preview {
   border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 22px;
-  background: rgba(255, 255, 250, 0.74);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(244, 252, 247, 0.78)),
+    linear-gradient(90deg, rgba(255, 235, 170, 0.18), transparent 38%);
   box-shadow: 0 24px 56px rgba(88, 123, 116, 0.16);
   backdrop-filter: blur(16px);
 }
@@ -236,22 +241,36 @@ function handleSettings() {
   grid-area: brand;
   min-height: 310px;
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-columns: 116px minmax(0, 1fr);
   gap: 22px;
   align-items: center;
   padding: 34px;
 }
 
+.seal-stack {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
 .seal {
-  width: 104px;
-  height: 104px;
+  width: 108px;
+  height: 108px;
   display: grid;
   place-items: center;
-  border-radius: 26px;
-  background: linear-gradient(145deg, #fff2bd, #8ee0c2);
+  border-radius: 18px;
+  border: 1px solid rgba(151, 99, 38, 0.22);
+  background:
+    linear-gradient(145deg, #fff3c0, #bfead6),
+    repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
   color: #9a6827;
   font-size: 48px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 18px 34px rgba(91, 151, 132, 0.24);
+}
+
+.seal-stack small {
+  color: rgba(93, 112, 105, 0.72);
+  font-size: 11px;
 }
 
 .brand-copy {
@@ -280,8 +299,10 @@ function handleSettings() {
   align-items: center;
   padding: 16px;
   border: 1px solid rgba(111, 157, 149, 0.18);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.58);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 252, 247, 0.66)),
+    linear-gradient(90deg, rgba(255, 236, 178, 0.26), transparent 48%);
 }
 
 .save-avatar {
@@ -289,7 +310,8 @@ function handleSettings() {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(188, 141, 58, 0.22);
   background: linear-gradient(145deg, #fff2bd, #91dfc2);
   color: #8e6227;
   font-size: 32px;
@@ -329,7 +351,7 @@ function handleSettings() {
   gap: 5px;
   padding: 12px;
   border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.52);
 }
 
@@ -349,7 +371,7 @@ function handleSettings() {
   gap: 6px;
   padding: 14px;
   border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
     radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
@@ -422,7 +444,7 @@ function handleSettings() {
   min-height: 50px;
   padding: 0 14px;
   border: 1px solid rgba(111, 157, 149, 0.22);
-  border-radius: 16px;
+  border-radius: 12px;
   outline: none;
   background: rgba(255, 255, 255, 0.72);
   color: #315257;
@@ -440,7 +462,7 @@ function handleSettings() {
 .avatar-row button {
   min-height: 62px;
   border: 1px solid rgba(111, 157, 149, 0.18);
-  border-radius: 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.62);
   color: #315257;
   font-family: var(--font-game);
@@ -487,17 +509,21 @@ function handleSettings() {
 .primary-action,
 .secondary-action {
   min-height: 56px;
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid rgba(188, 141, 58, 0.28);
   font-family: var(--font-game);
+  cursor: pointer;
 }
 
 .primary-action {
   display: grid;
   place-items: center;
   gap: 4px;
-  background: linear-gradient(180deg, #fff3c5, #bfe9d4);
+  background:
+    linear-gradient(180deg, #fff3c5, #bfe9d4),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent);
   color: #735022;
+  box-shadow: 0 16px 30px rgba(104, 151, 132, 0.18);
 }
 
 .primary-action span {
@@ -526,7 +552,7 @@ function handleSettings() {
   display: grid;
   gap: 8px;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.58);
   border: 1px solid rgba(111, 157, 149, 0.14);
 }
