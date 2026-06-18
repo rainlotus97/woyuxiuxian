@@ -77,6 +77,10 @@ import {
   insertWorldLog,
   normalizeWorldLogs
 } from '@/world/runtime/worldLogResolver'
+import {
+  resolveNpcStoryContextView,
+  resolveWorldLogContextView
+} from '@/world/runtime/worldLogContextResolver'
 
 interface WorldState {
   clock: WorldClock
@@ -197,6 +201,14 @@ export const useWorldStore = defineStore('world', () => {
   const visibleLogs = computed(() => getVisibleWorldLogs(logs.value, 12))
   const recentPlayerJourneys = computed(() => playerJourneys.value.slice(0, 6))
   const importantNpcStories = computed(() => npcStories.value.slice(0, 6))
+  const visibleLogViews = computed(() => visibleLogs.value.map(log => resolveWorldLogContextView(log, {
+    npcDefinitions: npcDefinitions.value,
+    npcStates: npcStates.value
+  })))
+  const importantNpcStoryViews = computed(() => importantNpcStories.value.map(story => resolveNpcStoryContextView(story, {
+    npcDefinitions: npcDefinitions.value,
+    npcStates: npcStates.value
+  })))
   const activeAreaAnomalies = computed(() => areaAnomalies.value.slice(0, 6))
   const unlockedNpcDefinitions = computed(() => npcDefinitions.value.filter(definition => unlockedNpcIds.value.includes(definition.id)))
   const importantNpcStates = computed(() => {
@@ -1041,8 +1053,10 @@ export const useWorldStore = defineStore('world', () => {
     lastCaptivityEscapeTick,
     currentTimeLabel,
     visibleLogs,
+    visibleLogViews,
     recentPlayerJourneys,
     importantNpcStories,
+    importantNpcStoryViews,
     activeAreaAnomalies,
     unlockedNpcDefinitions,
     importantNpcStates,

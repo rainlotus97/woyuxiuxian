@@ -51,10 +51,15 @@
         subtitle="世界不会停下。宗门、天气与 NPC 都在推动局势。"
       >
         <div class="world-log-list">
-          <div v-for="log in recentWorldLogs" :key="log.id" class="world-log-item">
-            <strong>{{ log.title }}<small v-if="log.repeatCount > 1">x{{ log.repeatCount }}</small></strong>
-            <p>{{ log.text }}</p>
-            <small>{{ log.timeLabel }}</small>
+          <div v-for="log in recentWorldLogs" :key="log.entry.id" class="world-log-item">
+            <strong>{{ log.entry.title }}<small v-if="log.entry.repeatCount > 1">x{{ log.entry.repeatCount }}</small></strong>
+            <p>{{ log.entry.text }}</p>
+            <div class="world-log-context">
+              <span v-for="badge in log.badges" :key="`${badge.tone}-${badge.label}`" :class="`context-${badge.tone}`">
+                {{ badge.label }}
+              </span>
+            </div>
+            <small>{{ log.entry.timeLabel }}</small>
           </div>
         </div>
       </GameSurface>
@@ -291,7 +296,7 @@ const { warning } = useToast()
 
 const selectedArea = ref<MapArea | null>(null)
 
-const recentWorldLogs = computed(() => worldStore.visibleLogs.slice(0, 3))
+const recentWorldLogs = computed(() => worldStore.visibleLogViews.slice(0, 3))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 3))
 const worldSeason = computed(() => {
   const month = worldStore.clock.month
@@ -551,6 +556,42 @@ function handleChallenge(area: MapArea) {
   margin-top: 8px;
   color: rgba(73, 97, 95, 0.62);
   font-size: 10px;
+}
+
+.world-log-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.world-log-context span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 146, 149, 0.16);
+  background: rgba(252, 255, 251, 0.76);
+  color: rgba(73, 97, 95, 0.76);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.world-log-context .context-area {
+  color: #4c7a78;
+  background: rgba(239, 250, 247, 0.82);
+}
+
+.world-log-context .context-sect {
+  color: #8b6226;
+  background: rgba(255, 249, 233, 0.86);
+}
+
+.world-log-context .context-actor {
+  color: #8f4c63;
+  background: rgba(255, 244, 248, 0.82);
 }
 
 .anomaly-item {

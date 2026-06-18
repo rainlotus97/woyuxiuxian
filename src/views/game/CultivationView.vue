@@ -222,24 +222,34 @@
 
     <GameSurface tone="mist" padding="md" eyebrow="世界流转" title="近期异闻" subtitle="挂机时，天气、宗门和 NPC 都会写入世界日志。">
       <div class="log-list">
-        <div v-for="log in recentLogs" :key="log.id" class="log-card" :class="`severity-${log.severity}`">
+        <div v-for="log in recentLogs" :key="log.entry.id" class="log-card" :class="`severity-${log.entry.severity}`">
           <div class="log-head">
-            <strong>{{ log.title }}<small v-if="log.repeatCount > 1">x{{ log.repeatCount }}</small></strong>
-            <span>{{ log.timeLabel }}</span>
+            <strong>{{ log.entry.title }}<small v-if="log.entry.repeatCount > 1">x{{ log.entry.repeatCount }}</small></strong>
+            <span>{{ log.entry.timeLabel }}</span>
           </div>
-          <p>{{ log.text }}</p>
+          <p>{{ log.entry.text }}</p>
+          <div class="log-context">
+            <span v-for="badge in log.badges" :key="`${badge.tone}-${badge.label}`" :class="`context-${badge.tone}`">
+              {{ badge.label }}
+            </span>
+          </div>
         </div>
       </div>
     </GameSurface>
 
     <GameSurface tone="realm" padding="md" eyebrow="人物纪闻" title="命运回响" subtitle="重要人物的成长、负伤、破境与冲突会沉淀成可追踪的故事记录。">
       <div class="log-list">
-        <div v-for="story in npcStories" :key="story.id" class="log-card" :class="`severity-${story.severity}`">
+        <div v-for="story in npcStories" :key="story.entry.id" class="log-card" :class="`severity-${story.entry.severity}`">
           <div class="log-head">
-            <strong>{{ story.title }}</strong>
-            <span>{{ story.timeLabel }}</span>
+            <strong>{{ story.entry.title }}</strong>
+            <span>{{ story.entry.timeLabel }}</span>
           </div>
-          <p>{{ story.text }}</p>
+          <p>{{ story.entry.text }}</p>
+          <div class="log-context">
+            <span v-for="badge in story.badges" :key="`${badge.tone}-${badge.label}`" :class="`context-${badge.tone}`">
+              {{ badge.label }}
+            </span>
+          </div>
         </div>
       </div>
     </GameSurface>
@@ -404,9 +414,9 @@ const spotlightNpcs = computed(() => {
     })
 })
 
-const recentLogs = computed(() => worldStore.visibleLogs.slice(0, 4))
+const recentLogs = computed(() => worldStore.visibleLogViews.slice(0, 4))
 const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4))
-const npcStories = computed(() => worldStore.importantNpcStories.slice(0, 4))
+const npcStories = computed(() => worldStore.importantNpcStoryViews.slice(0, 4))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
 const captivityForecast = computed(() => worldStore.getCaptivityForecast())
 
@@ -491,16 +501,16 @@ const worldBriefings = computed(() => {
       : null,
     latestNpcStory: npcStories.value[0]
       ? {
-          title: npcStories.value[0].title,
-          severity: npcStories.value[0].severity,
-          timeLabel: npcStories.value[0].timeLabel
+          title: npcStories.value[0].entry.title,
+          severity: npcStories.value[0].entry.severity,
+          timeLabel: npcStories.value[0].entry.timeLabel
         }
       : null,
     latestLog: recentLogs.value[0]
       ? {
-          title: recentLogs.value[0].title,
-          severity: recentLogs.value[0].severity,
-          timeLabel: recentLogs.value[0].timeLabel
+          title: recentLogs.value[0].entry.title,
+          severity: recentLogs.value[0].entry.severity,
+          timeLabel: recentLogs.value[0].entry.timeLabel
         }
       : null
   })
@@ -964,6 +974,41 @@ function handleBriefingAction(item: WorldBriefingItem) {
 .log-card {
   display: grid;
   gap: 8px;
+}
+
+.log-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.log-context span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 146, 149, 0.16);
+  background: rgba(252, 255, 251, 0.76);
+  color: rgba(73, 97, 95, 0.76);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.log-context .context-area {
+  color: #4c7a78;
+  background: rgba(239, 250, 247, 0.82);
+}
+
+.log-context .context-sect {
+  color: #8b6226;
+  background: rgba(255, 249, 233, 0.86);
+}
+
+.log-context .context-actor {
+  color: #8f4c63;
+  background: rgba(255, 244, 248, 0.82);
 }
 
 .anomaly-card {

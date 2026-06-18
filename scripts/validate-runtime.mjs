@@ -381,6 +381,57 @@ test('world log resolver classifies and merges repeated events', async () => {
   }]).at(0)?.repeatCount, 1)
 })
 
+test('world log context resolver labels area sect and actors', async () => {
+  const {
+    resolveWorldLogContextView,
+    resolveNpcStoryContextView
+  } = await load('/src/world/runtime/worldLogContextResolver.ts')
+  const { createDefaultNpcDefinitions } = await load('/src/world/runtime/npcRoster.ts')
+
+  const npcDefinitions = createDefaultNpcDefinitions()
+  const npc = npcDefinitions.find(definition => definition.id === 'npc_su_qingyuan')
+  assert.ok(npc, 'fixture npc should exist')
+
+  const logView = resolveWorldLogContextView({
+    id: 'context-log',
+    tick: 18,
+    lastTick: 18,
+    timeLabel: '修仙历1年1月2日 午时',
+    scope: 'npc',
+    severity: 'major',
+    visibility: 'briefing',
+    title: '苏清鸢破境',
+    text: '苏清鸢在青云山灵脉旁破境。',
+    actorIds: [npc.id],
+    mapId: 'qingyun_mountain',
+    tags: ['npc', 'breakthrough'],
+    dedupeKey: 'context-log',
+    repeatCount: 1,
+    revealed: true
+  }, { npcDefinitions })
+
+  assert.equal(logView.areaName, '青云山')
+  assert.ok(logView.sectNames.includes('青云宗'))
+  assert.ok(logView.actorNames.includes(npc.name))
+  assert.ok(logView.badges.some(badge => badge.label === '破境'))
+  assert.ok(logView.contextLabel.includes('青云山'))
+
+  const storyView = resolveNpcStoryContextView({
+    id: 'context-story',
+    tick: 18,
+    timeLabel: '修仙历1年1月2日 午时',
+    npcId: npc.id,
+    title: '苏清鸢破境',
+    text: '她的剑意更深了一分。',
+    severity: 'major',
+    mapId: 'qingyun_mountain',
+    tags: ['npc', 'breakthrough']
+  }, { npcDefinitions })
+
+  assert.ok(storyView.actorNames.includes(npc.name))
+  assert.ok(storyView.badges.some(badge => badge.label === '青云山'))
+})
+
 test('world narrative creates anomaly records with area context', async () => {
   const { createAreaAnomaly, resolveWorldDisasterTrigger } = await load('/src/world/runtime/worldNarrativeResolver.ts')
   const { HUMAN_REALM_AREAS } = await load('/src/types/map.ts')
