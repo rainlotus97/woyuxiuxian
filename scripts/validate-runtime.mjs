@@ -2956,6 +2956,147 @@ test('p0 loop closure summarizes observable result evidence', async () => {
   assert.match(blockedClosure.headline, /阻塞/)
 })
 
+test('p0 loop next action ranks unblock verify and expansion steps', async () => {
+  const { resolveMainLoopReadiness } = await load('/src/world/runtime/mainLoopReadinessResolver.ts')
+  const { resolveP0LoopClosure } = await load('/src/world/runtime/p0LoopClosureResolver.ts')
+  const { resolveP0LoopNextAction } = await load('/src/world/runtime/p0LoopNextActionResolver.ts')
+
+  const baseInput = {
+    player: {
+      isCaptured: false,
+      isIdling: false,
+      stamina: 20,
+      maxStamina: 20,
+      canBreakthrough: false
+    },
+    world: {
+      unlockedNpcCount: 5,
+      worldBriefingCount: 1,
+      hasRecentJourney: false
+    },
+    story: {
+      currentNodeId: null,
+      completedCount: 0,
+      isInitialized: true
+    },
+    map: {
+      conqueredCount: 0,
+      totalAreaCount: 6,
+      hasHotspot: false
+    },
+    sect: {
+      joined: false,
+      joinableCount: 1,
+      activeWar: false,
+      completedTaskCount: 0,
+      availableTaskCount: 0,
+      canClaimSalary: false
+    }
+  }
+
+  const readiness = resolveMainLoopReadiness(baseInput)
+  const closure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+  const nextAction = resolveP0LoopNextAction({
+    readinessItems: readiness.items,
+    closureItems: closure.items
+  })
+  assert.equal(nextAction.primary.kind, 'verify')
+  assert.equal(nextAction.primary.id, 'sect')
+  assert.match(nextAction.headline, /还缺结果证据/)
+
+  const blockedReadiness = resolveMainLoopReadiness({
+    ...baseInput,
+    player: {
+      ...baseInput.player,
+      isCaptured: true
+    }
+  })
+  const blockedClosure = resolveP0LoopClosure({
+    readiness: blockedReadiness.byId,
+    evidence: {
+      playerJourneyTags: [],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+  const blockedNextAction = resolveP0LoopNextAction({
+    readinessItems: blockedReadiness.items,
+    closureItems: blockedClosure.items
+  })
+  assert.equal(blockedNextAction.primary.kind, 'unblock')
+  assert.equal(blockedNextAction.primary.id, 'idle')
+
+  const richReadiness = resolveMainLoopReadiness({
+    ...baseInput,
+    story: {
+      currentNodeId: 'V1M01',
+      completedCount: 1,
+      isInitialized: true
+    },
+    sect: {
+      ...baseInput.sect,
+      joined: true,
+      joinableCount: 1,
+      availableTaskCount: 2
+    }
+  })
+  const richClosure = resolveP0LoopClosure({
+    readiness: richReadiness.byId,
+    evidence: {
+      playerJourneyTags: [
+        ['cultivation', 'fortune'],
+        ['adventure', 'battle'],
+        ['npc', 'relationship'],
+        ['map', 'exploration'],
+        ['sect', 'membership']
+      ],
+      storyCurrentNodeId: 'V1M01',
+      storyCompletedCount: 1,
+      unlockedNpcCount: 5,
+      npcStoryCount: 2,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 1,
+      mapHistoryCount: 1,
+      areaAnomalyCount: 1,
+      sectJoined: true,
+      sectJoinableCount: 1
+    }
+  })
+  const richNextAction = resolveP0LoopNextAction({
+    readinessItems: richReadiness.items,
+    closureItems: richClosure.items
+  })
+  assert.equal(richNextAction.allClosed, true)
+  assert.equal(richNextAction.primary.kind, 'expand')
+  assert.match(richNextAction.headline, /做深系统/)
+})
+
 test('player fortune resolver creates deterministic fortune rewards', async () => {
   const { resolvePlayerFortune } = await load('/src/world/runtime/playerFortuneResolver.ts')
 

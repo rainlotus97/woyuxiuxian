@@ -98,6 +98,16 @@
               <strong>{{ loopReadiness.headline }}</strong>
               <small>{{ p0LoopClosure.headline }}</small>
             </div>
+            <button
+              type="button"
+              class="next-loop-action"
+              :class="`kind-${p0NextAction.primary.kind}`"
+              @click="handleNextP0Action"
+            >
+              <span>{{ p0NextAction.primary.actionHint }}</span>
+              <strong>{{ p0NextAction.primary.title }}</strong>
+              <small>{{ p0NextAction.primary.reason }}</small>
+            </button>
             <div class="readiness-counts">
               <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
               <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
@@ -382,6 +392,7 @@ import {
   resolveP0LoopClosure,
   type P0LoopClosureItem
 } from '@/world/runtime/p0LoopClosureResolver'
+import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
 import {
   formatJourneyRewards,
   getAnomalyIcon,
@@ -733,6 +744,11 @@ const p0LoopClosure = computed(() => resolveP0LoopClosure({
   }
 }))
 
+const p0NextAction = computed(() => resolveP0LoopNextAction({
+  readinessItems: loopReadiness.value.items,
+  closureItems: p0LoopClosure.value.items
+}))
+
 const mainLoopTasks = computed<MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
   const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
@@ -954,6 +970,13 @@ function handleTaskAction(task: MainLoopTask) {
 
   if (task.route) {
     void router.push(task.route)
+  }
+}
+
+function handleNextP0Action() {
+  const task = mainLoopTasks.value.find(item => item.id === p0NextAction.value.primary.id)
+  if (task) {
+    handleTaskAction(task)
   }
 }
 
@@ -1395,9 +1418,9 @@ function handlePlayerFortune() {
 }
 
 .loop-readiness-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.56fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
@@ -1428,6 +1451,62 @@ function handlePlayerFortune() {
   color: rgba(73, 97, 95, 0.68);
   font-size: 10px;
   line-height: 1.45;
+}
+
+.next-loop-action {
+  min-width: 0;
+  min-height: 58px;
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(194, 146, 66, 0.2);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 235, 0.88), rgba(242, 253, 247, 0.72)),
+    radial-gradient(circle at top right, rgba(255, 220, 132, 0.16), transparent 60%);
+  color: #315257;
+  font-family: var(--font-game);
+  text-align: left;
+  cursor: pointer;
+}
+
+.next-loop-action span {
+  overflow: hidden;
+  color: #8b6226;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.next-loop-action strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.next-loop-action small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(53, 81, 83, 0.68);
+  font-size: 9px;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.next-loop-action.kind-unblock {
+  border-color: rgba(199, 121, 138, 0.24);
+  background: rgba(255, 244, 247, 0.86);
+}
+
+.next-loop-action.kind-expand {
+  border-color: rgba(88, 164, 143, 0.2);
+  background: rgba(239, 252, 247, 0.84);
 }
 
 .readiness-counts {
@@ -1986,7 +2065,7 @@ function handlePlayerFortune() {
 
   .loop-readiness-strip {
     align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .readiness-counts {
