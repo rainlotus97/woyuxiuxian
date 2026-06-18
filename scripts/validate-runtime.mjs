@@ -143,6 +143,63 @@ test('battle runtime tracks skill cooldown by actor turns', async () => {
   assert.equal(runtime.getAvailableSkills(actor.id).some(skill => skill.id === 'sword_qi'), true)
 })
 
+test('battle status runtime negates damage while invincible', async () => {
+  const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
+  const { createUnit } = await load('/src/types/unit.ts')
+
+  const ally = createUnit({
+    id: 'invincible_attacker',
+    name: '破阵者',
+    type: 'protagonist',
+    stats: {
+      maxHp: 120,
+      currentHp: 120,
+      maxMp: 50,
+      currentMp: 50,
+      attack: 120,
+      defense: 5,
+      speed: 100,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const enemy = createUnit({
+    id: 'invincible_target',
+    name: '无相护体者',
+    type: 'enemy',
+    statusEffects: [
+      { type: 'invincible', duration: 2, sourceId: 'self' }
+    ],
+    stats: {
+      maxHp: 80,
+      currentHp: 80,
+      maxMp: 30,
+      currentMp: 30,
+      attack: 8,
+      defense: 0,
+      speed: 80,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+
+  const runtime = new BattleRuntime([ally], [enemy])
+  const resolved = runtime.resolveCommand({ type: 'attack', actorId: 'invincible_attacker', targetIds: ['invincible_target'] })
+  assert.ok(resolved, 'attack against invincible target should still resolve')
+  runtime.applyResolvedCommand(resolved)
+  const target = runtime.units.find(unit => unit.id === 'invincible_target')
+  assert.ok(target, 'target should remain in runtime')
+  assert.equal(target.stats.currentHp, 80)
+  assert.equal(target.isAlive, true)
+
+  target.statusEffects.push({ type: 'burn', duration: 1, value: 15, sourceId: 'invincible_attacker' })
+  const turnStart = processTurnStartStatuses(target)
+  assert.equal(target.stats.currentHp, 80)
+  assert.equal(turnStart.hits.length, 0)
+  assert.ok(turnStart.logs.some(log => log.includes('无敌状态')))
+})
+
 test('story parser reads node choices and gameplay effects', async () => {
   const { storyParser } = await load('/src/story/parser/index.ts')
   const content = `---

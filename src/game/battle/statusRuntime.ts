@@ -19,6 +19,7 @@ export function cloneRuntimeUnits(units: BattleRuntimeUnit[]): BattleRuntimeUnit
   return units.map(unit => ({
     ...unit,
     stats: { ...unit.stats },
+    skillCooldowns: { ...unit.skillCooldowns },
     statusEffects: unit.statusEffects.map(cloneStatusEffect)
   }))
 }
@@ -61,6 +62,10 @@ export function applyStatusEffectToUnit(target: BattleRuntimeUnit, status: Statu
   return cloneStatusEffect(existing)
 }
 
+export function hasInvincibleStatus(target: BattleRuntimeUnit) {
+  return hasStatusEffect(target, 'invincible')
+}
+
 export function absorbShield(target: BattleRuntimeUnit, incomingDamage: number) {
   let remainingDamage = incomingDamage
   let absorbed = 0
@@ -76,6 +81,26 @@ export function absorbShield(target: BattleRuntimeUnit, incomingDamage: number) 
 
   cleanupStatusEffects(target)
   return { remainingDamage, absorbed }
+}
+
+export function resolveIncomingDamage(target: BattleRuntimeUnit, incomingDamage: number) {
+  const rawDamage = Math.max(0, incomingDamage)
+  if (rawDamage <= 0) return { remainingDamage: 0, absorbed: 0, negated: 0 }
+
+  if (hasInvincibleStatus(target)) {
+    return {
+      remainingDamage: 0,
+      absorbed: 0,
+      negated: rawDamage
+    }
+  }
+
+  const { remainingDamage, absorbed } = absorbShield(target, rawDamage)
+  return {
+    remainingDamage,
+    absorbed,
+    negated: 0
+  }
 }
 
 export function cleanupStatusEffects(unit: BattleRuntimeUnit) {
@@ -97,7 +122,7 @@ export function processTurnStartStatuses(actor: BattleRuntimeUnit): BattleTurnSt
 
     if (status.type === 'poison' || status.type === 'burn') {
       const rawDamage = Math.max(1, Math.floor(status.value ?? DAMAGE_OVER_TIME_DEFAULTS[status.type] ?? 6))
-      const { remainingDamage } = absorbShield(actor, rawDamage)
+      const { remainingDamage, negated } = resolveIncomingDamage(actor, rawDamage)
       const damage = Math.min(actor.stats.currentHp, remainingDamage)
 
       if (damage > 0) {
@@ -109,6 +134,8 @@ export function processTurnStartStatuses(actor: BattleRuntimeUnit): BattleTurnSt
           isCrit: false
         })
         logs.push(`${actor.name}受到${status.type === 'poison' ? '毒伤' : '灼烧'}侵蚀，损失${damage}点气血。`)
+      } else if (negated > 0) {
+        logs.push(`${actor.name}处于无敌状态，抵消了${status.type === 'poison' ? '毒伤' : '灼烧'}侵蚀。`)
       }
 
       if (actor.stats.currentHp <= 0) {
@@ -134,4 +161,3 @@ export function processTurnStartStatuses(actor: BattleRuntimeUnit): BattleTurnSt
     actorDefeated: !actor.isAlive
   }
 }
-

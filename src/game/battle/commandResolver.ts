@@ -8,9 +8,9 @@ import type {
 } from './runtimeTypes'
 import { resolveCommandTargetIds, resolveEffectTargetIds } from './targeting'
 import {
-  absorbShield,
   applyStatusEffectToUnit,
   cloneRuntimeUnits,
+  resolveIncomingDamage,
   resolveStatusEffectFromSkill
 } from './statusRuntime'
 import { prepareSummons } from './summonRuntime'
@@ -44,9 +44,6 @@ function applyStatusModifiers(
     }
     if (effect.type === 'debuff_def') {
       modifier *= 1 + (effect.value ?? 0.2)
-    }
-    if (effect.type === 'invincible') {
-      modifier = 0
     }
   }
 
@@ -164,7 +161,7 @@ export function applyPreparedEffects(
     if (!target.isAlive && preparedEffect.effectType !== 'heal') continue
 
     if (preparedEffect.effectType === 'damage') {
-      const { remainingDamage, absorbed } = absorbShield(target, preparedEffect.rawAmount)
+      const { remainingDamage, absorbed, negated } = resolveIncomingDamage(target, preparedEffect.rawAmount)
       const damage = Math.min(target.stats.currentHp, remainingDamage)
       target.stats.currentHp = Math.max(0, target.stats.currentHp - damage)
       if (target.stats.currentHp <= 0) {
@@ -176,7 +173,7 @@ export function applyPreparedEffects(
         targetId: preparedEffect.targetId,
         effectType: 'damage',
         amount: damage,
-        absorbed,
+        absorbed: absorbed + negated,
         isCrit: preparedEffect.isCrit,
         isHeal: false,
         targetDefeated: !target.isAlive
