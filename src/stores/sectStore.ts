@@ -24,6 +24,10 @@ import {
   type SectDirectiveId
 } from '@/sect/runtime/sectPositionResolver'
 import {
+  resolveInventoryMaterialConsumption,
+  resolveInventoryMaterialQuantity
+} from '@/character/runtime/inventoryMaterialResolver'
+import {
   resolveManualSectTaskProgress,
   resolveSectTaskGeneration,
   resolveSectTaskClaim,
@@ -526,28 +530,14 @@ export const useSectStore = defineStore('sect', () => {
 
   function getInventoryMaterialQuantity(materialId: string) {
     const playerStore = usePlayerStore()
-    return playerStore.inventory
-      .filter(item => item.type === 'material')
-      .filter(item => item.definitionId === materialId || item.id === materialId || item.name === materialId)
-      .reduce((total, item) => total + item.quantity, 0)
+    return resolveInventoryMaterialQuantity(playerStore.inventory, materialId)
   }
 
   function consumeInventoryMaterial(materialId: string, quantity: number) {
     const playerStore = usePlayerStore()
-    let remaining = quantity
-    const matchedItems = playerStore.inventory
-      .filter(item => item.type === 'material')
-      .filter(item => item.definitionId === materialId || item.id === materialId || item.name === materialId)
-
-    for (const item of matchedItems) {
-      if (remaining <= 0) break
-      const consumeCount = Math.min(item.quantity, remaining)
-      remaining -= consumeCount
-      item.quantity -= consumeCount
-    }
-
-    playerStore.inventory = playerStore.inventory.filter(item => item.quantity > 0)
-    return remaining <= 0
+    const result = resolveInventoryMaterialConsumption(playerStore.inventory, materialId, quantity)
+    playerStore.inventory = result.inventory
+    return result.success
   }
 
   // 生成任务

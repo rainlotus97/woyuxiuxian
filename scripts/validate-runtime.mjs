@@ -525,6 +525,10 @@ test('world narrative creates anomaly records with area context', async () => {
 test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveAreaGameplayAccess } = await load('/src/map/runtime/mapAreaAccessResolver.ts')
   const {
+    resolveInventoryMaterialConsumption,
+    resolveInventoryMaterialQuantity
+  } = await load('/src/character/runtime/inventoryMaterialResolver.ts')
+  const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
     resolveSectDirectiveChange,
@@ -591,6 +595,23 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(blocked.blocker, 'captivity')
   assert.equal(blocked.challengeAllowed, false)
   assert.equal(blocked.sweepAllowed, false)
+
+  const inventoryFixture = [
+    { id: 'item_a', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 },
+    { id: 'item_b', definitionId: 'herb_spirit_grass', name: '旧灵草', icon: '草', type: 'material', quality: 'common', quantity: 3 },
+    { id: 'item_c', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 1 },
+    { id: 'item_d', name: '回春丹', icon: '丹', type: 'consumable', quality: 'common', quantity: 1 }
+  ]
+  assert.equal(resolveInventoryMaterialQuantity(inventoryFixture, 'herb_spirit_grass'), 5)
+  assert.equal(resolveInventoryMaterialQuantity(inventoryFixture, '灵草'), 3)
+  const consumedMaterial = resolveInventoryMaterialConsumption(inventoryFixture, 'herb_spirit_grass', 4)
+  assert.equal(consumedMaterial.success, true)
+  assert.equal(consumedMaterial.consumedQuantity, 4)
+  assert.equal(consumedMaterial.remainingQuantity, 0)
+  assert.equal(resolveInventoryMaterialQuantity(consumedMaterial.inventory, 'herb_spirit_grass'), 1)
+  const blockedMaterialConsumption = resolveInventoryMaterialConsumption(inventoryFixture, 'herb_spirit_grass', 9)
+  assert.equal(blockedMaterialConsumption.success, false)
+  assert.equal(blockedMaterialConsumption.remainingQuantity, 4)
 
   const authority = resolveSectAuthority({ positionLevel: 5, contribution: 10000 })
   assert.equal(authority.canDeclareWar, true)

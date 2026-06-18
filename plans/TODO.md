@@ -251,6 +251,7 @@
   - 待补：进一步拆出 `EquipmentLoadout / InventoryGrid / SkillTreePanel` 子组件，并让功法、装备、丹药效果更深入影响挂机与战斗
 - [~] 为 item 建立统一 schema 和筛选视图
   - 已为 `InventoryItem` 增加 `definitionId`，先打通宗门药园 / 炼丹 / 坊市 / 世界采药 / 历练掉落的统一物品标识
+  - 已新增 `inventoryMaterialResolver`，统一材料按 `definitionId / id / name` 的数量统计与消耗快照
   - 已建立 `src/shop/config/shopCatalog.ts`，将坊市商品定义收口到统一目录，并补入分类、品质、库存范围、境界与宗门限制字段
   - 待补：更多物品来源迁移、分类筛选与 schema 校验
 - [~] 坊市支持分类、稀有度、宗门限定、动态库存
@@ -280,7 +281,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`
