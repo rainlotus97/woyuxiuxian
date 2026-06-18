@@ -994,8 +994,8 @@ function handlePlayerFortune() {
 <style scoped>
 .cultivation-view {
   display: grid;
-  gap: 12px;
-  padding-bottom: 12px;
+  gap: 14px;
+  padding-bottom: 20px;
 }
 
 .main-loop-surface {
@@ -1019,7 +1019,7 @@ function handlePlayerFortune() {
 .main-loop-surface :deep(.surface-header) {
   position: relative;
   z-index: 1;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .main-loop-surface :deep(.surface-copy strong) {
@@ -1041,7 +1041,7 @@ function handlePlayerFortune() {
 .home-hero-layout {
   position: relative;
   z-index: 1;
-  grid-template-columns: minmax(0, 0.78fr) minmax(340px, 1.22fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(360px, 1.28fr);
   align-items: stretch;
   gap: 10px;
 }
@@ -1063,7 +1063,7 @@ function handlePlayerFortune() {
 .hero-main-card {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  min-height: 132px;
+  min-height: 118px;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 12px;
@@ -1141,7 +1141,7 @@ function handlePlayerFortune() {
 
 .world-pulse-card {
   align-content: space-between;
-  min-height: 132px;
+  min-height: 118px;
   padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.2);
   border-radius: 12px;
@@ -1160,7 +1160,7 @@ function handlePlayerFortune() {
 }
 
 .action-feedback-panel {
-  min-height: 120px;
+  min-height: 112px;
   align-content: start;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
@@ -1173,7 +1173,7 @@ function handlePlayerFortune() {
 .loop-hub-panel {
   grid-column: 1 / -1;
   gap: 10px;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(188, 141, 58, 0.18);
   border-radius: 12px;
   background:
@@ -1728,7 +1728,7 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 118px;
+  min-height: 108px;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
@@ -2228,7 +2228,7 @@ function handlePlayerFortune() {
   }
 
   .loop-task-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .hero-main-card {
@@ -2241,6 +2241,15 @@ function handlePlayerFortune() {
 }
 
 @media (max-width: 720px) {
+  .cultivation-view {
+    gap: 10px;
+    padding-bottom: 24px;
+  }
+
+  .main-loop-surface {
+    padding: 14px;
+  }
+
   .loop-task-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

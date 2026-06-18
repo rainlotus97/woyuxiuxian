@@ -30,7 +30,7 @@
             @click="handleToggleBgm"
           >
             <span><component :is="bgmEnabled ? Volume2 : VolumeX" :size="15" /></span>
-            <small>{{ bgmEnabled ? '关闭' : '开声' }}</small>
+            <small>{{ bgmEnabled ? '静音' : '开声' }}</small>
           </button>
         </div>
 
@@ -383,7 +383,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(4px + env(safe-area-inset-top, 0px)) 10px 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 0;
   z-index: 6;
   pointer-events: none;
 }
@@ -397,10 +397,10 @@ onUnmounted(() => {
 
 .hud-shell {
   display: grid;
-  grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
   align-items: center;
-  gap: 6px 10px;
-  padding: 6px 8px 5px;
+  gap: 5px 10px;
+  padding: 6px 8px;
   border: 1px solid rgba(101, 152, 145, 0.18);
   border-radius: 12px;
   background:
@@ -479,7 +479,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(6, max-content);
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
 }
 
 .audio-toggle,
@@ -487,7 +487,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 5px 8px;
   border: 1px solid rgba(103, 149, 144, 0.18);
   border-radius: 11px;
@@ -542,12 +542,12 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px calc(96px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px calc(104px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  scroll-padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: calc(122px + env(safe-area-inset-bottom, 0px));
   isolation: isolate;
 }
 
@@ -564,7 +564,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 18;
-  padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -579,7 +579,7 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: 0 0 calc(min(50vh, 430px) + 74px + env(safe-area-inset-bottom, 0px)) 0;
+  inset: 0 0 calc(min(50vh, 430px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
   z-index: 34;
   border: 0;
   padding: 0;
@@ -731,7 +731,7 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 54px;
+  height: 58px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
@@ -747,7 +747,7 @@ onUnmounted(() => {
 }
 
 .tab-item {
-  height: 42px;
+  height: 46px;
   min-width: 0;
   display: grid;
   place-items: center;
@@ -807,7 +807,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 6px 8px calc(84px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 8px calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -820,7 +820,7 @@ onUnmounted(() => {
 
   .hud-shell {
     gap: 6px;
-    padding: 7px;
+    padding: 6px;
     border-radius: 14px;
   }
 
@@ -829,8 +829,8 @@ onUnmounted(() => {
   }
 
   .avatar-orb {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     font-size: 16px;
   }
 
@@ -866,7 +866,7 @@ onUnmounted(() => {
 
   .resource-row :deep(.stat-chip) {
     flex-direction: column;
-    min-height: 40px;
+    min-height: 38px;
     justify-content: center;
     gap: 2px;
     padding: 5px 3px;
@@ -882,7 +882,7 @@ onUnmounted(() => {
 
   .audio-toggle,
   .home-toggle {
-    min-height: 40px;
+    min-height: 38px;
     justify-content: center;
     padding: 6px 4px;
     gap: 3px;
@@ -903,7 +903,7 @@ onUnmounted(() => {
   }
 
   .nav-scrim {
-    inset: 0 0 calc(min(52vh, 420px) + 72px + env(safe-area-inset-bottom, 0px)) 0;
+    inset: 0 0 calc(min(52vh, 420px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
   }
 
   .menu-grid {
@@ -917,12 +917,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 52px;
+    height: 56px;
     border-radius: 13px;
   }
 
   .tab-item {
-    height: 40px;
+    height: 44px;
     font-size: 10px;
   }
 }

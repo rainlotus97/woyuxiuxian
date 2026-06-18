@@ -1,5 +1,16 @@
 <template>
   <main class="main-menu">
+    <button
+      type="button"
+      class="menu-audio-toggle"
+      :class="{ active: bgmEnabled }"
+      :aria-label="bgmEnabled ? '关闭背景音' : '开启背景音'"
+      @click="handleToggleBgm"
+    >
+      <component :is="bgmEnabled ? Volume2 : VolumeX" :size="16" />
+      <span>{{ bgmEnabled ? '关闭背景音' : '静音入场' }}</span>
+    </button>
+
     <section class="start-shell" :class="{ 'has-save': playerStore.created }">
       <div class="brand-panel">
         <div class="brand-art" aria-hidden="true">
@@ -15,7 +26,10 @@
           <div class="brand-tags" aria-label="当前版本重点">
             <span><Sparkles :size="13" />明亮主界</span>
             <span><LockKeyhole :size="13" />本命锁定</span>
-            <span><VolumeX :size="13" />默认静音</span>
+            <span>
+              <component :is="bgmEnabled ? Volume2 : VolumeX" :size="13" />
+              {{ bgmEnabled ? '声音开启' : '默认静音' }}
+            </span>
           </div>
         </div>
       </div>
@@ -193,7 +207,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LockKeyhole, Play, ScrollText, Settings, Sparkles, VolumeX } from 'lucide-vue-next'
+import { LockKeyhole, Play, ScrollText, Settings, Sparkles, Volume2, VolumeX } from 'lucide-vue-next'
+import { useAudio } from '@/composables/useAudio'
 import { useP0LoopActions } from '@/composables/useP0LoopActions'
 import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import { useToast } from '@/composables/useToast'
@@ -207,6 +222,7 @@ const playerStore = usePlayerStore()
 const { info } = useToast()
 const { p0Audit, p0Acceptance } = useP0LoopStatus()
 const { handleP0LoopAction } = useP0LoopActions()
+const { bgmEnabled, toggleBgm } = useAudio()
 
 const draftName = ref(playerStore.name || '云逸')
 const draftElement = ref<Element>(playerStore.element)
@@ -300,6 +316,10 @@ function handleStory() {
   void router.push('/game/story')
 }
 
+function handleToggleBgm() {
+  toggleBgm()
+}
+
 function handlePrimaryGap() {
   const gap = p0Acceptance.value.primaryGap
   if (!gap) return
@@ -324,6 +344,7 @@ function formatAmount(value: number) {
 
 <style scoped>
 .main-menu {
+  position: relative;
   height: 100vh;
   height: 100dvh;
   overflow: auto;
@@ -337,6 +358,34 @@ function formatAmount(value: number) {
     linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.28) 34% 35%, transparent 35% 100%),
     linear-gradient(135deg, rgba(248, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 46%, rgba(255, 248, 226, 0.94) 100%);
   background-size: 44px 44px, 44px 44px, auto, auto, auto, auto;
+}
+
+.menu-audio-toggle {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: 14px;
+  z-index: 10;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(103, 149, 144, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 250, 0.84);
+  color: #4b6767;
+  font-family: var(--font-game);
+  font-size: 11px;
+  box-shadow: 0 12px 28px rgba(88, 123, 116, 0.12);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.menu-audio-toggle.active {
+  border-color: rgba(188, 141, 58, 0.3);
+  background: rgba(255, 249, 233, 0.9);
+  color: #8b6226;
 }
 
 .start-shell {
@@ -353,7 +402,8 @@ function formatAmount(value: number) {
 }
 
 .start-shell.has-save {
-  grid-template-columns: minmax(0, 0.78fr) minmax(460px, 0.92fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(480px, 0.96fr);
+  align-content: center;
 }
 
 .brand-panel,
@@ -467,6 +517,7 @@ function formatAmount(value: number) {
 
 .save-panel {
   align-content: center;
+  gap: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.97), rgba(241, 252, 247, 0.88)),
     linear-gradient(135deg, rgba(127, 205, 180, 0.18), transparent 42%),
@@ -505,7 +556,7 @@ function formatAmount(value: number) {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(164px, 0.38fr);
+  grid-template-columns: minmax(0, 1fr) 168px;
   gap: 12px;
   align-items: stretch;
   padding: 14px;
@@ -619,7 +670,7 @@ function formatAmount(value: number) {
 .priority-board {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(111, 157, 149, 0.16);
   border-radius: 14px;
   background:
@@ -645,7 +696,7 @@ function formatAmount(value: number) {
 
 .priority-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -653,7 +704,8 @@ function formatAmount(value: number) {
   min-width: 0;
   display: grid;
   gap: 5px;
-  padding: 9px;
+  min-height: 96px;
+  padding: 10px;
   border: 1px solid rgba(111, 157, 149, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
@@ -702,9 +754,13 @@ function formatAmount(value: number) {
 }
 
 .priority-item small {
+  display: -webkit-box;
+  overflow: hidden;
   color: rgba(49, 82, 87, 0.68);
   font-size: 10px;
   line-height: 1.55;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .priority-item em {
@@ -1070,6 +1126,16 @@ function formatAmount(value: number) {
 }
 
 @media (max-width: 520px) {
+  .main-menu {
+    padding-top: 58px;
+  }
+
+  .menu-audio-toggle {
+    left: 10px;
+    right: 10px;
+    justify-content: center;
+  }
+
   .start-shell {
     min-height: auto;
   }
@@ -1098,7 +1164,7 @@ function formatAmount(value: number) {
   .choice-grid,
   .avatar-row,
   .priority-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .save-profile {
