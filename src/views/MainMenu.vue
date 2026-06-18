@@ -117,9 +117,14 @@
             <span>进入主循环</span>
             <small>继续当前进度</small>
           </button>
-          <button class="secondary-action" @click="handleSettings">
-            系统设置
-          </button>
+          <div class="save-action-row">
+            <button class="secondary-action" @click="handleSettings">
+              系统设置
+            </button>
+            <button class="secondary-action ghost" @click="handleStory">
+              命簿卷宗
+            </button>
+          </div>
         </div>
       </div>
 
@@ -197,6 +202,10 @@ function handleContinue() {
 function handleSettings() {
   void router.push('/game/settings')
 }
+
+function handleStory() {
+  void router.push('/game/story')
+}
 </script>
 
 <style scoped>
@@ -207,7 +216,9 @@ function handleSettings() {
   padding: 24px;
   color: #315257;
   background:
-    linear-gradient(135deg, rgba(243, 255, 248, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%),
+    radial-gradient(circle at 16% 8%, rgba(255, 223, 142, 0.34), transparent 26%),
+    radial-gradient(circle at 88% 10%, rgba(106, 208, 184, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(247, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%),
     repeating-linear-gradient(90deg, rgba(82, 139, 127, 0.05) 0 1px, transparent 1px 76px),
     repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.045) 0 1px, transparent 1px 76px);
 }
@@ -221,7 +232,7 @@ function handleSettings() {
   grid-template-areas:
     "brand guide"
     "preview guide";
-  gap: 18px;
+  gap: 16px;
   align-content: center;
 }
 
@@ -229,7 +240,7 @@ function handleSettings() {
 .guide-panel,
 .world-preview {
   border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(244, 252, 247, 0.78)),
     linear-gradient(90deg, rgba(255, 235, 170, 0.18), transparent 38%);
@@ -290,6 +301,9 @@ function handleSettings() {
 
 .save-panel {
   align-content: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(241, 252, 247, 0.82)),
+    radial-gradient(circle at top right, rgba(255, 226, 145, 0.22), transparent 58%);
 }
 
 .save-profile {
@@ -299,7 +313,7 @@ function handleSettings() {
   align-items: center;
   padding: 16px;
   border: 1px solid rgba(111, 157, 149, 0.18);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 252, 247, 0.66)),
     linear-gradient(90deg, rgba(255, 236, 178, 0.26), transparent 48%);
@@ -310,7 +324,7 @@ function handleSettings() {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   background: linear-gradient(145deg, #fff2bd, #91dfc2);
   color: #8e6227;
@@ -371,7 +385,7 @@ function handleSettings() {
   gap: 6px;
   padding: 14px;
   border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
     radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
@@ -506,6 +520,12 @@ function handleSettings() {
   margin-top: 4px;
 }
 
+.save-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .primary-action,
 .secondary-action {
   min-height: 56px;
@@ -538,6 +558,11 @@ function handleSettings() {
 .secondary-action {
   background: rgba(255, 255, 255, 0.68);
   color: #496463;
+}
+
+.secondary-action.ghost {
+  border-color: rgba(111, 157, 149, 0.2);
+  background: rgba(243, 252, 248, 0.64);
 }
 
 .world-preview {
@@ -609,7 +634,8 @@ function handleSettings() {
   }
 
   .resume-brief,
-  .save-stats {
+  .save-stats,
+  .save-action-row {
     grid-template-columns: 1fr;
   }
 }

@@ -14,10 +14,10 @@
         </div>
 
         <div class="resource-row">
-          <GameStatChip icon="石" label="灵石" :value="playerStore.gold" tone="gold" />
-          <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" />
-          <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
-          <GameStatChip icon="人" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
+          <GameStatChip icon="石" label="灵石" :value="playerStore.gold" tone="gold" compact />
+          <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" compact />
+          <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" compact />
+          <GameStatChip icon="人" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" compact />
           <button
             class="audio-toggle"
             :class="{ active: bgmEnabled }"
@@ -36,7 +36,7 @@
       </div>
     </header>
 
-    <main class="main-shell" @click="handleMainClick">
+    <main class="main-shell" :class="{ locked: isMenuExpanded }" @click="handleMainClick">
       <div class="content-stage">
         <RouterView />
       </div>
@@ -322,9 +322,12 @@ onUnmounted(() => {
   height: 100dvh;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #f5fff8 0%, #eef9f1 48%, #e4f1ea 100%),
-    repeating-linear-gradient(90deg, rgba(87, 137, 125, 0.04) 0 1px, transparent 1px 72px),
-    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.035) 0 1px, transparent 1px 72px);
+    linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%),
+    radial-gradient(circle at 12% 4%, rgba(255, 223, 138, 0.28), transparent 28%),
+    radial-gradient(circle at 86% 0%, rgba(115, 212, 190, 0.18), transparent 32%),
+    repeating-linear-gradient(90deg, rgba(87, 137, 125, 0.035) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.03) 0 1px, transparent 1px 72px);
+  color: #315257;
 }
 
 .layout-backdrop {
@@ -352,7 +355,7 @@ onUnmounted(() => {
     linear-gradient(rgba(65, 102, 97, 0.055) 1px, transparent 1px),
     linear-gradient(90deg, rgba(65, 102, 97, 0.055) 1px, transparent 1px);
   background-size: 44px 44px;
-  mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 72%);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.68), transparent 72%);
 }
 
 .top-shell,
@@ -363,7 +366,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
+  padding: calc(7px + env(safe-area-inset-top, 0px)) 12px 0;
   z-index: 6;
 }
 
@@ -379,13 +382,13 @@ onUnmounted(() => {
   grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 10px 16px;
-  padding: 10px;
+  padding: 9px 10px;
   border: 1px solid rgba(101, 152, 145, 0.2);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(242, 251, 246, 0.76)),
     linear-gradient(90deg, rgba(255, 238, 184, 0.24), transparent 46%);
-  box-shadow: 0 12px 30px rgba(88, 123, 116, 0.12);
+  box-shadow: 0 10px 26px rgba(88, 123, 116, 0.11);
   backdrop-filter: blur(16px);
 }
 
@@ -406,11 +409,11 @@ onUnmounted(() => {
 }
 
 .avatar-orb {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   background: linear-gradient(135deg, #fff0b0, #73d4be);
   color: #8e6227;
@@ -457,17 +460,17 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 7px;
 }
 
 .audio-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 7px 10px;
   border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 16px;
+  border-radius: 13px;
   background: rgba(255, 255, 255, 0.58);
   color: #4b6767;
   font-family: var(--font-game);
@@ -482,8 +485,8 @@ onUnmounted(() => {
 }
 
 .audio-toggle span {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -505,16 +508,20 @@ onUnmounted(() => {
   margin: 0;
   color: rgba(55, 82, 84, 0.78);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 12px 12px calc(104px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 12px calc(92px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
+}
+
+.main-shell.locked {
+  overflow: hidden;
 }
 
 .content-stage {
@@ -529,8 +536,8 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
-  padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 18;
+  padding: 0 12px calc(9px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -550,17 +557,17 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   z-index: 24;
-  background: rgba(48, 78, 74, 0.14);
-  backdrop-filter: blur(3px);
+  background: rgba(48, 78, 74, 0.12);
+  backdrop-filter: blur(2px);
   cursor: pointer;
 }
 
 .nav-drawer {
   margin-bottom: 10px;
-  max-height: min(68vh, 560px);
+  max-height: min(62vh, 520px);
   overflow: auto;
-  border-radius: 18px;
-  box-shadow: 0 28px 72px rgba(58, 85, 82, 0.24);
+  border-radius: 16px;
+  box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
 }
 
 .nav-header {
@@ -661,30 +668,30 @@ onUnmounted(() => {
 }
 
 .tab-bar {
-  height: 70px;
+  height: 64px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
-  padding: 7px;
+  padding: 6px;
   border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
     radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
-  box-shadow: 0 18px 48px rgba(57, 89, 84, 0.18);
+  box-shadow: 0 14px 38px rgba(57, 89, 84, 0.16);
   backdrop-filter: blur(18px);
 }
 
 .tab-item {
-  height: 56px;
+  height: 50px;
   min-width: 0;
   display: grid;
   place-items: center;
   gap: 3px;
   padding: 4px 2px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 11px;
   background: transparent;
   color: rgba(65, 91, 89, 0.74);
   font-family: var(--font-game);
@@ -735,7 +742,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 10px 10px calc(98px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 8px calc(84px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -748,8 +755,8 @@ onUnmounted(() => {
 
   .hud-shell {
     gap: 8px;
-    padding: 9px;
-    border-radius: 18px;
+    padding: 8px;
+    border-radius: 14px;
   }
 
   .player-block {
@@ -789,7 +796,7 @@ onUnmounted(() => {
   .resource-row {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
+    gap: 5px;
   }
 
   .resource-row :deep(.stat-chip) {
@@ -809,7 +816,7 @@ onUnmounted(() => {
   }
 
   .audio-toggle {
-    min-height: 48px;
+    min-height: 44px;
     justify-content: center;
     padding: 6px 4px;
   }
@@ -823,7 +830,7 @@ onUnmounted(() => {
   }
 
   .nav-drawer {
-    max-height: min(70vh, 520px);
+    max-height: min(66vh, 500px);
   }
 
   .menu-grid {
@@ -837,12 +844,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 66px;
-    border-radius: 16px;
+    height: 60px;
+    border-radius: 15px;
   }
 
   .tab-item {
-    height: 52px;
+    height: 48px;
     font-size: 10px;
   }
 }

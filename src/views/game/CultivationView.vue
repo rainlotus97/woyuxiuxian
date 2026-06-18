@@ -770,7 +770,7 @@ function handleAdvanceWorld() {
 <style scoped>
 .cultivation-view {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding-bottom: 12px;
 }
 
@@ -876,21 +876,20 @@ function handleAdvanceWorld() {
 
 .loop-task-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .loop-task-card {
   min-width: 0;
-  min-height: 116px;
+  min-height: 124px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: 1fr auto;
-  gap: 10px 12px;
-  align-items: start;
-  padding: 13px;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  align-items: stretch;
+  padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 18px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.9), rgba(241, 249, 244, 0.78)),
     radial-gradient(circle at top right, rgba(158, 225, 207, 0.16), transparent 58%);
@@ -930,11 +929,11 @@ function handleAdvanceWorld() {
 }
 
 .task-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.76);
   color: #8b6226;
   font-size: 16px;
@@ -944,7 +943,7 @@ function handleAdvanceWorld() {
 .task-copy {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .task-copy small {
@@ -955,7 +954,7 @@ function handleAdvanceWorld() {
 .task-copy strong {
   overflow: hidden;
   color: #315257;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -965,7 +964,7 @@ function handleAdvanceWorld() {
   display: -webkit-box;
   overflow: hidden;
   color: rgba(53, 81, 83, 0.76);
-  font-size: 11px;
+  font-size: 10px;
   font-style: normal;
   line-height: 1.55;
   -webkit-line-clamp: 2;
@@ -976,7 +975,7 @@ function handleAdvanceWorld() {
   grid-column: 1 / -1;
   width: fit-content;
   max-width: 100%;
-  min-height: 26px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
   padding: 0 9px;
@@ -1315,11 +1314,14 @@ function handleAdvanceWorld() {
 @media (max-width: 980px) {
   .hero-grid,
   .hero-grid.compact,
-  .loop-task-grid,
   .overview-grid,
   .world-grid,
   .log-list {
     grid-template-columns: 1fr;
+  }
+
+  .loop-task-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .hero-stats {

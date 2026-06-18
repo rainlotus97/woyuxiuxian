@@ -1,5 +1,5 @@
 <template>
-  <div class="stat-chip" :class="`tone-${tone}`">
+  <div class="stat-chip" :class="[`tone-${tone}`, { compact }]">
     <span class="stat-icon">{{ icon }}</span>
     <div class="stat-copy">
       <small>{{ label }}</small>
@@ -14,8 +14,10 @@ withDefaults(defineProps<{
   label: string
   value: string | number
   tone?: 'jade' | 'gold' | 'rose'
+  compact?: boolean
 }>(), {
-  tone: 'jade'
+  tone: 'jade',
+  compact: false
 })
 </script>
 
@@ -30,6 +32,13 @@ withDefaults(defineProps<{
   border: 1px solid rgba(100, 148, 141, 0.2);
   background: rgba(255, 255, 255, 0.62);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.stat-chip.compact {
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border-radius: 13px;
 }
 
 .tone-gold {
@@ -53,9 +62,16 @@ withDefaults(defineProps<{
   font-size: 14px;
 }
 
+.stat-chip.compact .stat-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
 .stat-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .stat-copy small {
@@ -66,5 +82,13 @@ withDefaults(defineProps<{
 .stat-copy strong {
   color: #305256;
   font-size: 13px;
+}
+
+.stat-chip.compact .stat-copy strong {
+  overflow: hidden;
+  max-width: 92px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

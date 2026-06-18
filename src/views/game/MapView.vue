@@ -229,6 +229,13 @@
             <p class="background-story">{{ selectedArea.background }}</p>
           </div>
         </GameSurface>
+
+        <MapAreaActionPanel
+          :options="getAreaActionOptions(selectedArea)"
+          :stamina="playerStore.stamina"
+          :feedback="lastAreaActionFeedback"
+          @act="handleSelectedAreaAction"
+        />
       </template>
 
       <template #footer>
@@ -277,10 +284,13 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import MapAreaActionPanel from '@/components/map/MapAreaActionPanel.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
+import { useMapAreaAction } from '@/composables/useMapAreaAction'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
+import type { MapAreaActionKind } from '@/map/runtime/mapAreaActionResolver'
 import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { useMapStore } from '@/stores/mapStore'
@@ -297,8 +307,13 @@ const mapStore = useMapStore()
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
-const { warning } = useToast()
+const { warning, success } = useToast()
 const { handleWorldBriefingAction } = useWorldBriefingActions()
+const {
+  lastFeedback: lastAreaActionFeedback,
+  getActionOptions: getAreaActionOptions,
+  applyAreaAction
+} = useMapAreaAction()
 
 const selectedArea = ref<MapArea | null>(null)
 
@@ -454,6 +469,20 @@ function handleRealmSelect(realm: string) {
 
 function handleAreaClick(area: MapArea) {
   selectedArea.value = area
+}
+
+function handleAreaAction(area: MapArea, kind: MapAreaActionKind) {
+  const result = applyAreaAction(area, kind)
+  if (!result.success) {
+    warning(result.message)
+    return
+  }
+  success(`${result.option.label}完成：${result.result.title}`)
+}
+
+function handleSelectedAreaAction(kind: MapAreaActionKind) {
+  if (!selectedArea.value) return
+  handleAreaAction(selectedArea.value, kind)
 }
 
 function handleChallenge(area: MapArea) {
