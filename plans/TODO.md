@@ -137,7 +137,8 @@
   - 已补入血脉品级、特殊体质、阵营立场与成长缺陷字段
   - 已让 NPC 生成器、锚点 NPC、旧存档回填、潜力评分、命数压力、主界面重要人物卡消费新画像
   - 已让禁血、特殊体质、心魔、复仇、破境冒进等画像影响 NPC 自主行动权重
-  - 待补：更多血脉/体质专属事件模板、传承觉醒与缺陷修复玩法
+  - 已新增 `npcLineageActionResolver`，支持血脉觉醒、禁血反噬、体质感应与成长缺陷磨砺事件
+  - 待补：传承觉醒后的长期技能/剧情分支、缺陷彻底修复玩法、更多体质专属事件模板
 - [~] 建立 NPC 关系网
   - 已建立 world NPC relationship state 的 story favor 同步入口
   - 已支持 favor -> bond 的基础映射（stranger / friend / companion / rival / enemy / lover）
