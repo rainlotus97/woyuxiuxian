@@ -160,15 +160,21 @@ export function resolveMapAreaEncounter(
   const rewardMultiplier = Number((riskConfig.rewardMultiplier * weatherConfig.rewardMultiplier * rewardBonus * anomalyRewardBonus).toFixed(3))
   const anomalyNote = anomaly ? `异动：${anomaly.title}。${anomaly.riskHint}` : ''
   const accessState: MapAreaEncounterContext['accessState'] =
-    anomaly?.type === 'flood' || anomaly?.type === 'fire'
-      ? 'risky'
-      : anomaly?.type === 'beast_tide'
+    anomaly && anomaly.severity === 'legendary' && (
+      anomaly.type === 'flood' || anomaly.type === 'fire' || anomaly.type === 'beast_tide'
+    )
+      ? 'blocked'
+      : anomaly?.type === 'flood' || anomaly?.type === 'fire'
         ? 'risky'
-        : 'open'
+        : anomaly?.type === 'beast_tide'
+          ? 'risky'
+          : 'open'
   const accessLabel =
-    accessState === 'risky'
-      ? '异动中'
-      : '开放'
+    accessState === 'blocked'
+      ? '封锁'
+      : accessState === 'risky'
+        ? '异动中'
+        : '开放'
 
   return {
     mapArea,

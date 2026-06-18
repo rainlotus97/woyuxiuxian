@@ -96,6 +96,14 @@
           <p>{{ getAreaEncounterHint(area)?.encounterNote }}</p>
         </div>
 
+        <div class="area-access-row" :class="`state-${getAreaAccess(area).entryState}`">
+          <span class="access-badge">{{ getAreaAccess(area).entryLabel }}</span>
+          <p>{{ getAreaAccess(area).entryReason }}</p>
+        </div>
+        <small v-if="getAreaAccess(area).warnings[0]" class="access-warning">
+          {{ getAreaAccess(area).warnings[0] }}
+        </small>
+
         <div class="area-meta-grid">
           <div class="drop-strip">
             <span class="meta-label">掉落</span>
@@ -114,7 +122,7 @@
           </div>
 
           <div class="meta-chips">
-            <GameStatChip icon="⚡" label="体力" :value="area.staminaCost" tone="gold" />
+            <GameStatChip icon="⚡" label="体力" :value="getAreaAccess(area).staminaCost" tone="gold" />
             <GameStatChip icon="🌊" label="波次" :value="`${getDifficultyWaves(area.difficulty)}波`" tone="jade" />
           </div>
         </div>
@@ -135,12 +143,22 @@
               境界不足
             </GameActionButton>
 
+            <GameActionButton
+              v-else-if="!getAreaAccess(area).challengeAllowed"
+              icon="⛔"
+              tone="stone"
+              block
+              disabled
+            >
+              {{ getAreaAccess(area).entryLabel }}
+            </GameActionButton>
+
             <template v-else-if="getAreaStars(area.id) === 0">
               <GameActionButton
                 icon="⚔️"
                 tone="jade"
                 block
-                :disabled="playerStore.stamina < area.staminaCost"
+                :disabled="playerStore.stamina < getAreaAccess(area).staminaCost"
                 @click="handleChallenge(area)"
               >
                 挑战
@@ -152,7 +170,7 @@
                 icon="⚔️"
                 tone="jade"
                 block
-                :disabled="playerStore.stamina < area.staminaCost"
+                :disabled="playerStore.stamina < getAreaAccess(area).staminaCost"
                 @click="handleChallenge(area)"
               >
                 挑战
@@ -161,7 +179,7 @@
                 icon="🔄"
                 tone="gold"
                 block
-                :disabled="playerStore.stamina < area.staminaCost * 3"
+                :disabled="playerStore.stamina < getAreaAccess(area).sweepCost || !getAreaAccess(area).sweepAllowed"
                 @click="handleSweep(area)"
               >
                 扫荡x3
@@ -210,6 +228,7 @@ import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
+import { resolveAreaGameplayAccess, type AreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
 import { useMapStore } from '@/stores/mapStore'
@@ -289,6 +308,59 @@ const staminaRecoverLabel = computed(() => {
   return `${Math.floor(playerStore.nextRecoverCountdown / 60)}:${String(playerStore.nextRecoverCountdown % 60).padStart(2, '0')} 后恢复+1`
 })
 
+const areaEncounterLookup = computed(() => {
+  const entries: Record<string, ReturnType<typeof resolveAdventureAreaEncounter>> = {}
+  for (const area of areas) {
+    entries[area.id] = resolveAdventureAreaEncounter(
+      area.id,
+      mapStore.areaStates,
+      worldStore.weather,
+      worldStore.activeAreaAnomalies
+    )
+  }
+  return entries
+})
+
+const areaAccessLookup = computed<Record<string, AreaGameplayAccess>>(() => {
+  const entries: Record<string, AreaGameplayAccess> = {}
+  for (const area of areas) {
+    const encounter = areaEncounterLookup.value[area.id] ?? null
+    entries[area.id] = resolveAreaGameplayAccess({
+      areaName: area.name,
+      mapAreaId: encounter?.mapAreaId ?? null,
+      mapAreaSectIds: encounter?.mapArea.sects ?? [],
+      controllerSectId: encounter?.controllerSectId ?? null,
+      encounter,
+      baseStaminaCost: area.staminaCost,
+      playerCaptivity: playerStore.captivity,
+      sectRuntime: {
+        joinedSectId: sectStore.joinedSectId,
+        currentSectName: sectStore.currentSect?.name ?? null,
+        homeAreaId: sectStore.currentSect?.areaId ?? null,
+        worldCondition: sectStore.worldCondition,
+        activeWar: sectStore.activeWar
+      }
+    })
+  }
+  return entries
+})
+
+function createFallbackAreaAccess(area: AreaDefinition): AreaGameplayAccess {
+  return {
+    entryState: 'open',
+    entryLabel: '开放',
+    entryReason: '界路暂稳，可正常历练。',
+    warnings: [],
+    staminaCost: area.staminaCost,
+    sweepCost: area.staminaCost * 3,
+    challengeAllowed: true,
+    mapChallengeAllowed: true,
+    adventureChallengeAllowed: true,
+    sweepAllowed: true,
+    blocker: null
+  }
+}
+
 function getRealmColor(realm: Realm): string {
   return REALM_PRIMARY_COLOR[realm] || '#7eb8da'
 }
@@ -315,12 +387,18 @@ function getAreaStars(areaId: string): number {
 }
 
 function handleChallenge(area: AreaDefinition) {
-  if (playerStore.stamina < area.staminaCost) {
-    warning('体力不足！')
+  const access = getAreaAccess(area)
+  if (!access.challengeAllowed) {
+    warning(access.entryReason)
     return
   }
 
-  playerStore.consumeStamina(area.staminaCost)
+  if (playerStore.stamina < access.staminaCost) {
+    warning(`体力不足！需要${access.staminaCost}点体力`)
+    return
+  }
+
+  playerStore.consumeStamina(access.staminaCost)
   router.push({
     path: '/game/battle',
     query: { areaId: area.id }
@@ -328,7 +406,13 @@ function handleChallenge(area: AreaDefinition) {
 }
 
 function handleSweep(area: AreaDefinition) {
-  const sweepCost = area.staminaCost * 3
+  const access = getAreaAccess(area)
+  if (!access.sweepAllowed) {
+    warning(access.entryReason)
+    return
+  }
+
+  const sweepCost = access.sweepCost
   if (playerStore.stamina < sweepCost) {
     warning(`体力不足！需要${sweepCost}点体力`)
     return
@@ -406,7 +490,11 @@ function handleBuyStamina(option: { amount: number; cost: number }) {
 }
 
 function getAreaEncounterHint(area: AreaDefinition) {
-  return resolveAdventureAreaEncounter(area.id, mapStore.areaStates, worldStore.weather, worldStore.activeAreaAnomalies)
+  return areaEncounterLookup.value[area.id] ?? null
+}
+
+function getAreaAccess(area: AreaDefinition) {
+  return areaAccessLookup.value[area.id] ?? createFallbackAreaAccess(area)
 }
 
 onMounted(() => {
@@ -590,6 +678,55 @@ onUnmounted(() => {
 .area-world-state p {
   margin: 0;
   color: rgba(73, 97, 95, 0.78);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.area-access-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(104, 150, 145, 0.16);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.area-access-row p {
+  margin: 0;
+  color: rgba(73, 97, 95, 0.78);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.access-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(104, 150, 145, 0.18);
+  color: #4c7a78;
+  background: rgba(239, 250, 247, 0.78);
+  font-size: 11px;
+}
+
+.area-access-row.state-risky .access-badge {
+  color: #9b6a1c;
+  border-color: rgba(214, 153, 58, 0.24);
+  background: rgba(255, 248, 232, 0.92);
+}
+
+.area-access-row.state-blocked .access-badge {
+  color: #9b4a55;
+  border-color: rgba(190, 103, 122, 0.24);
+  background: rgba(255, 242, 245, 0.92);
+}
+
+.access-warning {
+  display: block;
+  margin-top: 8px;
+  color: rgba(73, 97, 95, 0.64);
   font-size: 11px;
   line-height: 1.55;
 }

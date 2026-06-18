@@ -16,6 +16,8 @@ import { usePetStore } from '@/stores/petStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useMapStore } from '@/stores/mapStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { useToast } from '@/composables/useToast'
+import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import {
   applyEncounterRewardMultiplier,
   resolveAdventureAreaEncounter,
@@ -61,6 +63,7 @@ export function useBattleSession() {
   const sectStore = useSectStore()
   const mapStore = useMapStore()
   const worldStore = useWorldStore()
+  const { warning } = useToast()
 
   const battleRuntime = ref<BattleRuntime | null>(null)
   const runtimeSnapshot = ref<BattleRuntimeSnapshot | null>(null)
@@ -171,9 +174,60 @@ export function useBattleSession() {
     if (sessionId && session.id !== sessionId) return null
     return session
   })
+  const battleEntryAccess = computed(() => {
+    if (activeRouteGameplaySession.value) return null
+    const areaId = route.query.areaId as string | undefined
+    if (!areaId) return null
+    const area = getAreaById(areaId)
+    if (!area) return null
+    const encounter = activeMapEncounter.value
+    return resolveAreaGameplayAccess({
+      areaName: area.name,
+      mapAreaId: (route.query.mapAreaId as string | undefined) ?? encounter?.mapAreaId ?? null,
+      mapAreaSectIds: encounter?.mapArea.sects ?? [],
+      controllerSectId: encounter?.controllerSectId ?? null,
+      encounter,
+      baseStaminaCost: area.staminaCost,
+      playerCaptivity: playerStore.captivity,
+      sectRuntime: {
+        joinedSectId: sectStore.joinedSectId,
+        currentSectName: sectStore.currentSect?.name ?? null,
+        homeAreaId: sectStore.currentSect?.areaId ?? null,
+        worldCondition: sectStore.worldCondition,
+        activeWar: sectStore.activeWar
+      }
+    })
+  })
 
   function cleanName(name: string) {
     return name.replace('[BOSS]', '').replace('[精英]', '')
+  }
+
+  function redirectFromBlockedEntry() {
+    const fallbackPath = route.query.mapAreaId ? '/game/map' : '/game/adventure'
+    router.replace(fallbackPath)
+  }
+
+  function validateBattleEntry() {
+    if (activeRouteGameplaySession.value) return true
+
+    const areaId = route.query.areaId as string | undefined
+    if (!areaId) return true
+
+    const area = getAreaById(areaId)
+    if (!area) {
+      warning('历练区域不存在，已返回历练界面。')
+      router.replace('/game/adventure')
+      return false
+    }
+
+    if (battleEntryAccess.value && !battleEntryAccess.value.challengeAllowed) {
+      warning(battleEntryAccess.value.entryReason)
+      redirectFromBlockedEntry()
+      return false
+    }
+
+    return true
   }
 
   function startBattleInstance() {
@@ -537,6 +591,7 @@ export function useBattleSession() {
     disposed = false
     sceneReady = false
     battleStarted = false
+    if (!validateBattleEntry()) return
     bindScene()
     initBattle()
   })

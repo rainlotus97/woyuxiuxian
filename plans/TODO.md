@@ -258,6 +258,10 @@
   - 已为 `playerStore` 增加 captivity 持久化状态，支持记录俘虏方与起始 tick
   - 已为 `sectStore` 增加 `worldCondition`，支持 stable / rebuilding / collapsed 世界态
   - 已让 `warAftermathResolver` 可直接驱动主角被俘与宗门重建/沦陷基础状态
+- [x] 让世界状态进入真实玩法入口
+  - 已新增 `mapAreaAccessResolver`，统一处理被俘、异动、战线与宗门世界态对挑战入口的影响
+  - 已让 `AdventureView` / `MapView` 复用同一套挑战准入、扫荡限制与体力修正逻辑
+  - 已让 `useBattleSession` 在直达战斗时拒绝被俘、山门沦陷或异动封锁下的非法入口
 - [x] 模块化战斗效果解析
   - 已接入单体/群体/自身目标选择
   - 已接入治疗、护盾、buff/debuff、持续伤害 runtime

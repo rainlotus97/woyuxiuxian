@@ -132,6 +132,17 @@
           </small>
         </div>
 
+        <div class="area-access-row" :class="`state-${getAreaAccess(area.id).entryState}`">
+          <span class="access-badge">{{ getAreaAccess(area.id).entryLabel }}</span>
+          <p>{{ getAreaAccess(area.id).entryReason }}</p>
+          <small v-if="getAreaAccess(area.id).warnings[0]">{{ getAreaAccess(area.id).warnings[0] }}</small>
+        </div>
+
+        <div class="area-access-meta">
+          <span class="access-pill">⚡ {{ getAreaAccess(area.id).staminaCost }}</span>
+          <span class="access-pill">{{ getAreaAccess(area.id).entryLabel }}</span>
+        </div>
+
         <div class="resource-tags">
           <span v-for="resource in area.resources.slice(0, 3)" :key="resource" class="resource-tag">{{ resource }}</span>
         </div>
@@ -163,6 +174,14 @@
               <span class="detail-label">区域状态</span>
               <strong>{{ mapStore.isAreaConquered(selectedArea.id) ? '已征服' : isAreaUnlocked(selectedArea) ? '可挑战' : '未解锁' }}</strong>
               <small v-if="getAreaEncounter(selectedArea.id)">{{ getAreaEncounter(selectedArea.id)?.statusText }}</small>
+            </div>
+          </GameSurface>
+
+          <GameSurface tone="mist" padding="md" compact>
+            <div class="detail-section">
+              <span class="detail-label">行动消耗</span>
+              <strong>⚡ {{ getAreaAccess(selectedArea.id).staminaCost }}</strong>
+              <small>{{ getAreaAccess(selectedArea.id).entryReason }}</small>
             </div>
           </GameSurface>
         </div>
@@ -207,9 +226,18 @@
 
       <template #footer>
         <GameActionButton
-          v-if="selectedArea && isAreaUnlocked(selectedArea) && !mapStore.isAreaConquered(selectedArea.id)"
+          v-if="selectedArea && isAreaUnlocked(selectedArea) && !mapStore.isAreaConquered(selectedArea.id) && !getAreaAccess(selectedArea.id).challengeAllowed"
+          icon="⛔"
+          tone="stone"
+          disabled
+        >
+          {{ getAreaAccess(selectedArea.id).entryLabel }}
+        </GameActionButton>
+        <GameActionButton
+          v-else-if="selectedArea && isAreaUnlocked(selectedArea) && !mapStore.isAreaConquered(selectedArea.id)"
           icon="⚔️"
           tone="jade"
+          :disabled="playerStore.stamina < getAreaAccess(selectedArea.id).staminaCost"
           @click="handleChallenge(selectedArea)"
         >
           前往挑战
@@ -242,10 +270,14 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import { useToast } from '@/composables/useToast'
+import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { getAreaById as getAdventureAreaById } from '@/types/adventure'
 import { WORLD_REALMS, WORLD_REALM_CONFIGS, type MapArea } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import { getAnomalyIcon } from '@/components/world/worldUi'
@@ -253,7 +285,9 @@ import { getAnomalyIcon } from '@/components/world/worldUi'
 const router = useRouter()
 const mapStore = useMapStore()
 const playerStore = usePlayerStore()
+const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const { warning } = useToast()
 
 const selectedArea = ref<MapArea | null>(null)
 
@@ -276,6 +310,56 @@ const seasonEffectLabel = computed(() => {
   }
   return labels[worldSeason.value] ?? '天机流转'
 })
+
+const areaEncounterLookup = computed(() => {
+  const entries: Record<string, ReturnType<typeof resolveMapAreaEncounter>> = {}
+  for (const area of mapStore.currentRealmAreas) {
+    const anomaly = worldStore.activeAreaAnomalies.find(item => item.areaId === area.id) ?? null
+    entries[area.id] = resolveMapAreaEncounter(area.id, mapStore.getAreaState(area.id), worldStore.weather, anomaly)
+  }
+  return entries
+})
+
+const areaAccessLookup = computed(() => {
+  const entries: Record<string, ReturnType<typeof resolveAreaGameplayAccess>> = {}
+  for (const area of mapStore.currentRealmAreas) {
+    const encounter = areaEncounterLookup.value[area.id] ?? null
+    const adventureArea = getAdventureAreaById(resolveMapAreaAdventureAreaId(area.id))
+    entries[area.id] = resolveAreaGameplayAccess({
+      areaName: area.name,
+      mapAreaId: area.id,
+      mapAreaSectIds: area.sects,
+      controllerSectId: encounter?.controllerSectId ?? null,
+      encounter,
+      baseStaminaCost: adventureArea?.staminaCost ?? 1,
+      playerCaptivity: playerStore.captivity,
+      sectRuntime: {
+        joinedSectId: sectStore.joinedSectId,
+        currentSectName: sectStore.currentSect?.name ?? null,
+        homeAreaId: sectStore.currentSect?.areaId ?? null,
+        worldCondition: sectStore.worldCondition,
+        activeWar: sectStore.activeWar
+      }
+    })
+  }
+  return entries
+})
+
+function createFallbackAreaAccess() {
+  return {
+    entryState: 'open' as const,
+    entryLabel: '开放',
+    entryReason: '界路暂稳，可正常历练。',
+    warnings: [] as string[],
+    staminaCost: 1,
+    sweepCost: 3,
+    challengeAllowed: true,
+    mapChallengeAllowed: true,
+    adventureChallengeAllowed: true,
+    sweepAllowed: true,
+    blocker: null
+  }
+}
 
 function getSeasonIcon(season: string): string {
   const icons: Record<string, string> = {
@@ -305,8 +389,11 @@ function getSectName(sectId: string): string {
 }
 
 function getAreaEncounter(areaId: string) {
-  const anomaly = worldStore.activeAreaAnomalies.find(item => item.areaId === areaId) ?? null
-  return resolveMapAreaEncounter(areaId, mapStore.getAreaState(areaId), worldStore.weather, anomaly)
+  return areaEncounterLookup.value[areaId] ?? null
+}
+
+function getAreaAccess(areaId: string) {
+  return areaAccessLookup.value[areaId] ?? createFallbackAreaAccess()
 }
 
 function handleRealmSelect(realm: string) {
@@ -320,6 +407,18 @@ function handleAreaClick(area: MapArea) {
 }
 
 function handleChallenge(area: MapArea) {
+  const access = getAreaAccess(area.id)
+  if (!access.challengeAllowed) {
+    warning(access.entryReason)
+    return
+  }
+
+  if (playerStore.stamina < access.staminaCost) {
+    warning(`体力不足！需要${access.staminaCost}点体力`)
+    return
+  }
+
+  playerStore.consumeStamina(access.staminaCost)
   const adventureAreaId = resolveMapAreaAdventureAreaId(area.id)
   router.push({
     path: '/game/battle',
@@ -615,6 +714,58 @@ function handleChallenge(area: MapArea) {
   color: rgba(73, 97, 95, 0.66);
   font-size: 10px;
   line-height: 1.5;
+}
+
+.area-access-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(104, 150, 145, 0.16);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.area-access-row p,
+.area-access-row small {
+  margin: 0;
+  color: rgba(73, 97, 95, 0.76);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.access-badge,
+.access-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(104, 150, 145, 0.18);
+  color: #4c7a78;
+  background: rgba(239, 250, 247, 0.78);
+  font-size: 11px;
+}
+
+.area-access-row.state-risky .access-badge,
+.area-access-row.state-risky .access-pill {
+  color: #9b6a1c;
+  border-color: rgba(214, 153, 58, 0.24);
+  background: rgba(255, 248, 232, 0.92);
+}
+
+.area-access-row.state-blocked .access-badge,
+.area-access-row.state-blocked .access-pill {
+  color: #9b4a55;
+  border-color: rgba(190, 103, 122, 0.24);
+  background: rgba(255, 242, 245, 0.92);
+}
+
+.area-access-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .resource-tags {
