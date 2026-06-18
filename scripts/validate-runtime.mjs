@@ -970,6 +970,42 @@ test('player journey resolver produces mode rewards', async () => {
   assert.equal(battleDefeat.totalExp, 0)
 })
 
+test('idle journey resolver records immediate p0 feedback', async () => {
+  const { resolveIdleJourney } = await load('/src/world/runtime/idleJourneyResolver.ts')
+  const baseClock = { year: 1, month: 1, day: 1, shichenIndex: 4, totalTicks: 1, lastSimulatedAt: 0 }
+
+  const start = resolveIdleJourney({
+    event: 'start',
+    clock: baseClock,
+    idleMode: 'cultivate',
+    cultivationPerSecond: 5.5,
+    areaName: '青云山',
+    sectName: null
+  })
+
+  assert.equal(start.title, '闭关修炼启程')
+  assert.ok(start.text.includes('青云山'))
+  assert.ok(start.tags.includes('idle'))
+  assert.ok(start.tags.includes('cultivation'))
+  assert.equal(start.rewards[0].type, 'flag')
+
+  const stop = resolveIdleJourney({
+    event: 'stop',
+    clock: baseClock,
+    idleMode: 'sectDuty',
+    cultivationPerSecond: 5.5,
+    areaName: '青云山',
+    sectName: '青云宗',
+    elapsedSeconds: 125
+  })
+
+  assert.equal(stop.title, '行程收束')
+  assert.ok(stop.text.includes('2分5息'))
+  assert.ok(stop.tags.includes('idle'))
+  assert.ok(stop.tags.includes('sect'))
+  assert.ok(stop.tags.includes('summary'))
+})
+
 test('world narrative creates anomaly records with area context', async () => {
   const { createAreaAnomaly, resolveWorldDisasterTrigger } = await load('/src/world/runtime/worldNarrativeResolver.ts')
   const { HUMAN_REALM_AREAS } = await load('/src/types/map.ts')
@@ -2894,6 +2930,27 @@ test('p0 loop closure summarizes observable result evidence', async () => {
   assert.equal(freshClosure.counts.blocked, 0)
   assert.equal(freshClosure.byId.story.state, 'actionable')
   assert.match(freshClosure.headline, /可继续验证/)
+
+  const idleOnlyClosure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [['idle', 'start']],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+
+  assert.equal(idleOnlyClosure.byId.idle.state, 'closed')
+  assert.equal(idleOnlyClosure.byId.adventure.state, 'actionable')
 
   const richClosure = resolveP0LoopClosure({
     readiness: readiness.byId,

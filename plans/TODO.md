@@ -69,6 +69,7 @@
   - 本轮补齐 NPC 主动互动持久反馈：新增 `npcInteractionJourneyResolver + useNpcInteraction`，结识/邀约人物会写入主角行程，主界“挂机见闻”可看到玩家主动建立的人物缘分
   - 已在主界接入“推演一时辰”反馈面板，奇遇/挂机/NPC/world tick 结果不再只能等待后台计时器
   - 已在主界接入“处理机缘”反馈面板，玩家可主动结算一次小奇遇，并将结果写入行程、背包与资源
+  - 本轮补齐挂机启停即时反馈：新增 `idleJourneyResolver + useIdleJourneyFeedback`，开始/停止挂机会立即写入主角行程、世界日志和 P0 闭环证据，不再等待随机世界 tick 才看到结果
   - 冒险、故事、战斗、地图、宗门至少各有可进入、可返回、可产生结果的基础流程
   - 已补齐历险扫荡结构化反馈：扫荡结算抽成 `adventureSweepResolver + useAdventureSweep`，页面展示最近扫荡修为/灵石/态势/掉落摘要，并继续写回背包、区域进度与宗门任务
   - 本轮补齐历险扫荡主角行程：新增 `adventureSweepJourneyResolver`，扫荡收益、体力消耗、区域态势和掉落会进入主角行程

@@ -413,6 +413,7 @@ import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import { useWorldAdvanceSummary } from '@/composables/useWorldAdvanceSummary'
 import { usePlayerFortune } from '@/composables/usePlayerFortune'
+import { useIdleJourneyFeedback } from '@/composables/useIdleJourneyFeedback'
 import { useP0LoopActions } from '@/composables/useP0LoopActions'
 import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import { useMapStore } from '@/stores/mapStore'
@@ -451,6 +452,7 @@ const {
   advanceOneTick
 } = useWorldAdvanceSummary()
 const { lastFortuneFeedback, handleFortune } = usePlayerFortune()
+const { lastIdleJourneyFeedback, recordIdleJourney } = useIdleJourneyFeedback()
 
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
@@ -631,6 +633,16 @@ const p0FocusItems = computed(() => [
 const latestActionFeedbackItems = computed<ActionFeedbackItem[]>(() => {
   const items: ActionFeedbackItem[] = []
 
+  if (lastIdleJourneyFeedback.value) {
+    items.push({
+      id: `idle_${lastIdleJourneyFeedback.value.title}_${worldStore.clock.totalTicks}`,
+      label: '挂机',
+      title: lastIdleJourneyFeedback.value.title,
+      text: lastIdleJourneyFeedback.value.text,
+      tone: 'jade'
+    })
+  }
+
   if (lastFortuneFeedback.value) {
     items.push({
       id: `fortune_${lastFortuneFeedback.value.result.type}_${worldStore.clock.totalTicks}`,
@@ -655,6 +667,7 @@ const latestActionFeedbackItems = computed<ActionFeedbackItem[]>(() => {
 })
 
 const latestActionFeedbackTitle = computed(() => {
+  if (lastIdleJourneyFeedback.value) return '行程已记录'
   if (lastFortuneFeedback.value) return '机缘已结算'
   if (lastAdvanceSummary.value) {
     return lastAdvanceSummary.value.totalEvents > 0
@@ -841,13 +854,18 @@ function toggleIdle() {
 function startIdle() {
   playerStore.startIdle()
   startIdleLoop()
-  info(`开始${idleModeLabel.value}`)
+  const journey = recordIdleJourney('start')
+  info(journey.title)
 }
 
 function stopIdle() {
+  const elapsedSeconds = playerStore.idleStartTime
+    ? Math.max(0, Math.floor((Date.now() - playerStore.idleStartTime) / 1000))
+    : 0
   playerStore.stopIdle()
   stopIdleLoop()
-  info('停止挂机修炼')
+  const journey = recordIdleJourney('stop', elapsedSeconds)
+  info(journey.title)
 }
 
 function startIdleLoop() {
