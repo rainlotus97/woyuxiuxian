@@ -549,6 +549,10 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveFacilityUpgrade,
     resolveInitialFacilityLevels
   } = await load('/src/sect/runtime/sectFacilityResolver.ts')
+  const {
+    resolveSectJoin,
+    resolveSectLeave
+  } = await load('/src/sect/runtime/sectMembershipResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const {
     resolveSectWarAdvance,
@@ -556,7 +560,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
   } = await load('/src/sect/runtime/sectWarLifecycleResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
   const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
-  const { SECT_FACILITIES } = await load('/src/types/sect.ts')
+  const { getSectById, SECT_FACILITIES } = await load('/src/types/sect.ts')
 
   const blocked = resolveAreaGameplayAccess({
     areaName: '青云山',
@@ -801,6 +805,41 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(upgradeBlocked.canUpgrade, false)
   assert.equal(upgradeBlocked.reason, 'gold_shortage')
+
+  const qingyunSect = getSectById('qingyun_sect')
+  assert.ok(qingyunSect, 'fixture sect should exist')
+  const lockedJoin = resolveSectJoin({
+    sect: qingyunSect,
+    sectId: 'qingyun_sect',
+    unlockedSectIds: [],
+    currentJoinedSectId: null,
+    facilityLevels
+  })
+  assert.equal(lockedJoin.canJoin, false)
+  assert.equal(lockedJoin.reason, 'locked')
+  const readyJoin = resolveSectJoin({
+    sect: qingyunSect,
+    sectId: 'qingyun_sect',
+    unlockedSectIds: ['qingyun_sect'],
+    currentJoinedSectId: null,
+    facilityLevels
+  })
+  assert.equal(readyJoin.canJoin, true)
+  assert.equal(readyJoin.nextState?.sectHp, qingyunSect.maxHp)
+  assert.equal(readyJoin.nextState?.facilityLevels.alchemy_furnace, 1)
+  const blockedLeave = resolveSectLeave({
+    joinedSectId: null,
+    defaultGardenSlots: [null, null, null]
+  })
+  assert.equal(blockedLeave.canLeave, false)
+  assert.equal(blockedLeave.reason, 'not_joined')
+  const readyLeave = resolveSectLeave({
+    joinedSectId: 'qingyun_sect',
+    defaultGardenSlots: [null, null, null]
+  })
+  assert.equal(readyLeave.canLeave, true)
+  assert.equal(readyLeave.nextState?.worldCondition.status, 'stable')
+  assert.equal(readyLeave.nextState?.activeDirective, 'balanced')
 
   const warFixture = {
     id: 'war_fixture',

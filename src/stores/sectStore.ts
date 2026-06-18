@@ -35,6 +35,10 @@ import {
   resolveFacilityUpgrade,
   resolveInitialFacilityLevels
 } from '@/sect/runtime/sectFacilityResolver'
+import {
+  resolveSectJoin,
+  resolveSectLeave
+} from '@/sect/runtime/sectMembershipResolver'
 import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
   getSectRecoveryOption,
@@ -293,28 +297,22 @@ export const useSectStore = defineStore('sect', () => {
   // 加入宗门
   function joinSect(sectId: string): boolean {
     const sect = getSectById(sectId)
-    if (!sect) {
-      return false
-    }
+    const resolution = resolveSectJoin({
+      sect,
+      sectId,
+      unlockedSectIds: unlockedSects.value,
+      currentJoinedSectId: joinedSectId.value,
+      facilityLevels: resolveInitialFacilityLevels(SECT_FACILITIES)
+    })
+    if (!resolution.canJoin || !resolution.nextState) return false
 
-    // 检查是否解锁
-    if (!unlockedSects.value.includes(sectId)) {
-      return false
-    }
-
-    // 检查是否已加入其他宗门
-    if (joinedSectId.value) {
-      return false
-    }
-
-    // 加入宗门
-    joinedSectId.value = sectId
-    positionLevel.value = 1
-    contribution.value = 0
-    reputation.value = 0
-    sectHp.value = sect.maxHp
-    sectMaxHp.value = sect.maxHp
-    facilityLevels.value = resolveInitialFacilityLevels(SECT_FACILITIES)
+    joinedSectId.value = resolution.nextState.joinedSectId
+    positionLevel.value = resolution.nextState.positionLevel
+    contribution.value = resolution.nextState.contribution
+    reputation.value = resolution.nextState.reputation
+    sectHp.value = resolution.nextState.sectHp
+    sectMaxHp.value = resolution.nextState.sectMaxHp
+    facilityLevels.value = resolution.nextState.facilityLevels
 
     // 生成初始任务
     generateTasks('daily')
@@ -325,22 +323,24 @@ export const useSectStore = defineStore('sect', () => {
 
   // 退出宗门
   function leaveSect(): boolean {
-    if (!joinedSectId.value) return false
-    joinedSectId.value = null
-    positionLevel.value = 1
-    contribution.value = 0
-    reputation.value = 0
-    tasks.value = []
-    activeWar.value = null
-    activeEvent.value = null
-    worldCondition.value = {
-      status: 'stable',
-      occupiedBySectId: null,
-      lastUpdatedTick: null
-    }
-    recoveryProgress.value = 0
-    lastWarReport.value = null
-    activeDirective.value = 'balanced'
+    const resolution = resolveSectLeave({
+      joinedSectId: joinedSectId.value,
+      defaultGardenSlots: [null, null, null]
+    })
+    if (!resolution.canLeave || !resolution.nextState) return false
+
+    joinedSectId.value = resolution.nextState.joinedSectId
+    positionLevel.value = resolution.nextState.positionLevel
+    contribution.value = resolution.nextState.contribution
+    reputation.value = resolution.nextState.reputation
+    tasks.value = resolution.nextState.tasks
+    activeWar.value = resolution.nextState.activeWar
+    activeEvent.value = resolution.nextState.activeEvent
+    worldCondition.value = resolution.nextState.worldCondition
+    recoveryProgress.value = resolution.nextState.recoveryProgress
+    lastWarReport.value = resolution.nextState.lastWarReport
+    activeDirective.value = resolution.nextState.activeDirective
+    gardenSlots.value = resolution.nextState.gardenSlots
     return true
   }
 

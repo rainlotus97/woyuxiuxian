@@ -222,6 +222,7 @@
   - 已修正战后宗门世界态只写入败方所属宗门，避免胜方宗门被错误标成沦陷或重建
   - 待补：合并、沦陷后的更多玩法限制、跨宗门连锁反应
 - [~] 增加从弟子到宗主的晋升链
+  - 已新增 `sectMembershipResolver`，统一入宗资格、入宗状态初始化与离宗状态重置，给后续叛逃/合并/宗门限制留接口
   - 已建立 `sectPositionResolver`，统一收口职位权限、设施访问层级、可宣战条件与可用宗门方略
   - 已让 `SectOverviewPanel / SectDirectivePanel` 展示当前权柄层级与激活方略，避免职位成长只停留在文案
   - 待补：更完整的职位事件、掌门级独占指令、登顶后的宗门改制与吞并链路
@@ -277,7 +278,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`
