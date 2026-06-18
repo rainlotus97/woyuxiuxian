@@ -1,5 +1,6 @@
 import type { WorldLogEntry } from '@/types/world'
 import type { ShopInventoryItem } from './shopInventoryResolver'
+import { createShopMerchantMemory } from './shopMerchantMemoryResolver'
 import { resolveShopMerchantRelationshipDeltas } from './shopMerchantRelationshipResolver'
 
 export interface ShopMerchantTradeLog {
@@ -27,11 +28,12 @@ export function resolveShopMerchantTradeLog(item: ShopInventoryItem): ShopMercha
   }
 }
 
-export function resolveShopMerchantTradeOutcome(item: ShopInventoryItem) {
+export function resolveShopMerchantTradeOutcome(item: ShopInventoryItem, currentTick = 0) {
   const log = resolveShopMerchantTradeLog(item)
   if (!log) return null
   return {
     log,
-    relationshipDeltas: resolveShopMerchantRelationshipDeltas(item)
+    relationshipDeltas: resolveShopMerchantRelationshipDeltas(item),
+    merchantMemory: createShopMerchantMemory(item, currentTick)
   }
 }

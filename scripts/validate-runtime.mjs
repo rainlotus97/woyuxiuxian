@@ -838,6 +838,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
   } = await load('/src/shop/runtime/shopMerchantLogResolver.ts')
   const { resolveShopMerchantRelationshipDeltas } = await load('/src/shop/runtime/shopMerchantRelationshipResolver.ts')
   const {
+    createShopMerchantMemory,
+    pruneShopMerchantMemories,
+    resolveShopMerchantMemoryInfluence,
+    upsertShopMerchantMemory
+  } = await load('/src/shop/runtime/shopMerchantMemoryResolver.ts')
+  const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
     resolveSectDirectiveChange,
@@ -1559,8 +1565,26 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok((merchantRelationshipDeltas[0]?.favorDelta ?? 0) > 0)
   assert.ok((merchantRelationshipDeltas[0]?.debtDelta ?? 0) <= 0)
   assert.equal(resolveShopMerchantRelationshipDeltas(merchantPill).length, 0)
-  const merchantTradeOutcome = resolveShopMerchantTradeOutcome(merchantEventFood)
+  const merchantTradeOutcome = resolveShopMerchantTradeOutcome(merchantEventFood, 24)
   assert.equal(merchantTradeOutcome?.relationshipDeltas[0]?.npcId, 'npc_bai_ruoli')
+  assert.equal(merchantTradeOutcome?.merchantMemory?.merchantId, 'npc_bai_ruoli')
+  assert.equal(merchantTradeOutcome?.merchantMemory?.expiresAtTick, 60)
+  const merchantMemory = createShopMerchantMemory(merchantEventFood, 24)
+  assert.equal(merchantMemory?.category, 'food')
+  const memoryList = upsertShopMerchantMemory([], merchantMemory, 24)
+  assert.equal(memoryList.length, 1)
+  const memoryInfluence = resolveShopMerchantMemoryInfluence(memoryList, 25)
+  assert.ok(memoryInfluence.stockModifier > 1)
+  assert.ok(memoryInfluence.priceModifier <= 1)
+  assert.ok(memoryInfluence.tags.some(tag => tag.includes('余脉')))
+  assert.equal(pruneShopMerchantMemories(memoryList, 61).length, 0)
+  const memoryOnlyInfluence = resolveShopMerchantInfluence({
+    ...stableMarketContext,
+    merchantNpcStates: [],
+    merchantMemories: memoryList,
+    totalTicks: 25
+  })
+  assert.ok(memoryOnlyInfluence.tags.some(tag => tag.includes('余脉')))
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)

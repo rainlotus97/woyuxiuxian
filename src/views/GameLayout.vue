@@ -7,38 +7,25 @@
     </div>
 
     <header class="top-shell">
-      <GameSurface class="status-shell" tone="mist" padding="md">
-        <div class="status-row">
-          <div class="player-block">
-            <div class="avatar-orb">{{ realmIcon }}</div>
-            <div class="player-copy">
-              <span class="realm-pill" :class="getRealmClass">{{ playerStore.realmInfo.fullName }}</span>
-              <strong>{{ playerStore.name }}</strong>
-              <small>修为 {{ formatCultivation }}</small>
-            </div>
-          </div>
-
-          <div class="resource-row">
-            <GameStatChip icon="💎" label="灵石" :value="playerStore.gold" tone="gold" />
-            <GameStatChip icon="✨" label="修为" :value="formatCultivation" tone="jade" />
+      <div class="hud-shell" :class="`tone-${sectAlertTone}`">
+        <div class="player-block">
+          <div class="avatar-orb">{{ realmIcon }}</div>
+          <div class="player-copy">
+            <span class="realm-pill" :class="getRealmClass">{{ playerStore.realmInfo.fullName }}</span>
+            <strong>{{ playerStore.name }}</strong>
+            <small>{{ worldStore.currentTimeLabel }} · {{ weatherLabel }}</small>
           </div>
         </div>
-      </GameSurface>
 
-      <GameSurface class="world-shell" :tone="sectAlertTone" padding="md" compact>
-        <div class="world-row">
-          <div class="world-copy">
-            <span class="world-eyebrow">天地流转</span>
-            <strong>{{ worldStore.currentTimeLabel }} · {{ weatherLabel }}</strong>
-            <p>{{ sectAlertSummary }}</p>
-          </div>
-
-          <div class="world-meta">
-            <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
-            <GameStatChip icon="👥" label="已识人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
-          </div>
+        <div class="resource-row">
+          <GameStatChip icon="💎" label="灵石" :value="playerStore.gold" tone="gold" />
+          <GameStatChip icon="✨" label="修为" :value="formatCultivation" tone="jade" />
+          <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
+          <GameStatChip icon="👥" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
         </div>
-      </GameSurface>
+
+        <p class="world-summary">{{ sectAlertSummary }}</p>
+      </div>
     </header>
 
     <main class="main-shell">
@@ -330,26 +317,40 @@ onUnmounted(() => {
 .main-shell,
 .nav-shell {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .top-shell {
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
-  display: grid;
-  gap: 10px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
 }
 
-.status-shell,
-.world-shell {
+.hud-shell,
+.nav-surface {
   max-width: 1120px;
   margin: 0 auto;
 }
 
-.status-row {
-  display: flex;
+.hud-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 10px 16px;
+  padding: 10px;
+  border: 1px solid rgba(101, 152, 145, 0.2);
+  border-radius: 20px;
+  background: rgba(255, 255, 250, 0.78);
+  box-shadow: 0 18px 40px rgba(88, 123, 116, 0.14);
+  backdrop-filter: blur(16px);
+}
+
+.hud-shell.tone-gold {
+  border-color: rgba(188, 141, 58, 0.28);
+  background: rgba(255, 250, 231, 0.84);
+}
+
+.hud-shell.tone-mist {
+  border-color: rgba(198, 121, 137, 0.22);
+  background: rgba(255, 248, 249, 0.84);
 }
 
 .player-block {
@@ -359,8 +360,8 @@ onUnmounted(() => {
 }
 
 .avatar-orb {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -377,7 +378,7 @@ onUnmounted(() => {
 
 .player-copy strong {
   color: #315257;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .player-copy small {
@@ -412,56 +413,26 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.world-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.world-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.world-eyebrow {
-  color: rgba(73, 97, 95, 0.72);
-  font-size: 11px;
-}
-
-.world-copy strong {
-  color: #8e6227;
-  font-size: 14px;
-}
-
-.world-copy p {
+.world-summary {
+  grid-column: 1 / -1;
   margin: 0;
   color: rgba(55, 82, 84, 0.78);
   font-size: 12px;
-  line-height: 1.55;
-}
-
-.world-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  line-height: 1.45;
 }
 
 .main-shell {
   min-height: 0;
   overflow: auto;
   padding: 12px;
+  position: relative;
+  z-index: 3;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-shell {
   padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
-}
-
-.nav-surface {
-  max-width: 1120px;
-  margin: 0 auto;
+  z-index: 4;
 }
 
 .nav-header {
@@ -497,6 +468,7 @@ onUnmounted(() => {
   font-family: var(--font-game);
   font-size: 12px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .menu-grid {
@@ -574,6 +546,7 @@ onUnmounted(() => {
   border-radius: 18px;
   border: 1px solid rgba(103, 149, 144, 0.18);
   background: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
 }
 
 .quick-card.active {
@@ -591,21 +564,11 @@ onUnmounted(() => {
 }
 
 @media (max-width: 860px) {
-  .status-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .world-row {
-    flex-direction: column;
-    align-items: stretch;
+  .hud-shell {
+    grid-template-columns: 1fr;
   }
 
   .resource-row {
-    justify-content: flex-start;
-  }
-
-  .world-meta {
     justify-content: flex-start;
   }
 

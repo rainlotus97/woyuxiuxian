@@ -13,12 +13,18 @@ import {
   type ShopInventoryItem
 } from '@/shop/runtime/shopInventoryResolver'
 import { resolveShopMerchantTradeOutcome } from '@/shop/runtime/shopMerchantLogResolver'
+import {
+  pruneShopMerchantMemories,
+  upsertShopMerchantMemory,
+  type ShopMerchantMemory
+} from '@/shop/runtime/shopMerchantMemoryResolver'
 import type { ShopCategoryId, ShopQuality } from '@/shop/config/shopCatalog'
 
 interface ShopState {
   purchasedByStockId: Record<string, number>
   refreshSeed: number
   lastManualRefreshTick: number | null
+  merchantMemories: ShopMerchantMemory[]
 }
 
 const STORAGE_KEY = 'woyu-xiuxian-shop'
@@ -27,7 +33,8 @@ function getDefaultShopState(): ShopState {
   return {
     purchasedByStockId: {},
     refreshSeed: 0,
-    lastManualRefreshTick: null
+    lastManualRefreshTick: null,
+    merchantMemories: []
   }
 }
 
@@ -49,6 +56,7 @@ export const useShopStore = defineStore('shop', () => {
   const purchasedByStockId = ref<Record<string, number>>({ ...initialData.purchasedByStockId })
   const refreshSeed = ref(initialData.refreshSeed ?? 0)
   const lastManualRefreshTick = ref<number | null>(initialData.lastManualRefreshTick ?? null)
+  const merchantMemories = ref<ShopMerchantMemory[]>(pruneShopMerchantMemories(initialData.merchantMemories ?? [], worldStore.clock.totalTicks))
   const activeCategory = ref<ShopCategoryId>('all')
   const activeQuality = ref<'all' | ShopQuality>('all')
 
@@ -60,6 +68,7 @@ export const useShopStore = defineStore('shop', () => {
     unlockedSectIds: sectStore.unlockedSects,
     weather: worldStore.weather,
     sectWorldCondition: sectStore.worldCondition,
+    merchantMemories: merchantMemories.value,
     merchantNpcStates: worldStore.npcStates
       .flatMap(state => {
         if (!worldStore.unlockedNpcIds.includes(state.id)) return []
@@ -127,7 +136,8 @@ export const useShopStore = defineStore('shop', () => {
     const data: ShopState = {
       purchasedByStockId: toRaw(purchasedByStockId.value),
       refreshSeed: refreshSeed.value,
-      lastManualRefreshTick: lastManualRefreshTick.value
+      lastManualRefreshTick: lastManualRefreshTick.value,
+      merchantMemories: toRaw(merchantMemories.value)
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
@@ -171,9 +181,14 @@ export const useShopStore = defineStore('shop', () => {
       sectStore.addContribution(-purchase.contributionCost)
     }
     purchasedByStockId.value[purchase.stockId] = purchase.nextPurchasedQuantity
-    const merchantOutcome = resolveShopMerchantTradeOutcome(purchase.purchasedItem)
+    const merchantOutcome = resolveShopMerchantTradeOutcome(purchase.purchasedItem, worldStore.clock.totalTicks)
     if (merchantOutcome) {
       worldStore.recordMerchantTradeEvent(merchantOutcome)
+      merchantMemories.value = upsertShopMerchantMemory(
+        merchantMemories.value,
+        merchantOutcome.merchantMemory,
+        worldStore.clock.totalTicks
+      )
     }
     return { success: true, message: purchase.message, item: purchase.purchasedItem }
   }
@@ -182,6 +197,7 @@ export const useShopStore = defineStore('shop', () => {
     refreshSeed.value += 1
     lastManualRefreshTick.value = worldStore.clock.totalTicks
     purchasedByStockId.value = {}
+    merchantMemories.value = pruneShopMerchantMemories(merchantMemories.value, worldStore.clock.totalTicks)
   }
 
   watchEffect(() => {
@@ -192,6 +208,7 @@ export const useShopStore = defineStore('shop', () => {
     activeCategory,
     activeQuality,
     purchasedByStockId,
+    merchantMemories,
     refreshSeed,
     lastManualRefreshTick,
     context,

@@ -17,6 +17,11 @@ import {
   type ShopMerchantEvent,
   type ShopMerchantEventResolution
 } from './shopMerchantEventResolver'
+import {
+  resolveShopMerchantMemoryInfluence,
+  type ShopMerchantMemory,
+  type ShopMerchantMemoryInfluence
+} from './shopMerchantMemoryResolver'
 
 export interface ShopInventoryContext {
   totalTicks: number
@@ -28,6 +33,7 @@ export interface ShopInventoryContext {
   sectWorldCondition?: SectWorldCondition | null
   marketAreaStates?: ShopMarketAreaState[]
   merchantNpcStates?: ShopMerchantNpcState[]
+  merchantMemories?: ShopMerchantMemory[]
 }
 
 export interface ShopMarketAreaState {
@@ -70,6 +76,7 @@ export interface ShopMerchantInfluence {
   tags: string[]
   merchantNames: string[]
   eventResolution: ShopMerchantEventResolution
+  memoryInfluence: ShopMerchantMemoryInfluence
 }
 
 export interface ShopInventoryItem {
@@ -306,16 +313,18 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
     merchant.hpState !== 'dead'
     && merchant.hpState !== 'captured'
   ))
+  const memoryInfluence = resolveShopMerchantMemoryInfluence(context.merchantMemories, context.totalTicks)
 
   if (!merchants.length) {
     const eventResolution = resolveShopMerchantEvents([])
     return {
-      priceModifier: 1,
-      stockModifier: 1,
-      categoryStockModifiers: {},
-      tags: [],
-      merchantNames: [],
-      eventResolution
+      priceModifier: memoryInfluence.priceModifier,
+      stockModifier: memoryInfluence.stockModifier,
+      categoryStockModifiers: memoryInfluence.categoryStockModifiers,
+      tags: memoryInfluence.tags,
+      merchantNames: memoryInfluence.merchantNames,
+      eventResolution,
+      memoryInfluence
     }
   }
 
@@ -337,12 +346,16 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
 
   if (activeCount === 0) {
     return {
-      priceModifier: eventResolution.priceModifier,
-      stockModifier: eventResolution.stockModifier,
-      categoryStockModifiers: eventResolution.categoryStockModifiers,
-      tags: eventResolution.tags,
-      merchantNames: eventResolution.merchantNames,
-      eventResolution
+      priceModifier: Number((eventResolution.priceModifier * memoryInfluence.priceModifier).toFixed(3)),
+      stockModifier: Number((eventResolution.stockModifier * memoryInfluence.stockModifier).toFixed(3)),
+      categoryStockModifiers: {
+        ...memoryInfluence.categoryStockModifiers,
+        ...eventResolution.categoryStockModifiers
+      },
+      tags: [...new Set([...eventResolution.tags, ...memoryInfluence.tags])],
+      merchantNames: [...new Set([...eventResolution.merchantNames, ...memoryInfluence.merchantNames])],
+      eventResolution,
+      memoryInfluence
     }
   }
 
@@ -357,18 +370,24 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
     const key = category as Exclude<ShopCategoryId, 'all'>
     categoryStockModifiers[key] = Number(((categoryStockModifiers[key] ?? 1) * (modifier ?? 1)).toFixed(3))
   }
+  for (const [category, modifier] of Object.entries(memoryInfluence.categoryStockModifiers)) {
+    const key = category as Exclude<ShopCategoryId, 'all'>
+    categoryStockModifiers[key] = Number(((categoryStockModifiers[key] ?? 1) * (modifier ?? 1)).toFixed(3))
+  }
   const merchantNames = [...new Set([
     ...merchants.slice(0, 2).map(merchant => merchant.name),
-    ...eventResolution.merchantNames
+    ...eventResolution.merchantNames,
+    ...memoryInfluence.merchantNames
   ])].slice(0, 3)
 
   return {
-    priceModifier: Number(clamp((1 - Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.priceModifier, 0.86, 1).toFixed(3)),
-    stockModifier: Number(clamp((1 + Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.stockModifier, 1, 1.24).toFixed(3)),
+    priceModifier: Number(clamp((1 - Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.priceModifier * memoryInfluence.priceModifier, 0.84, 1).toFixed(3)),
+    stockModifier: Number(clamp((1 + Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.stockModifier * memoryInfluence.stockModifier, 1, 1.28).toFixed(3)),
     categoryStockModifiers,
-    tags: [...new Set(['人物商缘', ...eventResolution.tags])],
+    tags: [...new Set(['人物商缘', ...eventResolution.tags, ...memoryInfluence.tags])],
     merchantNames,
-    eventResolution
+    eventResolution,
+    memoryInfluence
   }
 }
 

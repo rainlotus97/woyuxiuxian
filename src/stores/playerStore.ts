@@ -394,6 +394,19 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ====== 方法 ======
 
+  function applyCreationProfile(profile: {
+    name?: string
+    icon?: string
+    element?: Element
+    quality?: Quality
+  }) {
+    const nextName = profile.name?.trim()
+    if (nextName) name.value = nextName.slice(0, 8)
+    if (profile.icon) icon.value = profile.icon.slice(0, 2)
+    if (profile.element) element.value = profile.element
+    if (profile.quality) quality.value = profile.quality
+  }
+
   // 保存到 localStorage
   function saveToStorage() {
     try {
@@ -1097,6 +1110,7 @@ export const usePlayerStore = defineStore('player', () => {
     addSkillPoints,
 
     // 方法
+    applyCreationProfile,
     addCultivation, levelUp, breakthrough, attemptBreakthrough,
     equip, unequip, recalculateEquipmentBonuses,
     addToInventory, removeFromInventory, useConsumable,
