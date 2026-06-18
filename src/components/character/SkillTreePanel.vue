@@ -1,10 +1,25 @@
 <template>
   <div class="skill-tree-panel">
     <div class="skill-header">
-      <div class="skill-points">
-        <span>技能点</span>
-        <strong>{{ skillPoints }}</strong>
+      <div class="skill-summary">
+        <div class="skill-points">
+          <span>技能点</span>
+          <strong>{{ skillPoints }}</strong>
+        </div>
+        <div class="summary-chip">
+          <span>已学</span>
+          <strong>{{ summary.learnedCount }}/{{ summary.totalCount }}</strong>
+        </div>
+        <div class="summary-chip">
+          <span>启用</span>
+          <strong>{{ summary.enabledCount }}</strong>
+        </div>
+        <div class="summary-chip">
+          <span>可学</span>
+          <strong>{{ summary.availableCount }}</strong>
+        </div>
       </div>
+
       <div class="branch-row">
         <button
           v-for="branch in branches"
@@ -71,6 +86,7 @@
 
 <script setup lang="ts">
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import type { SkillProgressSummary } from '@/composables/useCharacterLoadout'
 import type { SkillBranch, SkillTreeNode } from '@/types/skill'
 
 interface SkillBranchOption {
@@ -104,6 +120,7 @@ defineEmits<{
 
 const props = defineProps<{
   skillPoints: number
+  summary: SkillProgressSummary
   branches: SkillBranchOption[]
   activeBranch: SkillBranch
   nodes: SkillTreeNode[]
@@ -131,6 +148,13 @@ function skillNodeClass(skillId: string) {
   gap: 12px;
 }
 
+.skill-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  justify-content: start;
+  gap: 8px;
+}
+
 .skill-points {
   display: inline-flex;
   width: fit-content;
@@ -142,8 +166,28 @@ function skillNodeClass(skillId: string) {
   color: #8b6326;
 }
 
-.skill-points span {
+.summary-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 66px;
+  padding: 8px 10px;
+  border: 1px solid rgba(123, 153, 145, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.skill-points span,
+.summary-chip span {
   font-size: 11px;
+}
+
+.summary-chip span {
+  color: rgba(73, 97, 95, 0.68);
+}
+
+.summary-chip strong {
+  color: #315257;
+  font-size: 13px;
 }
 
 .branch-row {
@@ -279,6 +323,15 @@ function skillNodeClass(skillId: string) {
 }
 
 @media (max-width: 820px) {
+  .skill-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .skill-points {
+    width: auto;
+    justify-content: space-between;
+  }
+
   .skill-node {
     grid-template-columns: 42px minmax(0, 1fr);
   }

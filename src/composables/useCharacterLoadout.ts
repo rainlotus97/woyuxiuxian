@@ -34,6 +34,21 @@ export interface EquipmentSlotState {
   candidates: InventoryItem[]
 }
 
+export interface LoadoutProgressSummary {
+  equippedCount: number
+  totalSlots: number
+  candidateCount: number
+  completionPercent: number
+}
+
+export interface SkillProgressSummary {
+  learnedCount: number
+  totalCount: number
+  enabledCount: number
+  availableCount: number
+  lockedCount: number
+}
+
 const INVENTORY_FILTER_LABELS: Record<InventoryFilter, string> = {
   all: '全部',
   equipment: '装备',
@@ -108,6 +123,18 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     }))
   })
 
+  const loadoutProgressSummary = computed<LoadoutProgressSummary>(() => {
+    const slots = equipmentSlots.value
+    const equippedCount = slots.filter(slot => Boolean(slot.equipment)).length
+    const candidateCount = slots.reduce((sum, slot) => sum + slot.candidates.length, 0)
+    return {
+      equippedCount,
+      totalSlots: slots.length,
+      candidateCount,
+      completionPercent: slots.length ? Math.round((equippedCount / slots.length) * 100) : 0
+    }
+  })
+
   const selectedEquipmentSlot = computed(() => {
     if (!selectedSlot.value) return null
     return equipmentSlots.value.find(slot => slot.slot === selectedSlot.value) ?? null
@@ -143,6 +170,23 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
         expPercent: learned.maxExp > 0 ? Math.min(100, (learned.exp / learned.maxExp) * 100) : 0
       }
     })
+  })
+
+  const skillProgressSummary = computed<SkillProgressSummary>(() => {
+    const skillIds = Object.values(SKILL_TREE).flat().map(node => node.skillId)
+    const learnedCount = skillIds.filter(skillId => playerStore.hasLearnedSkill(skillId)).length
+    const enabledCount = playerStore.learnedSkills.filter(skill => skill.enabled).length
+    const availableCount = skillIds.filter(skillId => {
+      const learned = playerStore.hasLearnedSkill(skillId)
+      return !learned && playerStore.canLearnSkill(skillId)
+    }).length
+    return {
+      learnedCount,
+      totalCount: skillIds.length,
+      enabledCount,
+      availableCount,
+      lockedCount: Math.max(0, skillIds.length - learnedCount - availableCount)
+    }
   })
 
   const passiveBonusRows = computed(() => {
@@ -446,10 +490,12 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     skillBranchOptions,
     statList,
     equipmentSlots,
+    loadoutProgressSummary,
     filteredInventory,
     emptyInventorySlots,
     currentSkillNodes,
     learnedSkillCards,
+    skillProgressSummary,
     passiveBonusRows,
     cultivationSourceRows,
     inventorySchemaSummary,

@@ -14,6 +14,20 @@
             <i>{{ summary.element }}灵根</i>
           </div>
         </div>
+        <div class="hero-metrics">
+          <div>
+            <span>穿戴</span>
+            <strong>{{ loadout.loadoutProgressSummary.value.equippedCount }}/{{ loadout.loadoutProgressSummary.value.totalSlots }}</strong>
+          </div>
+          <div>
+            <span>包裹</span>
+            <strong>{{ summary.inventoryCount }}/{{ summary.maxInventorySlots }}</strong>
+          </div>
+          <div>
+            <span>功法</span>
+            <strong>{{ loadout.skillProgressSummary.value.learnedCount }}/{{ loadout.skillProgressSummary.value.totalCount }}</strong>
+          </div>
+        </div>
       </div>
 
       <GameProgressBar
@@ -41,6 +55,7 @@
       <GameSurface class="loadout-card" tone="gold" padding="md" eyebrow="随身法器" title="穿戴">
         <EquipmentLoadout
           :slots="loadout.equipmentSlots.value"
+          :summary="loadout.loadoutProgressSummary.value"
           :stats="loadout.statList.value"
           :format-stat-value="loadout.formatStatValue"
           @select-slot="loadout.selectEquipmentSlot"
@@ -132,6 +147,7 @@
       >
         <SkillTreePanel
           :skill-points="summary.skillPoints"
+          :summary="loadout.skillProgressSummary.value"
           :branches="loadout.skillBranchOptions.value"
           :active-branch="loadout.activeSkillBranch.value"
           :nodes="loadout.currentSkillNodes.value"
@@ -293,7 +309,8 @@ function formatPercent(value: number) {
 }
 
 .hero-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   margin-bottom: 16px;
@@ -350,6 +367,32 @@ function formatPercent(value: number) {
   color: #5d756f;
   font-size: 11px;
   font-style: normal;
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(70px, 1fr));
+  gap: 8px;
+}
+
+.hero-metrics div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(123, 153, 145, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.hero-metrics span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.hero-metrics strong {
+  color: #8b6326;
+  font-size: 14px;
 }
 
 .panel-tabs {
@@ -558,6 +601,20 @@ function formatPercent(value: number) {
 }
 
 @media (max-width: 820px) {
+  .hero-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .avatar-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero-metrics {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .panel-layout {
     grid-template-columns: 1fr;
   }

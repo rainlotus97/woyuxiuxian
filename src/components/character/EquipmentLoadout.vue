@@ -1,5 +1,19 @@
 <template>
   <div class="equipment-loadout">
+    <div class="loadout-summary">
+      <div>
+        <span>穿戴进度</span>
+        <strong>{{ summary.equippedCount }}/{{ summary.totalSlots }}</strong>
+      </div>
+      <div>
+        <span>可替换</span>
+        <strong>{{ summary.candidateCount }}</strong>
+      </div>
+      <div class="loadout-meter" :style="{ '--progress': `${summary.completionPercent}%` }">
+        <span></span>
+      </div>
+    </div>
+
     <div class="equipment-grid">
       <button
         v-for="slot in slots"
@@ -33,6 +47,7 @@
 
 <script setup lang="ts">
 import type { CharacterStatItem, EquipmentSlotState } from '@/composables/useCharacterLoadout'
+import type { LoadoutProgressSummary } from '@/composables/useCharacterLoadout'
 import type { EquipmentSlot } from '@/types/equipment'
 
 defineEmits<{
@@ -41,6 +56,7 @@ defineEmits<{
 
 defineProps<{
   slots: EquipmentSlotState[]
+  summary: LoadoutProgressSummary
   stats: CharacterStatItem[]
   formatStatValue: (stat: string, value: number, compact?: boolean) => string
 }>()
@@ -50,6 +66,47 @@ defineProps<{
 .equipment-loadout {
   display: grid;
   gap: 14px;
+}
+
+.loadout-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.loadout-summary div:not(.loadout-meter) {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(123, 153, 145, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.loadout-summary span {
+  color: rgba(72, 96, 94, 0.68);
+  font-size: 11px;
+}
+
+.loadout-summary strong {
+  color: #8b6326;
+  font-size: 16px;
+}
+
+.loadout-meter {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(126, 153, 143, 0.16);
+}
+
+.loadout-meter span {
+  width: var(--progress);
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #81d7bb, #f0c76d);
 }
 
 .equipment-grid {
