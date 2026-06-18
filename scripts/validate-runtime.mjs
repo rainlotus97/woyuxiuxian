@@ -146,6 +146,10 @@ test('battle runtime tracks skill cooldown by actor turns', async () => {
 test('battle status runtime negates damage while invincible', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
+  const {
+    resolveBattleDamageModifier,
+    resolveBattleSpeedModifier
+  } = await load('/src/game/battle/battleStatusModifierResolver.ts')
   const { createUnit } = await load('/src/types/unit.ts')
 
   const ally = createUnit({
@@ -198,6 +202,74 @@ test('battle status runtime negates damage while invincible', async () => {
   assert.equal(target.stats.currentHp, 80)
   assert.equal(turnStart.hits.length, 0)
   assert.ok(turnStart.logs.some(log => log.includes('无敌状态')))
+
+  const statusDamageModifier = resolveBattleDamageModifier({
+    attackerStatuses: [{ type: 'buff_atk', duration: 2, value: 0.25, sourceId: 'self' }],
+    targetStatuses: [
+      { type: 'buff_def', duration: 2, value: 0.2, sourceId: 'self' },
+      { type: 'vulnerable', duration: 1, value: 0.5, sourceId: 'curse' }
+    ]
+  })
+  assert.ok(Math.abs(statusDamageModifier - 1.5) < 0.00001)
+  assert.equal(resolveBattleSpeedModifier({
+    statusEffects: [{ type: 'buff_spd', duration: 2, value: 0.5, sourceId: 'pill' }]
+  }), 1.5)
+
+  const slowAlly = createUnit({
+    id: 'slow_ready',
+    name: '未服丹修士',
+    type: 'protagonist',
+    stats: {
+      maxHp: 120,
+      currentHp: 120,
+      maxMp: 50,
+      currentMp: 50,
+      attack: 10,
+      defense: 5,
+      speed: 100,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const fastAlly = createUnit({
+    id: 'fast_ready',
+    name: '疾行丹修士',
+    type: 'protagonist',
+    statusEffects: [{ type: 'buff_spd', duration: 2, value: 0.5, sourceId: 'pill' }],
+    stats: {
+      maxHp: 120,
+      currentHp: 120,
+      maxMp: 50,
+      currentMp: 50,
+      attack: 10,
+      defense: 5,
+      speed: 100,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const durableEnemy = createUnit({
+    id: 'speed_target',
+    name: '测速木桩',
+    type: 'enemy',
+    stats: {
+      maxHp: 999,
+      currentHp: 999,
+      maxMp: 30,
+      currentMp: 30,
+      attack: 1,
+      defense: 0,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const speedRuntime = new BattleRuntime([slowAlly, fastAlly], [durableEnemy])
+  speedRuntime.units.forEach(unit => {
+    unit.actionGauge = 0
+  })
+  speedRuntime.tick(3100, 1)
+  assert.equal(speedRuntime.currentActorId, 'fast_ready')
 })
 
 test('enemy battle skills apply exclusive status effects', async () => {

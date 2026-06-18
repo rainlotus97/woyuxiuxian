@@ -12,6 +12,7 @@ import {
 } from './statusRuntime'
 import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
+import { resolveBattleSpeedModifier } from './battleStatusModifierResolver'
 import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
 import {
   applySkillCooldown,
@@ -85,11 +86,16 @@ export class BattleRuntime {
     const delta = deltaMs / 1000
     for (const unit of this.units) {
       if (!unit.isAlive) continue
-      unit.actionGauge = Math.min(100, unit.actionGauge + unit.stats.speed * delta * 0.22 * speed)
+      const statusSpeed = resolveBattleSpeedModifier({ statusEffects: unit.statusEffects })
+      unit.actionGauge = Math.min(100, unit.actionGauge + unit.stats.speed * statusSpeed * delta * 0.22 * speed)
     }
     const ready = this.units
       .filter(unit => unit.isAlive && unit.actionGauge >= 100)
-      .sort((a, b) => b.stats.speed - a.stats.speed)[0]
+      .sort((a, b) => {
+        const bSpeed = b.stats.speed * resolveBattleSpeedModifier({ statusEffects: b.statusEffects })
+        const aSpeed = a.stats.speed * resolveBattleSpeedModifier({ statusEffects: a.statusEffects })
+        return bSpeed - aSpeed
+      })[0]
     if (ready) {
       this.startTurn(ready)
     }

@@ -14,43 +14,13 @@ import {
   resolveStatusEffectFromSkill
 } from './statusRuntime'
 import { prepareSummons } from './summonRuntime'
+import { resolveBattleDamageModifier } from './battleStatusModifierResolver'
 
 const BASIC_ATTACK_EFFECT: SkillEffect = {
   type: 'damage',
   targetType: 'single_enemy',
   baseValue: 5,
   scaling: 1.05
-}
-
-function applyStatusModifiers(
-  attacker: BattleRuntimeUnit,
-  target: BattleRuntimeUnit,
-  amount: number
-) {
-  let modifier = 1
-
-  for (const effect of attacker.statusEffects) {
-    if (effect.type === 'buff_atk') {
-      modifier *= 1 + (effect.value ?? 0.2)
-    }
-    if (effect.type === 'debuff_atk') {
-      modifier *= 1 - (effect.value ?? 0.2)
-    }
-  }
-
-  for (const effect of target.statusEffects) {
-    if (effect.type === 'buff_def') {
-      modifier *= 1 - (effect.value ?? 0.2)
-    }
-    if (effect.type === 'debuff_def') {
-      modifier *= 1 + (effect.value ?? 0.2)
-    }
-    if (effect.type === 'vulnerable') {
-      modifier *= 1 + (effect.value ?? 0.25)
-    }
-  }
-
-  return amount * modifier
 }
 
 function calculateDamageAmount(
@@ -62,7 +32,11 @@ function calculateDamageAmount(
   const variance = 0.92 + Math.random() * 0.16
   const isCrit = Math.random() < attacker.stats.critRate
   const critMultiplier = isCrit ? attacker.stats.critDamage : 1
-  const modified = applyStatusModifiers(attacker, target, rawBase) * variance * critMultiplier
+  const statusModifier = resolveBattleDamageModifier({
+    attackerStatuses: attacker.statusEffects,
+    targetStatuses: target.statusEffects
+  })
+  const modified = rawBase * statusModifier * variance * critMultiplier
   return {
     amount: Math.max(1, Math.floor(modified)),
     isCrit
