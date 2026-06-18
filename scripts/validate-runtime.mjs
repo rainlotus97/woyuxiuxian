@@ -2575,6 +2575,46 @@ test('main loop readiness summarizes p0 action states', async () => {
   assert.match(captured.headline, /阻塞/)
 })
 
+test('player fortune resolver creates deterministic fortune rewards', async () => {
+  const { resolvePlayerFortune } = await load('/src/world/runtime/playerFortuneResolver.ts')
+
+  const baseClock = {
+    year: 1,
+    month: 1,
+    day: 1,
+    shichenIndex: 0,
+    totalTicks: 42,
+    lastSimulatedAt: 0
+  }
+  const blocked = resolvePlayerFortune({
+    clock: baseClock,
+    idleMode: 'cultivate',
+    weather: 'storm',
+    stamina: 4,
+    areaId: 'misty_forest',
+    sectName: null,
+    npcCount: 3
+  })
+  assert.equal(blocked.success, false)
+  assert.equal(blocked.staminaCost, 12)
+
+  const fortune = resolvePlayerFortune({
+    clock: baseClock,
+    idleMode: 'gatherHerbs',
+    weather: 'clear',
+    stamina: 20,
+    areaId: 'misty_forest',
+    sectName: '青云宗',
+    npcCount: 3
+  })
+  assert.equal(fortune.success, true)
+  assert.equal(fortune.type, 'spirit_herb')
+  assert.equal(fortune.staminaCost, 8)
+  assert.ok(fortune.item)
+  assert.equal(fortune.rewards.some(item => item.type === 'item'), true)
+  assert.equal(fortune.tags.includes('fortune'), true)
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 

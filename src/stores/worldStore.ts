@@ -716,6 +716,24 @@ export const useWorldStore = defineStore('world', () => {
     addLog('player', severity, title, text, ['player'], ['player-journey', ...tags], areaId)
   }
 
+  function recordManualPlayerJourney(input: {
+    severity: WorldLogEntry['severity']
+    title: string
+    text: string
+    rewards: PlayerJourneyEntry['rewards']
+    areaId?: string
+    tags?: string[]
+  }) {
+    recordPlayerJourney(
+      input.severity,
+      input.title,
+      input.text,
+      input.rewards,
+      input.areaId,
+      input.tags ?? []
+    )
+  }
+
   function appendNpcStory(
     npcId: string,
     title: string,
@@ -1119,6 +1137,7 @@ export const useWorldStore = defineStore('world', () => {
     applyStoryRelationshipChange,
     interactWithNpc,
     recordMerchantTradeEvent,
+    recordManualPlayerJourney,
     addWorldFlag,
     hasWorldFlag
   }

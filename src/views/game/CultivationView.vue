@@ -101,6 +101,28 @@
       @advance="handleAdvanceWorld"
     />
 
+    <GameSurface
+      tone="realm"
+      padding="md"
+      eyebrow="机缘"
+      title="处理一桩小机缘"
+      subtitle="消耗少量体力，立即结算一次与当前天气、挂机安排、区域态势相关的主角奇遇。"
+    >
+      <div class="fortune-panel">
+        <div class="fortune-copy">
+          <span>{{ fortuneHint }}</span>
+          <strong v-if="lastFortuneFeedback">{{ lastFortuneFeedback.result.title }}</strong>
+          <strong v-else>尚未处理机缘</strong>
+          <p v-if="lastFortuneFeedback">{{ lastFortuneFeedback.result.text }}</p>
+          <p v-else>机缘会写入主角行程，并回流修为、灵石、材料或异闻线索。</p>
+          <small v-if="lastFortuneFeedback">{{ lastFortuneFeedback.rewardText }}</small>
+        </div>
+        <GameActionButton icon="缘" tone="gold" :disabled="playerStore.captivity.isCaptured" @click="handlePlayerFortune">
+          处理机缘
+        </GameActionButton>
+      </div>
+    </GameSurface>
+
     <div class="overview-grid">
       <GameSurface tone="gold" padding="md" eyebrow="修炼进程" title="境界推进" :subtitle="breakthroughHint">
         <div class="progress-stack">
@@ -343,6 +365,7 @@ import { useModal } from '@/composables/useModal'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import { useWorldAdvanceSummary } from '@/composables/useWorldAdvanceSummary'
+import { usePlayerFortune } from '@/composables/usePlayerFortune'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -378,6 +401,7 @@ const {
   lastSummary: lastAdvanceSummary,
   advanceOneTick
 } = useWorldAdvanceSummary()
+const { lastFortuneFeedback, handleFortune } = usePlayerFortune()
 
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
@@ -407,6 +431,18 @@ const idleModes: Array<{ id: IdleMode; icon: string; label: string; description:
 
 const idleModeLabel = computed(() => worldStore.getIdleModeLabel(worldStore.idleMode))
 
+const weatherLabel = computed(() => {
+  const labels = {
+    clear: '天朗气清',
+    rain: '灵雨细落',
+    storm: '雷暴压境',
+    flood: '洪水漫野',
+    fire: '火势蔓延',
+    mist: '雾锁山河'
+  }
+  return labels[worldStore.weather]
+})
+
 const heroSubtitle = computed(() => {
   if (playerStore.captivity.isCaptured) {
     const captor = playerStore.captivity.captorSectId
@@ -425,6 +461,12 @@ const heroSummary = computed(() => {
     return `当前正在${idleModeLabel.value}，挂机期间每秒获得 ${playerStore.cultivationPerSecond} 修为，并持续触发世界演化。`
   }
   return `当前可手动打坐冲境，也可调整挂机模式，让主角以不同方式参与这个不断变化的世界。`
+})
+
+const fortuneHint = computed(() => {
+  if (playerStore.captivity.isCaptured) return '被俘期间无法处理常规机缘'
+  if (playerStore.stamina < 8) return '体力偏低，处理机缘可能受限'
+  return `${worldStore.getIdleModeLabel(worldStore.idleMode)} · ${weatherLabel.value}`
 })
 
 const staminaRecoverLabel = computed(() => {
@@ -869,6 +911,19 @@ function handleAdvanceWorld() {
   }
 }
 
+function handlePlayerFortune() {
+  if (playerStore.captivity.isCaptured) {
+    warning('被俘期间无法处理常规机缘')
+    return
+  }
+  const result = handleFortune()
+  if (!result.success) {
+    warning(result.reason)
+    return
+  }
+  success(`${result.title}：${lastFortuneFeedback.value?.rewardText ?? '机缘已记录'}`)
+}
+
 </script>
 
 <style scoped>
@@ -1044,6 +1099,37 @@ function handleAdvanceWorld() {
   border-radius: 18px;
   border: 1px solid rgba(188, 141, 58, 0.24);
   background: rgba(255, 250, 236, 0.82);
+}
+
+.fortune-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.fortune-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fortune-copy span,
+.fortune-copy small {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.fortune-copy strong {
+  color: #8b6226;
+  font-size: 15px;
+}
+
+.fortune-copy p {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.78);
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .offline-copy {
@@ -1630,6 +1716,10 @@ function handleAdvanceWorld() {
   .offline-banner {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .fortune-panel {
+    grid-template-columns: 1fr;
   }
 
   .hero-actions,
