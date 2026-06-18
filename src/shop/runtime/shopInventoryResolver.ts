@@ -59,10 +59,11 @@ export interface ShopFilter {
 
 export interface ShopPurchaseResolution {
   success: boolean
-  reason: 'ready' | 'sold_out' | 'gold_shortage' | 'inventory_full'
+  reason: 'ready' | 'sold_out' | 'gold_shortage' | 'contribution_shortage' | 'inventory_full'
   message: string
   stockId: string | null
   price: number
+  contributionCost: number
   nextPurchasedQuantity: number
   purchasedItem?: ShopInventoryItem
   inventoryItem?: ReturnType<typeof shopItemToInventoryItem>
@@ -331,6 +332,7 @@ export function resolveShopPurchase(input: {
   inventory: ShopInventoryItem[]
   purchasedByStockId: Record<string, number>
   gold: number
+  contribution: number
   playerInventory: InventoryItem[]
   isInventoryFull: boolean
 }): ShopPurchaseResolution {
@@ -341,6 +343,11 @@ export function resolveShopPurchase(input: {
 
   if (input.gold < item.price) {
     return createPurchaseFailure('gold_shortage', '灵石不足', item)
+  }
+
+  const contributionCost = item.definition.contributionCost ?? 0
+  if (input.contribution < contributionCost) {
+    return createPurchaseFailure('contribution_shortage', '宗门贡献不足', item)
   }
 
   if (!canInventoryAcceptShopItem({
@@ -357,6 +364,7 @@ export function resolveShopPurchase(input: {
     message: `购买了 ${item.definition.name}`,
     stockId: item.stockId,
     price: item.price,
+    contributionCost,
     nextPurchasedQuantity: (input.purchasedByStockId[item.stockId] ?? 0) + 1,
     purchasedItem: item,
     inventoryItem: shopItemToInventoryItem(item)
@@ -390,6 +398,7 @@ function createPurchaseFailure(
     message,
     stockId: item?.stockId ?? null,
     price: item?.price ?? 0,
+    contributionCost: item?.definition.contributionCost ?? 0,
     nextPurchasedQuantity: 0
   }
 }

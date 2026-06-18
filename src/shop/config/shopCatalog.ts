@@ -20,6 +20,7 @@ export interface ShopItemDefinition {
   type: ShopItemType
   quality: ShopQuality
   basePrice: number
+  contributionCost?: number
   description: string
   equipmentId?: string
   effects?: ShopItemEffect[]
@@ -314,8 +315,9 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     type: 'material',
     quality: 'excellent',
     basePrice: 320,
+    contributionCost: 45,
     description: '青云宗外务堂流通的信物，可用于后续宗门任务与声望玩法。',
-    sectIds: ['qingyun'],
+    sectIds: ['qingyun_sect'],
     stockRange: [0, 3],
     refreshWeight: 0.7
   },
@@ -328,8 +330,9 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     type: 'material',
     quality: 'excellent',
     basePrice: 340,
+    contributionCost: 48,
     description: '赤炎宗炼器房常用的火脉灵砂。',
-    sectIds: ['chiyan'],
+    sectIds: ['forge_sect'],
     stockRange: [0, 3],
     refreshWeight: 0.7
   },
@@ -342,8 +345,9 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     type: 'material',
     quality: 'excellent',
     basePrice: 330,
+    contributionCost: 46,
     description: '玄水宗符阵师偏爱的清冽灵墨。',
-    sectIds: ['xuanshui'],
+    sectIds: ['medicine_valley'],
     stockRange: [0, 3],
     refreshWeight: 0.7
   }

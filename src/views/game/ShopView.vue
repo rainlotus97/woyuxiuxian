@@ -10,8 +10,14 @@
     >
       <template #header>
         <div class="market-wallet">
-          <span>灵石</span>
-          <strong>{{ playerStore.gold }}</strong>
+          <div>
+            <span>灵石</span>
+            <strong>{{ playerStore.gold }}</strong>
+          </div>
+          <div>
+            <span>贡献</span>
+            <strong>{{ sectStore.contribution }}</strong>
+          </div>
         </div>
       </template>
 
@@ -71,7 +77,7 @@
             </span>
             <span class="item-desc">{{ item.definition.description }}</span>
             <span class="item-meta">
-              <span>{{ item.price }} 灵石</span>
+              <span>{{ formatItemCost(item) }}</span>
               <span>存货 {{ item.stock }}/{{ item.maxStock }}</span>
             </span>
             <span v-if="item.tags.length" class="item-tags">
@@ -103,7 +109,7 @@
         </div>
         <div class="confirm-stats">
           <span>价格</span>
-          <strong>{{ selectedItem.price }} 灵石</strong>
+          <strong>{{ formatItemCost(selectedItem) }}</strong>
           <span>库存</span>
           <strong>{{ selectedItem.stock }}</strong>
         </div>
@@ -126,6 +132,7 @@ import { useAudio, sfxSpiritStone } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useToast } from '@/composables/useToast'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useSectStore } from '@/stores/sectStore'
 import { useShopStore } from '@/stores/shopStore'
 import {
   SHOP_CATEGORY_OPTIONS,
@@ -135,6 +142,7 @@ import {
 import type { ShopInventoryItem } from '@/shop/runtime/shopInventoryResolver'
 
 const playerStore = usePlayerStore()
+const sectStore = useSectStore()
 const shopStore = useShopStore()
 const { startShopBgm } = useAudio()
 const { showItemAcquire } = useModal()
@@ -154,7 +162,7 @@ onMounted(() => {
 
 function handleBuy(item: ShopInventoryItem) {
   if (!shopStore.canBuy(item)) {
-    warning(playerStore.gold < item.price ? '灵石不足' : '背包已满')
+    warning(getBlockedReason(item))
     return
   }
   selectedItem.value = item
@@ -180,6 +188,18 @@ function confirmBuy() {
   })
   selectedItem.value = null
 }
+
+function formatItemCost(item: ShopInventoryItem) {
+  const parts = [`${item.price} 灵石`]
+  if (item.definition.contributionCost) parts.push(`${item.definition.contributionCost} 贡献`)
+  return parts.join(' · ')
+}
+
+function getBlockedReason(item: ShopInventoryItem) {
+  if (playerStore.gold < item.price) return '灵石不足'
+  if ((item.definition.contributionCost ?? 0) > sectStore.contribution) return '宗门贡献不足'
+  return '背包已满'
+}
 </script>
 
 <style scoped>
@@ -195,15 +215,21 @@ function confirmBuy() {
 }
 
 .market-wallet {
-  min-width: 104px;
+  min-width: 138px;
   display: grid;
-  gap: 3px;
+  gap: 6px;
   justify-items: end;
   padding: 8px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(189, 141, 58, 0.2);
   color: #80602e;
+}
+
+.market-wallet div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .market-wallet span {

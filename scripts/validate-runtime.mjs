@@ -971,6 +971,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     inventory: [shopItem],
     purchasedByStockId: {},
     gold: 50,
+    contribution: 0,
     playerInventory: [],
     isInventoryFull: false
   })
@@ -984,6 +985,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     inventory: [],
     purchasedByStockId: {},
     gold: 50,
+    contribution: 0,
     playerInventory: [],
     isInventoryFull: false
   })
@@ -994,6 +996,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     inventory: [shopItem],
     purchasedByStockId: {},
     gold: 49,
+    contribution: 0,
     playerInventory: [],
     isInventoryFull: false
   })
@@ -1004,6 +1007,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     inventory: [shopEquipment],
     purchasedByStockId: {},
     gold: 50,
+    contribution: 0,
     playerInventory: [],
     isInventoryFull: true
   })
@@ -1058,6 +1062,33 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok(stablePill.price < contestedPill.price)
   assert.ok(stablePill.tags.includes('本宗商路'))
   assert.ok(contestedPill.tags.includes('商路受阻'))
+  const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
+  assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
+  assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)
+  assert.equal(sectToken.definition.contributionCost, 45)
+  const contributionBlocked = resolveShopPurchase({
+    stockId: sectToken.stockId,
+    inventory: [sectToken],
+    purchasedByStockId: {},
+    gold: sectToken.price,
+    contribution: 44,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(contributionBlocked.success, false)
+  assert.equal(contributionBlocked.reason, 'contribution_shortage')
+  const contributionReady = resolveShopPurchase({
+    stockId: sectToken.stockId,
+    inventory: [sectToken],
+    purchasedByStockId: {},
+    gold: sectToken.price,
+    contribution: 45,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(contributionReady.success, true)
+  assert.equal(contributionReady.contributionCost, 45)
+  assert.equal(contributionReady.inventoryItem?.definitionId, 'sect_cloud_order')
 
   const authority = resolveSectAuthority({ positionLevel: 5, contribution: 10000 })
   assert.equal(authority.canDeclareWar, true)

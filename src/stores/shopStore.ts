@@ -112,6 +112,7 @@ export const useShopStore = defineStore('shop', () => {
       inventory: inventory.value,
       purchasedByStockId: purchasedByStockId.value,
       gold: playerStore.gold,
+      contribution: sectStore.contribution,
       playerInventory: playerStore.inventory,
       isInventoryFull: playerStore.isInventoryFull
     }).success
@@ -123,6 +124,7 @@ export const useShopStore = defineStore('shop', () => {
       inventory: inventory.value,
       purchasedByStockId: purchasedByStockId.value,
       gold: playerStore.gold,
+      contribution: sectStore.contribution,
       playerInventory: playerStore.inventory,
       isInventoryFull: playerStore.isInventoryFull
     })
@@ -134,6 +136,9 @@ export const useShopStore = defineStore('shop', () => {
     if (!added) return { success: false, message: '背包已满' }
 
     playerStore.gold -= purchase.price
+    if (purchase.contributionCost > 0) {
+      sectStore.addContribution(-purchase.contributionCost)
+    }
     purchasedByStockId.value[purchase.stockId] = purchase.nextPurchasedQuantity
     return { success: true, message: purchase.message, item: purchase.purchasedItem }
   }
