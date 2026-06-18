@@ -27,6 +27,7 @@ function test(name, fn) {
 
 test('battle runtime resolves lethal command and replay', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { resolveBattleJourney } = await load('/src/game/battle/battleJourneyResolver.ts')
   const { createUnit } = await load('/src/types/unit.ts')
 
   const ally = createUnit({
@@ -72,6 +73,20 @@ test('battle runtime resolves lethal command and replay', async () => {
   assert.equal(snapshot.result, 'victory')
   assert.ok(snapshot.logs.some(log => log.text.includes('战斗胜利')))
   assert.ok(runtime.getReplayEvents().some(event => event.type === 'battle_end'))
+
+  const journey = resolveBattleJourney({
+    result: 'victory',
+    areaName: '迷雾森林',
+    mapAreaName: '青云山',
+    turns: snapshot.turn,
+    rewards: { cultivation: 40, gold: 20 },
+    drops: [{ name: '灵草', quantity: 2 }]
+  })
+  assert.equal(journey.title, '青云山历险战斗胜利')
+  assert.ok(journey.text.includes('取胜'))
+  assert.ok(journey.rewards.some(reward => reward.type === 'item' && reward.label === '灵草'))
+  assert.ok(journey.tags.includes('battle'))
+  assert.ok(journey.tags.includes('adventure'))
 })
 
 test('story battle replay archive summarizes and dedupes route sessions', async () => {

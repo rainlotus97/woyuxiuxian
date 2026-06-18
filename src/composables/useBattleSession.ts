@@ -38,6 +38,7 @@ import {
   toSkillProgressInput
 } from '@/character/runtime/characterSkillProgressResolver'
 import { createInventoryItemsFromDrops } from '@/character/runtime/inventoryDropResolver'
+import { resolveBattleJourney, type BattleJourneyDrop } from '@/game/battle/battleJourneyResolver'
 import {
   completeRouteGameplaySession,
   getRouteGameplaySession
@@ -573,6 +574,7 @@ export function useBattleSession() {
 
   function claimAndExit() {
     const result = battleRuntime.value?.result
+    const battleDrops: BattleJourneyDrop[] = []
     if (result === 'victory') {
       playerStore.addCultivation(pendingRewards.value.cultivation)
       playerStore.addGold(pendingRewards.value.gold)
@@ -599,6 +601,7 @@ export function useBattleSession() {
         })
         for (const item of inventoryItems) {
           playerStore.addToInventory(item)
+          battleDrops.push({ name: item.name, quantity: item.quantity })
         }
         playerStore.clearArea(currentArea.value.id, 0, 3)
       }
@@ -606,6 +609,21 @@ export function useBattleSession() {
       if (mapAreaId && !mapStore.isAreaConquered(mapAreaId)) {
         mapStore.conquerArea(mapAreaId)
       }
+    }
+    if (result) {
+      const journey = resolveBattleJourney({
+        result,
+        areaName: currentArea.value?.name ?? null,
+        mapAreaName: activeMapEncounter.value?.mapArea.name ?? null,
+        turns: runtimeSnapshot.value?.turn ?? 1,
+        rewards: result === 'victory' ? { ...pendingRewards.value } : { cultivation: 0, gold: 0 },
+        drops: battleDrops,
+        isStoryBattle: Boolean(activeRouteGameplaySession.value)
+      })
+      worldStore.recordManualPlayerJourney({
+        ...journey,
+        areaId: (route.query.mapAreaId as string | undefined) ?? currentArea.value?.id
+      })
     }
     worldStore.advanceTick()
     if (activeRouteGameplaySession.value && result) {
