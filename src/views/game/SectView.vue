@@ -175,6 +175,7 @@ import SectTasksPanel from '@/components/sect/SectTasksPanel.vue'
 import { SECT_FACILITIES, getSectById } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
 import { useSectDuty } from '@/composables/useSectDuty'
+import { useSectMembership } from '@/composables/useSectMembership'
 import { NPC_RESCUE_COST, useSectViewState } from '@/composables/useSectViewState'
 import {
   type SectDirectiveId,
@@ -212,6 +213,7 @@ const {
   worldStatusLabel
 } = useSectViewState()
 const { lastDuty, handleSectDuty: resolveSectDuty } = useSectDuty()
+const { joinSect: joinSectWithJourney, leaveSect: leaveSectWithJourney } = useSectMembership()
 
 const activeTab = ref<'tasks' | 'facilities' | 'diplomacy'>('tasks')
 const showFacilityModal = ref(false)
@@ -225,9 +227,9 @@ const tabs = [
 ]
 
 function handleJoinSect(sectId: string) {
-  const sect = sectStore.joinCandidates.find(item => item.sect.id === sectId)?.sect
-  if (sectStore.joinSect(sectId)) {
-    success(`成功加入${sect?.name ?? '宗门'}！`)
+  const result = joinSectWithJourney(sectId)
+  if (result.success) {
+    success(`成功加入${result.sectName ?? '宗门'}！`)
   } else {
     warning('无法加入该宗门')
   }
@@ -342,9 +344,10 @@ function handleRescueNpc(npcId: string) {
 }
 
 function handleLeaveSect() {
-  if (sectStore.leaveSect()) {
+  const result = leaveSectWithJourney()
+  if (result.success) {
     showLeaveDialog.value = false
-    info('已退出宗门')
+    info(`已退出${result.sectName ?? '宗门'}`)
   }
 }
 

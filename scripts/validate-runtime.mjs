@@ -1099,6 +1099,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectJoin,
     resolveSectLeave
   } = await load('/src/sect/runtime/sectMembershipResolver.ts')
+  const { resolveSectMembershipJourney } = await load('/src/sect/runtime/sectMembershipJourneyResolver.ts')
   const { resolveSectEventChoice } = await load('/src/sect/runtime/sectEventResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const {
@@ -1188,6 +1189,25 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(lockedTrail.success, false)
   assert.ok(lockedTrail.reason.includes('天象'))
   assert.equal(blocked.sweepAllowed, false)
+
+  const joinJourney = resolveSectMembershipJourney({
+    action: 'join',
+    sectName: '青云宗',
+    areaName: '青云山',
+    positionName: '外门弟子'
+  })
+  assert.equal(joinJourney.severity, 'major')
+  assert.equal(joinJourney.title, '青云宗拜山')
+  assert.ok(joinJourney.text.includes('宗门任务'))
+  assert.ok(joinJourney.tags.includes('join'))
+
+  const leaveJourney = resolveSectMembershipJourney({
+    action: 'leave',
+    sectName: '青云宗',
+    areaName: '青云山'
+  })
+  assert.equal(leaveJourney.title, '离开青云宗')
+  assert.ok(leaveJourney.tags.includes('leave'))
 
   const inventoryFixture = [
     { id: 'item_a', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 },
