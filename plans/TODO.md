@@ -251,7 +251,9 @@
 - [ ] 建立战斗特效素材表与命名规则
 - [ ] 替换 Tone.js 占位 BGM，改为真实音乐资源接入方案
 - [ ] 为处决动画、技能动画、入场动画设计可替换帧序列协议
-- [ ] 建立 `ASSET_SOURCES` 全项目登记机制
+- [~] 建立 `ASSET_SOURCES` 全项目登记机制
+  - 已新增 `src/assets/assetManifest.json`，登记当前战斗背景、角色精灵、字体与 legacy SVG 资源
+  - 已新增 `npm run assets:validate`，校验资源存在性、来源/授权字段、runtime key 重复、PNG 尺寸、字体/SVG 基础签名和未登记资源
 
 ## P3 工程治理
 
@@ -264,7 +266,9 @@
   - 已新增 `scripts/validate-story.mjs`
   - 已新增 `npm run story:validate`
   - 当前校验覆盖卷节点、角色事件、角色头信息、link 表列、重复 ID、选项/补触发/剧情战跳转断链与角色关联主线断链
-- [ ] 为资源包建立 manifest 校验
+- [x] 为资源包建立 manifest 校验
+  - 已新增 `scripts/validate-assets.mjs`
+  - 已新增 `npm run assets:validate`
 - [ ] 更新 README 的项目结构说明，反映 `src/game`、`src/story`、`plans/`
 
 ## 本次提交覆盖

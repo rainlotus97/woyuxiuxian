@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "battle.bg.cloud_base",
+      "path": "src/assets/battle/backgrounds/Background02.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_base"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.cloud_glow",
+      "path": "src/assets/battle/backgrounds/Background01.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_glow"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.mountain_far",
+      "path": "src/assets/battle/backgrounds/BackgroundMountain_01.png",
+      "type": "image",
+      "runtimeKeys": ["bg_mountain_far"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.mountain_near",
+      "path": "src/assets/battle/backgrounds/BackgroundMuntain02.png",
+      "type": "image",
+      "runtimeKeys": ["bg_mountain_near"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.cloud_1",
+      "path": "src/assets/battle/backgrounds/Cloud01.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_1"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.cloud_2",
+      "path": "src/assets/battle/backgrounds/Cloud02.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_2"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.cloud_3",
+      "path": "src/assets/battle/backgrounds/Cloud03.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_3"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.bg.cloud_4",
+      "path": "src/assets/battle/backgrounds/Clouds04.png",
+      "type": "image",
+      "runtimeKeys": ["bg_cloud_4"],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": { "format": "png", "width": 270, "height": 170 }
+    },
+    {
+      "id": "battle.actor.character.original",
+      "path": "src/assets/battle/actors/RPGCharacterSprites32x32.png",
+      "type": "spritesheet",
+      "usage": "battle-source",
+      "source": "32x32 RPG Character Sprites by Eldiran, OpenGameArt",
+      "license": "CC0",
+      "expected": { "format": "png", "width": 384, "height": 672, "frameWidth": 32, "frameHeight": 32 }
+    },
+    {
+      "id": "battle.actor.character.transparent",
+      "path": "src/assets/battle/actors/RPGCharacterSprites32x32-transparent.png",
+      "type": "spritesheet",
+      "runtimeKeys": ["actor_ally", "actor_enemy"],
+      "usage": "battle-actor",
+      "source": "Local chroma-key cleaned derivative of 32x32 RPG Character Sprites by Eldiran",
+      "license": "CC0",
+      "expected": { "format": "png", "width": 384, "height": 672, "frameWidth": 32, "frameHeight": 32 }
+    },
+    {
+      "id": "battle.actor.soldier.original",
+      "path": "src/assets/battle/actors/RPGSoldier32x32.png",
+      "type": "spritesheet",
+      "usage": "battle-source",
+      "source": "32x32 RPG Character Sprites by Eldiran, OpenGameArt",
+      "license": "CC0",
+      "expected": { "format": "png", "width": 288, "height": 175 }
+    },
+    {
+      "id": "battle.actor.soldier.transparent",
+      "path": "src/assets/battle/actors/RPGSoldier32x32-transparent.png",
+      "type": "spritesheet",
+      "runtimeKeys": ["actor_boss"],
+      "usage": "battle-actor",
+      "source": "Local chroma-key cleaned derivative of 32x32 RPG Character Sprites by Eldiran",
+      "license": "CC0",
+      "expected": { "format": "png", "width": 288, "height": 175 }
+    },
+    {
+      "id": "font.zpix",
+      "path": "src/assets/fonts/zpix.woff2",
+      "type": "font",
+      "usage": "ui-font",
+      "source": "Zpix pixel font project",
+      "license": "OFL-compatible open font",
+      "expected": { "format": "woff2" }
+    },
+    {
+      "id": "legacy.vue-logo",
+      "path": "src/assets/vue.svg",
+      "type": "image",
+      "usage": "legacy-template",
+      "source": "Vue starter template logo",
+      "license": "MIT",
+      "expected": { "format": "svg" }
+    }
+  ]
+}
