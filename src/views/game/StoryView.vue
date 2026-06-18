@@ -41,6 +41,21 @@
           :current-node-map="storyStore.currentNode?.map"
         />
 
+        <StoryRunSummary
+          class="story-run-summary"
+          :perspective-label="perspectiveLabel"
+          :selected-perspective-label="selectedPerspectiveLabel"
+          :loop="storyStore.currentLoop"
+          :volume="storyStore.currentVolume"
+          :completed-count="storyStore.completedNodes.size"
+          :total-nodes="storyNodeCountLabel"
+          :current-node-name="currentNodeLabel"
+          :current-node-id="storyStore.currentNodeId"
+          :current-node-map="storyStore.currentNode?.map"
+          :has-save="Boolean(storyStore.currentNodeId)"
+          :latest-replay="latestBattleReplay"
+        />
+
         <StoryBattleReplayPanel :records="battleReplayRecords" />
       </div>
 
@@ -74,17 +89,6 @@
           </GameActionButton>
         </div>
       </GameSurface>
-
-      <GameSurface v-if="debugEnabled" tone="mist" padding="sm" compact>
-        <details class="debug-panel">
-          <summary>剧情运行诊断</summary>
-          <div class="debug-actions">
-            <GameActionButton icon="析" tone="stone" @click="testParser">解析器</GameActionButton>
-            <GameActionButton icon="载" tone="stone" @click="testLoader">加载器</GameActionButton>
-          </div>
-          <pre v-if="debugOutput" class="debug-output">{{ debugOutput }}</pre>
-        </details>
-      </GameSurface>
     </div>
 
     <StoryPlayer v-else @back="handleBackFromPlayer" />
@@ -100,6 +104,7 @@ import StoryBattleReplayPanel from '@/components/story/StoryBattleReplayPanel.vu
 import StoryPerspectiveCard from '@/components/story/StoryPerspectiveCard.vue'
 import StoryPlayer from '@/components/story/StoryPlayer.vue'
 import StoryProgressPanel from '@/components/story/StoryProgressPanel.vue'
+import StoryRunSummary from '@/components/story/StoryRunSummary.vue'
 import { getStoryBattleReplaySummaries } from '@/story/runtime/storyBattleReplayArchive'
 import type { Perspective } from '@/story/types'
 
@@ -107,8 +112,6 @@ const storyStore = useStoryStore()
 
 const isPlaying = ref(false)
 const selectedPerspective = ref<'male' | 'female'>(storyStore.currentPerspective === 'female' ? 'female' : 'male')
-const debugOutput = ref<string | null>(null)
-const debugEnabled = import.meta.env.DEV
 const battleReplayRecords = ref(getStoryBattleReplaySummaries())
 
 const perspectiveLabel = computed(() => {
@@ -133,13 +136,14 @@ const currentNodeLabel = computed(() => {
   return storyStore.currentNode?.name ?? storyStore.currentNodeId ?? null
 })
 
+const latestBattleReplay = computed(() => battleReplayRecords.value[0] ?? null)
+
 async function startStory() {
   try {
     await storyStore.initStory(selectedPerspective.value, 1)
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start story:', error)
-    debugOutput.value = `Error: ${error}`
   }
 }
 
@@ -150,7 +154,6 @@ async function continueSavedStory() {
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to continue story:', error)
-    debugOutput.value = `Error: ${error}`
   }
 }
 
@@ -166,7 +169,6 @@ async function startNewPerspective() {
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start new perspective:', error)
-    debugOutput.value = `Error: ${error}`
   }
 }
 
@@ -178,39 +180,6 @@ async function restartStory() {
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to restart story:', error)
-    debugOutput.value = `Error: ${error}`
-  }
-}
-
-async function testParser() {
-  try {
-    const response = await fetch('/src/assets/story/volume-1/main.md')
-    if (!response.ok) {
-      throw new Error('Failed to fetch story file')
-    }
-    const content = await response.text()
-
-    debugOutput.value = `Story file loaded, length: ${content.length} chars\nFirst 500 chars:\n${content.substring(0, 500)}`
-  } catch (error) {
-    debugOutput.value = `Parser Error: ${error}`
-  }
-}
-
-async function testLoader() {
-  try {
-    debugOutput.value = JSON.stringify(
-      {
-        currentVolume: storyStore.currentVolume,
-        currentLoop: storyStore.currentLoop,
-        currentPerspective: storyStore.currentPerspective,
-        completedNodes: storyStore.completedNodes.size,
-        nodeCount: storyStore.allNodes.length,
-      },
-      null,
-      2
-    )
-  } catch (error) {
-    debugOutput.value = `Loader Error: ${error}`
   }
 }
 </script>
@@ -314,35 +283,8 @@ async function testLoader() {
   justify-content: flex-end;
 }
 
-.debug-panel {
-  display: grid;
-  gap: 10px;
-}
-
-.debug-panel summary {
-  color: rgba(52, 75, 72, 0.68);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.debug-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.debug-output {
-  margin: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(31, 48, 45, 0.08);
-  color: #47615d;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 12px;
+.story-run-summary {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 820px) {

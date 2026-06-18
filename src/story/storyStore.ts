@@ -196,17 +196,11 @@ export const useStoryStore = defineStore('story', () => {
       return
     }
 
-    console.log('[makeChoice] Current node:', node.id)
-    console.log('[makeChoice] Available choices:', node.content.choices)
-    console.log('[makeChoice] Selected index:', choiceIndex)
-
     const choice = node.content.choices[choiceIndex]
     if (!choice) {
       console.error('[makeChoice] Choice not found at index:', choiceIndex)
       return
     }
-
-    console.log('[makeChoice] Selected choice:', choice)
 
     // 标记当前节点完成
     completedNodes.value.add(node.id)
@@ -221,7 +215,6 @@ export const useStoryStore = defineStore('story', () => {
 
     // 检查是否为结束标记
     if (choice.isEndMarker || choice.targetId === null) {
-      console.log('[makeChoice] End marker detected')
       const termination = checkEndNode()
       if (termination) {
         endStory(termination)
@@ -231,18 +224,15 @@ export const useStoryStore = defineStore('story', () => {
 
     // 检查目标节点是否存在
     const targetNode = storyCache.getNode(choice.targetId)
-    console.log('[makeChoice] Target node exists:', !!targetNode, 'targetId:', choice.targetId)
 
     if (!targetNode) {
       showNotification(`节点 ${choice.targetId} 未找到`, 'error')
       console.error('[makeChoice] Target node not found:', choice.targetId)
-      console.log('[makeChoice] Available nodes:', storyCache.getAllNodes().map(n => n.id))
       return
     }
 
     // 跳转到目标节点
     await goToNode(choice.targetId)
-    console.log('[makeChoice] Jumped to node:', currentNodeId.value)
   }
 
   // ============ 支线任务 ============
@@ -837,23 +827,19 @@ export const useStoryStore = defineStore('story', () => {
   async function continueStory(newPerspective?: Perspective) {
     // 如果传入了新的视角，且与当前保存的视角不同，则重新开始
     if (newPerspective && newPerspective !== currentPerspective.value) {
-      console.log('[continueStory] Perspective changed from', currentPerspective.value, 'to', newPerspective, '- starting new story')
       await initStory(newPerspective, 1)
       return
     }
 
     if (currentNodeId.value) {
       // 需要重新加载故事文件到缓存中（页面刷新后缓存会被清空）
-      console.log('[continueStory] Reloading story files for volume', currentVolume.value, 'perspective', currentPerspective.value)
       await volumeLoader.loadVolume(currentVolume.value, currentPerspective.value)
 
       // 验证节点是否存在
       const node = storyCache.getNode(currentNodeId.value)
-      console.log('[continueStory] Current node exists:', !!node, 'id:', currentNodeId.value)
 
       if (!node) {
         // 如果节点不存在，可能是缓存问题，重新初始化
-        console.log('[continueStory] Node not found in cache, reinitializing...')
         await initStory(currentPerspective.value, currentVolume.value)
         return
       }
