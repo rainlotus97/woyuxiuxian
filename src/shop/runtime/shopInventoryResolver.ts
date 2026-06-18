@@ -14,6 +14,7 @@ import {
 import { SHOP_MERCHANT_ITEM_RULES } from '@/shop/config/shopMerchantCatalog'
 import {
   resolveShopMerchantEvents,
+  type ShopMerchantEvent,
   type ShopMerchantEventResolution
 } from './shopMerchantEventResolver'
 
@@ -79,11 +80,13 @@ export interface ShopInventoryItem {
   maxStock: number
   tags: string[]
   limitedReason?: string
+  merchantEvent?: Pick<ShopMerchantEvent, 'id' | 'merchantId' | 'merchantName' | 'mapId' | 'title' | 'tag'>
 }
 
 interface ShopCatalogEntry {
   definition: ShopItemDefinition
   merchantNames: string[]
+  merchantEvent?: ShopMerchantEvent
 }
 
 export interface ShopFilter {
@@ -387,7 +390,8 @@ function resolveShopMerchantEventEntries(context: ShopInventoryContext): ShopCat
         ...event.item,
         description: `${event.item.description} 事件：${event.title}。`
       },
-      merchantNames: [event.merchantName]
+      merchantNames: [event.merchantName],
+      merchantEvent: event
     }]
   })
 }
@@ -490,7 +494,7 @@ export function createShopInventory(context: ShopInventoryContext): ShopInventor
   const marketInfluence = resolveShopMarketInfluence(context)
   const merchantInfluence = resolveShopMerchantInfluence(context)
 
-  return resolveShopCatalogEntries(context).flatMap(({ definition, merchantNames }) => {
+  return resolveShopCatalogEntries(context).flatMap(({ definition, merchantNames, merchantEvent }) => {
     const availability = getDefinitionAvailability(definition, context)
     if (!availability.available) return []
 
@@ -504,7 +508,17 @@ export function createShopInventory(context: ShopInventoryContext): ShopInventor
       stock,
       maxStock: definition.stockRange[1],
       tags: getTags(definition, context, marketInfluence, merchantInfluence, merchantNames),
-      limitedReason: availability.reason
+      limitedReason: availability.reason,
+      merchantEvent: merchantEvent
+        ? {
+            id: merchantEvent.id,
+            merchantId: merchantEvent.merchantId,
+            merchantName: merchantEvent.merchantName,
+            mapId: merchantEvent.mapId,
+            title: merchantEvent.title,
+            tag: merchantEvent.tag
+          }
+        : undefined
     }]
   }).sort((a, b) => {
     if (a.definition.category !== b.definition.category) {

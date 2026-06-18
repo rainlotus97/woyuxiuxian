@@ -5,6 +5,7 @@ export interface ShopMerchantEvent {
   id: string
   merchantId: string
   merchantName: string
+  mapId?: string
   title: string
   tag: string
   priceModifier: number
@@ -68,6 +69,7 @@ function resolveMerchantEvents(merchant: ShopMerchantNpcState): ShopMerchantEven
       id: `merchant_event_medicine_${merchant.npcId}`,
       merchantId: merchant.npcId,
       merchantName: merchant.name,
+      mapId: merchant.locationMapId || merchant.homeMapId,
       title: `${merchant.name}开出药脉折价`,
       tag: '药脉折价',
       priceModifier: 0.95,
@@ -102,6 +104,7 @@ function resolveMerchantEvents(merchant: ShopMerchantNpcState): ShopMerchantEven
       id: `merchant_event_forge_${merchant.npcId}`,
       merchantId: merchant.npcId,
       merchantName: merchant.name,
+      mapId: merchant.locationMapId || merchant.homeMapId,
       title: `${merchant.name}临时开炉`,
       tag: '炉火开张',
       priceModifier: 0.98,
@@ -134,6 +137,7 @@ function resolveMerchantEvents(merchant: ShopMerchantNpcState): ShopMerchantEven
       id: `merchant_event_array_${merchant.npcId}`,
       merchantId: merchant.npcId,
       merchantName: merchant.name,
+      mapId: merchant.locationMapId || merchant.homeMapId,
       title: `${merchant.name}偿还阵墨人情`,
       tag: '人情赊账',
       priceModifier: 0.93,

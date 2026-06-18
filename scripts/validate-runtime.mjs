@@ -832,6 +832,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveShopPurchase
   } = await load('/src/shop/runtime/shopInventoryResolver.ts')
   const { resolveShopMerchantEvents } = await load('/src/shop/runtime/shopMerchantEventResolver.ts')
+  const { resolveShopMerchantTradeLog } = await load('/src/shop/runtime/shopMerchantLogResolver.ts')
   const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
@@ -1543,6 +1544,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(merchantEventPurchase.success, true)
   assert.equal(merchantEventPurchase.inventoryItem?.definitionId, 'food_jade_marrow_soup')
+  assert.equal(merchantEventFood.merchantEvent?.merchantId, 'npc_bai_ruoli')
+  const merchantTradeLog = resolveShopMerchantTradeLog(merchantEventFood)
+  assert.equal(merchantTradeLog?.scope, 'npc')
+  assert.equal(merchantTradeLog?.actorIds[0], 'npc_bai_ruoli')
+  assert.ok(merchantTradeLog?.tags.includes('shop'))
+  assert.equal(resolveShopMerchantTradeLog(merchantPill), null)
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)

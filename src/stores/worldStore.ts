@@ -979,6 +979,26 @@ export const useWorldStore = defineStore('world', () => {
     return true
   }
 
+  function recordMerchantTradeEvent(input: {
+    scope: WorldLogEntry['scope']
+    severity: WorldLogEntry['severity']
+    title: string
+    text: string
+    actorIds: string[]
+    mapId?: string
+    tags: string[]
+  }) {
+    addLog(
+      input.scope,
+      input.severity,
+      input.title,
+      input.text,
+      input.actorIds,
+      input.tags,
+      input.mapId
+    )
+  }
+
   function addWorldFlag(flag: string, title?: string, text?: string) {
     if (!worldFlags.value.includes(flag)) {
       worldFlags.value.push(flag)
@@ -1041,6 +1061,7 @@ export const useWorldStore = defineStore('world', () => {
     getCapturedNpcRescueTarget,
     rescueCapturedNpc,
     applyStoryRelationshipChange,
+    recordMerchantTradeEvent,
     addWorldFlag,
     hasWorldFlag
   }
