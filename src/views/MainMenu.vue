@@ -188,7 +188,7 @@
         </div>
       </div>
 
-      <aside class="world-preview">
+      <aside v-if="!playerStore.created" class="world-preview">
         <div
           v-for="card in roadmapCards"
           :key="card.title"
@@ -402,8 +402,27 @@ function formatAmount(value: number) {
 }
 
 .start-shell.has-save {
-  grid-template-columns: minmax(0, 0.72fr) minmax(480px, 0.96fr);
+  grid-template-columns: minmax(0, 0.62fr) minmax(500px, 1fr);
+  grid-template-areas: "brand guide";
   align-content: center;
+}
+
+.start-shell.has-save .brand-panel {
+  min-height: 260px;
+  grid-template-columns: 112px minmax(0, 1fr);
+  padding: 24px;
+}
+
+.start-shell.has-save .brand-copy strong {
+  font-size: 14px;
+}
+
+.start-shell.has-save .brand-tags {
+  gap: 6px;
+}
+
+.start-shell.has-save .brand-tags span {
+  min-height: 28px;
 }
 
 .brand-panel,
@@ -517,7 +536,7 @@ function formatAmount(value: number) {
 
 .save-panel {
   align-content: center;
-  gap: 16px;
+  gap: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.97), rgba(241, 252, 247, 0.88)),
     linear-gradient(135deg, rgba(127, 205, 180, 0.18), transparent 42%),
@@ -559,7 +578,7 @@ function formatAmount(value: number) {
   grid-template-columns: minmax(0, 1fr) 168px;
   gap: 12px;
   align-items: stretch;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   border-radius: 14px;
   background:
@@ -669,8 +688,8 @@ function formatAmount(value: number) {
 
 .priority-board {
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid rgba(111, 157, 149, 0.16);
   border-radius: 14px;
   background:
@@ -704,8 +723,8 @@ function formatAmount(value: number) {
   min-width: 0;
   display: grid;
   gap: 5px;
-  min-height: 96px;
-  padding: 10px;
+  min-height: 84px;
+  padding: 9px;
   border: 1px solid rgba(111, 157, 149, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
@@ -1066,6 +1085,19 @@ function formatAmount(value: number) {
       "preview";
   }
 
+  .start-shell.has-save {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "guide"
+      "brand";
+  }
+
+  .start-shell.has-save .brand-panel {
+    min-height: auto;
+    grid-template-columns: 88px minmax(0, 1fr);
+    padding: 14px;
+  }
+
   .brand-panel {
     min-height: auto;
     grid-template-columns: 92px minmax(0, 1fr);
@@ -1143,6 +1175,14 @@ function formatAmount(value: number) {
   .brand-panel {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .start-shell.has-save .brand-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .start-shell.has-save .brand-copy strong {
+    display: none;
   }
 
   .brand-art {

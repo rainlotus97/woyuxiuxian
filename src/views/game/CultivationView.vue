@@ -55,42 +55,6 @@
           </div>
         </div>
 
-        <div class="action-feedback-panel">
-          <div class="feedback-head">
-            <span>最近反馈</span>
-            <strong>{{ latestActionFeedbackTitle }}</strong>
-          </div>
-          <div v-if="latestActionFeedbackItems.length" class="feedback-list">
-            <article
-              v-for="item in latestActionFeedbackItems"
-              :key="item.id"
-              class="feedback-item"
-              :class="`tone-${item.tone}`"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.title }}</strong>
-              <p>{{ item.text }}</p>
-            </article>
-          </div>
-          <div v-else class="feedback-empty">
-            <span>点击“推演一时辰”或“处理机缘”后，结果会直接写入主角行程和世界日志。</span>
-          </div>
-        </div>
-
-        <div class="world-pulse-card">
-          <div class="pulse-head">
-            <span>{{ worldStore.currentTimeLabel }}</span>
-            <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
-            <p>{{ latestPulseText }}</p>
-          </div>
-          <div class="p0-rail">
-            <div v-for="item in p0FocusItems" :key="item.label" class="p0-chip" :class="`tone-${item.tone}`">
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-            </div>
-          </div>
-        </div>
-
         <div class="loop-hub-panel">
           <div class="loop-readiness-strip">
             <div>
@@ -171,6 +135,44 @@
               </span>
               <span class="task-meta">{{ task.meta }}</span>
             </button>
+          </div>
+        </div>
+
+        <div class="home-status-band">
+          <div class="world-pulse-card">
+            <div class="pulse-head">
+              <span>{{ worldStore.currentTimeLabel }}</span>
+              <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
+              <p>{{ latestPulseText }}</p>
+            </div>
+            <div class="p0-rail">
+              <div v-for="item in p0FocusItems" :key="item.label" class="p0-chip" :class="`tone-${item.tone}`">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-feedback-panel">
+            <div class="feedback-head">
+              <span>最近反馈</span>
+              <strong>{{ latestActionFeedbackTitle }}</strong>
+            </div>
+            <div v-if="latestActionFeedbackItems.length" class="feedback-list">
+              <article
+                v-for="item in latestActionFeedbackItems"
+                :key="item.id"
+                class="feedback-item"
+                :class="`tone-${item.tone}`"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.text }}</p>
+              </article>
+            </div>
+            <div v-else class="feedback-empty">
+              <span>点击“推演一时辰”或“处理机缘”后，结果会直接写入主角行程和世界日志。</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1041,7 +1043,7 @@ function handlePlayerFortune() {
 .home-hero-layout {
   position: relative;
   z-index: 1;
-  grid-template-columns: minmax(0, 0.72fr) minmax(360px, 1.28fr);
+  grid-template-columns: minmax(0, 0.82fr) minmax(340px, 1.18fr);
   align-items: stretch;
   gap: 10px;
 }
@@ -1050,6 +1052,7 @@ function handlePlayerFortune() {
 .hero-copy,
 .action-feedback-panel,
 .world-pulse-card,
+.home-status-band,
 .quick-command-panel,
 .loop-hub-panel,
 .progress-stack,
@@ -1063,7 +1066,7 @@ function handlePlayerFortune() {
 .hero-main-card {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  min-height: 118px;
+  min-height: 104px;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 12px;
@@ -1073,7 +1076,7 @@ function handlePlayerFortune() {
 }
 
 .protagonist-token {
-  width: 76px;
+  width: 68px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -1090,7 +1093,7 @@ function handlePlayerFortune() {
 
 .protagonist-token span {
   color: #8e6227;
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -1118,7 +1121,7 @@ function handlePlayerFortune() {
 
 .hero-copy strong {
   color: #315257;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .hero-actions {
@@ -1141,7 +1144,7 @@ function handlePlayerFortune() {
 
 .world-pulse-card {
   align-content: space-between;
-  min-height: 118px;
+  min-height: 0;
   padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.2);
   border-radius: 12px;
@@ -1160,7 +1163,7 @@ function handlePlayerFortune() {
 }
 
 .action-feedback-panel {
-  min-height: 112px;
+  min-height: 0;
   align-content: start;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
@@ -1179,6 +1182,12 @@ function handlePlayerFortune() {
   background:
     linear-gradient(180deg, rgba(255, 252, 240, 0.58), rgba(241, 250, 245, 0.44)),
     radial-gradient(circle at 18% 0%, rgba(255, 224, 150, 0.2), transparent 48%);
+}
+
+.home-status-band {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 0.95fr) minmax(300px, 1.05fr);
+  gap: 10px;
 }
 
 .quick-command-head {
@@ -1275,7 +1284,7 @@ function handlePlayerFortune() {
 
 .quick-command {
   min-width: 0;
-  min-height: 50px;
+  min-height: 48px;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
@@ -1728,7 +1737,7 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 108px;
+  min-height: 96px;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
@@ -1823,7 +1832,7 @@ function handlePlayerFortune() {
   font-size: 10px;
   font-style: normal;
   line-height: 1.55;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -2223,6 +2232,7 @@ function handlePlayerFortune() {
   .home-hero-layout,
   .overview-grid,
   .world-grid,
+  .home-status-band,
   .log-list {
     grid-template-columns: 1fr;
   }
@@ -2250,17 +2260,55 @@ function handlePlayerFortune() {
     padding: 14px;
   }
 
+  .main-loop-surface :deep(.surface-header) {
+    margin-bottom: 4px;
+  }
+
+  .main-loop-surface :deep(.surface-copy p) {
+    display: none;
+  }
+
+  .hero-main-card {
+    min-height: 88px;
+    padding: 10px;
+  }
+
+  .protagonist-token {
+    width: 54px;
+    border-radius: 13px;
+  }
+
+  .protagonist-token span {
+    font-size: 22px;
+  }
+
+  .protagonist-token small {
+    font-size: 8px;
+  }
+
+  .hero-copy p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
   .loop-task-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .loop-task-card {
-    min-height: 108px;
+    min-height: 86px;
+    padding: 9px;
   }
 
   .loop-readiness-strip {
     align-items: stretch;
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
   }
 
   .p0-acceptance-panel {
@@ -2292,6 +2340,16 @@ function handlePlayerFortune() {
 
   .quick-command-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-command {
+    min-height: 44px;
+    padding: 7px 8px;
+  }
+
+  .quick-command span {
+    width: 28px;
+    height: 28px;
   }
 
   .task-copy b {

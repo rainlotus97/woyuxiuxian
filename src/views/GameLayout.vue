@@ -400,7 +400,7 @@ onUnmounted(() => {
   grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 5px 10px;
-  padding: 6px 8px;
+  padding: 5px 8px;
   border: 1px solid rgba(101, 152, 145, 0.18);
   border-radius: 12px;
   background:
@@ -542,7 +542,7 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px 10px;
+  padding: 7px 10px 8px;
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
@@ -561,7 +561,7 @@ onUnmounted(() => {
 .nav-shell {
   position: relative;
   z-index: 18;
-  padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -584,7 +584,7 @@ onUnmounted(() => {
   background:
     linear-gradient(180deg, rgba(248, 255, 245, 0.1), rgba(49, 82, 87, 0.14)),
     rgba(239, 249, 244, 0.2);
-  cursor: pointer;
+  pointer-events: none;
   backdrop-filter: blur(1px);
 }
 
@@ -732,7 +732,7 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 58px;
+  height: 56px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
@@ -748,7 +748,7 @@ onUnmounted(() => {
 }
 
 .tab-item {
-  height: 46px;
+  height: 44px;
   min-width: 0;
   display: grid;
   place-items: center;
@@ -808,7 +808,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 6px 8px 8px;
+    padding: 5px 8px 6px;
   }
 
   .top-shell {
@@ -820,8 +820,8 @@ onUnmounted(() => {
   }
 
   .hud-shell {
-    gap: 6px;
-    padding: 6px;
+    gap: 5px;
+    padding: 5px;
     border-radius: 14px;
   }
 
@@ -867,7 +867,7 @@ onUnmounted(() => {
 
   .resource-row :deep(.stat-chip) {
     flex-direction: column;
-    min-height: 38px;
+    min-height: 34px;
     justify-content: center;
     gap: 2px;
     padding: 5px 3px;
@@ -883,7 +883,7 @@ onUnmounted(() => {
 
   .audio-toggle,
   .home-toggle {
-    min-height: 38px;
+    min-height: 34px;
     justify-content: center;
     padding: 6px 4px;
     gap: 3px;
@@ -918,12 +918,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 56px;
+    height: 54px;
     border-radius: 13px;
   }
 
   .tab-item {
-    height: 44px;
+    height: 42px;
     font-size: 10px;
   }
 }
