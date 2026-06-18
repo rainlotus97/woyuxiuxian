@@ -4,7 +4,7 @@
 
 ## P0 当前优先级
 
-- [~] 战斗页稳定性修复
+- [x] 战斗页稳定性修复
   - 已处理 Phaser Scene 销毁后仍接收事件导致的空引用问题
   - 已清理 BattleView 中未回收的延时伤害回调
   - 已为 BattleScene / useBattleSession 增加 battle instance 级事件握手，修复首次进入战斗页需要刷新才恢复渲染的问题
@@ -12,7 +12,8 @@
   - 已加固 `PhaserHost / PreloadScene / BattleScene` 生命周期，避免重复挂载、重复资源注册和销毁后 tween/计时器继续触发
   - 已用 Playwright 验证首进战斗 DOM 不再重复、手动普攻可推进回合、控制台无空引用错误
   - 已用 Playwright 补充验证路由往返、自动战斗连续结算、胜利弹层后退出，确认 DOM / canvas 不残留
-- [~] 新战斗链路落地
+  - 本轮复核：首进 `misty_forest` 战斗页、路由往返、自动 3x 战斗结算与返回历练均通过，控制台无 Phaser 空引用错误
+- [x] 新战斗链路落地
   - 已建立 `src/game/battle/battleRuntime.ts`
   - 已建立 `src/game/scenes/BattleScene.ts`
   - 已接入本地背景/角色占位资源
@@ -20,6 +21,7 @@
   - 已将 `battleStore` 降级为 legacy compatibility store，避免误用旧链路
   - 已建立 `BattlePanelShell / BattleWorldStrip`，把战斗 HUD 面板结构抽成复用组件
   - 已将顶部状态、世界摘要、行动序列、命令栏、日志栏、结算卡统一到明亮战斗面板体系
+  - 本轮复核：`BattleView` 主链路仅装配 `useBattleSession + PhaserHost + battle components`，旧 `battleStore` 仅保留 legacy 兼容提示
 - [x] 拆分 `src/views/game/BattleView.vue`
   - 已拆出：
     - `components/battle/BattleTopHud.vue`
