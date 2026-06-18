@@ -531,7 +531,13 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveGardenHarvest,
     resolveGardenSlotCount
   } = await load('/src/sect/runtime/sectGardenResolver.ts')
+  const {
+    resolveAlchemyCraft,
+    resolveAlchemySuccessRate,
+    resolveAvailableAlchemyRecipes
+  } = await load('/src/sect/runtime/sectAlchemyResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
+  const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
 
   const blocked = resolveAreaGameplayAccess({
     areaName: '青云山',
@@ -615,6 +621,52 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(unready.success, false)
   assert.ok(unready.message.includes('尚未成熟'))
   assert.equal(resolveGardenAccelerateCost({ crop: { ...matureCrop, readyAt: 61_000 }, now: 1000 }), 10)
+
+  assert.equal(resolveAvailableAlchemyRecipes(ALCHEMY_RECIPES, 1).every(recipe => recipe.requiredFacilityLevel <= 1), true)
+  const recipe = getAlchemyRecipeById('pill_hp_small')
+  assert.ok(recipe, 'fixture alchemy recipe should exist')
+  assert.ok(Math.abs(resolveAlchemySuccessRate({ recipe, furnaceLevel: 1, directive: 'balanced' }) - 0.85) < 0.00001)
+  const blockedAlchemy = resolveAlchemyCraft({
+    joinedSectId: 'qingyun_sect',
+    recipe,
+    furnaceLevel: 1,
+    directive: 'balanced',
+    gold: 0,
+    getMaterialQuantity: () => 0,
+    random: 0,
+    now: 1000
+  })
+  assert.equal(blockedAlchemy.success, false)
+  assert.equal(blockedAlchemy.consumesMaterials, false)
+  assert.ok(blockedAlchemy.message.includes('材料不足'))
+
+  const successfulAlchemy = resolveAlchemyCraft({
+    joinedSectId: 'qingyun_sect',
+    recipe,
+    furnaceLevel: 1,
+    directive: 'balanced',
+    gold: 0,
+    getMaterialQuantity: () => 99,
+    random: 0,
+    now: 1000
+  })
+  assert.equal(successfulAlchemy.success, true)
+  assert.equal(successfulAlchemy.consumesMaterials, true)
+  assert.equal(successfulAlchemy.item?.definitionId, 'pill_hp_small')
+
+  const failedAlchemy = resolveAlchemyCraft({
+    joinedSectId: 'qingyun_sect',
+    recipe,
+    furnaceLevel: 1,
+    directive: 'balanced',
+    gold: 0,
+    getMaterialQuantity: () => 99,
+    random: 0.99,
+    now: 1000
+  })
+  assert.equal(failedAlchemy.success, false)
+  assert.equal(failedAlchemy.consumesMaterials, true)
+  assert.ok(failedAlchemy.message.includes('材料已消耗'))
 })
 
 const results = await Promise.all(diagnostics)

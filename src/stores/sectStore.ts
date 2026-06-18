@@ -40,6 +40,10 @@ import {
   resolveGardenHarvest,
   resolveGardenSlotCount
 } from '@/sect/runtime/sectGardenResolver'
+import {
+  resolveAlchemyCraft,
+  resolveAvailableAlchemyRecipes
+} from '@/sect/runtime/sectAlchemyResolver'
 import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
 import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
@@ -905,76 +909,44 @@ export const useSectStore = defineStore('sect', () => {
   // 获取可用的炼丹配方
   const availableAlchemyRecipes = computed(() => {
     const furnaceLevel = getFacilityLevel('alchemy_furnace')
-    return ALCHEMY_RECIPES.filter(r => r.requiredFacilityLevel <= furnaceLevel)
+    return resolveAvailableAlchemyRecipes(ALCHEMY_RECIPES, furnaceLevel)
   })
 
   // 炼丹
   function craftAlchemy(recipeId: string): { success: boolean; message: string; item?: { name: string; icon: string; effects: { type: string; value: number }[] } } {
-    if (!joinedSectId.value) {
-      return { success: false, message: '未加入宗门' }
-    }
-
     const recipe = getAlchemyRecipeById(recipeId)
-    if (!recipe) {
-      return { success: false, message: '配方不存在' }
-    }
-
     const furnaceLevel = getFacilityLevel('alchemy_furnace')
-    if (furnaceLevel < recipe.requiredFacilityLevel) {
-      return { success: false, message: `炼丹炉等级不足，需要${recipe.requiredFacilityLevel}级` }
-    }
-
-    // 检查材料
     const playerStore = usePlayerStore()
-    for (const material of recipe.materials) {
-      if (material.itemId === 'gold') {
-        if (playerStore.gold < material.quantity) {
-          return { success: false, message: `灵石不足，需要${material.quantity}灵石` }
-        }
-      } else {
-        const ownedQuantity = getInventoryMaterialQuantity(material.itemId)
-        if (ownedQuantity < material.quantity) {
-          return { success: false, message: `材料不足：${material.itemId}` }
-        }
-      }
+    const result = resolveAlchemyCraft({
+      joinedSectId: joinedSectId.value,
+      recipe,
+      furnaceLevel,
+      directive: activeDirective.value,
+      gold: playerStore.gold,
+      getMaterialQuantity: getInventoryMaterialQuantity,
+      random: Math.random(),
+      now: Date.now()
+    })
+    if (!result.consumesMaterials && !result.success) {
+      return result
     }
 
-    // 消耗材料
-    for (const material of recipe.materials) {
-      if (material.itemId === 'gold') {
-        playerStore.addGold(-material.quantity)
-      } else {
+    if (result.consumesMaterials && result.goldCost > 0) {
+      playerStore.addGold(-result.goldCost)
+    }
+    if (result.consumesMaterials) {
+      for (const material of result.materialCosts) {
         consumeInventoryMaterial(material.itemId, material.quantity)
       }
     }
 
-    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
-    // 计算成功率 = 基础成功率 + 设施加成(每级+5%)
-    const successRate = Math.max(0.05, Math.min(0.98, recipe.baseSuccessRate + furnaceLevel * 0.05 + directiveEffects.alchemySuccessBonus))
-    const success = Math.random() < successRate
-
-    if (success) {
-      // 产出丹药
-      const pillItem = {
-        id: `pill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        definitionId: recipe.id,
-        name: recipe.output.name,
-        icon: recipe.output.icon,
-        type: 'consumable' as const,
-        quality: recipe.quality,
-        quantity: 1,
-        description: recipe.description,
-        effects: recipe.output.effects
-      }
-      playerStore.addToInventory(pillItem)
-
-      // 更新任务进度
+    if (result.success && result.item) {
+      playerStore.addToInventory(result.item)
       updateTaskProgress('craft', 'alchemy')
-
-      return { success: true, message: '炼制成功！', item: recipe.output }
-    } else {
-      return { success: false, message: '炼制失败，材料已消耗' }
+      return { success: true, message: result.message, item: result.item }
     }
+
+    return { success: false, message: result.message }
   }
 
   // ====== 药园系统 ======
