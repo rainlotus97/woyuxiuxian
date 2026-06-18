@@ -50,7 +50,8 @@
   - 已支持单体治疗、群体治疗、自身护盾、毒/灼烧持续伤害
   - 已支持护盾吸收伤害与 DOT 回合开始扣血
   - 已支持 `demon_summon -> 深渊魔侍` 召唤链路，召唤物可进入战场、行动序列和目标选择
-  - 待补：召唤物专属技能、退场规则、玩家侧召唤技接入
+  - 已新增召唤物生命周期，召唤物按配置行动次数递减并退离战场，退场会写入 replay/log
+  - 待补：召唤物专属技能、玩家侧召唤技接入
 - [~] 增加回放日志结构，支持剧情战和世界事件战共用
   - 已新增 `battleReplay.ts`，定义结构化 `BattleReplayEvent`、actor/target 引用、事件类型与日志映射
   - 已让 `BattleRuntime` 记录 battle_start / turn_start / turn_status / command / effect / summon / defeat / battle_end 事件

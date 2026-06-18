@@ -11,6 +11,7 @@ import {
   processTurnStartStatuses
 } from './statusRuntime'
 import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
+import { resolveSummonActionLifecycle } from './summonLifecycleRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
 import { resolveBattleSpeedModifier } from './battleStatusModifierResolver'
 import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
@@ -341,10 +342,20 @@ export class BattleRuntime {
       })
     }
 
-    this.finishAction()
+    this.finishAction(actor.id)
   }
 
-  finishAction() {
+  finishAction(actorId = this.currentActorId) {
+    const exitingSummon = actorId
+      ? resolveSummonActionLifecycle(this.units, actorId)
+      : null
+    if (exitingSummon) {
+      const summon = this.units.find(unit => unit.id === exitingSummon.unitId)
+      if (summon) {
+        this.addReplayEvent(this.replayRecorder.recordSummonExit(this.turn, summon))
+      }
+    }
+
     if (this.aliveEnemies.length === 0) {
       this.result = 'victory'
       this.phase = 'ended'

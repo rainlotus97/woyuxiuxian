@@ -39,6 +39,7 @@ const EVENT_TYPE_LABELS: Record<BattleReplayEventType, string> = {
   command: '出手',
   effect: '结算',
   summon: '召唤',
+  summon_exit: '退场',
   defeat: '击败',
   battle_end: '终局'
 }

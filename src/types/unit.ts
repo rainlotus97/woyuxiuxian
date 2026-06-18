@@ -160,6 +160,7 @@ export interface Unit {
   aiType?: 'aggressive' | 'defensive' | 'support' | 'balanced'
   summonOwnerId?: string
   summonDefinitionId?: string
+  summonRemainingTurns?: number
 }
 
 // ====== 工具函数 ======

@@ -198,6 +198,91 @@ test('battle runtime tracks skill cooldown by actor turns', async () => {
   assert.equal(runtime.getAvailableSkills(actor.id).some(skill => skill.id === 'sword_qi'), true)
 })
 
+test('battle summon exits after configured action turns', async () => {
+  const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { createUnit } = await load('/src/types/unit.ts')
+
+  const owner = createUnit({
+    id: 'summon_owner',
+    name: '召唤修士',
+    type: 'enemy',
+    stats: {
+      maxHp: 300,
+      currentHp: 300,
+      maxMp: 80,
+      currentMp: 80,
+      attack: 1,
+      defense: 10,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const summon = createUnit({
+    id: 'summon_guard',
+    name: '深渊魔侍',
+    type: 'summon',
+    summonOwnerId: 'summon_owner',
+    summonDefinitionId: 'abyss_guard',
+    summonRemainingTurns: 2,
+    stats: {
+      maxHp: 120,
+      currentHp: 120,
+      maxMp: 0,
+      currentMp: 0,
+      attack: 1,
+      defense: 10,
+      speed: 100,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const target = createUnit({
+    id: 'summon_target',
+    name: '木傀',
+    type: 'protagonist',
+    stats: {
+      maxHp: 500,
+      currentHp: 500,
+      maxMp: 50,
+      currentMp: 50,
+      attack: 1,
+      defense: 50,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+
+  const runtime = new BattleRuntime([target], [owner, summon])
+  let resolved = runtime.resolveCommand({
+    type: 'attack',
+    actorId: 'summon_guard',
+    targetIds: ['summon_target']
+  })
+  assert.ok(resolved, 'summon first attack should resolve')
+  runtime.applyResolvedCommand(resolved)
+  let runtimeSummon = runtime.units.find(unit => unit.id === 'summon_guard')
+  assert.ok(runtimeSummon?.isAlive)
+  assert.equal(runtimeSummon.summonRemainingTurns, 1)
+
+  resolved = runtime.resolveCommand({
+    type: 'attack',
+    actorId: 'summon_guard',
+    targetIds: ['summon_target']
+  })
+  assert.ok(resolved, 'summon second attack should resolve')
+  runtime.applyResolvedCommand(resolved)
+  runtimeSummon = runtime.units.find(unit => unit.id === 'summon_guard')
+  assert.equal(runtimeSummon?.isAlive, false)
+  assert.equal(runtimeSummon?.summonRemainingTurns, 0)
+  assert.ok(runtime.getReplayEvents().some(event =>
+    event.type === 'summon_exit'
+    && event.actor?.id === 'summon_guard'
+    && event.text.includes('退离战场')
+  ))
+})
+
 test('battle status runtime negates damage while invincible', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')

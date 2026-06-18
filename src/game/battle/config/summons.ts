@@ -11,6 +11,7 @@ export interface SummonDefinition {
   level: number
   aiType: 'aggressive' | 'defensive' | 'support' | 'balanced'
   maxActivePerOwner: number
+  durationTurns: number
   stats: UnitStats
   skills: string[]
 }
@@ -27,6 +28,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
     level: 24,
     aiType: 'aggressive',
     maxActivePerOwner: 2,
+    durationTurns: 2,
     stats: {
       maxHp: 180,
       currentHp: 180,
@@ -51,6 +53,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
     level: 18,
     aiType: 'aggressive',
     maxActivePerOwner: 3,
+    durationTurns: 3,
     stats: {
       maxHp: 120,
       currentHp: 120,

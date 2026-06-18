@@ -7,6 +7,7 @@ export type BattleReplayEventType =
   | 'command'
   | 'effect'
   | 'summon'
+  | 'summon_exit'
   | 'defeat'
   | 'battle_end'
 
@@ -160,6 +161,22 @@ export class BattleReplayRecorder {
         unitId: outcome.unitId ?? null,
         success: outcome.success,
         reason: outcome.reason ?? null
+      }
+    })
+  }
+
+  recordSummonExit(turn: number, summon: BattleRuntimeUnit) {
+    return this.record({
+      turn,
+      type: 'summon_exit',
+      text: `${summon.name}灵契耗尽，退离战场。`,
+      severity: 'normal',
+      actor: summon,
+      targets: [summon],
+      payload: {
+        summonId: summon.summonDefinitionId ?? null,
+        ownerId: summon.summonOwnerId ?? null,
+        unitId: summon.id
       }
     })
   }

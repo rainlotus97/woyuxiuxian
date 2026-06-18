@@ -59,6 +59,7 @@ export function createSummonRuntimeUnit(
   return {
     ...toBattleRuntimeUnit(summon, owner.side, 0),
     summonOwnerId: owner.id,
-    summonDefinitionId: definition.id
+    summonDefinitionId: definition.id,
+    summonRemainingTurns: definition.durationTurns
   }
 }
