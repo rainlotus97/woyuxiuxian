@@ -42,6 +42,10 @@ import {
   completeRouteGameplaySession,
   getRouteGameplaySession
 } from '@/story/runtime/routeGameplaySession'
+import {
+  createStoryBattleReplayRecord,
+  saveStoryBattleReplayRecord
+} from '@/story/runtime/storyBattleReplayArchive'
 import type { GameplayResult } from '@/story/types'
 
 interface BattleSkillOption {
@@ -531,6 +535,17 @@ export function useBattleSession() {
 
   function createStoryBattleResult(result: 'victory' | 'defeat' | 'fled'): GameplayResult {
     const routeSession = activeRouteGameplaySession.value
+    const replay = createStoryBattleReplayRecord({
+      sessionId: routeSession?.id ?? null,
+      storyBattleId: String(route.query.storyBattleId || routeSession?.trigger.targetId || 'story_battle'),
+      targetId: routeSession?.trigger.targetId || String(route.query.storyBattleId || currentArea.value?.id || 'story_battle'),
+      result,
+      title: routeSession?.trigger.targetId ? `剧情战：${routeSession.trigger.targetId}` : null,
+      subtitle: currentArea.value ? `${currentArea.value.name} · ${result === 'victory' ? '胜利' : result === 'defeat' ? '败北' : '脱离'}` : null,
+      events: battleRuntime.value?.getReplayEvents() ?? []
+    })
+    saveStoryBattleReplayRecord(replay)
+
     return {
       success: result === 'victory',
       gameplayType: 'battle',
@@ -539,7 +554,8 @@ export function useBattleSession() {
         battleResult: result,
         areaId: currentArea.value?.id || null,
         mapAreaId: (route.query.mapAreaId as string | undefined) || null,
-        rewards: result === 'victory' ? { ...pendingRewards.value } : { cultivation: 0, gold: 0 }
+        rewards: result === 'victory' ? { ...pendingRewards.value } : { cultivation: 0, gold: 0 },
+        replay
       }
     }
   }

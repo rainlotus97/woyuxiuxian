@@ -40,6 +40,8 @@
           :current-node-name="currentNodeLabel"
           :current-node-map="storyStore.currentNode?.map"
         />
+
+        <StoryBattleReplayPanel :records="battleReplayRecords" />
       </div>
 
       <GameSurface tone="jade" padding="md" compact>
@@ -85,7 +87,7 @@
       </GameSurface>
     </div>
 
-    <StoryPlayer v-else @back="isPlaying = false" />
+    <StoryPlayer v-else @back="handleBackFromPlayer" />
   </div>
 </template>
 
@@ -94,9 +96,11 @@ import { computed, ref } from 'vue'
 import { useStoryStore } from '@/story/storyStore'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import StoryBattleReplayPanel from '@/components/story/StoryBattleReplayPanel.vue'
 import StoryPerspectiveCard from '@/components/story/StoryPerspectiveCard.vue'
 import StoryPlayer from '@/components/story/StoryPlayer.vue'
 import StoryProgressPanel from '@/components/story/StoryProgressPanel.vue'
+import { getStoryBattleReplaySummaries } from '@/story/runtime/storyBattleReplayArchive'
 import type { Perspective } from '@/story/types'
 
 const storyStore = useStoryStore()
@@ -105,6 +109,7 @@ const isPlaying = ref(false)
 const selectedPerspective = ref<'male' | 'female'>(storyStore.currentPerspective === 'female' ? 'female' : 'male')
 const debugOutput = ref<string | null>(null)
 const debugEnabled = import.meta.env.DEV
+const battleReplayRecords = ref(getStoryBattleReplaySummaries())
 
 const perspectiveLabel = computed(() => {
   const perspective = storyStore.currentPerspective
@@ -141,11 +146,17 @@ async function startStory() {
 async function continueSavedStory() {
   try {
     await storyStore.continueStory()
+    battleReplayRecords.value = getStoryBattleReplaySummaries()
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to continue story:', error)
     debugOutput.value = `Error: ${error}`
   }
+}
+
+function handleBackFromPlayer() {
+  battleReplayRecords.value = getStoryBattleReplaySummaries()
+  isPlaying.value = false
 }
 
 async function startNewPerspective() {

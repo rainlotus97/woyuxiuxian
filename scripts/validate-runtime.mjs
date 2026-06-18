@@ -74,6 +74,48 @@ test('battle runtime resolves lethal command and replay', async () => {
   assert.ok(runtime.getReplayEvents().some(event => event.type === 'battle_end'))
 })
 
+test('story battle replay archive summarizes and dedupes route sessions', async () => {
+  const {
+    clearStoryBattleReplayArchive,
+    createStoryBattleReplayRecord,
+    getStoryBattleReplaySummaries,
+    saveStoryBattleReplayRecord
+  } = await load('/src/story/runtime/storyBattleReplayArchive.ts')
+
+  clearStoryBattleReplayArchive()
+  const record = createStoryBattleReplayRecord({
+    sessionId: 'story-session-a',
+    storyBattleId: 'ambush_test',
+    targetId: 'ambush_test',
+    result: 'victory',
+    now: 1000,
+    events: [
+      { id: 'e1', turn: 1, type: 'battle_start', text: '战斗开始。', severity: 'major' },
+      { id: 'e2', turn: 1, type: 'command', text: '试炼弟子出剑。', severity: 'major' },
+      { id: 'e3', turn: 2, type: 'battle_end', text: '战斗胜利。', severity: 'major', payload: { result: 'victory' } }
+    ]
+  })
+
+  assert.equal(record.resultLabel, '胜利')
+  assert.equal(record.eventCount, 3)
+  assert.equal(record.majorEventCount, 3)
+  assert.equal(record.turns, 2)
+  assert.deepEqual(record.highlights, ['试炼弟子出剑。', '战斗胜利。'])
+
+  saveStoryBattleReplayRecord(record)
+  saveStoryBattleReplayRecord({
+    ...record,
+    id: 'story-battle-replay-retry',
+    result: 'defeat',
+    resultLabel: '败北'
+  })
+
+  const summaries = getStoryBattleReplaySummaries()
+  assert.equal(summaries.length, 1)
+  assert.equal(summaries[0].sessionId, 'story-session-a')
+  assert.equal(summaries[0].resultLabel, '败北')
+})
+
 test('battle runtime tracks skill cooldown by actor turns', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { createUnit } = await load('/src/types/unit.ts')

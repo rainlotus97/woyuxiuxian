@@ -33,6 +33,13 @@ export {
   hasRouteGameplaySession
 } from './runtime/routeGameplaySession'
 export {
+  createStoryBattleReplayRecord,
+  saveStoryBattleReplayRecord,
+  getStoryBattleReplayArchive,
+  getStoryBattleReplaySummaries,
+  clearStoryBattleReplayArchive
+} from './runtime/storyBattleReplayArchive'
+export {
   STORY_CHARACTER_BINDINGS,
   getStoryCharacterBindingById,
   findStoryCharacterBinding,
