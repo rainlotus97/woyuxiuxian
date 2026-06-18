@@ -1,13 +1,17 @@
 import type {
   IdleMode,
   PlayerJourneyEntry,
-  PlayerJourneyReward,
   WorldAreaAnomaly,
   WorldClock,
   WorldWeather
 } from '@/types/world'
 import { formatWorldTime } from '@/types/world'
 import { getAreaById } from '@/types/map'
+import {
+  resolveIdleSkillTrainingProgression,
+  type SkillExpDelta,
+  type SkillProgressSkillInput
+} from '@/character/runtime/characterSkillProgressResolver'
 import { seededWorldRoll } from './worldSeed'
 
 export interface PlayerJourneyInventoryItem {
@@ -28,6 +32,7 @@ export interface PlayerJourneyResolution {
   sectReputationDelta: number
   petExpDelta: number
   petIntimacyDelta: number
+  skillExpDeltas: SkillExpDelta[]
   inventoryItems: PlayerJourneyInventoryItem[]
   journeys: Array<Omit<PlayerJourneyEntry, 'id' | 'tick' | 'timeLabel' | 'mode'>>
 }
@@ -38,6 +43,7 @@ export interface PlayerJourneyResolverContext {
   weather: WorldWeather
   baseCultivationGain: number
   hasEquippedPet: boolean
+  learnedSkills?: SkillProgressSkillInput[]
   activeAnomaly: WorldAreaAnomaly | null
   fallbackAreaId: string | null
   sectHomeAreaId: string | null
@@ -51,6 +57,7 @@ function createEmptyResolution(): PlayerJourneyResolution {
     sectReputationDelta: 0,
     petExpDelta: 0,
     petIntimacyDelta: 0,
+    skillExpDeltas: [],
     inventoryItems: [],
     journeys: []
   }
@@ -178,12 +185,23 @@ function resolveSectDutyJourney(context: PlayerJourneyResolverContext): PlayerJo
 function resolveSkillTrainingJourney(context: PlayerJourneyResolverContext): PlayerJourneyResolution {
   const result = createEmptyResolution()
   if (seededWorldRoll(context.clock.totalTicks, 'player-skill-train') <= 0.86) return result
+  const training = resolveIdleSkillTrainingProgression({
+    learnedSkills: context.learnedSkills ?? [],
+    baseCultivationGain: context.baseCultivationGain,
+    seed: context.clock.totalTicks
+  })
+  result.skillExpDeltas.push(...training.skillExpDeltas)
+  const rewardLabel = training.totalExp > 0 ? `功法经验 +${training.totalExp}` : '功法手感'
 
   result.journeys.push({
     severity: 'normal',
     title: '功法熟稔',
-    text: '你反复演练剑诀，灵力运转比先前顺畅了些。',
-    rewards: [] as PlayerJourneyReward[],
+    text: training.totalExp > 0
+      ? `你反复演练功法，灵力运转比先前顺畅了些，获得${training.totalExp}点功法经验。`
+      : '你反复演练功法，灵力运转比先前顺畅了些。',
+    rewards: training.totalExp > 0
+      ? [{ type: 'skill_exp', label: rewardLabel, value: training.totalExp }]
+      : [],
     tags: ['skill', 'training']
   })
   return result

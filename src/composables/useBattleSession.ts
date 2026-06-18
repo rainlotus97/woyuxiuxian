@@ -34,6 +34,10 @@ import { getAreaById, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
 import {
+  resolveBattleSkillProgression,
+  toSkillProgressInput
+} from '@/character/runtime/characterSkillProgressResolver'
+import {
   completeRouteGameplaySession,
   getRouteGameplaySession
 } from '@/story/runtime/routeGameplaySession'
@@ -86,6 +90,7 @@ export function useBattleSession() {
   let battleRunId = 0
   let battleInstanceId = ''
   const commandTimers = new Set<number>()
+  const usedPlayerSkillIds = new Set<string>()
 
   const sortedUnits = computed(() => [...(runtimeSnapshot.value?.units || [])].sort((a, b) => b.actionGauge - a.actionGauge))
   const playerActor = computed(() => {
@@ -299,6 +304,7 @@ export function useBattleSession() {
   function initBattle() {
     worldStore.simulateOffline()
     battleRuntime.value = new BattleRuntime(createAllies(), createEnemies())
+    usedPlayerSkillIds.clear()
     const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
     gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
     refreshSnapshot()
@@ -395,6 +401,9 @@ export function useBattleSession() {
     if (!resolved) {
       executing = false
       return
+    }
+    if (resolved.skill && runtime.units.find(unit => unit.id === resolved.actorId)?.type === 'protagonist') {
+      usedPlayerSkillIds.add(resolved.skill.id)
     }
     if (sceneReady && isBattleSceneReady(battleInstanceId)) {
       gameEvents.emit('battle:play-command', { command: resolved.command, battleInstanceId })
@@ -545,6 +554,15 @@ export function useBattleSession() {
     if (result === 'victory') {
       playerStore.addCultivation(pendingRewards.value.cultivation)
       playerStore.addGold(pendingRewards.value.gold)
+      const skillProgression = resolveBattleSkillProgression({
+        learnedSkills: toSkillProgressInput(playerStore.learnedSkills),
+        usedSkillIds: [...usedPlayerSkillIds],
+        victory: true,
+        cultivationReward: pendingRewards.value.cultivation
+      })
+      for (const delta of skillProgression.skillExpDeltas) {
+        playerStore.addSkillExp(delta.skillId, delta.exp)
+      }
       if (petStore.equippedPet) {
         petStore.addPetExp(petStore.equippedPet.owned.definitionId, Math.max(12, Math.floor(pendingRewards.value.cultivation * 0.18)))
         petStore.addIntimacy(petStore.equippedPet.owned.definitionId, 2)

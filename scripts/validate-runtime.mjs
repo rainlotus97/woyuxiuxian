@@ -524,12 +524,22 @@ test('world log context resolver labels area sect and actors', async () => {
 
 test('player journey resolver produces mode rewards', async () => {
   const { resolvePlayerJourney } = await load('/src/world/runtime/playerJourneyResolver.ts')
+  const {
+    resolveBattleSkillProgression,
+    resolveIdleSkillTrainingProgression
+  } = await load('/src/character/runtime/characterSkillProgressResolver.ts')
   const baseClock = { year: 1, month: 1, day: 1, shichenIndex: 4, totalTicks: 1, lastSimulatedAt: 0 }
+  const learnedSkills = [
+    { id: 'basic_sword', level: 1, enabled: true },
+    { id: 'gathering_qi', level: 1, enabled: true },
+    { id: 'sword_rain', level: 3, enabled: false }
+  ]
   const baseContext = {
     clock: baseClock,
     weather: 'rain',
     baseCultivationGain: 100,
     hasEquippedPet: true,
+    learnedSkills,
     activeAnomaly: { areaId: 'qingyun_mountain' },
     fallbackAreaId: 'qingyun_mountain',
     sectHomeAreaId: 'qingyun_mountain'
@@ -564,6 +574,53 @@ test('player journey resolver produces mode rewards', async () => {
   assert.ok(sectDuty, 'sect duty mode should produce a deterministic duty tick')
   assert.equal(sectDuty.sectContributionDelta, 8)
   assert.equal(sectDuty.sectReputationDelta, 3)
+
+  const idleTraining = resolveIdleSkillTrainingProgression({
+    learnedSkills,
+    baseCultivationGain: 100,
+    seed: 1
+  })
+  assert.ok(idleTraining.totalExp > 0)
+  assert.ok(idleTraining.skillExpDeltas.every(delta => delta.reason === 'idle_training'))
+
+  let skillTraining = null
+  for (let tick = 1; tick < 120 && !skillTraining; tick++) {
+    const result = resolvePlayerJourney({
+      ...baseContext,
+      clock: { ...baseClock, totalTicks: tick },
+      idleMode: 'trainSkill'
+    })
+    if (result.skillExpDeltas.length > 0) skillTraining = result
+  }
+  assert.ok(skillTraining, 'skill training mode should produce deterministic skill exp')
+  assert.ok(skillTraining.skillExpDeltas[0].exp > 0)
+  assert.ok(skillTraining.journeys[0].rewards.some(reward => reward.type === 'skill_exp'))
+
+  const battleSkillUse = resolveBattleSkillProgression({
+    learnedSkills,
+    usedSkillIds: ['basic_sword', 'unknown_skill', 'basic_sword'],
+    victory: true,
+    cultivationReward: 120
+  })
+  assert.deepEqual(battleSkillUse.skillExpDeltas.map(delta => delta.skillId), ['basic_sword'])
+  assert.equal(battleSkillUse.skillExpDeltas[0].reason, 'battle_use')
+
+  const battleParticipation = resolveBattleSkillProgression({
+    learnedSkills,
+    usedSkillIds: [],
+    victory: true,
+    cultivationReward: 120
+  })
+  assert.equal(battleParticipation.skillExpDeltas.length, 1)
+  assert.equal(battleParticipation.skillExpDeltas[0].reason, 'battle_participation')
+
+  const battleDefeat = resolveBattleSkillProgression({
+    learnedSkills,
+    usedSkillIds: ['basic_sword'],
+    victory: false,
+    cultivationReward: 120
+  })
+  assert.equal(battleDefeat.totalExp, 0)
 })
 
 test('world narrative creates anomaly records with area context', async () => {

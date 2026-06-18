@@ -158,7 +158,7 @@ export interface WorldRewardItem {
 }
 
 export interface PlayerJourneyReward {
-  type: 'gold' | 'cultivation' | 'contribution' | 'reputation' | 'item' | 'flag'
+  type: 'gold' | 'cultivation' | 'contribution' | 'reputation' | 'item' | 'flag' | 'skill_exp'
   label: string
   value: number | string
 }

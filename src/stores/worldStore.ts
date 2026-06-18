@@ -54,6 +54,7 @@ import {
   resolvePlayerCaptivityTick
 } from '@/world/runtime/playerCaptivityResolver'
 import { resolvePlayerJourney } from '@/world/runtime/playerJourneyResolver'
+import { toSkillProgressInput } from '@/character/runtime/characterSkillProgressResolver'
 import { getAreaById } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import type {
@@ -431,6 +432,7 @@ export const useWorldStore = defineStore('world', () => {
       weather: weather.value,
       baseCultivationGain: baseGain,
       hasEquippedPet: Boolean(petStore.equippedPet),
+      learnedSkills: toSkillProgressInput(playerStore.learnedSkills),
       activeAnomaly: areaAnomalies.value[0] ?? null,
       fallbackAreaId: mapStore.currentRealmAreas[0]?.id ?? null,
       sectHomeAreaId: sectStore.currentSect?.areaId ?? null
@@ -438,6 +440,9 @@ export const useWorldStore = defineStore('world', () => {
 
     if (journey.cultivationDelta) playerStore.addCultivation(journey.cultivationDelta)
     if (journey.goldDelta) playerStore.addGold(journey.goldDelta)
+    for (const delta of journey.skillExpDeltas) {
+      playerStore.addSkillExp(delta.skillId, delta.exp)
+    }
     for (const item of journey.inventoryItems) {
       playerStore.addToInventory(item)
     }
