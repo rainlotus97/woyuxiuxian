@@ -558,6 +558,56 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     prerequisites: ['hellfire'],
     unlockRealm: '金丹'
   },
+  abyss_claw: {
+    id: 'abyss_claw',
+    name: '魔侍裂爪',
+    description: '深渊魔侍的本能撕裂，攻击单体并附加流血。',
+    icon: '爪',
+    category: 'attack',
+    branch: 'special',
+    tier: 3,
+    mpCost: 8,
+    cooldown: 1,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'damage',
+        targetType: 'single_enemy',
+        baseValue: 18,
+        scaling: 0.9,
+        element: '火',
+        statusEffect: {
+          type: 'bleed',
+          chance: 0.5,
+          duration: 2,
+          value: 8
+        }
+      }
+    ],
+    unlockRealm: '金丹'
+  },
+  spirit_sword_cut: {
+    id: 'spirit_sword_cut',
+    name: '灵剑穿心',
+    description: '灵剑化身凝出剑芒，专斩气机薄弱处。',
+    icon: '穿',
+    category: 'attack',
+    branch: 'attack',
+    tier: 2,
+    mpCost: 0,
+    cooldown: 1,
+    maxLevel: 10,
+    effects: [
+      {
+        type: 'damage',
+        targetType: 'single_enemy',
+        baseValue: 16,
+        scaling: 1,
+        element: '金'
+      }
+    ],
+    unlockRealm: '筑基'
+  },
   critical_eye: {
     id: 'critical_eye',
     name: '灵眼',

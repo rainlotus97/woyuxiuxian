@@ -40,7 +40,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
       critRate: 0.08,
       critDamage: 1.45
     },
-    skills: []
+    skills: ['abyss_claw']
   },
   spirit_sword: {
     id: 'spirit_sword',
@@ -65,7 +65,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
       critRate: 0.1,
       critDamage: 1.5
     },
-    skills: []
+    skills: ['spirit_sword_cut']
   }
 }
 

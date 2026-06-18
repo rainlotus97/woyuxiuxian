@@ -283,6 +283,80 @@ test('battle summon exits after configured action turns', async () => {
   ))
 })
 
+test('battle summons use dedicated skills', async () => {
+  const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
+  const { createSummonRuntimeUnit } = await load('/src/game/battle/runtimeUnitFactory.ts')
+  const { createUnit } = await load('/src/types/unit.ts')
+
+  const owner = createUnit({
+    id: 'summon_skill_owner',
+    name: '魔修',
+    type: 'enemy',
+    stats: {
+      maxHp: 300,
+      currentHp: 300,
+      maxMp: 80,
+      currentMp: 80,
+      attack: 10,
+      defense: 10,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+  const target = createUnit({
+    id: 'summon_skill_target',
+    name: '试炼木傀',
+    type: 'protagonist',
+    stats: {
+      maxHp: 500,
+      currentHp: 500,
+      maxMp: 50,
+      currentMp: 50,
+      attack: 1,
+      defense: 8,
+      speed: 1,
+      critRate: 0,
+      critDamage: 1.5
+    }
+  })
+
+  const runtime = new BattleRuntime([target], [owner])
+  const runtimeOwner = runtime.units.find(unit => unit.id === 'summon_skill_owner')
+  assert.ok(runtimeOwner, 'owner should be converted into runtime unit')
+  const summon = createSummonRuntimeUnit('abyss_guard', runtimeOwner, 1)
+  assert.ok(summon, 'abyss guard summon should be created')
+  runtime.units.push(summon)
+
+  const summonSkills = runtime.getActorSkills(summon.id)
+  assert.equal(summonSkills[0]?.id, 'abyss_claw')
+  assert.equal(summonSkills[0]?.name, '魔侍裂爪')
+
+  const originalRandom = Math.random
+  Math.random = () => 0
+  try {
+    const command = runtime.createAutoCommand(summon.id)
+    assert.equal(command?.type, 'skill')
+    assert.equal(command?.skillId, 'abyss_claw')
+    assert.deepEqual(command?.targetIds, ['summon_skill_target'])
+
+    const resolved = runtime.resolveCommand(command)
+    assert.ok(resolved, 'summon dedicated skill command should resolve')
+    runtime.applyResolvedCommand(resolved)
+  } finally {
+    Math.random = originalRandom
+  }
+
+  const damagedTarget = runtime.units.find(unit => unit.id === 'summon_skill_target')
+  assert.ok(damagedTarget && damagedTarget.stats.currentHp < 500)
+  assert.ok(damagedTarget?.statusEffects.some(effect => effect.type === 'bleed'))
+  assert.ok(runtime.getReplayEvents().some(event =>
+    event.type === 'command'
+    && event.actor?.id === summon.id
+    && event.payload?.skillId === 'abyss_claw'
+  ))
+})
+
 test('battle status runtime negates damage while invincible', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
