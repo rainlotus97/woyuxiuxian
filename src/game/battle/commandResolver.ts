@@ -15,6 +15,7 @@ import {
 } from './statusRuntime'
 import { prepareSummons } from './summonRuntime'
 import {
+  resolveBattleCounterDamage,
   resolveBattleDamageModifier,
   resolveBattleDodgeChance,
   resolveBattleLifestealAmount
@@ -38,7 +39,9 @@ function calculateDamageAmount(
   const critMultiplier = isCrit ? attacker.stats.critDamage : 1
   const statusModifier = resolveBattleDamageModifier({
     attackerStatuses: attacker.statusEffects,
-    targetStatuses: target.statusEffects
+    targetStatuses: target.statusEffects,
+    attackerElement: attacker.element,
+    targetElement: target.element
   })
   const modified = rawBase * statusModifier * variance * critMultiplier
   return {
@@ -194,6 +197,32 @@ export function applyPreparedEffects(
             isHeal: true,
             targetDefeated: false
           })
+        }
+
+        if (target.isAlive && target.id !== attacker.id) {
+          const counterRawDamage = resolveBattleCounterDamage({
+            incomingDamage: damage,
+            defenderAttack: target.stats.attack,
+            defenderStatuses: target.statusEffects
+          })
+          if (counterRawDamage > 0) {
+            const counterResolution = resolveIncomingDamage(attacker, counterRawDamage)
+            const counterDamage = Math.min(attacker.stats.currentHp, counterResolution.remainingDamage)
+            attacker.stats.currentHp = Math.max(0, attacker.stats.currentHp - counterDamage)
+            if (attacker.stats.currentHp <= 0) {
+              attacker.isAlive = false
+            }
+            appliedEffects.push({
+              actorId: target.id,
+              targetId: attacker.id,
+              effectType: 'damage',
+              amount: counterDamage,
+              absorbed: counterResolution.absorbed + counterResolution.negated,
+              isCrit: false,
+              isHeal: false,
+              targetDefeated: !attacker.isAlive
+            })
+          }
         }
       }
       continue

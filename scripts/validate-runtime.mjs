@@ -147,8 +147,10 @@ test('battle status runtime negates damage while invincible', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { processTurnStartStatuses } = await load('/src/game/battle/statusRuntime.ts')
   const {
+    resolveBattleCounterDamage,
     resolveBattleDamageModifier,
     resolveBattleDodgeChance,
+    resolveBattleElementDamageModifier,
     resolveBattleLifestealAmount,
     resolveBattleSpeedModifier
   } = await load('/src/game/battle/battleStatusModifierResolver.ts')
@@ -213,6 +215,21 @@ test('battle status runtime negates damage while invincible', async () => {
     ]
   })
   assert.ok(Math.abs(statusDamageModifier - 1.5) < 0.00001)
+  assert.equal(resolveBattleElementDamageModifier({
+    attackerElement: '金',
+    targetElement: '木',
+    attackerStatuses: [{ type: 'element_damage', duration: 999, value: 0.25, sourceId: '五行符' }]
+  }), 1.25)
+  assert.equal(resolveBattleElementDamageModifier({
+    attackerElement: '金',
+    targetElement: '火',
+    attackerStatuses: [{ type: 'element_damage', duration: 999, value: 0.25, sourceId: '五行符' }]
+  }), 1)
+  assert.equal(resolveBattleCounterDamage({
+    incomingDamage: 120,
+    defenderAttack: 80,
+    defenderStatuses: [{ type: 'counter', duration: 999, value: 0.35, sourceId: '反震甲' }]
+  }), 42)
   assert.equal(resolveBattleSpeedModifier({
     statusEffects: [{ type: 'buff_spd', duration: 2, value: 0.5, sourceId: 'pill' }]
   }), 1.5)
@@ -288,6 +305,66 @@ test('battle status runtime negates damage while invincible', async () => {
   })
   speedRuntime.tick(3100, 1)
   assert.equal(speedRuntime.currentActorId, 'fast_ready')
+
+  const originalRandom = Math.random
+  Math.random = () => 0.5
+  try {
+    const elementalAttacker = createUnit({
+      id: 'element_attacker',
+      name: '五行剑修',
+      type: 'protagonist',
+      element: '金',
+      statusEffects: [{ type: 'element_damage', duration: 999, value: 0.25, sourceId: '五行符' }],
+      stats: {
+        maxHp: 300,
+        currentHp: 300,
+        maxMp: 50,
+        currentMp: 50,
+        attack: 100,
+        defense: 0,
+        speed: 100,
+        critRate: 0,
+        critDamage: 1.5
+      }
+    })
+    const counterTarget = createUnit({
+      id: 'counter_target',
+      name: '反震木傀',
+      type: 'enemy',
+      element: '木',
+      statusEffects: [{ type: 'counter', duration: 999, value: 0.4, sourceId: '反震甲' }],
+      stats: {
+        maxHp: 500,
+        currentHp: 500,
+        maxMp: 30,
+        currentMp: 30,
+        attack: 50,
+        defense: 0,
+        speed: 60,
+        critRate: 0,
+        critDamage: 1.5
+      }
+    })
+    const effectRuntime = new BattleRuntime([elementalAttacker], [counterTarget])
+    const elementalCommand = effectRuntime.resolveCommand({
+      type: 'attack',
+      actorId: 'element_attacker',
+      targetIds: ['counter_target']
+    })
+    assert.ok(elementalCommand, 'elemental attack should resolve')
+    effectRuntime.applyResolvedCommand(elementalCommand)
+    const attackerAfterCounter = effectRuntime.units.find(unit => unit.id === 'element_attacker')
+    const targetAfterElement = effectRuntime.units.find(unit => unit.id === 'counter_target')
+    assert.ok(targetAfterElement.stats.currentHp < 365, 'elemental damage should exceed non-bonus baseline')
+    assert.ok(attackerAfterCounter.stats.currentHp < 300, 'counter status should damage attacker after hit')
+    assert.ok(effectRuntime.getReplayEvents().some(event =>
+      event.type === 'effect'
+      && event.actor?.id === 'counter_target'
+      && event.targets?.some(target => target.id === 'element_attacker')
+    ))
+  } finally {
+    Math.random = originalRandom
+  }
 })
 
 test('enemy battle skills apply exclusive status effects', async () => {

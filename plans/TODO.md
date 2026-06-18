@@ -281,6 +281,7 @@
   - 已新增 `battleStatusModifierResolver`，让丹药/技能产生的攻、防、易伤与身法状态统一影响伤害结算和行动条速度
   - 已新增 `characterEquipmentEffectResolver`，让装备特殊效果转化为战斗状态或常驻属性
   - 已让混沌古剑吸血、九天玄甲闪避等装备效果进入真实战斗结算链路
+  - 已让装备/状态的五行增伤与反击进入真实伤害结算链路，支持克制增伤与受击反震
   - 已让 `聚气诀 / 静心诀` 真实影响挂机修为速度，并让装备灵力/身法加成转化为吐纳效率
   - 已新增 `characterBreakthroughResolver`，让破境预览、成功率、辅助丹药、失败惩罚和技能点奖励从 `playerStore` 中抽离为可测试规则
   - 已新增 `characterFoodEffectResolver`，让灵果 / 玉髓羹等食物可恢复体力并在若干次挂机结算内提升修炼收益

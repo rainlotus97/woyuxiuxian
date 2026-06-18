@@ -224,13 +224,18 @@ export class BattleRuntime {
     this.replayRecorder.recordCommand(this.turn, resolved, actor, commandTargets, skill ? this.getSpiritFireCost(skill) : 0)
     const defeatedTargets = new Set<string>()
     let totalDamage = 0
+    let counterDamage = 0
     let totalHealing = 0
     let totalStatuses = 0
     let totalSummons = 0
 
     for (const effect of appliedEffects) {
       if (effect.effectType === 'damage') {
-        totalDamage += effect.amount
+        if (effect.actorId === actor.id) {
+          totalDamage += effect.amount
+        } else {
+          counterDamage += effect.amount
+        }
       }
       if (effect.effectType === 'heal') {
         totalHealing += effect.amount
@@ -286,11 +291,24 @@ export class BattleRuntime {
       }
     }
 
-    if (totalDamage > 0 && totalHealing > 0) {
+    if (totalDamage > 0 && totalHealing > 0 && counterDamage > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害、恢复${totalHealing}点气血，并被反击${counterDamage}点。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalDamage,
+        totalHealing,
+        counterDamage
+      })
+    } else if (totalDamage > 0 && totalHealing > 0) {
       this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害并恢复${totalHealing}点气血。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
         actionName: resolved.actionName,
         totalDamage,
         totalHealing
+      })
+    } else if (totalDamage > 0 && counterDamage > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害，并被反击${counterDamage}点。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalDamage,
+        counterDamage
       })
     } else if (totalDamage > 0) {
       this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
@@ -311,6 +329,11 @@ export class BattleRuntime {
       this.addLog(`${actor.name}施展${resolved.actionName}，灵力效果在战场扩散。`, 'major', 'command', actor, commandTargets, {
         actionName: resolved.actionName,
         totalStatuses
+      })
+    } else if (counterDamage > 0) {
+      this.addLog(`${actor.name}施展${resolved.actionName}，却被反击震退${counterDamage}点气血。`, 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        counterDamage
       })
     } else {
       this.addLog(`${actor.name}施展${resolved.actionName}。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {

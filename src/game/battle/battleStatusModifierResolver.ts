@@ -1,4 +1,4 @@
-import type { StatusEffect } from '@/types/unit'
+import { ELEMENT_COUNTER, type Element, type StatusEffect } from '@/types/unit'
 
 export interface BattleStatusModifierInput {
   statusEffects: StatusEffect[]
@@ -28,9 +28,16 @@ export function resolveBattleDefenseTakenModifier(input: BattleStatusModifierInp
 export function resolveBattleDamageModifier(input: {
   attackerStatuses: StatusEffect[]
   targetStatuses: StatusEffect[]
+  attackerElement?: Element
+  targetElement?: Element
 }) {
   return resolveBattleAttackModifier({ statusEffects: input.attackerStatuses })
     * resolveBattleDefenseTakenModifier({ statusEffects: input.targetStatuses })
+    * resolveBattleElementDamageModifier({
+      attackerElement: input.attackerElement,
+      targetElement: input.targetElement,
+      attackerStatuses: input.attackerStatuses
+    })
 }
 
 export function resolveBattleSpeedModifier(input: BattleStatusModifierInput) {
@@ -63,4 +70,39 @@ export function resolveBattleDodgeChance(input: BattleStatusModifierInput) {
     if (effect.type === 'dodge') chance += Math.max(0, effect.value ?? 0)
   }
   return Math.min(0.65, chance)
+}
+
+export function resolveBattleElementDamageModifier(input: {
+  attackerStatuses: StatusEffect[]
+  attackerElement?: Element
+  targetElement?: Element
+}) {
+  if (!input.attackerElement || !input.targetElement) return 1
+  if (ELEMENT_COUNTER[input.attackerElement] !== input.targetElement) return 1
+
+  let bonus = 0
+  for (const effect of input.attackerStatuses) {
+    if (effect.duration <= 0) continue
+    if (effect.type === 'element_damage') bonus += Math.max(0, effect.value ?? 0.1)
+  }
+  return 1 + Math.min(0.8, bonus)
+}
+
+export function resolveBattleCounterDamage(input: {
+  incomingDamage: number
+  defenderAttack: number
+  defenderStatuses: StatusEffect[]
+}) {
+  if (input.incomingDamage <= 0) return 0
+
+  let rate = 0
+  for (const effect of input.defenderStatuses) {
+    if (effect.duration <= 0) continue
+    if (effect.type === 'counter') rate += Math.max(0, effect.value ?? 0)
+  }
+  if (rate <= 0) return 0
+
+  const damageFromHit = input.incomingDamage * rate
+  const damageFromAttack = input.defenderAttack * rate * 0.45
+  return Math.max(1, Math.floor(Math.max(damageFromHit, damageFromAttack)))
 }
