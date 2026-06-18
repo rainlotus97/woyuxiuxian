@@ -128,7 +128,7 @@
     </div>
 
     <div class="world-grid">
-      <WorldBriefingPanel :items="worldBriefings" @action="handleBriefingAction" />
+      <WorldBriefingPanel :items="worldBriefings" @action="handleWorldBriefingAction" />
 
       <GameSurface tone="mist" padding="md" eyebrow="挂机见闻" title="主角行程" subtitle="挂机期间，主角会留下自己的经历、收获和奇遇。">
         <div class="journey-list">
@@ -296,6 +296,7 @@ import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
+import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -312,8 +313,7 @@ import {
   getNpcHealthLabel
 } from '@/components/world/worldUi'
 import {
-  resolveWorldBriefings,
-  type WorldBriefingItem
+  resolveWorldBriefings
 } from '@/world/runtime/worldBriefingResolver'
 
 const playerStore = usePlayerStore()
@@ -324,6 +324,7 @@ const storyStore = useStoryStore()
 const router = useRouter()
 const { success, warning, info } = useToast()
 const { showItemAcquire } = useModal()
+const { handleWorldBriefingAction } = useWorldBriefingActions()
 
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
@@ -765,29 +766,6 @@ function handleIdleModeChange(mode: IdleMode) {
   worldStore.setIdleMode(mode)
   if (playerStore.isIdling) {
     info(`挂机安排已切换为${worldStore.getIdleModeLabel(mode)}`)
-  }
-}
-
-function handleBriefingAction(item: WorldBriefingItem) {
-  if (!item.action || item.action.disabled) return
-
-  if (item.action.kind === 'escape') {
-    const result = worldStore.attemptCaptivityEscape()
-    if (!result) {
-      warning('当前无法再次尝试脱困')
-      return
-    }
-
-    if (result.success) {
-      success('你已成功脱困')
-    } else {
-      info('本次脱困未成，但你已摸清更多守备痕迹')
-    }
-    return
-  }
-
-  if (item.action.kind === 'route' && item.action.path) {
-    void router.push(item.action.path)
   }
 }
 
