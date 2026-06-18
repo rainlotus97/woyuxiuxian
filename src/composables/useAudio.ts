@@ -36,6 +36,12 @@ const bgmEnabled = ref(false)
 const sfxVolume = 0.35
 const bgmVolume = 0.18
 
+try {
+  localStorage.setItem(STORAGE_KEY_BGM, 'false')
+} catch {
+  // localStorage 不可用时保持内存态静音
+}
+
 const toDb = (v: number): number => (v <= 0 ? -Infinity : 20 * Math.log10(v))
 
 // ====== 高级音效播放器 ======

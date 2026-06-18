@@ -1004,6 +1004,10 @@ test('world narrative creates anomaly records with area context', async () => {
 test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveAreaGameplayAccess } = await load('/src/map/runtime/mapAreaAccessResolver.ts')
   const {
+    resolveMapExploration,
+    resolveMapExplorationPoints
+  } = await load('/src/map/runtime/mapExplorationResolver.ts')
+  const {
     resolveInventoryMaterialConsumption,
     resolveInventoryMaterialQuantity
   } = await load('/src/character/runtime/inventoryMaterialResolver.ts')
@@ -1124,6 +1128,65 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(blocked.entryState, 'blocked')
   assert.equal(blocked.blocker, 'captivity')
   assert.equal(blocked.challengeAllowed, false)
+
+  const explorationArea = {
+    id: 'qingyun_mountain',
+    name: '青云山',
+    realm: '人界',
+    icon: '山',
+    description: '青云宗山门所在。',
+    requiredRealm: '炼气',
+    requiredRealmLevel: 1,
+    adjacentAreas: [],
+    sects: ['qingyun_sect'],
+    resources: ['青云草', '灵泉'],
+    isUnlocked: true,
+    isConquered: false
+  }
+  const explorationState = {
+    areaId: 'qingyun_mountain',
+    controllingSectId: 'qingyun_sect',
+    riskLevel: 'danger',
+    stability: 44,
+    pressure: 70,
+    contested: true,
+    lastUpdatedTick: 12
+  }
+  const explorationPoints = resolveMapExplorationPoints({
+    area: explorationArea,
+    areaState: explorationState,
+    weather: 'clear',
+    hasAnomaly: true
+  })
+  assert.equal(explorationPoints.length, 3)
+  assert.equal(explorationPoints[1].kind, 'resource')
+  const exploration = resolveMapExploration({
+    area: explorationArea,
+    areaState: explorationState,
+    pointId: explorationPoints[1].id,
+    weather: 'clear',
+    hasAnomaly: true,
+    stamina: 100
+  })
+  assert.equal(exploration.success, true)
+  assert.equal(exploration.rewards.itemName, '青云草')
+  assert.equal(exploration.areaPatch.pressureDelta, -1)
+  const weatherLockedPoints = resolveMapExplorationPoints({
+    area: explorationArea,
+    areaState: explorationState,
+    weather: 'storm',
+    hasAnomaly: false
+  })
+  const lockedTrail = resolveMapExploration({
+    area: explorationArea,
+    areaState: explorationState,
+    pointId: weatherLockedPoints[2].id,
+    weather: 'storm',
+    hasAnomaly: false,
+    stamina: 100
+  })
+  assert.equal(lockedTrail.success, false)
+  assert.ok(lockedTrail.reason.includes('天象'))
   assert.equal(blocked.sweepAllowed, false)
 
   const inventoryFixture = [

@@ -6,6 +6,11 @@
       `padding-${padding}`,
       { clickable, compact }
     ]"
+    :role="isInteractive ? 'button' : undefined"
+    :tabindex="isInteractive ? 0 : undefined"
+    @click="handleClick"
+    @keydown.enter.prevent="handleKeyboardClick"
+    @keydown.space.prevent="handleKeyboardClick"
   >
     <header v-if="hasHeader" class="surface-header">
       <div v-if="eyebrow || title || subtitle" class="surface-copy">
@@ -27,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useSlots } from 'vue'
+import { computed, getCurrentInstance, useSlots } from 'vue'
 
 const props = withDefaults(defineProps<{
   eyebrow?: string | null
@@ -48,9 +53,22 @@ const props = withDefaults(defineProps<{
 })
 
 const slots = useSlots()
+const instance = getCurrentInstance()
+const emit = defineEmits<{
+  click: [event: MouseEvent | KeyboardEvent]
+}>()
 
 const hasHeader = computed(() => Boolean(props.eyebrow || props.title || props.subtitle || slots.header))
 const hasFooter = computed(() => Boolean(slots.footer))
+const isInteractive = computed(() => props.clickable && Boolean(instance?.vnode.props?.onClick))
+
+function handleClick(event: MouseEvent) {
+  if (props.clickable) emit('click', event)
+}
+
+function handleKeyboardClick(event: KeyboardEvent) {
+  if (props.clickable) emit('click', event)
+}
 </script>
 
 <style scoped>
@@ -146,7 +164,13 @@ const hasFooter = computed(() => Boolean(slots.footer))
 }
 
 .game-surface.clickable {
+  cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.game-surface.clickable:focus-visible {
+  outline: 2px solid rgba(194, 146, 66, 0.58);
+  outline-offset: 3px;
 }
 
 .game-surface.clickable:hover {

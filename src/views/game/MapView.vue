@@ -230,6 +230,13 @@
           </div>
         </GameSurface>
 
+        <MapExplorationPanel
+          :points="getExplorationPoints(selectedArea)"
+          :stamina="playerStore.stamina"
+          :feedback="lastExploration"
+          @explore="handleSelectedAreaExplore"
+        />
+
         <MapAreaActionPanel
           :options="getAreaActionOptions(selectedArea)"
           :stamina="playerStore.stamina"
@@ -285,9 +292,11 @@ import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import MapAreaActionPanel from '@/components/map/MapAreaActionPanel.vue'
+import MapExplorationPanel from '@/components/map/MapExplorationPanel.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { useMapAreaAction } from '@/composables/useMapAreaAction'
+import { useMapExploration } from '@/composables/useMapExploration'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import type { MapAreaActionKind } from '@/map/runtime/mapAreaActionResolver'
@@ -314,6 +323,11 @@ const {
   getActionOptions: getAreaActionOptions,
   applyAreaAction
 } = useMapAreaAction()
+const {
+  lastExploration,
+  getExplorationPoints,
+  explorePoint
+} = useMapExploration()
 
 const selectedArea = ref<MapArea | null>(null)
 
@@ -483,6 +497,16 @@ function handleAreaAction(area: MapArea, kind: MapAreaActionKind) {
 function handleSelectedAreaAction(kind: MapAreaActionKind) {
   if (!selectedArea.value) return
   handleAreaAction(selectedArea.value, kind)
+}
+
+function handleSelectedAreaExplore(pointId: string) {
+  if (!selectedArea.value) return
+  const result = explorePoint(selectedArea.value, pointId)
+  if (!result.success) {
+    warning(result.reason)
+    return
+  }
+  success(result.title)
 }
 
 function handleChallenge(area: MapArea) {

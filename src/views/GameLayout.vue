@@ -561,7 +561,8 @@ onUnmounted(() => {
   z-index: 42;
 }
 
-.nav-shell > * {
+.nav-shell .tab-bar,
+.nav-shell .nav-drawer {
   pointer-events: auto;
 }
 
@@ -575,6 +576,7 @@ onUnmounted(() => {
   background: rgba(48, 78, 74, 0.16);
   backdrop-filter: blur(2px);
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .nav-drawer {
@@ -583,6 +585,8 @@ onUnmounted(() => {
   overflow: auto;
   border-radius: 16px;
   box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
+  position: relative;
+  z-index: 43;
 }
 
 .scrim-fade-enter-active,
@@ -712,6 +716,8 @@ onUnmounted(() => {
 }
 
 .tab-bar {
+  position: relative;
+  z-index: 44;
   height: 64px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));

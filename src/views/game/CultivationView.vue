@@ -3,8 +3,8 @@
     <GameSurface
       tone="mist"
       padding="lg"
-      eyebrow="主界总览"
-      title="修仙主界"
+      eyebrow="主循环"
+      title="修仙行动台"
       :subtitle="heroSubtitle"
     >
       <div class="home-hero-layout">
@@ -14,20 +14,6 @@
             <span class="hero-realm">{{ idleModeLabel }}</span>
             <strong>{{ playerStore.isIdling ? '主角正在行动' : '等待安排' }}</strong>
             <p>{{ heroSummary }}</p>
-          </div>
-
-          <div class="hero-actions">
-            <GameActionButton
-              :icon="playerStore.isIdling ? '停' : '修'"
-              :tone="playerStore.isIdling ? 'rose' : 'jade'"
-              block
-              @click="toggleIdle"
-            >
-              {{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}
-            </GameActionButton>
-            <GameActionButton icon="历" tone="gold" block @click="router.push('/game/adventure')">
-              前往历险
-            </GameActionButton>
           </div>
 
           <div v-if="offlineGains > 0" class="offline-banner">
@@ -56,7 +42,7 @@
         <div class="quick-command-panel">
           <div class="quick-command-head">
             <span>今日可做</span>
-            <strong>P0 快捷行动</strong>
+            <strong>立即执行</strong>
           </div>
           <div class="quick-command-grid">
             <button type="button" class="quick-command primary" @click="toggleIdle">
@@ -77,45 +63,39 @@
             </button>
           </div>
         </div>
-      </div>
-    </GameSurface>
 
-    <GameSurface
-      tone="gold"
-      padding="md"
-      eyebrow="今日安排"
-      title="主循环任务台"
-      subtitle="优先处理挂机、历险、故事、人物、地图与宗门这些 P0 可玩入口。"
-    >
-      <div class="loop-task-grid">
-        <div class="loop-readiness-strip">
-          <div>
-            <span>P0 状态</span>
-            <strong>{{ loopReadiness.headline }}</strong>
+        <div class="loop-hub-panel">
+          <div class="loop-readiness-strip">
+            <div>
+              <span>P0 状态</span>
+              <strong>{{ loopReadiness.headline }}</strong>
+            </div>
+            <div class="readiness-counts">
+              <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
+              <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
+              <span class="state-blocked">阻塞 {{ loopReadiness.counts.blocked }}</span>
+            </div>
           </div>
-          <div class="readiness-counts">
-            <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
-            <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
-            <span class="state-blocked">阻塞 {{ loopReadiness.counts.blocked }}</span>
+
+          <div class="loop-task-grid" aria-label="P0 主循环入口">
+            <button
+              v-for="task in mainLoopTasks"
+              :key="task.id"
+              class="loop-task-card"
+              :class="[`tone-${task.tone}`, `state-${task.readiness.state}`, { active: task.active }]"
+              @click="handleTaskAction(task)"
+            >
+              <span class="task-icon">{{ task.icon }}</span>
+              <span class="task-copy">
+                <small>{{ task.label }}</small>
+                <strong>{{ task.title }}</strong>
+                <em>{{ task.summary }}</em>
+                <i>{{ task.readiness.reason }}</i>
+              </span>
+              <span class="task-meta">{{ task.meta }}</span>
+            </button>
           </div>
         </div>
-
-        <button
-          v-for="task in mainLoopTasks"
-          :key="task.id"
-          class="loop-task-card"
-          :class="[`tone-${task.tone}`, `state-${task.readiness.state}`, { active: task.active }]"
-          @click="handleTaskAction(task)"
-        >
-          <span class="task-icon">{{ task.icon }}</span>
-          <span class="task-copy">
-            <small>{{ task.label }}</small>
-            <strong>{{ task.title }}</strong>
-            <em>{{ task.summary }}</em>
-            <i>{{ task.readiness.reason }}</i>
-          </span>
-          <span class="task-meta">{{ task.meta }}</span>
-        </button>
       </div>
     </GameSurface>
 
@@ -174,25 +154,20 @@
 
         <template #footer>
           <div class="action-grid">
-            <GameActionButton
-              :icon="playerStore.isIdling ? '⏸️' : '▶️'"
-              :tone="playerStore.isIdling ? 'rose' : 'jade'"
-              block
-              @click="toggleIdle"
-            >
-              {{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}
-            </GameActionButton>
-            <GameActionButton icon="🧘" tone="gold" block :disabled="playerStore.isIdling" @click="handleMeditate">
+            <GameActionButton icon="坐" tone="gold" block :disabled="playerStore.isIdling" @click="handleMeditate">
               打坐修炼
             </GameActionButton>
             <GameActionButton
-              icon="⤴️"
+              icon="破"
               tone="jade"
               block
               :disabled="!playerStore.canBreakthrough"
               @click="handleBreakthrough"
             >
               突破境界
+            </GameActionButton>
+            <GameActionButton icon="装" tone="stone" block @click="router.push('/game/profile')">
+              查看角色
             </GameActionButton>
           </div>
         </template>
@@ -974,6 +949,7 @@ function handlePlayerFortune() {
 .hero-copy,
 .world-pulse-card,
 .quick-command-panel,
+.loop-hub-panel,
 .progress-stack,
 .sect-panel,
 .log-list,
@@ -1065,6 +1041,17 @@ function handlePlayerFortune() {
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.78), rgba(241, 249, 244, 0.64)),
     radial-gradient(circle at top right, rgba(141, 223, 197, 0.16), transparent 62%);
+}
+
+.loop-hub-panel {
+  grid-column: 1 / -1;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(188, 141, 58, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.76), rgba(241, 250, 245, 0.62)),
+    radial-gradient(circle at 18% 0%, rgba(255, 224, 150, 0.2), transparent 48%);
 }
 
 .quick-command-head {
@@ -1272,7 +1259,6 @@ function handlePlayerFortune() {
 }
 
 .loop-readiness-strip {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1334,7 +1320,7 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 152px;
+  min-height: 128px;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
@@ -1389,8 +1375,8 @@ function handlePlayerFortune() {
 }
 
 .task-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: 12px;
@@ -1427,7 +1413,7 @@ function handlePlayerFortune() {
   font-size: 10px;
   font-style: normal;
   line-height: 1.55;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -1809,7 +1795,7 @@ function handlePlayerFortune() {
   }
 
   .loop-task-card {
-    min-height: 148px;
+    min-height: 126px;
   }
 
   .loop-readiness-strip {

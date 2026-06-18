@@ -88,7 +88,6 @@
         }"
         :tone="getAreaStars(area.id) > 0 ? 'realm' : 'jade'"
         padding="lg"
-        clickable
         compact
       >
         <div class="area-header">
