@@ -52,6 +52,41 @@ export const BREAKTHROUGH_AIDS: BreakthroughAidDefinition[] = [
     realm: '金丹',
     successBonus: 0.24,
     failureCultivationRetainBonus: 0.24
+  },
+  {
+    definitionIds: ['pill_nascent_soul_guard'],
+    name: '护婴丹',
+    realm: '元婴',
+    successBonus: 0.2,
+    failureCultivationRetainBonus: 0.28
+  },
+  {
+    definitionIds: ['pill_spirit_transform'],
+    name: '化神丹',
+    realm: '化神',
+    successBonus: 0.18,
+    failureCultivationRetainBonus: 0.3
+  },
+  {
+    definitionIds: ['pill_tribulation_cloud'],
+    name: '渡劫护心丹',
+    realm: '渡劫',
+    successBonus: 0.16,
+    failureCultivationRetainBonus: 0.34
+  },
+  {
+    definitionIds: ['pill_great_ascension'],
+    name: '大乘悟道丹',
+    realm: '大乘',
+    successBonus: 0.14,
+    failureCultivationRetainBonus: 0.36
+  },
+  {
+    definitionIds: ['pill_immortal_ascension'],
+    name: '登仙引',
+    realm: '仙人',
+    successBonus: 0.12,
+    failureCultivationRetainBonus: 0.38
   }
 ]
 

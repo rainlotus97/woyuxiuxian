@@ -46,8 +46,14 @@ const ITEM_DEFINITION_BY_NAME: Record<string, string> = {
   大力丸: 'pill_mighty',
   铁甲丹: 'pill_iron_shell',
   灵果: 'food_spirit_fruit',
+  玉髓羹: 'food_jade_marrow_soup',
   护脉筑基丹: 'pill_foundation_guard',
-  凝金丹: 'pill_gold_core'
+  凝金丹: 'pill_gold_core',
+  护婴丹: 'pill_nascent_soul_guard',
+  化神丹: 'pill_spirit_transform',
+  渡劫护心丹: 'pill_tribulation_cloud',
+  大乘悟道丹: 'pill_great_ascension',
+  登仙引: 'pill_immortal_ascension'
 }
 
 const DEFINITION_ALIASES: Record<string, string> = {

@@ -927,6 +927,14 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(normalizedShopHerb.definitionId, 'herb_spirit_grass')
   assert.equal(normalizedShopHerb.quantity, 1)
+  assert.equal(normalizeInventoryItemSchema({
+    id: 'legacy_tribulation_pill',
+    name: '渡劫护心丹',
+    icon: '劫',
+    type: 'consumable',
+    quality: 'legendary',
+    quantity: 1
+  }).definitionId, 'pill_tribulation_cloud')
   assert.equal(resolveInventoryDefinitionId({
     id: 'drop_wood',
     definitionId: 'wooden_sword',
@@ -1138,6 +1146,51 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(successBreakthrough.nextRealm, '筑基')
   assert.equal(successBreakthrough.nextMaxCultivation, 150)
   assert.equal(successBreakthrough.skillPointsGained, 1)
+  const tribulationAid = {
+    id: 'tribulation_aid',
+    definitionId: 'pill_tribulation_cloud',
+    name: '渡劫护心丹',
+    icon: '劫',
+    type: 'consumable',
+    quality: 'legendary',
+    quantity: 1,
+    effects: [{ type: 'breakthrough_success', value: 0.16 }]
+  }
+  const noAidTribulation = resolveBreakthroughPreview({
+    realm: '化神',
+    realmLevel: 9,
+    cultivation: 1000,
+    maxCultivation: 1000,
+    inventory: []
+  })
+  const aidedTribulation = resolveBreakthroughPreview({
+    realm: '化神',
+    realmLevel: 9,
+    cultivation: 1000,
+    maxCultivation: 1000,
+    inventory: [tribulationAid]
+  })
+  assert.equal(aidedTribulation.nextRealm, '渡劫')
+  assert.equal(aidedTribulation.selectedAid?.name, '渡劫护心丹')
+  assert.ok(aidedTribulation.successRate > noAidTribulation.successRate)
+  assert.ok(aidedTribulation.failureCultivationRetainRate > noAidTribulation.failureCultivationRetainRate)
+  const immortalAidByName = resolveBreakthroughPreview({
+    realm: '大乘',
+    realmLevel: 9,
+    cultivation: 3000,
+    maxCultivation: 3000,
+    inventory: [{
+      id: 'immortal_aid_legacy_name',
+      name: '登仙引',
+      icon: '仙',
+      type: 'consumable',
+      quality: 'legendary',
+      quantity: 1,
+      effects: [{ type: 'breakthrough_success', value: 0.12 }]
+    }]
+  })
+  assert.equal(immortalAidByName.nextRealm, '仙人')
+  assert.equal(immortalAidByName.selectedAid?.itemId, 'immortal_aid_legacy_name')
   const failedBreakthrough = resolveBreakthroughAttempt({
     realm: '化神',
     realmLevel: 9,
@@ -1333,6 +1386,40 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok(stableFood, 'stable shop should include spirit food')
   assert.equal(stableFood.definition.category, 'food')
   assert.equal(stableFood.definition.effects?.some(effect => effect.type === 'food_cultivation'), true)
+  const highBreakthroughEntries = resolveShopCatalogEntries({
+    ...stableMarketContext,
+    totalTicks: 24,
+    refreshSeed: 11
+  })
+  assert.equal(
+    highBreakthroughEntries.find(entry => entry.definition.id === 'shop_breakthrough_005')?.definition.minRealm,
+    '化神'
+  )
+  assert.equal(
+    highBreakthroughEntries.find(entry => entry.definition.id === 'shop_breakthrough_007')?.definition.minRealm,
+    '大乘'
+  )
+  const foundationOnlyInventory = createShopInventory({
+    ...stableMarketContext,
+    playerRealm: '筑基',
+    totalTicks: 24,
+    refreshSeed: 11
+  })
+  assert.equal(foundationOnlyInventory.some(entry => entry.definition.id === 'shop_breakthrough_005'), false)
+  const greatAscensionCatalog = resolveShopCatalogEntries({
+    ...stableMarketContext,
+    playerRealm: '渡劫',
+    totalTicks: 30,
+    refreshSeed: 13
+  })
+  assert.ok(greatAscensionCatalog.some(entry => entry.definition.id === 'shop_breakthrough_006'))
+  const ascensionCatalog = resolveShopCatalogEntries({
+    ...stableMarketContext,
+    playerRealm: '大乘',
+    totalTicks: 36,
+    refreshSeed: 19
+  })
+  assert.ok(ascensionCatalog.some(entry => entry.definition.id === 'shop_breakthrough_007'))
   assert.ok(stablePill.price < contestedPill.price)
   assert.ok(stablePill.tags.includes('本宗商路'))
   assert.ok(contestedPill.tags.includes('商路受阻'))
