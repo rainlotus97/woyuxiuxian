@@ -25,6 +25,7 @@ import {
   applyDirectiveToTaskRewards,
   getSectDirectiveEffects
 } from '@/sect/runtime/sectDirectiveEffects'
+import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
   getSectRecoveryOption,
   resolveSectRecoveryOutcome,
@@ -172,6 +173,14 @@ export const useSectStore = defineStore('sect', () => {
   const currentPosition = computed<SectPosition | null>(() => {
     return SECT_POSITIONS.find(p => p.level === positionLevel.value) ?? null
   })
+
+  const stipendPreview = computed(() => resolveSectStipend({
+    position: currentPosition.value,
+    directive: activeDirective.value,
+    joinedSectId: joinedSectId.value,
+    lastClaimAt: lastSalaryClaim.value,
+    now: Date.now()
+  }))
 
   const authorityState = computed(() => resolveSectAuthority({
     positionLevel: positionLevel.value,
@@ -857,34 +866,32 @@ export const useSectStore = defineStore('sect', () => {
 
   // 领取每日俸禄
   function claimDailySalary(): { gold: number; contribution: number } | null {
-    if (!joinedSectId.value || !currentPosition.value) {
-      return null
-    }
-
     const now = Date.now()
-    // 24小时内只能领一次
-    if (now - lastSalaryClaim.value < 24 * 60 * 60 * 1000) {
+    const stipend = resolveSectStipend({
+      position: currentPosition.value,
+      directive: activeDirective.value,
+      joinedSectId: joinedSectId.value,
+      lastClaimAt: lastSalaryClaim.value,
+      now
+    })
+    if (!stipend.canClaim) {
       return null
     }
 
-    const salary = currentPosition.value.dailySalary
     const playerStore = usePlayerStore()
-    playerStore.addGold(salary)
-    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
-    addContribution(Math.max(1, Math.floor((salary / 2) * directiveEffects.taskContributionMultiplier)))
+    playerStore.addGold(stipend.gold)
+    addContribution(stipend.contribution)
     lastSalaryClaim.value = now
 
     return {
-      gold: salary,
-      contribution: Math.max(1, Math.floor((salary / 2) * directiveEffects.taskContributionMultiplier))
+      gold: stipend.gold,
+      contribution: stipend.contribution
     }
   }
 
   // 检查是否可以领取俸禄
   const canClaimSalary = computed(() => {
-    if (!joinedSectId.value || !currentPosition.value) return false
-    const now = Date.now()
-    return now - lastSalaryClaim.value >= 24 * 60 * 60 * 1000
+    return stipendPreview.value.canClaim
   })
 
   // ====== 炼丹系统 ======
@@ -1194,6 +1201,7 @@ export const useSectStore = defineStore('sect', () => {
     weeklyTasks,
     completedTasks,
     recoveryState,
+    stipendPreview,
     canClaimSalary,
     availableAlchemyRecipes,
     gardenSlotCount,

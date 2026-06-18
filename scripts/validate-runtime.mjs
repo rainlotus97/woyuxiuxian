@@ -525,6 +525,7 @@ test('world narrative creates anomaly records with area context', async () => {
 test('map and sect rules block invalid gameplay paths', async () => {
   const { resolveAreaGameplayAccess } = await load('/src/map/runtime/mapAreaAccessResolver.ts')
   const { resolveSectAuthority, canAuthorityAccessFacility } = await load('/src/sect/runtime/sectPositionResolver.ts')
+  const { resolveSectStipend } = await load('/src/sect/runtime/sectStipendResolver.ts')
 
   const blocked = resolveAreaGameplayAccess({
     areaName: '青云山',
@@ -551,6 +552,28 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(authority.canDeclareWar, true)
   assert.equal(authority.availableDirectives.includes('warfare'), true)
   assert.equal(canAuthorityAccessFacility(authority.canUseFacilityTier, 5), false)
+
+  const position = { level: 4, name: '执事', requiredContribution: 1500, privileges: [], dailySalary: 150 }
+  const readyStipend = resolveSectStipend({
+    position,
+    directive: 'warfare',
+    joinedSectId: 'qingyun_sect',
+    lastClaimAt: 0,
+    now: 24 * 60 * 60 * 1000
+  })
+  assert.equal(readyStipend.canClaim, true)
+  assert.equal(readyStipend.gold, 150)
+  assert.equal(readyStipend.contribution, 84)
+
+  const cooldownStipend = resolveSectStipend({
+    position,
+    directive: 'balanced',
+    joinedSectId: 'qingyun_sect',
+    lastClaimAt: 24 * 60 * 60 * 1000,
+    now: 24 * 60 * 60 * 1000 + 1000
+  })
+  assert.equal(cooldownStipend.canClaim, false)
+  assert.equal(cooldownStipend.reason, 'cooldown')
 })
 
 const results = await Promise.all(diagnostics)
