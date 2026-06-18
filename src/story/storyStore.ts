@@ -98,7 +98,12 @@ export const useStoryStore = defineStore('story', () => {
     return storyCache.getNode(currentNodeId.value)
   })
 
-  const allNodes = computed(() => storyCache.getAllNodes())
+  const allNodes = computed(() => {
+    currentVolume.value
+    currentNodeId.value
+    isInitialized.value
+    return storyCache.getAllNodes()
+  })
   const completedCount = computed(() => completedNodes.value.size)
 
   // 结局相关计算属性

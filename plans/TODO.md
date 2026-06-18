@@ -94,10 +94,11 @@
   - `AdventureView`（进行中，已完成第一阶段亮色重构）
   - `MapView`（进行中，已接入世界事件摘要、区域异动摘要、统一弹窗结构，并与世界时钟统一日期展示）
   - `SectView`（进行中，已拆成总览 / 招募 / 任务 / 设施 / 外交子面板，并切到统一亮色宗门主循环界面）
-  - `StoryView`
+  - `StoryView`（进行中，已完成故事入口页亮色游戏风第一阶段，并拆出视角卡 / 卷宗进度组件）
   - `ShopView`
 - [~] 增加统一弹层/面板组件，替代页面内重复容器样式
   - 已在战斗页建立 `BattlePanelShell` 作为第一阶段复用容器
+  - 已让故事入口页复用 `GameSurface / GameActionButton`，调试诊断仅保留在开发态折叠面板
   - 已让宗门页设施弹层切到 `GameDialog + GameSurface + GameActionButton`
   - 待补：主界面、坊市、地图共用面板 token
 
