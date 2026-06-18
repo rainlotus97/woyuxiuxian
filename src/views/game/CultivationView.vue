@@ -130,13 +130,15 @@
             </div>
             <div class="acceptance-side">
               <div class="acceptance-gap-list" aria-label="P0 验收缺口">
-                <span
+                <button
                   v-for="item in p0Acceptance.remainingItems.slice(0, 4)"
                   :key="item.id"
+                  type="button"
                   :class="`gap-${item.state}`"
+                  @click="handleAcceptanceGap(item.id)"
                 >
                   {{ item.label }} · {{ item.stateLabel }}
-                </span>
+                </button>
                 <span v-if="p0Acceptance.remainingCount > 4" class="gap-more">
                   +{{ p0Acceptance.remainingCount - 4 }}
                 </span>
@@ -1044,6 +1046,10 @@ function handleNextP0Action() {
 function handleAcceptancePrimaryGap() {
   const gapId = p0Acceptance.value.primaryGap?.id
   if (!gapId) return
+  handleAcceptanceGap(gapId)
+}
+
+function handleAcceptanceGap(gapId: string) {
   const task = mainLoopTasks.value.find(item => item.id === gapId)
   if (task) {
     handleTaskAction(task)
@@ -1588,7 +1594,8 @@ function handlePlayerFortune() {
   gap: 8px;
 }
 
-.acceptance-gap-list span {
+.acceptance-gap-list span,
+.acceptance-gap-list button {
   min-height: 24px;
   display: inline-flex;
   align-items: center;
@@ -1597,7 +1604,25 @@ function handlePlayerFortune() {
   border: 1px solid rgba(103, 149, 144, 0.14);
   background: rgba(255, 255, 255, 0.66);
   color: rgba(73, 97, 95, 0.74);
+  font-family: var(--font-game);
   font-size: 10px;
+}
+
+.acceptance-gap-list button {
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.acceptance-gap-list button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(194, 146, 66, 0.26);
+  background: rgba(255, 251, 236, 0.9);
+}
+
+.acceptance-gap-list button:focus-visible {
+  outline: 2px solid rgba(194, 146, 66, 0.48);
+  outline-offset: 2px;
 }
 
 .acceptance-gap-list .gap-blocked {
