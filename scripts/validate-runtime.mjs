@@ -2528,6 +2528,7 @@ test('story gameplay runtime resolves non-battle outcomes', async () => {
 
 test('npc activity insight summarizes new npc events', async () => {
   const { resolveNpcActivityInsight } = await load('/src/world/runtime/npcActivityInsightResolver.ts')
+  const { resolveNpcInteractionJourney } = await load('/src/world/runtime/npcInteractionJourneyResolver.ts')
 
   const previousNpcStoryIds = new Set(['old_story'])
   const previousLogIds = new Set(['old_log'])
@@ -2602,6 +2603,25 @@ test('npc activity insight summarizes new npc events', async () => {
   assert.equal(quiet.totalEvents, 0)
   assert.equal(quiet.items[0].label, '静观')
   assert.equal(quiet.items[0].tone, 'mist')
+
+  const interactionJourney = resolveNpcInteractionJourney({
+    result: {
+      kind: 'invite',
+      title: '苏清鸢愿与你同行',
+      text: '苏清鸢与你立下同行之约。',
+      favorDelta: 10,
+      nextBond: 'companion',
+      severity: 'major'
+    },
+    npcName: '苏清鸢',
+    npcTitle: '青云圣女',
+    locationName: '青云山'
+  })
+  assert.equal(interactionJourney.severity, 'major')
+  assert.equal(interactionJourney.title, '苏清鸢同行之约')
+  assert.ok(interactionJourney.text.includes('于青云山邀约同行青云圣女苏清鸢'))
+  assert.equal(interactionJourney.rewards.length, 2)
+  assert.ok(interactionJourney.tags.includes('companion'))
 })
 
 test('adventure sweep resolver returns structured rewards', async () => {

@@ -317,6 +317,7 @@ import { COMPANION_QUALITY_CONFIG, GACHA_CONFIG, type GachaResult } from '@/type
 import { SKILL_DEFINITIONS } from '@/types/skill'
 import { useToast } from '@/composables/useToast'
 import { useNpcActivityInsight } from '@/composables/useNpcActivityInsight'
+import { useNpcInteraction } from '@/composables/useNpcInteraction'
 import type { NpcInteractionKind } from '@/world/runtime/npcCompanionResolver'
 
 const companionStore = useCompanionStore()
@@ -327,6 +328,7 @@ const {
   lastInsight: npcActivityInsight,
   observeOneTick: observeNpcActivityOneTick
 } = useNpcActivityInsight()
+const { interactWithNpc: interactWithNpcWithJourney } = useNpcInteraction()
 
 const activeTab = ref<'bonds' | 'companions' | 'gacha' | 'formation'>('bonds')
 const selectedCompanionId = ref<string | null>(null)
@@ -473,14 +475,14 @@ function handleStarUp() {
 }
 
 function handleNpcInteraction(npcId: string, kind: NpcInteractionKind) {
-  const result = worldStore.interactWithNpc(npcId, kind)
-  if (!result) {
+  const result = interactWithNpcWithJourney(npcId, kind)
+  if (!result.success || !result.resolution) {
     warning('当前无法互动')
     return
   }
 
-  success(result.title)
-  info(`好感 +${result.favorDelta}`)
+  success(result.resolution.title)
+  info(`好感 +${result.resolution.favorDelta}`)
 }
 
 function handleObserveNpcActivity() {
