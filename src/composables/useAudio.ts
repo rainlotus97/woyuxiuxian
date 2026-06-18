@@ -32,7 +32,7 @@ const getStoredBoolean = (key: string, defaultValue: boolean): boolean => {
 
 // ====== 音量设置 ======
 const sfxEnabled = ref(getStoredBoolean(STORAGE_KEY_SFX, true))
-const bgmEnabled = ref(getStoredBoolean(STORAGE_KEY_BGM, false))
+const bgmEnabled = ref(false)
 const sfxVolume = 0.35
 const bgmVolume = 0.18
 
@@ -1003,6 +1003,14 @@ export const useAudio = () => {
     }
   }
 
+  const setBgmEnabled = (enabled: boolean): void => {
+    if (bgmEnabled.value === enabled) {
+      if (!enabled) stopBgm()
+      return
+    }
+    toggleBgm()
+  }
+
   const startBgm = (): void => {
     if (bgmEnabled.value && !bgmPlaying) {
       void playBgmLoop('sect_main')
@@ -1051,6 +1059,7 @@ export const useAudio = () => {
     currentBgmType,
     toggleSfx,
     toggleBgm,
+    setBgmEnabled,
     startBgm,
     stopBgm,
     switchBgm,

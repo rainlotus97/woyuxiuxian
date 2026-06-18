@@ -78,15 +78,23 @@
         <div class="guide-head">
           <span>当前存档</span>
           <strong>继续修途</strong>
-          <p>这里是存档入口，不是重新创建界面。本命已定，后续变化来自修炼、奇遇、人物关系、宗门与故事。</p>
+          <p>本命已定，首页只负责读取存档和进入主循环。灵根、气质、头像后续由角色成长、剧情和机缘改变。</p>
         </div>
 
-        <div class="save-profile">
-          <div class="save-avatar">{{ playerStore.icon }}</div>
-          <div>
-            <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
-            <strong>{{ playerStore.name }}</strong>
-            <p>本命已定，首页只负责进入主循环。灵根、气质和头像后续不在这里反复改动。</p>
+        <div class="save-pass">
+          <div class="save-profile">
+            <div class="save-avatar">{{ playerStore.icon }}</div>
+            <div>
+              <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
+              <strong>{{ playerStore.name }}</strong>
+              <p>创建信息已写入存档。当前版本优先完善 P0 主循环，进入后从任务台处理修炼、历险、故事、地图和宗门。</p>
+            </div>
+          </div>
+
+          <div class="save-lock-row" aria-label="创建设定状态">
+            <span>本命锁定</span>
+            <span>声音默认关闭</span>
+            <span>P0 优先</span>
           </div>
         </div>
 
@@ -114,19 +122,6 @@
           <div>
             <span>体力</span>
             <strong>{{ playerStore.stamina }}/{{ playerStore.maxStamina }}</strong>
-          </div>
-        </div>
-
-        <div class="resume-brief">
-          <div class="resume-card">
-            <span>本命锁定</span>
-            <strong>{{ playerStore.element }}灵根</strong>
-            <p>角色创建信息已写入存档，成长转移到角色、功法和剧情系统。</p>
-          </div>
-          <div class="resume-card">
-            <span>声音</span>
-            <strong>默认静音</strong>
-            <p>背景音需要手动开启，避免进入游戏立即播放不好听的占位 BGM。</p>
           </div>
         </div>
 
@@ -393,6 +388,11 @@ function handleStory() {
     radial-gradient(circle at top right, rgba(255, 226, 145, 0.22), transparent 58%);
 }
 
+.save-pass {
+  display: grid;
+  gap: 10px;
+}
+
 .creation-lock-note,
 .save-next-step {
   border: 1px solid rgba(188, 141, 58, 0.22);
@@ -433,6 +433,23 @@ function handleStory() {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 252, 247, 0.66)),
     linear-gradient(90deg, rgba(255, 236, 178, 0.26), transparent 48%);
+}
+
+.save-lock-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.save-lock-row span {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(188, 141, 58, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 250, 233, 0.72);
+  color: #8b6226;
+  font-size: 11px;
 }
 
 .save-avatar {
@@ -506,47 +523,6 @@ function handleStory() {
 .save-stats strong {
   color: #8e6227;
   font-size: 15px;
-}
-
-.resume-brief {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.resume-card {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
-    radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
-}
-
-.resume-card.primary {
-  border-color: rgba(188, 141, 58, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 250, 231, 0.8), rgba(239, 252, 246, 0.64)),
-    radial-gradient(circle at top right, rgba(255, 213, 112, 0.2), transparent 64%);
-}
-
-.resume-brief span {
-  color: rgba(70, 99, 96, 0.68);
-  font-size: 11px;
-}
-
-.resume-brief strong {
-  color: #315257;
-  font-size: 14px;
-}
-
-.resume-brief p {
-  margin: 0;
-  color: rgba(49, 82, 87, 0.7);
-  font-size: 11px;
-  line-height: 1.6;
 }
 
 .priority-board {
@@ -862,7 +838,7 @@ function handleStory() {
     grid-template-columns: 1fr;
   }
 
-  .resume-brief,
+  .save-lock-row,
   .save-next-step,
   .save-stats,
   .save-action-row,

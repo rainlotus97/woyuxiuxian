@@ -52,6 +52,31 @@
             </div>
           </div>
         </div>
+
+        <div class="quick-command-panel">
+          <div class="quick-command-head">
+            <span>今日可做</span>
+            <strong>P0 快捷行动</strong>
+          </div>
+          <div class="quick-command-grid">
+            <button type="button" class="quick-command primary" @click="toggleIdle">
+              <span>{{ playerStore.isIdling ? '停' : '修' }}</span>
+              <strong>{{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}</strong>
+            </button>
+            <button type="button" class="quick-command" :disabled="!canAdvanceWorld" @click="handleAdvanceWorld">
+              <span>时</span>
+              <strong>推演一时辰</strong>
+            </button>
+            <button type="button" class="quick-command" :disabled="playerStore.captivity.isCaptured" @click="handlePlayerFortune">
+              <span>缘</span>
+              <strong>处理机缘</strong>
+            </button>
+            <button type="button" class="quick-command" @click="router.push('/game/story')">
+              <span>卷</span>
+              <strong>继续故事</strong>
+            </button>
+          </div>
+        </div>
       </div>
     </GameSurface>
 
@@ -941,13 +966,14 @@ function handlePlayerFortune() {
 }
 
 .home-hero-layout {
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.72fr);
   align-items: stretch;
 }
 
 .hero-main-card,
 .hero-copy,
 .world-pulse-card,
+.quick-command-panel,
 .progress-stack,
 .sect-panel,
 .log-list,
@@ -1029,6 +1055,88 @@ function handlePlayerFortune() {
   background:
     linear-gradient(180deg, rgba(255, 251, 236, 0.76), rgba(239, 252, 246, 0.58)),
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.22), transparent 62%);
+}
+
+.quick-command-panel {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.78), rgba(241, 249, 244, 0.64)),
+    radial-gradient(circle at top right, rgba(141, 223, 197, 0.16), transparent 62%);
+}
+
+.quick-command-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quick-command-head span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.quick-command-head strong {
+  color: #315257;
+  font-size: 15px;
+}
+
+.quick-command-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quick-command {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #315257;
+  font-family: var(--font-game);
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-command.primary {
+  border-color: rgba(188, 141, 58, 0.28);
+  background: rgba(255, 249, 232, 0.84);
+}
+
+.quick-command:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.quick-command span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 240, 177, 0.82);
+  color: #8b6226;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.quick-command strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #315257;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulse-head {
@@ -1723,7 +1831,8 @@ function handlePlayerFortune() {
   }
 
   .hero-actions,
-  .p0-rail {
+  .p0-rail,
+  .quick-command-grid {
     grid-template-columns: 1fr;
   }
 

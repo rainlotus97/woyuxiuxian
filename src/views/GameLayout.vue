@@ -23,13 +23,14 @@
             <small>首页</small>
           </RouterLink>
           <button
+            type="button"
             class="audio-toggle"
             :class="{ active: bgmEnabled }"
             :aria-label="bgmEnabled ? '关闭背景音' : '开启背景音'"
             @click="handleToggleBgm"
           >
             <span><component :is="bgmEnabled ? Volume2 : VolumeX" :size="15" /></span>
-            <small>{{ bgmEnabled ? '背景音' : '已静音' }}</small>
+            <small>{{ bgmEnabled ? '关闭' : '开声' }}</small>
           </button>
         </div>
 
@@ -64,7 +65,7 @@
               <span class="nav-eyebrow">功能总览</span>
               <strong>前往修仙界面</strong>
             </div>
-            <button class="drawer-close" aria-label="收起菜单" @click="closeMenu">
+            <button class="drawer-close" type="button" aria-label="收起菜单" @click="closeMenu">
               <X :size="18" />
             </button>
           </div>
@@ -589,6 +590,10 @@ onUnmounted(() => {
   transition: opacity 0.16s ease;
 }
 
+.scrim-fade-leave-active {
+  pointer-events: none;
+}
+
 .scrim-fade-enter-from,
 .scrim-fade-leave-to {
   opacity: 0;
@@ -597,6 +602,10 @@ onUnmounted(() => {
 .drawer-rise-enter-active,
 .drawer-rise-leave-active {
   transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.drawer-rise-leave-active {
+  pointer-events: none;
 }
 
 .drawer-rise-enter-from,
@@ -859,7 +868,8 @@ onUnmounted(() => {
 
   .audio-toggle small,
   .home-toggle small {
-    display: none;
+    display: block;
+    font-size: 9px;
   }
 
   .world-summary {

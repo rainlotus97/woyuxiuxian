@@ -138,6 +138,7 @@ const {
   currentBgmType,
   toggleSfx,
   toggleBgm,
+  setBgmEnabled,
   switchBgm,
   stopBgm,
   getBgmList
@@ -193,6 +194,7 @@ function handleSwitchBgm(type: BgmType) {
 function handleStopBgm() {
   sfxClick()
   stopBgm()
+  setBgmEnabled(false)
 }
 
 function playClick() {
