@@ -96,11 +96,13 @@
             <div>
               <span>P0 状态</span>
               <strong>{{ loopReadiness.headline }}</strong>
+              <small>{{ p0LoopClosure.headline }}</small>
             </div>
             <div class="readiness-counts">
               <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
               <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
               <span class="state-blocked">阻塞 {{ loopReadiness.counts.blocked }}</span>
+              <span class="state-closed">闭环 {{ p0LoopClosure.counts.closed }}/{{ p0LoopClosure.totalCount }}</span>
             </div>
           </div>
 
@@ -118,6 +120,7 @@
                 <strong>{{ task.title }}</strong>
                 <em>{{ task.summary }}</em>
                 <i>{{ task.readiness.reason }}</i>
+                <b :class="`closure-${task.closure.state}`">{{ task.closure.evidence }}</b>
               </span>
               <span class="task-meta">{{ task.meta }}</span>
             </button>
@@ -376,6 +379,10 @@ import {
   type MainLoopReadinessKey
 } from '@/world/runtime/mainLoopReadinessResolver'
 import {
+  resolveP0LoopClosure,
+  type P0LoopClosureItem
+} from '@/world/runtime/p0LoopClosureResolver'
+import {
   formatJourneyRewards,
   getAnomalyIcon,
   getBondLabel,
@@ -413,6 +420,7 @@ interface MainLoopTask {
   meta: string
   tone: 'jade' | 'gold' | 'rose' | 'mist'
   readiness: MainLoopReadinessItem
+  closure: P0LoopClosureItem
   active?: boolean
   route?: string
   action?: 'toggleIdle'
@@ -707,6 +715,24 @@ const loopReadiness = computed(() => resolveMainLoopReadiness({
   }
 }))
 
+const p0LoopClosure = computed(() => resolveP0LoopClosure({
+  readiness: loopReadiness.value.byId,
+  evidence: {
+    playerJourneyTags: worldStore.playerJourneys.map(journey => journey.tags),
+    storyCurrentNodeId: storyStore.currentNodeId,
+    storyCompletedCount: storyStore.completedCount,
+    unlockedNpcCount: worldStore.unlockedNpcDefinitions.length,
+    npcStoryCount: worldStore.npcStories.length,
+    worldBriefingCount: worldBriefings.value.length,
+    mapTotalAreaCount: mapStore.currentRealmAreas.length,
+    mapConqueredCount: mapStore.conqueredCountInCurrentRealm,
+    mapHistoryCount: mapStore.historyEvents.length,
+    areaAnomalyCount: worldStore.areaAnomalies.length,
+    sectJoined: Boolean(sectStore.currentSect),
+    sectJoinableCount: sectStore.joinCandidates.filter(candidate => candidate.canJoin).length
+  }
+}))
+
 const mainLoopTasks = computed<MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
   const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
@@ -729,6 +755,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: loopReadiness.value.byId.idle.label,
       tone: loopReadiness.value.byId.idle.tone,
       readiness: loopReadiness.value.byId.idle,
+      closure: p0LoopClosure.value.byId.idle,
       active: playerStore.isIdling,
       action: 'toggleIdle'
     },
@@ -741,6 +768,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `体力 ${playerStore.stamina}/${playerStore.maxStamina}`,
       tone: loopReadiness.value.byId.adventure.tone,
       readiness: loopReadiness.value.byId.adventure,
+      closure: p0LoopClosure.value.byId.adventure,
       route: '/game/adventure'
     },
     {
@@ -752,6 +780,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `${latestStoryLabel}`,
       tone: loopReadiness.value.byId.story.tone,
       readiness: loopReadiness.value.byId.story,
+      closure: p0LoopClosure.value.byId.story,
       route: '/game/story'
     },
     {
@@ -765,6 +794,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
         : `${worldStore.unlockedNpcDefinitions.length} 人`,
       tone: loopReadiness.value.byId.npc.tone,
       readiness: loopReadiness.value.byId.npc,
+      closure: p0LoopClosure.value.byId.npc,
       route: '/game/companion'
     },
     {
@@ -776,6 +806,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`,
       tone: loopReadiness.value.byId.map.tone,
       readiness: loopReadiness.value.byId.map,
+      closure: p0LoopClosure.value.byId.map,
       route: '/game/map'
     },
     {
@@ -787,6 +818,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: sectMeta,
       tone: loopReadiness.value.byId.sect.tone,
       readiness: loopReadiness.value.byId.sect,
+      closure: p0LoopClosure.value.byId.sect,
       route: '/game/sect'
     }
   ]
@@ -1392,6 +1424,12 @@ function handlePlayerFortune() {
   line-height: 1.45;
 }
 
+.loop-readiness-strip small {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .readiness-counts {
   display: flex;
   flex-wrap: wrap;
@@ -1420,6 +1458,12 @@ function handlePlayerFortune() {
 
 .readiness-counts .state-blocked {
   color: #8a4959;
+}
+
+.readiness-counts .state-closed {
+  color: #2f746b;
+  border-color: rgba(88, 164, 143, 0.2);
+  background: rgba(239, 252, 247, 0.86);
 }
 
 .loop-task-card {
@@ -1531,6 +1575,43 @@ function handlePlayerFortune() {
   line-height: 1.5;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.task-copy b {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(73, 97, 95, 0.7);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-copy .closure-closed {
+  color: #2f746b;
+  border-color: rgba(88, 164, 143, 0.22);
+  background: rgba(238, 253, 247, 0.86);
+}
+
+.task-copy .closure-actionable {
+  color: #8b6226;
+  border-color: rgba(194, 146, 66, 0.22);
+  background: rgba(255, 248, 230, 0.86);
+}
+
+.task-copy .closure-blocked {
+  color: #9b4353;
+  border-color: rgba(199, 121, 138, 0.22);
+  background: rgba(255, 242, 245, 0.86);
 }
 
 .task-meta {

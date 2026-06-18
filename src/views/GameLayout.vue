@@ -541,7 +541,7 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px calc(68px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px calc(82px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
@@ -577,12 +577,12 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: 0 0 calc(min(58vh, 500px) + 82px + env(safe-area-inset-bottom, 0px));
+  inset: 0 0 calc(min(58vh, 500px) + 78px + env(safe-area-inset-bottom, 0px));
   z-index: 34;
   border: 0;
   padding: 0;
   border-radius: 0;
-  background: rgba(48, 78, 74, 0.16);
+  background: rgba(48, 78, 74, 0.14);
   backdrop-filter: blur(2px);
   cursor: pointer;
   pointer-events: auto;
@@ -802,7 +802,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 6px 8px calc(70px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 8px calc(84px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -880,6 +880,7 @@ onUnmounted(() => {
     min-height: 42px;
     justify-content: center;
     padding: 6px 4px;
+    gap: 3px;
   }
 
   .audio-toggle small,
@@ -897,7 +898,7 @@ onUnmounted(() => {
   }
 
   .nav-scrim {
-    inset: 0 0 calc(min(60vh, 480px) + 80px + env(safe-area-inset-bottom, 0px));
+    inset: 0 0 calc(min(60vh, 480px) + 76px + env(safe-area-inset-bottom, 0px));
   }
 
   .menu-grid {

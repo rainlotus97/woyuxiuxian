@@ -86,7 +86,7 @@
         <div class="guide-head">
           <span>当前存档</span>
           <strong>继续修途</strong>
-          <p>本命已定，首页只负责读取存档和进入主循环。灵根、气质、头像后续由角色成长、剧情和机缘改变。</p>
+          <p>本命已定，首页只负责读取存档和进入主循环。灵根、气质、头像不再从这里重选，后续变化交给角色成长、剧情和机缘。</p>
         </div>
 
         <div class="save-pass">
@@ -106,17 +106,24 @@
           </div>
         </div>
 
+        <div class="save-command-docket" aria-label="当前修途摘要">
+          <div>
+            <span>主循环</span>
+            <strong>先跑通六项基础玩法</strong>
+          </div>
+          <button class="primary-action docket-action" @click="handleContinue">
+            <Play :size="18" />
+            <span>进入游戏</span>
+            <small>修炼首页</small>
+          </button>
+        </div>
+
         <div class="save-next-step">
           <div>
             <span>推荐先做</span>
             <strong>进入主界任务台</strong>
             <p>先把挂机、历险、故事、人物、地图、宗门这六个 P0 入口跑通，再继续扩展战斗和大世界深度。</p>
           </div>
-          <button class="primary-action compact" @click="handleContinue">
-            <Play :size="18" />
-            <span>继续游戏</span>
-            <small>主界总览</small>
-          </button>
         </div>
 
         <div class="locked-profile-grid" aria-label="本命信息">
@@ -305,15 +312,13 @@ function formatAmount(value: number) {
   height: 100vh;
   height: 100dvh;
   overflow: auto;
-  padding: 18px;
+  padding: 14px;
   color: #315257;
   background:
-    linear-gradient(90deg, rgba(69, 118, 104, 0.055) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(69, 118, 104, 0.045) 1px, transparent 1px),
-    linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.3) 34% 35%, transparent 35% 100%),
-    radial-gradient(circle at 16% 8%, rgba(255, 223, 142, 0.34), transparent 26%),
-    radial-gradient(circle at 88% 10%, rgba(106, 208, 184, 0.22), transparent 34%),
-    linear-gradient(135deg, rgba(247, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%);
+    linear-gradient(90deg, rgba(69, 118, 104, 0.052) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(69, 118, 104, 0.044) 1px, transparent 1px),
+    linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.28) 34% 35%, transparent 35% 100%),
+    linear-gradient(135deg, rgba(248, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 46%, rgba(255, 248, 226, 0.94) 100%);
   background-size: 44px 44px, 44px 44px, auto, auto, auto, auto;
 }
 
@@ -338,7 +343,7 @@ function formatAmount(value: number) {
 .guide-panel,
 .world-preview {
   border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(244, 252, 247, 0.78)),
     linear-gradient(90deg, rgba(255, 235, 170, 0.18), transparent 38%);
@@ -431,9 +436,9 @@ function formatAmount(value: number) {
 .save-panel {
   align-content: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 250, 0.96), rgba(241, 252, 247, 0.86)),
-    radial-gradient(circle at top right, rgba(255, 226, 145, 0.3), transparent 58%),
-    linear-gradient(135deg, rgba(127, 205, 180, 0.16), transparent 42%);
+    linear-gradient(180deg, rgba(255, 255, 250, 0.97), rgba(241, 252, 247, 0.88)),
+    linear-gradient(135deg, rgba(127, 205, 180, 0.18), transparent 42%),
+    linear-gradient(90deg, rgba(255, 226, 145, 0.24), transparent 62%);
 }
 
 .save-pass {
@@ -515,6 +520,35 @@ function formatAmount(value: number) {
   box-shadow: 0 16px 30px rgba(94, 144, 130, 0.18);
 }
 
+.save-command-docket {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.42fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(91, 151, 132, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(242, 255, 249, 0.86), rgba(255, 251, 235, 0.64)),
+    linear-gradient(90deg, rgba(130, 213, 188, 0.16), transparent);
+}
+
+.save-command-docket > div {
+  display: grid;
+  gap: 5px;
+}
+
+.save-command-docket span {
+  color: rgba(70, 99, 96, 0.68);
+  font-size: 11px;
+}
+
+.save-command-docket strong {
+  color: #315257;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
 .save-profile div:last-child {
   display: grid;
   gap: 6px;
@@ -540,7 +574,6 @@ function formatAmount(value: number) {
 
 .save-next-step {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
   gap: 14px;
   align-items: center;
   padding: 14px;
@@ -886,6 +919,10 @@ function formatAmount(value: number) {
   min-height: 66px;
 }
 
+.primary-action.docket-action {
+  min-height: 62px;
+}
+
 .secondary-action {
   display: inline-flex;
   align-items: center;
@@ -1001,6 +1038,7 @@ function formatAmount(value: number) {
 
   .creation-step-row,
   .save-lock-row,
+  .save-command-docket,
   .save-next-step,
   .locked-profile-grid,
   .save-stats,

@@ -2833,6 +2833,129 @@ test('main loop readiness summarizes p0 action states', async () => {
   assert.match(captured.headline, /阻塞/)
 })
 
+test('p0 loop closure summarizes observable result evidence', async () => {
+  const { resolveMainLoopReadiness } = await load('/src/world/runtime/mainLoopReadinessResolver.ts')
+  const { resolveP0LoopClosure } = await load('/src/world/runtime/p0LoopClosureResolver.ts')
+
+  const baseInput = {
+    player: {
+      isCaptured: false,
+      isIdling: false,
+      stamina: 20,
+      maxStamina: 20,
+      canBreakthrough: false
+    },
+    world: {
+      unlockedNpcCount: 5,
+      worldBriefingCount: 1,
+      hasRecentJourney: false
+    },
+    story: {
+      currentNodeId: null,
+      completedCount: 0,
+      isInitialized: true
+    },
+    map: {
+      conqueredCount: 0,
+      totalAreaCount: 6,
+      hasHotspot: false
+    },
+    sect: {
+      joined: false,
+      joinableCount: 1,
+      activeWar: false,
+      completedTaskCount: 0,
+      availableTaskCount: 0,
+      canClaimSalary: false
+    }
+  }
+
+  const readiness = resolveMainLoopReadiness(baseInput)
+  const freshClosure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+
+  assert.equal(freshClosure.totalCount, 6)
+  assert.equal(freshClosure.closedCount, 0)
+  assert.equal(freshClosure.counts.blocked, 0)
+  assert.equal(freshClosure.byId.story.state, 'actionable')
+  assert.match(freshClosure.headline, /可继续验证/)
+
+  const richClosure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [
+        ['cultivation', 'fortune'],
+        ['adventure', 'battle'],
+        ['npc', 'relationship'],
+        ['map', 'exploration'],
+        ['sect', 'membership']
+      ],
+      storyCurrentNodeId: 'V1M01',
+      storyCompletedCount: 1,
+      unlockedNpcCount: 5,
+      npcStoryCount: 2,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 1,
+      mapHistoryCount: 1,
+      areaAnomalyCount: 1,
+      sectJoined: true,
+      sectJoinableCount: 1
+    }
+  })
+
+  assert.equal(richClosure.closedCount, 6)
+  assert.equal(richClosure.counts.closed, 6)
+  assert.equal(richClosure.byId.sect.state, 'closed')
+  assert.match(richClosure.headline, /六项核心循环/)
+
+  const blockedReadiness = resolveMainLoopReadiness({
+    ...baseInput,
+    player: {
+      ...baseInput.player,
+      isCaptured: true
+    },
+    map: {
+      ...baseInput.map,
+      totalAreaCount: 0
+    }
+  })
+  const blockedClosure = resolveP0LoopClosure({
+    readiness: blockedReadiness.byId,
+    evidence: {
+      playerJourneyTags: [],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 0,
+      npcStoryCount: 0,
+      worldBriefingCount: 0,
+      mapTotalAreaCount: 0,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 0
+    }
+  })
+  assert.ok(blockedClosure.counts.blocked >= 2)
+  assert.match(blockedClosure.headline, /阻塞/)
+})
+
 test('player fortune resolver creates deterministic fortune rewards', async () => {
   const { resolvePlayerFortune } = await load('/src/world/runtime/playerFortuneResolver.ts')
 
