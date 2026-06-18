@@ -334,7 +334,7 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -542,12 +542,12 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px calc(104px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px 10px;
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  scroll-padding-bottom: calc(122px + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: 18px;
   isolation: isolate;
 }
 
@@ -559,10 +559,7 @@ onUnmounted(() => {
 }
 
 .nav-shell {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 18;
   padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
@@ -579,7 +576,7 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: 0 0 calc(min(50vh, 430px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
+  inset: 0;
   z-index: 34;
   border: 0;
   padding: 0;
@@ -592,12 +589,16 @@ onUnmounted(() => {
 }
 
 .nav-drawer {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   margin-bottom: 10px;
+  width: min(1120px, calc(100vw - 20px));
   max-height: min(50vh, 430px);
   overflow: auto;
   border-radius: 14px;
   box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
-  position: relative;
   z-index: 43;
 }
 
@@ -807,7 +808,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 6px 8px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 8px 8px;
   }
 
   .top-shell {
@@ -903,7 +904,7 @@ onUnmounted(() => {
   }
 
   .nav-scrim {
-    inset: 0 0 calc(min(52vh, 420px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
+    inset: 0;
   }
 
   .menu-grid {
