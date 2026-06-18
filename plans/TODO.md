@@ -260,11 +260,11 @@
 
 ## P3 工程治理
 
-- [ ] 为核心 runtime 增加最小测试：
-  - battle runtime
-  - story parser
-  - world tick
-  - map/sect unlock rules
+- [x] 为核心 runtime 增加最小测试：
+  - 已新增 `scripts/validate-runtime.mjs`
+  - 已新增 `npm run runtime:validate`
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、map / sect unlock rules
+  - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`
   - 已新增 `npm run story:validate`

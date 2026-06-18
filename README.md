@@ -92,6 +92,9 @@ npm run story:validate
 
 # 校验资源 manifest、文件存在性、尺寸和来源字段
 npm run assets:validate
+
+# 校验核心 runtime：战斗、剧情 parser、世界异动、地图/宗门规则
+npm run runtime:validate
 ```
 
 ## 部署
