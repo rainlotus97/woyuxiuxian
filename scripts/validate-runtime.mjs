@@ -611,6 +611,8 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
+  const { tickFoodProgressionEffects } = await load('/src/character/runtime/characterFoodEffectResolver.ts')
+  const { resolveCharacterProgression } = await load('/src/character/runtime/characterProgressionResolver.ts')
   const {
     resolveBreakthroughAttempt,
     resolveBreakthroughPreview
@@ -819,6 +821,36 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(noEffectConsumable.success, false)
   assert.equal(noEffectConsumable.reason, 'no_effect')
   assert.deepEqual(noEffectConsumable.delta.ignoredEffects, ['unknown_effect'])
+  const foodConsumable = {
+    id: 'food_fixture',
+    definitionId: 'food_spirit_fruit',
+    name: '灵果',
+    icon: '果',
+    type: 'consumable',
+    quality: 'common',
+    quantity: 1,
+    effects: [
+      { type: 'stamina', value: 10 },
+      { type: 'food_cultivation', value: 0.12, duration: 3 }
+    ]
+  }
+  const foodReady = resolveConsumableUse({
+    itemId: 'food_fixture',
+    inventory: [foodConsumable],
+    baseStats: { currentHp: 150, currentMp: 100 },
+    totalStats: { maxHp: 150, maxMp: 100 }
+  })
+  assert.equal(foodReady.success, true)
+  assert.equal(foodReady.delta.stamina, 10)
+  assert.equal(foodReady.delta.buffs[0]?.type, 'food_cultivation')
+  assert.equal(foodReady.delta.buffs[0]?.duration, 3)
+  const foodProgression = resolveCharacterProgression([], [], foodReady.delta.buffs)
+  assert.equal(foodProgression.cultivationMultiplierBonus, 0.12)
+  assert.equal(foodProgression.cultivationMultiplier, 1.12)
+  assert.ok(foodProgression.sources.some(source => source.kind === 'food' && source.label === '灵果'))
+  const tickedFoodBuffs = tickFoodProgressionEffects(foodReady.delta.buffs)
+  assert.equal(tickedFoodBuffs[0]?.duration, 2)
+  assert.equal(tickFoodProgressionEffects([{ ...foodReady.delta.buffs[0], duration: 1 }]).length, 0)
   const foundationAid = {
     id: 'foundation_aid',
     definitionId: 'pill_foundation_guard',
@@ -1059,8 +1091,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const contestedInventory = createShopInventory(contestedMarketContext)
   const stablePill = stableInventory.find(item => item.definition.id === 'shop_pill_001')
   const contestedPill = contestedInventory.find(item => item.definition.id === 'shop_pill_001')
+  const stableFood = stableInventory.find(item => item.definition.id === 'shop_food_001')
   assert.ok(stablePill, 'stable shop should include qi gathering pill')
   assert.ok(contestedPill, 'contested shop should include qi gathering pill')
+  assert.ok(stableFood, 'stable shop should include spirit food')
+  assert.equal(stableFood.definition.category, 'food')
+  assert.equal(stableFood.definition.effects?.some(effect => effect.type === 'food_cultivation'), true)
   assert.ok(stablePill.price < contestedPill.price)
   assert.ok(stablePill.tags.includes('本宗商路'))
   assert.ok(contestedPill.tags.includes('商路受阻'))
@@ -1084,6 +1120,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
   }
   const merchantInfluence = resolveShopMerchantInfluence(merchantMarketContext)
   assert.ok(merchantInfluence.categoryStockModifiers.pill > 1)
+  assert.ok(merchantInfluence.categoryStockModifiers.food > 1)
   assert.ok(merchantInfluence.categoryStockModifiers.breakthrough > 1)
   assert.ok(merchantInfluence.priceModifier < 1)
   assert.ok(merchantInfluence.tags.includes('人物商缘'))

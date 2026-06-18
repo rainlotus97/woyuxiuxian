@@ -1,7 +1,7 @@
 import type { Realm } from '@/types/unit'
 import type { InventoryItem } from '@/stores/playerStore'
 
-export type ShopCategoryId = 'all' | 'equipment' | 'pill' | 'material' | 'breakthrough' | 'sect'
+export type ShopCategoryId = 'all' | 'equipment' | 'pill' | 'food' | 'material' | 'breakthrough' | 'sect'
 export type ShopItemType = InventoryItem['type']
 export type ShopQuality = 'common' | 'fine' | 'excellent' | 'supreme' | 'legendary'
 
@@ -34,6 +34,7 @@ export const SHOP_CATEGORY_OPTIONS: Array<{ id: ShopCategoryId; name: string }> 
   { id: 'all', name: '全部' },
   { id: 'equipment', name: '法器' },
   { id: 'pill', name: '丹药' },
+  { id: 'food', name: '灵食' },
   { id: 'breakthrough', name: '破境' },
   { id: 'material', name: '材料' },
   { id: 'sect', name: '宗门' }
@@ -210,6 +211,34 @@ export const SHOP_CATALOG: ShopItemDefinition[] = [
     effects: [{ type: 'buff_def', value: 0.2, duration: 3 }],
     stockRange: [1, 5],
     refreshWeight: 0.85
+  },
+  {
+    id: 'shop_food_001',
+    definitionId: 'food_spirit_fruit',
+    name: '灵果',
+    icon: '果',
+    category: 'food',
+    type: 'consumable',
+    quality: 'common',
+    basePrice: 35,
+    description: '恢复10体力，并在3次挂机结算内修炼收益+12%。',
+    effects: [{ type: 'stamina', value: 10 }, { type: 'food_cultivation', value: 0.12, duration: 3 }],
+    stockRange: [2, 8],
+    refreshWeight: 0.9
+  },
+  {
+    id: 'shop_food_002',
+    definitionId: 'food_jade_marrow_soup',
+    name: '玉髓羹',
+    icon: '羹',
+    category: 'food',
+    type: 'consumable',
+    quality: 'fine',
+    basePrice: 120,
+    description: '恢复25体力，并在4次挂机结算内修炼收益+18%。',
+    effects: [{ type: 'stamina', value: 25 }, { type: 'food_cultivation', value: 0.18, duration: 4 }],
+    stockRange: [0, 4],
+    refreshWeight: 0.62
   },
   {
     id: 'shop_breakthrough_001',

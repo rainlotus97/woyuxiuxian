@@ -153,6 +153,7 @@ function getMerchantCategoryBonuses(merchant: ShopMerchantNpcState): Array<Exclu
 
   if (/炼丹|丹修|药|medicine|medicine_body|采药|seekTreasure/.test(text)) {
     categories.add('pill')
+    categories.add('food')
     categories.add('breakthrough')
     categories.add('material')
   }

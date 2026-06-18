@@ -5,6 +5,7 @@ export interface ConsumableEffectDelta {
   cultivation: number
   hp: number
   mp: number
+  stamina: number
   buffs: StatusEffect[]
   ignoredEffects: string[]
 }
@@ -21,6 +22,7 @@ const EMPTY_DELTA: ConsumableEffectDelta = {
   cultivation: 0,
   hp: 0,
   mp: 0,
+  stamina: 0,
   buffs: [],
   ignoredEffects: []
 }
@@ -28,7 +30,8 @@ const EMPTY_DELTA: ConsumableEffectDelta = {
 const BUFF_ICONS: Record<string, string> = {
   buff_atk: '攻',
   buff_def: '防',
-  buff_spd: '速'
+  buff_spd: '速',
+  food_cultivation: '食'
 }
 
 const NORMALIZED_EFFECT_TYPES: Record<string, string> = {
@@ -37,10 +40,15 @@ const NORMALIZED_EFFECT_TYPES: Record<string, string> = {
   restore_mp: 'mp',
   buff_attack: 'buff_atk',
   buff_defense: 'buff_def',
-  buff_speed: 'buff_spd'
+  buff_speed: 'buff_spd',
+  food_cultivation: 'food_cultivation',
+  cultivation_multiplier: 'food_cultivation',
+  idle_cultivation: 'food_cultivation',
+  stamina: 'stamina',
+  restore_stamina: 'stamina'
 }
 
-const CONSUMABLE_BUFF_TYPES = new Set<StatusEffectType>(['buff_atk', 'buff_def', 'buff_spd'])
+const CONSUMABLE_BUFF_TYPES = new Set<StatusEffectType>(['buff_atk', 'buff_def', 'buff_spd', 'food_cultivation'])
 
 export function resolveConsumableUse(input: {
   itemId: string
@@ -86,6 +94,7 @@ export function resolveConsumableEffectDelta(input: {
     cultivation: 0,
     hp: 0,
     mp: 0,
+    stamina: 0,
     buffs: [],
     ignoredEffects: []
   }
@@ -106,11 +115,16 @@ export function resolveConsumableEffectDelta(input: {
       delta.mp += Math.min(missingMp, Math.max(0, effect.value))
       continue
     }
+    if (type === 'stamina') {
+      delta.stamina += Math.max(0, effect.value)
+      continue
+    }
     if (isConsumableBuffType(type)) {
       delta.buffs.push({
         type,
         value: effect.value,
         duration: effect.duration ?? 3,
+        sourceId: input.item.name,
         icon: BUFF_ICONS[type] ?? '益'
       })
       continue
@@ -122,7 +136,7 @@ export function resolveConsumableEffectDelta(input: {
 }
 
 export function hasConsumableDelta(delta: ConsumableEffectDelta) {
-  return delta.cultivation > 0 || delta.hp > 0 || delta.mp > 0 || delta.buffs.length > 0
+  return delta.cultivation > 0 || delta.hp > 0 || delta.mp > 0 || delta.stamina > 0 || delta.buffs.length > 0
 }
 
 function isConsumableBuffType(type: string): type is StatusEffectType {

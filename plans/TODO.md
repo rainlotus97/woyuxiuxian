@@ -270,6 +270,7 @@
   - 已让宗门限定货接入真实宗门 ID 与贡献兑换成本，购买时同时校验/扣除灵石与宗门贡献
   - 已新增 NPC 商人影响规则，让解锁人物的职业标签、位置与玩家关系影响坊市特定分类库存、价格和供货标签
   - 已新增 NPC 商人专属商品池，满足人物标签与关系门槛后可注入私货并复用现有购买/入库链路
+  - 已新增灵食分类与基础灵食商品，支持恢复体力和挂机修炼增益
   - 已将 `ShopView` 切到统一亮色游戏 UI，支持分类、品质筛选、库存展示、宗门/天气标签与购买确认
   - 待补：更多高阶破境/渡劫道具继续联动、NPC 商人事件与更多专属商品
 - [ ] 打通丹药、食物、装备、功法、灵兽对战斗和挂机的影响
@@ -280,6 +281,7 @@
   - 已新增 `battleStatusModifierResolver`，让丹药/技能产生的攻、防、易伤与身法状态统一影响伤害结算和行动条速度
   - 已让 `聚气诀 / 静心诀` 真实影响挂机修为速度，并让装备灵力/身法加成转化为吐纳效率
   - 已新增 `characterBreakthroughResolver`，让破境预览、成功率、辅助丹药、失败惩罚和技能点奖励从 `playerStore` 中抽离为可测试规则
+  - 已新增 `characterFoodEffectResolver`，让灵果 / 玉髓羹等食物可恢复体力并在若干次挂机结算内提升修炼收益
   - 已在人物总览展示修为/秒、调息增幅与修炼收益来源
 
 ## P3 资产与音频
@@ -298,7 +300,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、battle status modifier rules、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、inventory item schema rules、character battle loadout / breakthrough rules、consumable effect rules、shop purchase / market influence / contribution exchange / merchant influence / merchant item rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、battle status modifier rules、story parser、world tick / world log resolver、player journey resolver、inventory material resolver、inventory item schema rules、character battle loadout / breakthrough / food effect rules、consumable effect rules、shop purchase / market influence / contribution exchange / merchant influence / merchant item / food category rules、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

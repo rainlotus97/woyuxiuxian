@@ -36,7 +36,7 @@ export interface EquipmentSlotState {
 const INVENTORY_FILTER_LABELS: Record<InventoryFilter, string> = {
   all: '全部',
   equipment: '装备',
-  consumable: '丹药',
+  consumable: '丹食',
   material: '材料'
 }
 
@@ -388,12 +388,15 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
       buff_atk: '攻击增益',
       buff_def: '防御增益',
       buff_spd: '身法增益',
+      food_cultivation: '挂机修炼',
+      stamina: '体力',
       breakthrough_success: '破境成功率'
     }
-    const value = effect.type.startsWith('buff_') || effect.type === 'breakthrough_success'
+    const value = effect.type.startsWith('buff_') || effect.type === 'breakthrough_success' || effect.type === 'food_cultivation'
       ? `+${(effect.value * 100).toFixed(0)}%`
       : `+${effect.value}`
-    return `${labels[effect.type] ?? effect.type} ${value}${effect.duration ? ` / ${effect.duration}手` : ''}`
+    const durationUnit = effect.type === 'food_cultivation' ? '次结算' : '手'
+    return `${labels[effect.type] ?? effect.type} ${value}${effect.duration ? ` / ${effect.duration}${durationUnit}` : ''}`
   }
 
   function getStatLabel(stat: keyof UnitStats) {

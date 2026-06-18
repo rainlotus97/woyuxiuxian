@@ -120,7 +120,9 @@ function getStatusEffectClass(type: StatusEffectType): string {
     debuff_def: 'bg-gray-500 text-white',
     vulnerable: 'bg-pink-500 text-white',
     shield: 'bg-gray-300 text-black',
-    invincible: 'bg-yellow-300 text-black'
+    invincible: 'bg-yellow-300 text-black',
+    food_cultivation: 'bg-emerald-200 text-emerald-900',
+    food_stamina: 'bg-lime-200 text-lime-900'
   }
   return classes[type] || 'bg-gray-500 text-white'
 }
@@ -141,7 +143,9 @@ function getStatusEffectIcon(type: StatusEffectType): string {
     debuff_def: '破',
     vulnerable: '伤',
     shield: '盾',
-    invincible: '无'
+    invincible: '无',
+    food_cultivation: '食',
+    food_stamina: '补'
   }
   return icons[type] || '?'
 }

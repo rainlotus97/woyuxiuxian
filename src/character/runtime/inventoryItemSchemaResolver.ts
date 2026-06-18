@@ -45,6 +45,7 @@ const ITEM_DEFINITION_BY_NAME: Record<string, string> = {
   回灵丹: 'pill_spirit_recover',
   大力丸: 'pill_mighty',
   铁甲丹: 'pill_iron_shell',
+  灵果: 'food_spirit_fruit',
   护脉筑基丹: 'pill_foundation_guard',
   凝金丹: 'pill_gold_core'
 }

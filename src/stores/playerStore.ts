@@ -13,6 +13,7 @@ import type {
   BreakthroughPreview
 } from '@/character/runtime/characterBreakthroughResolver'
 import { resolveCharacterBattleUnit } from '@/character/runtime/characterBattleLoadoutResolver'
+import { tickFoodProgressionEffects } from '@/character/runtime/characterFoodEffectResolver'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
 import { normalizeInventoryItemSchema, normalizeInventoryItemsSchema } from '@/character/runtime/inventoryItemSchemaResolver'
@@ -156,6 +157,7 @@ function getDefaultPlayer(): PlayerState {
       { id: 'item_005', name: '回灵丹', icon: '灵', type: 'consumable', quality: 'common', quantity: 10, description: '服用后恢复30灵力', effects: [{ type: 'mp', value: 30 }] },
       { id: 'item_010', name: '大力丸', icon: '力', type: 'consumable', quality: 'fine', quantity: 3, description: '战斗中攻击+20%，持续3回合', effects: [{ type: 'buff_atk', value: 0.2, duration: 3 }] },
       { id: 'item_011', name: '铁甲丹', icon: '铁', type: 'consumable', quality: 'fine', quantity: 3, description: '战斗中防御+20%，持续3回合', effects: [{ type: 'buff_def', value: 0.2, duration: 3 }] },
+      { id: 'item_012', definitionId: 'food_spirit_fruit', name: '灵果', icon: '果', type: 'consumable', quality: 'common', quantity: 3, description: '恢复10体力，并在3次挂机结算内修炼收益+12%。', effects: [{ type: 'stamina', value: 10 }, { type: 'food_cultivation', value: 0.12, duration: 3 }] },
     ],
     maxInventorySlots: 20,
 
@@ -305,7 +307,7 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   const characterProgression = computed(() => {
-    return resolveCharacterProgression(allEquipped.value, learnedSkills.value)
+    return resolveCharacterProgression(allEquipped.value, learnedSkills.value, temporaryBuffs.value)
   })
 
   // 总属性 = 基础 + 装备加成 + 技能被动加成
@@ -721,6 +723,10 @@ export const usePlayerStore = defineStore('player', () => {
     if (result.delta.mp > 0) {
       baseStats.value.currentMp = Math.min(baseStats.value.currentMp + result.delta.mp, totalStats.value.maxMp)
     }
+    if (result.delta.stamina > 0) {
+      stamina.value = Math.min(maxStamina.value, stamina.value + result.delta.stamina)
+      lastStaminaRecoverTime.value = Date.now()
+    }
     for (const buff of result.delta.buffs) addBuff(buff)
 
     // 减少数量
@@ -789,6 +795,7 @@ export const usePlayerStore = defineStore('player', () => {
     const gains = seconds * cultivationPerSecond.value
 
     idleStartTime.value = now
+    temporaryBuffs.value = tickFoodProgressionEffects(temporaryBuffs.value)
     return gains
   }
 

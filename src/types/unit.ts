@@ -109,6 +109,8 @@ export type StatusEffectType =
   | 'vulnerable'  // 易伤 - 承受伤害提升
   | 'shield'      // 护盾
   | 'invincible'   // 无敌
+  | 'food_cultivation' // 食物调息 - 提升挂机修炼收益
+  | 'food_stamina'     // 食物补给 - 恢复体力或延长游历耐力
 
 export interface StatusEffect {
   type: StatusEffectType

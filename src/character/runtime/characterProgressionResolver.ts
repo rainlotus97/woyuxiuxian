@@ -1,9 +1,10 @@
 import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill } from '@/types/skill'
 import { getSkillDefinition } from '@/types/skill'
-import type { UnitStats } from '@/types/unit'
+import type { StatusEffect, UnitStats } from '@/types/unit'
+import { resolveFoodProgressionEffects } from './characterFoodEffectResolver'
 
-export type CharacterProgressionSourceKind = 'equipment' | 'skill'
+export type CharacterProgressionSourceKind = 'equipment' | 'skill' | 'food'
 export type CharacterProgressionTarget = 'stat' | 'cultivation'
 
 export interface CharacterProgressionSource {
@@ -39,7 +40,8 @@ const STAT_KEYS: Array<keyof UnitStats> = [
 
 export function resolveCharacterProgression(
   equipment: Equipment[],
-  learnedSkills: LearnedSkill[]
+  learnedSkills: LearnedSkill[],
+  statusEffects: StatusEffect[] = []
 ): CharacterProgressionResult {
   const equipmentStatBonuses: Partial<UnitStats> = {}
   const skillStatBonuses: Partial<UnitStats> = {}
@@ -107,6 +109,16 @@ export function resolveCharacterProgression(
         description: '功法提供稳定修为收益'
       })
     }
+  }
+
+  const foodEffects = resolveFoodProgressionEffects(statusEffects)
+  cultivationMultiplierBonus += foodEffects.cultivationMultiplierBonus
+  for (const source of foodEffects.sources) {
+    sources.push({
+      ...source,
+      kind: 'food',
+      target: 'cultivation'
+    })
   }
 
   return {
