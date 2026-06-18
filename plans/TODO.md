@@ -84,6 +84,7 @@
   - 冒险、故事、战斗、地图、宗门至少各有可进入、可返回、可产生结果的基础流程
   - 已补齐历险扫荡结构化反馈：扫荡结算抽成 `adventureSweepResolver + useAdventureSweep`，页面展示最近扫荡修为/灵石/态势/掉落摘要，并继续写回背包、区域进度与宗门任务
   - 本轮补齐历险扫荡主角行程：新增 `adventureSweepJourneyResolver`，扫荡收益、体力消耗、区域态势和掉落会进入主角行程
+  - 本轮继续收口历险 P0 入口：抽出 `AdventureAreaCard / AdventureSweepFeedbackPanel`，区域权限、风险提示、掉落预览与扫荡结果展示从页面层移入可复用组件
   - 本轮补齐常规战斗结算主角行程：新增 `battleJourneyResolver`，历险/地图战斗胜负、奖励和掉落会写入主角行程，主界可回看战斗经历
   - 已补齐宗门初始拜山闭环：新角色会按境界与开放区域显示可拜山候选，加入后进入任务、俸禄、设施入口，并持久化为正式解锁宗门
   - 本轮补齐宗门加入/离开持久反馈：新增 `sectMembershipJourneyResolver + useSectMembership`，拜山和退出会写入主角行程与世界日志，不再只停留在 toast
