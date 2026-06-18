@@ -22,8 +22,7 @@ import {
   type SectDirectiveId
 } from '@/sect/runtime/sectPositionResolver'
 import {
-  applyDirectiveToTaskRewards,
-  getSectDirectiveEffects
+  applyDirectiveToTaskRewards
 } from '@/sect/runtime/sectDirectiveEffects'
 import {
   resolveManualSectTaskProgress,
@@ -46,6 +45,10 @@ import {
 import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import {
+  resolveSectWarConclusion,
+  type SectWarReport
+} from '@/sect/runtime/sectWarRewardResolver'
+import {
   resolveAvailableSeeds,
   resolveGardenAccelerateCost,
   resolveGardenHarvest,
@@ -61,23 +64,6 @@ import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
 import { SEEDS, getSeedById, type PlantedCrop } from '@/types/garden'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
-
-interface SectWarReport {
-  warId: string
-  title: string
-  summary: string
-  time: number
-  winner: 'attacker' | 'defender'
-  rewards: {
-    contribution: number
-    gold: number
-    reputation: number
-  }
-  penalties: {
-    contribution: number
-    reputation: number
-  }
-}
 
 // 宗门状态接口
 interface SectState {
@@ -667,79 +653,28 @@ export const useSectStore = defineStore('sect', () => {
     const war = activeWar.value
     if (!war) return null
 
-    const directiveEffects = getSectDirectiveEffects(activeDirective.value)
-    const winner = attackerWon ? 'attacker' : 'defender'
-    const rewards = attackerWon
-      ? {
-          contribution: Math.max(1, Math.floor(500 * directiveEffects.taskContributionMultiplier * directiveEffects.warRewardMultiplier)),
-          gold: Math.max(1, Math.floor(1000 * directiveEffects.taskGoldMultiplier * directiveEffects.warRewardMultiplier)),
-          reputation: Math.max(0, Math.floor(100 * directiveEffects.warRewardMultiplier))
-        }
-      : {
-          contribution: Math.max(1, Math.floor(200 * directiveEffects.taskContributionMultiplier)),
-          gold: Math.max(1, Math.floor(500 * directiveEffects.taskGoldMultiplier)),
-          reputation: 0
-        }
-    const penalties = attackerWon
-      ? { contribution: 0, reputation: 0 }
-      : { contribution: 200, reputation: 100 }
-    war.result = {
-      winner,
-      rewards: winner === 'attacker' ? ['500贡献点', '1000灵石', '100声望'] : ['200贡献点', '500灵石'],
-      penalties: winner === 'attacker' ? [] : ['100声望', '200贡献点']
-    }
+    const conclusion = resolveSectWarConclusion({
+      war,
+      attackerWon,
+      directive: activeDirective.value,
+      sectHp: sectHp.value,
+      sectMaxHp: sectMaxHp.value,
+      now: Date.now()
+    })
+    war.result = conclusion.result
 
-    if (winner === 'attacker') {
-      addContribution(rewards.contribution)
-      const playerStore = usePlayerStore()
-      playerStore.addGold(rewards.gold)
-      addReputation(rewards.reputation)
-    } else {
-      addContribution(rewards.contribution)
-      const playerStore = usePlayerStore()
-      playerStore.addGold(rewards.gold)
-      contribution.value = Math.max(0, contribution.value - penalties.contribution)
-      reputation.value = Math.max(0, reputation.value - penalties.reputation)
-    }
+    const playerStore = usePlayerStore()
+    addContribution(conclusion.rewards.contribution)
+    playerStore.addGold(conclusion.rewards.gold)
+    addReputation(conclusion.rewards.reputation)
+    contribution.value = Math.max(0, contribution.value - conclusion.penalties.contribution)
+    reputation.value = Math.max(0, reputation.value - conclusion.penalties.reputation)
 
-    relations.value[war.defenderSectId] = attackerWon ? 'hostile' : 'neutral'
-    lastWarReport.value = {
-      warId: war.id,
-      title: attackerWon ? '宗门凯旋' : '宗门失利',
-      summary: attackerWon
-        ? '前线告捷，山门获得新的声望与资源。'
-        : '前线败退，宗门需要重新整饬人手与威望。',
-      time: Date.now(),
-      winner,
-      rewards,
-      penalties
-    }
-    const resolution: SectWarResolution = {
-      warId: war.id,
-      attackerSectId: war.attackerSectId,
-      defenderSectId: war.defenderSectId,
-      winner,
-      status: attackerWon ? 'victory' : 'defeat',
-      attackerScore: war.attackerScore,
-      defenderScore: war.defenderScore,
-      rewards,
-      penalties
-    }
+    relations.value[war.defenderSectId] = conclusion.nextDefenderRelation
+    lastWarReport.value = conclusion.report
     activeWar.value = null
-    sectHp.value = Math.max(
-      1,
-      sectHp.value - Math.max(
-        12,
-        Math.floor(
-          sectMaxHp.value * (
-            attackerWon
-              ? 0.12
-              : 0.22
-          )
-        )
-      )
-    )
-    return resolution
+    sectHp.value = conclusion.nextSectHp
+    return conclusion.resolution
   }
 
   // 处理随机事件

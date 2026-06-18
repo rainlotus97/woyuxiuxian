@@ -547,6 +547,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveFacilityUpgrade,
     resolveInitialFacilityLevels
   } = await load('/src/sect/runtime/sectFacilityResolver.ts')
+  const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
   const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
   const { SECT_FACILITIES } = await load('/src/types/sect.ts')
@@ -749,6 +750,46 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(upgradeBlocked.canUpgrade, false)
   assert.equal(upgradeBlocked.reason, 'gold_shortage')
+
+  const warFixture = {
+    id: 'war_fixture',
+    attackerSectId: 'qingyun_sect',
+    defenderSectId: 'medicine_valley',
+    startDate: { year: 1, month: 1, day: 1 },
+    status: 'ongoing',
+    attackerScore: 100,
+    defenderScore: 60,
+    winScore: 100
+  }
+  const warVictory = resolveSectWarConclusion({
+    war: warFixture,
+    attackerWon: true,
+    directive: 'warfare',
+    sectHp: 1000,
+    sectMaxHp: 1000,
+    now: 1000
+  })
+  assert.equal(warVictory.winner, 'attacker')
+  assert.equal(warVictory.rewards.contribution, 660)
+  assert.equal(warVictory.rewards.gold, 1227)
+  assert.equal(warVictory.rewards.reputation, 118)
+  assert.equal(warVictory.nextDefenderRelation, 'hostile')
+  assert.equal(warVictory.nextSectHp, 880)
+
+  const warDefeat = resolveSectWarConclusion({
+    war: { ...warFixture, attackerScore: 60, defenderScore: 100 },
+    attackerWon: false,
+    directive: 'balanced',
+    sectHp: 1000,
+    sectMaxHp: 1000,
+    now: 1000
+  })
+  assert.equal(warDefeat.winner, 'defender')
+  assert.equal(warDefeat.rewards.contribution, 200)
+  assert.equal(warDefeat.penalties.contribution, 200)
+  assert.equal(warDefeat.penalties.reputation, 100)
+  assert.equal(warDefeat.nextDefenderRelation, 'neutral')
+  assert.equal(warDefeat.nextSectHp, 780)
 })
 
 const results = await Promise.all(diagnostics)
