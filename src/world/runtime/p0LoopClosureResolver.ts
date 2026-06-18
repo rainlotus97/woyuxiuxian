@@ -88,7 +88,9 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
   const { evidence } = input
   const idleEvidence = hasJourneyTag(evidence, tags => hasAnyTag(tags, ['idle', 'cultivation', 'fortune', 'herb', 'skill', 'duty']))
   const adventureEvidence = hasJourneyTag(evidence, tags => hasAnyTag(tags, ['adventure', 'battle']))
-  const storyEvidence = evidence.storyCompletedCount > 0 || Boolean(evidence.storyCurrentNodeId)
+  const storyEvidence = evidence.storyCompletedCount > 0
+    || Boolean(evidence.storyCurrentNodeId)
+    || hasJourneyTag(evidence, tags => tags.includes('story'))
   const npcEvidence = evidence.npcStoryCount > 0 || hasJourneyTag(evidence, tags => tags.includes('npc'))
   const mapEvidence = evidence.areaAnomalyCount > 0
     || evidence.mapConqueredCount > 0
@@ -99,7 +101,7 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
   const items: P0LoopClosureItem[] = [
     createItem(input, 'idle', idleEvidence, '已有挂机/机缘/修炼类行程', '尚未看到主角行动结果'),
     createItem(input, 'adventure', adventureEvidence, '已有历险扫荡或战斗行程', '尚未看到历险或战斗结果'),
-    createItem(input, 'story', storyEvidence, '故事卷宗已有节点进度', '尚未看到故事节点进度'),
+    createItem(input, 'story', storyEvidence, '故事卷宗已有行程或节点进度', '尚未看到故事节点进度'),
     createItem(input, 'npc', npcEvidence, '已有人物纪闻或互动行程', evidence.unlockedNpcCount > 0 ? '人物已解锁但未产生日志' : '尚未解锁可观察人物'),
     createItem(input, 'map', mapEvidence, '已有地图处置/探索/异动记录', evidence.mapTotalAreaCount > 0 ? '地图可进入但缺少处置结果' : '尚未读取到地图区域'),
     createItem(input, 'sect', sectEvidence, '已有宗门归属或宗门行程', evidence.sectJoinableCount > 0 ? '可拜山但尚未建立宗门结果' : '尚未建立宗门归属')

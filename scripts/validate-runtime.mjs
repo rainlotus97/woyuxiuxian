@@ -1006,6 +1006,44 @@ test('idle journey resolver records immediate p0 feedback', async () => {
   assert.ok(stop.tags.includes('summary'))
 })
 
+test('story journey resolver records story entry feedback', async () => {
+  const { resolveStoryJourney } = await load('/src/story/runtime/storyJourneyResolver.ts')
+  const baseClock = { year: 1, month: 1, day: 1, shichenIndex: 4, totalTicks: 1, lastSimulatedAt: 0 }
+
+  const start = resolveStoryJourney({
+    action: 'start',
+    clock: baseClock,
+    perspective: 'male',
+    volume: 1,
+    currentNodeId: 'V1M01',
+    currentNodeName: '旧玉入梦',
+    currentNodeMap: '青阳城',
+    completedCount: 0
+  })
+
+  assert.equal(start.title, '命簿启卷')
+  assert.ok(start.text.includes('第 1 卷凌辰线'))
+  assert.ok(start.text.includes('旧玉入梦'))
+  assert.ok(start.tags.includes('story'))
+  assert.ok(start.tags.includes('story-start'))
+  assert.equal(start.rewards[0].type, 'flag')
+
+  const restart = resolveStoryJourney({
+    action: 'restart',
+    clock: baseClock,
+    perspective: 'female',
+    volume: 1,
+    currentNodeId: 'V1F01',
+    currentNodeName: '清梦惊鸿',
+    currentNodeMap: null,
+    completedCount: 2
+  })
+
+  assert.equal(restart.severity, 'major')
+  assert.ok(restart.tags.includes('story-restart'))
+  assert.ok(restart.rewards.some(reward => reward.label === '故事视角' && reward.value === '苏清鸢线'))
+})
+
 test('world narrative creates anomaly records with area context', async () => {
   const { createAreaAnomaly, resolveWorldDisasterTrigger } = await load('/src/world/runtime/worldNarrativeResolver.ts')
   const { HUMAN_REALM_AREAS } = await load('/src/types/map.ts')
@@ -2951,6 +2989,28 @@ test('p0 loop closure summarizes observable result evidence', async () => {
 
   assert.equal(idleOnlyClosure.byId.idle.state, 'closed')
   assert.equal(idleOnlyClosure.byId.adventure.state, 'actionable')
+
+  const storyOnlyClosure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [['story', 'story-start']],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+
+  assert.equal(storyOnlyClosure.byId.story.state, 'closed')
+  assert.equal(storyOnlyClosure.byId.story.evidence, '故事卷宗已有行程或节点进度')
+  assert.equal(storyOnlyClosure.closedCount, 1)
 
   const richClosure = resolveP0LoopClosure({
     readiness: readiness.byId,

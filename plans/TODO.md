@@ -94,6 +94,7 @@
   - 本轮补齐地图区域处置主角行程：新增 `mapAreaActionJourneyResolver`，巡查 / 安抚 / 镇压会写入主角行程，主界“挂机见闻”可看到玩家主动处理区域态势
   - 本轮新增地图区域探索点：`mapExplorationResolver + useMapExploration + MapExplorationPanel` 生成地标/资源/隐秘路径，可消耗体力探索、获得修为/灵石/资源线索，并回写区域状态与主角行程
   - 已补齐故事非战斗玩法基础闭环：故事触发 collect/upgrade/explore/dialog/puzzle/custom 不再直接 fallback 成功，而是进入统一运行时结算
+  - 本轮补齐故事入口行程反馈：新增 `storyJourneyResolver + useStoryJourneyFeedback`，开始/续读/重启/切换视角会写入主角行程与世界日志，并作为 P0 故事闭环证据
   - 关键页面不被 HUD/导航遮挡，移动端和桌面端均可操作（主入口、修炼、历险、故事、地图、宗门、设置、角色、背包、功法、坊市已完成首轮复核）
   - 本轮新增 `p0LoopClosureResolver`：从存档里的主角行程、故事进度、NPC 纪闻、地图历史/异动、宗门归属判断六项 P0 是否已有结果证据，并在主界任务台展示
   - 本轮新增 `p0LoopNextActionResolver`：统一排序阻塞、未闭环与需处理入口，主界显示当前 P0 推荐下一步并复用已有入口动作

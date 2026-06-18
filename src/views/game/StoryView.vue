@@ -108,11 +108,13 @@ import StoryPlayer from '@/components/story/StoryPlayer.vue'
 import StoryProgressPanel from '@/components/story/StoryProgressPanel.vue'
 import StoryRunSummary from '@/components/story/StoryRunSummary.vue'
 import StoryRuntimeReport from '@/components/story/StoryRuntimeReport.vue'
+import { useStoryJourneyFeedback } from '@/composables/useStoryJourneyFeedback'
 import { getStoryBattleReplaySummaries } from '@/story/runtime/storyBattleReplayArchive'
 import { resolveStoryRunReport } from '@/story/runtime/storyRunReportResolver'
 import type { Perspective } from '@/story/types'
 
 const storyStore = useStoryStore()
+const { recordStoryJourney } = useStoryJourneyFeedback()
 
 const isPlaying = ref(false)
 const selectedPerspective = ref<'male' | 'female'>(storyStore.currentPerspective === 'female' ? 'female' : 'male')
@@ -155,6 +157,7 @@ async function startStory() {
   try {
     await storyStore.initStory(selectedPerspective.value, 1)
     storyStore.checkAvailableSideQuests()
+    recordStoryJourney('start')
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start story:', error)
@@ -166,6 +169,7 @@ async function continueSavedStory() {
     await storyStore.continueStory()
     storyStore.checkAvailableSideQuests()
     battleReplayRecords.value = getStoryBattleReplaySummaries()
+    recordStoryJourney('continue')
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to continue story:', error)
@@ -182,6 +186,7 @@ async function startNewPerspective() {
     storyStore.resetStory()
     await storyStore.initStory(selectedPerspective.value, 1)
     storyStore.checkAvailableSideQuests()
+    recordStoryJourney('switchPerspective')
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start new perspective:', error)
@@ -194,6 +199,7 @@ async function restartStory() {
     storyStore.resetStory()
     await storyStore.initStory(perspective, 1)
     storyStore.checkAvailableSideQuests()
+    recordStoryJourney('restart')
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to restart story:', error)
