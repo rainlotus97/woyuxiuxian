@@ -42,6 +42,7 @@ import {
 } from '@/sect/runtime/sectFacilityResolver'
 import {
   resolveSectJoin,
+  resolveSectJoinCandidates,
   resolveSectLeave
 } from '@/sect/runtime/sectMembershipResolver'
 import { resolveSectEventChoice } from '@/sect/runtime/sectEventResolver'
@@ -77,6 +78,7 @@ import { useMapStore } from './mapStore'
 import { usePlayerStore } from './playerStore'
 import { ALCHEMY_RECIPES, getAlchemyRecipeById } from '@/types/alchemy'
 import { SEEDS, getSeedById, type PlantedCrop } from '@/types/garden'
+import { ALL_AREAS } from '@/types/map'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
 
@@ -237,6 +239,23 @@ export const useSectStore = defineStore('sect', () => {
       .filter((s): s is SectDefinition => s !== undefined)
   })
 
+  const joinCandidates = computed(() => {
+    const playerStore = usePlayerStore()
+    return resolveSectJoinCandidates({
+      sects: ALL_SECTS,
+      areas: ALL_AREAS,
+      unlockedSectIds: unlockedSects.value,
+      playerRealm: playerStore.realm,
+      playerRealmLevel: playerStore.realmLevel
+    })
+  })
+
+  const joinableSectIds = computed(() => {
+    return joinCandidates.value
+      .filter(candidate => candidate.canJoin)
+      .map(candidate => candidate.sect.id)
+  })
+
   // 每日任务
   const dailyTasks = computed<SectTask[]>(() => {
     return tasks.value.filter(t => t.type === 'daily')
@@ -307,6 +326,7 @@ export const useSectStore = defineStore('sect', () => {
       sect,
       sectId,
       unlockedSectIds: unlockedSects.value,
+      candidateSectIds: joinableSectIds.value,
       currentJoinedSectId: joinedSectId.value,
       facilityLevels: resolveInitialFacilityLevels(SECT_FACILITIES)
     })
@@ -319,6 +339,7 @@ export const useSectStore = defineStore('sect', () => {
     sectHp.value = resolution.nextState.sectHp
     sectMaxHp.value = resolution.nextState.sectMaxHp
     facilityLevels.value = resolution.nextState.facilityLevels
+    unlockSect(sectId)
 
     // 生成初始任务
     generateTasks('daily')
@@ -992,6 +1013,7 @@ export const useSectStore = defineStore('sect', () => {
     canPromote,
     sectHpPercent,
     unlockedSectList,
+    joinCandidates,
     dailyTasks,
     weeklyTasks,
     completedTasks,

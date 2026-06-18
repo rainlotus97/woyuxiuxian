@@ -7,17 +7,25 @@
       </div>
     </GameSurface>
 
-    <GameSurface v-if="sects.length > 0" tone="gold" padding="md" eyebrow="可加入势力" title="待选宗门" subtitle="不同宗门会决定任务、外交、设施与后续战事走向。">
+    <GameSurface v-if="candidates.length > 0" tone="gold" padding="md" eyebrow="可加入势力" title="待选宗门" subtitle="不同宗门会决定任务、外交、设施与后续战事走向。">
       <div class="sect-list">
-        <button v-for="sect in sects" :key="sect.id" class="sect-card" @click="$emit('join', sect.id)">
+        <button
+          v-for="candidate in candidates"
+          :key="candidate.sect.id"
+          class="sect-card"
+          :class="{ locked: !candidate.canJoin }"
+          :disabled="!candidate.canJoin"
+          @click="$emit('join', candidate.sect.id)"
+        >
           <div class="sect-leading">
-            <div class="sect-icon">{{ sect.icon }}</div>
+            <div class="sect-icon">{{ candidate.sect.icon }}</div>
             <div class="sect-copy">
-              <strong>{{ sect.name }}</strong>
-              <small>{{ sect.realm }} · {{ sect.specialty }}</small>
+              <strong>{{ candidate.sect.name }}</strong>
+              <small>{{ candidate.areaName }} · {{ candidate.sect.specialty }}</small>
             </div>
+            <span class="join-badge" :class="`reason-${candidate.reason}`">{{ candidate.reasonLabel }}</span>
           </div>
-          <p>{{ sect.description }}</p>
+          <p>{{ candidate.sect.description }}</p>
         </button>
       </div>
     </GameSurface>
@@ -26,10 +34,10 @@
 
 <script setup lang="ts">
 import GameSurface from '@/components/game-ui/GameSurface.vue'
-import type { SectDefinition } from '@/types/sect'
+import type { SectJoinCandidate } from '@/sect/runtime/sectMembershipResolver'
 
 defineProps<{
-  sects: SectDefinition[]
+  candidates: SectJoinCandidate[]
 }>()
 
 defineEmits<{
@@ -77,6 +85,12 @@ defineEmits<{
   border: 1px solid rgba(188, 141, 58, 0.18);
   background: rgba(255, 255, 255, 0.72);
   text-align: left;
+  cursor: pointer;
+}
+
+.sect-card.locked {
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .sect-leading {
@@ -98,6 +112,8 @@ defineEmits<{
 .sect-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .sect-copy strong {
@@ -108,5 +124,37 @@ defineEmits<{
 .sect-copy small {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
+}
+
+.join-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(188, 141, 58, 0.22);
+  background: rgba(255, 249, 233, 0.86);
+  color: #8b6226;
+  font-size: 11px;
+}
+
+.join-badge.reason-realm_locked,
+.join-badge.reason-area_locked {
+  border-color: rgba(120, 146, 149, 0.18);
+  background: rgba(245, 249, 248, 0.82);
+  color: rgba(73, 97, 95, 0.72);
+}
+
+@media (max-width: 720px) {
+  .sect-leading {
+    align-items: flex-start;
+  }
+
+  .join-badge {
+    max-width: 92px;
+    justify-content: center;
+    text-align: center;
+  }
 }
 </style>

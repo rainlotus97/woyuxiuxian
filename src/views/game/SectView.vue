@@ -2,7 +2,7 @@
   <div class="sect-view">
     <SectRecruitPanel
       v-if="!sectStore.joinedSectId"
-      :sects="sectStore.unlockedSectList"
+      :candidates="sectStore.joinCandidates"
       @join="handleJoinSect"
     />
 
@@ -362,7 +362,7 @@ const activeWarLabel = computed(() => {
 })
 
 function handleJoinSect(sectId: string) {
-  const sect = sectStore.unlockedSectList.find(item => item.id === sectId)
+  const sect = sectStore.joinCandidates.find(item => item.sect.id === sectId)?.sect
   if (sectStore.joinSect(sectId)) {
     success(`成功加入${sect?.name ?? '宗门'}！`)
   } else {

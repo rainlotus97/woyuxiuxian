@@ -563,9 +563,10 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
   const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
   const sectTitle = sectStore.currentSect ? sectStore.currentSect.name : '选择宗门'
+  const joinableSectCount = sectStore.joinCandidates.filter(candidate => candidate.canJoin).length
   const sectMeta = sectStore.currentSect
     ? `${sectStore.positionName} · 贡献 ${sectStore.contribution}`
-    : `${sectStore.unlockedSectList.length} 个可选势力`
+    : `${joinableSectCount} 个可选势力`
   const hotspotTitle = hotspotArea.value
     ? hotspotArea.value.name
     : mapStore.currentRealm
