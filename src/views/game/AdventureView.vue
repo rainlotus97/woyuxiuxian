@@ -406,7 +406,7 @@ function handleBuyStamina(option: { amount: number; cost: number }) {
 }
 
 function getAreaEncounterHint(area: AreaDefinition) {
-  return resolveAdventureAreaEncounter(area.id, mapStore.areaStates, worldStore.weather)
+  return resolveAdventureAreaEncounter(area.id, mapStore.areaStates, worldStore.weather, worldStore.activeAreaAnomalies)
 }
 
 onMounted(() => {

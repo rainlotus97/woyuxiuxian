@@ -159,7 +159,8 @@
 - [~] 增加世界灾害和区域状态变化
   - 已建立 `worldNarrativeResolver` 与 `areaAnomalies`，支持灾害/遗迹/灵脉/妖潮驱动区域稳定度与压力波动
   - 已让 `CultivationView / MapView` 展示区域异动摘要
-  - 待补：与地图具体区域卡、历练入口和宗门限制的更强联动
+  - 已让区域异动继续反馈到 `MapView / AdventureView / BattleView` 的区域态势、风险倍率、遭遇提示与掉落倾向
+  - 待补：与宗门限制、通行封锁、体力消耗和特殊事件模板的更强联动
 
 ## P2 宗门/地图系统
 
@@ -176,6 +177,7 @@
   - 已让风险/天气开始影响 BattleView 敌人数值、奖励结算与前端状态展示
   - 已建立 `mapEncounterComposition`，让风险开始影响精英/Boss 槽位、掉落品质倾向与争夺区额外收益
   - 已让 BattleView 与 AdventureView 共享同一套区域遭遇/掉落 resolver，避免地图入口和历练入口表现分裂
+  - 已让 `areaAnomalies` 抬高遭遇强度与掉落收益，并同步显示在地图区域卡、区域详情和历练入口提示中
   - 已建立 `areaOwnershipResolver`，让宗门战争结算可推动区域控制权变更，并回流地图历史与世界日志
   - 待补：风险对更多历练入口/Boss 专属模板/特殊事件遭遇的真实影响
 - [~] 为宗门增加外交、战争、俘虏、合并、沦陷状态
@@ -238,6 +240,10 @@
 - [x] 让地图区域风险进入遭遇构成与掉落结构
   - 已建立 `mapEncounterComposition`，统一处理风险驱动的精英/Boss 槽位提升与掉落质量偏移
   - 已让直接历练入口也能反查当前地图态势，不再只有地图跳转战斗才吃到风险修正
+- [x] 让世界异动进入遭遇反馈闭环
+  - 已让 `areaAnomalies` 参与 `mapAreaEncounterResolver`，统一影响区域状态文案、通行提示、敌人数值倍率和奖励倍率
+  - 已让地图区域卡、区域详情、历练入口和战斗顶部世界摘要显示同一份异动上下文
+  - 已让遗迹、灵脉、妖潮、匪患等异动进一步影响精英/Boss 槽位和掉落收益倾向
   - 已让实战结算和扫荡结算共用同一套风险掉落逻辑
 - [x] 让宗门战争结果推动区域易主
   - 已建立 `SectWarResolution -> areaOwnershipResolver -> mapStore/worldStore` 的单向协调链路

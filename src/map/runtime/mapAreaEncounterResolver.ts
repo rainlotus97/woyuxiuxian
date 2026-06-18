@@ -3,7 +3,7 @@ import { getAreaById as getAdventureAreaById } from '@/types/adventure'
 import type { MapArea } from '@/types/map'
 import { getAreaById as getMapAreaById } from '@/types/map'
 import { getSectById } from '@/types/sect'
-import type { WorldWeather } from '@/types/world'
+import type { WorldAreaAnomaly, WorldWeather } from '@/types/world'
 import type { AreaRiskLevel, AreaRuntimeState } from './mapRuntimeTypes'
 
 const MAP_AREA_ADVENTURE_AREA_MAP: Record<string, AreaDefinition['id']> = {
@@ -97,6 +97,13 @@ export interface MapAreaEncounterContext {
   contested: boolean
   statusText: string
   encounterNote: string
+  anomaly: WorldAreaAnomaly | null
+  anomalyTitle: string | null
+  anomalyType: WorldAreaAnomaly['type'] | null
+  anomalySeverity: WorldAreaAnomaly['severity'] | null
+  anomalyRiskHint: string | null
+  accessState: 'open' | 'risky' | 'blocked'
+  accessLabel: string
 }
 
 export function resolveMapAreaAdventureAreaId(mapAreaId: string) {
@@ -118,7 +125,8 @@ function resolveFallbackAreaState(mapArea: MapArea): AreaRuntimeState {
 export function resolveMapAreaEncounter(
   mapAreaId: string,
   areaState: AreaRuntimeState | null,
-  weather: WorldWeather
+  weather: WorldWeather,
+  anomaly: WorldAreaAnomaly | null = null
 ): MapAreaEncounterContext | null {
   const mapArea = getMapAreaById(mapAreaId)
   if (!mapArea) return null
@@ -133,9 +141,34 @@ export function resolveMapAreaEncounter(
   const controllerSect = state.controllingSectId ? getSectById(state.controllingSectId) : null
   const contestedBonus = state.contested ? 1.08 : 1
   const rewardBonus = state.contested ? 1.1 : 1
+  const anomalyEnemyBonus = anomaly ? (
+    anomaly.type === 'ruins' || anomaly.type === 'spiritual_vein'
+      ? 1.04
+      : anomaly.type === 'bandit'
+        ? 1.08
+        : 1.12
+  ) : 1
+  const anomalyRewardBonus = anomaly ? (
+    anomaly.type === 'ruins' || anomaly.type === 'spiritual_vein'
+      ? 1.18
+      : anomaly.type === 'bandit'
+        ? 1.1
+        : 1.06
+  ) : 1
 
-  const enemyStatMultiplier = Number((riskConfig.enemyMultiplier * weatherConfig.enemyMultiplier * contestedBonus).toFixed(3))
-  const rewardMultiplier = Number((riskConfig.rewardMultiplier * weatherConfig.rewardMultiplier * rewardBonus).toFixed(3))
+  const enemyStatMultiplier = Number((riskConfig.enemyMultiplier * weatherConfig.enemyMultiplier * contestedBonus * anomalyEnemyBonus).toFixed(3))
+  const rewardMultiplier = Number((riskConfig.rewardMultiplier * weatherConfig.rewardMultiplier * rewardBonus * anomalyRewardBonus).toFixed(3))
+  const anomalyNote = anomaly ? `异动：${anomaly.title}。${anomaly.riskHint}` : ''
+  const accessState: MapAreaEncounterContext['accessState'] =
+    anomaly?.type === 'flood' || anomaly?.type === 'fire'
+      ? 'risky'
+      : anomaly?.type === 'beast_tide'
+        ? 'risky'
+        : 'open'
+  const accessLabel =
+    accessState === 'risky'
+      ? '异动中'
+      : '开放'
 
   return {
     mapArea,
@@ -150,8 +183,15 @@ export function resolveMapAreaEncounter(
     enemyStatMultiplier,
     rewardMultiplier,
     contested: state.contested,
-    statusText: `${riskConfig.label}${state.contested ? ' · 争夺中' : ''}${controllerSect ? ` · ${controllerSect.name}` : ''}`,
-    encounterNote: `${riskConfig.note}${weatherConfig.note}`
+    statusText: `${riskConfig.label}${state.contested ? ' · 争夺中' : ''}${controllerSect ? ` · ${controllerSect.name}` : ''}${anomaly ? ' · 异动' : ''}`,
+    encounterNote: `${riskConfig.note}${weatherConfig.note}${anomalyNote}`,
+    anomaly,
+    anomalyTitle: anomaly?.title ?? null,
+    anomalyType: anomaly?.type ?? null,
+    anomalySeverity: anomaly?.severity ?? null,
+    anomalyRiskHint: anomaly?.riskHint ?? null,
+    accessState,
+    accessLabel
   }
 }
 
@@ -180,12 +220,14 @@ function compareEncounterPriority(
 export function resolveAdventureAreaEncounter(
   adventureAreaId: AreaDefinition['id'],
   areaStates: Record<string, AreaRuntimeState>,
-  weather: WorldWeather
+  weather: WorldWeather,
+  areaAnomalies: WorldAreaAnomaly[] = []
 ) {
   let activeEncounter: MapAreaEncounterContext | null = null
 
   for (const [mapAreaId, state] of Object.entries(areaStates)) {
-    const encounter = resolveMapAreaEncounter(mapAreaId, state, weather)
+    const anomaly = areaAnomalies.find(item => item.areaId === mapAreaId) ?? null
+    const encounter = resolveMapAreaEncounter(mapAreaId, state, weather, anomaly)
     if (!encounter || encounter.adventureAreaId !== adventureAreaId) continue
     if (!activeEncounter || compareEncounterPriority(activeEncounter, encounter) > 0) {
       activeEncounter = encounter

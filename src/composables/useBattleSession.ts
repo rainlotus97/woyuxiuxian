@@ -155,11 +155,12 @@ export function useBattleSession() {
   const activeMapEncounter = computed(() => {
     const mapAreaId = route.query.mapAreaId as string | undefined
     if (mapAreaId) {
-      return resolveMapAreaEncounter(mapAreaId, mapStore.getAreaState(mapAreaId), worldStore.weather)
+      const anomaly = worldStore.activeAreaAnomalies.find(item => item.areaId === mapAreaId) ?? null
+      return resolveMapAreaEncounter(mapAreaId, mapStore.getAreaState(mapAreaId), worldStore.weather, anomaly)
     }
     const areaId = route.query.areaId as string | undefined
     if (!areaId) return null
-    return resolveAdventureAreaEncounter(areaId, mapStore.areaStates, worldStore.weather)
+    return resolveAdventureAreaEncounter(areaId, mapStore.areaStates, worldStore.weather, worldStore.activeAreaAnomalies)
   })
   const areaStatusLabel = computed(() => activeMapEncounter.value?.statusText ?? weatherLabel.value)
   const encounterNote = computed(() => activeMapEncounter.value?.encounterNote ?? '天地静默，灵气在暗处流动。')

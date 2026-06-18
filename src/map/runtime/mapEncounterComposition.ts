@@ -66,10 +66,22 @@ const ENCOUNTER_RISK_COMPOSITION: Record<NonNullable<MapAreaEncounterContext['ri
 const QUALITY_ORDER: DropItem['quality'][] = ['common', 'fine', 'rare', 'epic', 'legendary']
 
 function resolveEncounterCompositionConfig(encounter: MapAreaEncounterContext | null) {
-  if (!encounter) {
-    return ENCOUNTER_RISK_COMPOSITION.watch
+  const base = !encounter
+    ? ENCOUNTER_RISK_COMPOSITION.watch
+    : ENCOUNTER_RISK_COMPOSITION[encounter.riskLevel]
+
+  if (!encounter?.anomaly) return base
+
+  const eliteBonus = encounter.anomaly.type === 'ruins' || encounter.anomaly.type === 'spiritual_vein' ? 0.08 : 0.04
+  const bossBonus = encounter.anomaly.type === 'ruins' ? 0.06 : encounter.anomaly.type === 'beast_tide' ? 0.04 : 0.02
+  const rewardDropMultiplier = encounter.anomaly.type === 'spiritual_vein' ? 1.16 : encounter.anomaly.type === 'bandit' ? 1.08 : 1.12
+
+  return {
+    ...base,
+    eliteChance: Math.min(0.82, base.eliteChance + eliteBonus),
+    bossChance: Math.min(0.32, base.bossChance + bossBonus),
+    rewardDropMultiplier: Number((base.rewardDropMultiplier * rewardDropMultiplier).toFixed(3))
   }
-  return ENCOUNTER_RISK_COMPOSITION[encounter.riskLevel]
 }
 
 function getEnemyCandidates(enemyIds: string[]) {

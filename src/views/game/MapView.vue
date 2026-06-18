@@ -119,6 +119,19 @@
           <span v-if="area.sects.length > 0" class="sect-count">宗门 {{ area.sects.length }}</span>
         </div>
 
+        <div v-if="getAreaEncounter(area.id)" class="area-risk-panel">
+          <span
+            class="risk-badge"
+            :style="{ color: getAreaEncounter(area.id)?.riskColor, borderColor: `${getAreaEncounter(area.id)?.riskColor}55` }"
+          >
+            {{ getAreaEncounter(area.id)?.statusText }}
+          </span>
+          <p>{{ getAreaEncounter(area.id)?.encounterNote }}</p>
+          <small v-if="getAreaEncounter(area.id)?.anomalyRiskHint">
+            {{ getAreaEncounter(area.id)?.anomalyRiskHint }}
+          </small>
+        </div>
+
         <div class="resource-tags">
           <span v-for="resource in area.resources.slice(0, 3)" :key="resource" class="resource-tag">{{ resource }}</span>
         </div>
@@ -149,9 +162,20 @@
             <div class="detail-section">
               <span class="detail-label">区域状态</span>
               <strong>{{ mapStore.isAreaConquered(selectedArea.id) ? '已征服' : isAreaUnlocked(selectedArea) ? '可挑战' : '未解锁' }}</strong>
+              <small v-if="getAreaEncounter(selectedArea.id)">{{ getAreaEncounter(selectedArea.id)?.statusText }}</small>
             </div>
           </GameSurface>
         </div>
+
+        <GameSurface v-if="getAreaEncounter(selectedArea.id)" tone="gold" padding="md" compact>
+          <div class="detail-section">
+            <span class="detail-label">当前态势</span>
+            <strong>{{ getAreaEncounter(selectedArea.id)?.encounterNote }}</strong>
+            <small v-if="getAreaEncounter(selectedArea.id)?.anomalyTitle">
+              {{ getAreaEncounter(selectedArea.id)?.anomalyTitle }} · {{ getAreaEncounter(selectedArea.id)?.anomalyRiskHint }}
+            </small>
+          </div>
+        </GameSurface>
 
         <GameSurface v-if="selectedArea.sects.length > 0" tone="gold" padding="md" compact>
           <div class="detail-section">
@@ -218,7 +242,7 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
-import { resolveMapAreaAdventureAreaId } from '@/map/runtime/mapAreaEncounterResolver'
+import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -278,6 +302,11 @@ function getSectName(sectId: string): string {
   if (sect) return sect.name
   if (sectId === 'sword_mountain') return '铸剑门'
   return '未知势力'
+}
+
+function getAreaEncounter(areaId: string) {
+  const anomaly = worldStore.activeAreaAnomalies.find(item => item.areaId === areaId) ?? null
+  return resolveMapAreaEncounter(areaId, mapStore.getAreaState(areaId), worldStore.weather, anomaly)
 }
 
 function handleRealmSelect(realm: string) {
@@ -540,8 +569,15 @@ function handleChallenge(area: MapArea) {
   margin-top: 12px;
 }
 
+.area-risk-panel {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
 .status,
-.sect-count {
+.sect-count,
+.risk-badge {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -557,6 +593,28 @@ function handleChallenge(area: MapArea) {
 
 .sect-count {
   color: #8b6226;
+}
+
+.risk-badge {
+  width: fit-content;
+  max-width: 100%;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid rgba(126, 184, 218, 0.28);
+}
+
+.area-risk-panel p {
+  margin: 0;
+  color: rgba(73, 97, 95, 0.78);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.area-risk-panel small,
+.detail-section small {
+  color: rgba(73, 97, 95, 0.66);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .resource-tags {
