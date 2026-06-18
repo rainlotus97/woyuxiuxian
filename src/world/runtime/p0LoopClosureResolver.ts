@@ -86,7 +86,7 @@ function createItem(
 
 export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSummary {
   const { evidence } = input
-  const idleEvidence = hasJourneyTag(evidence, tags => hasAnyTag(tags, ['cultivation', 'fortune', 'herb', 'skill', 'sect']))
+  const idleEvidence = hasJourneyTag(evidence, tags => hasAnyTag(tags, ['cultivation', 'fortune', 'herb', 'skill', 'duty']))
   const adventureEvidence = hasJourneyTag(evidence, tags => hasAnyTag(tags, ['adventure', 'battle']))
   const storyEvidence = evidence.storyCompletedCount > 0 || Boolean(evidence.storyCurrentNodeId)
   const npcEvidence = evidence.npcStoryCount > 0 || hasJourneyTag(evidence, tags => tags.includes('npc'))

@@ -94,9 +94,12 @@
         <div class="loop-hub-panel">
           <div class="loop-readiness-strip">
             <div>
-              <span>P0 状态</span>
-              <strong>{{ loopReadiness.headline }}</strong>
-              <small>{{ p0LoopClosure.headline }}</small>
+              <span>{{ p0Audit.progressText }}</span>
+              <strong>{{ p0Audit.title }}</strong>
+              <small>{{ p0Audit.subtitle }}</small>
+              <i class="p0-progress-meter" aria-hidden="true">
+                <b :style="{ width: `${p0Audit.progressPercent}%` }"></b>
+              </i>
             </div>
             <button
               type="button"
@@ -393,6 +396,7 @@ import {
   type P0LoopClosureItem
 } from '@/world/runtime/p0LoopClosureResolver'
 import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
+import { resolveP0LoopAudit } from '@/world/runtime/p0LoopAuditResolver'
 import {
   formatJourneyRewards,
   getAnomalyIcon,
@@ -747,6 +751,11 @@ const p0LoopClosure = computed(() => resolveP0LoopClosure({
 const p0NextAction = computed(() => resolveP0LoopNextAction({
   readinessItems: loopReadiness.value.items,
   closureItems: p0LoopClosure.value.items
+}))
+
+const p0Audit = computed(() => resolveP0LoopAudit({
+  closure: p0LoopClosure.value,
+  nextAction: p0NextAction.value
 }))
 
 const mainLoopTasks = computed<MainLoopTask[]>(() => {
@@ -1451,6 +1460,24 @@ function handlePlayerFortune() {
   color: rgba(73, 97, 95, 0.68);
   font-size: 10px;
   line-height: 1.45;
+}
+
+.p0-progress-meter {
+  width: min(260px, 100%);
+  height: 7px;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(103, 149, 144, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(103, 149, 144, 0.1);
+}
+
+.p0-progress-meter b {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7ed7bc, #ffd66f);
+  transition: width 0.2s ease;
 }
 
 .next-loop-action {

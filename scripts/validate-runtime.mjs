@@ -2960,6 +2960,7 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   const { resolveMainLoopReadiness } = await load('/src/world/runtime/mainLoopReadinessResolver.ts')
   const { resolveP0LoopClosure } = await load('/src/world/runtime/p0LoopClosureResolver.ts')
   const { resolveP0LoopNextAction } = await load('/src/world/runtime/p0LoopNextActionResolver.ts')
+  const { resolveP0LoopAudit } = await load('/src/world/runtime/p0LoopAuditResolver.ts')
 
   const baseInput = {
     player: {
@@ -3019,6 +3020,55 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(nextAction.primary.kind, 'verify')
   assert.equal(nextAction.primary.id, 'sect')
   assert.match(nextAction.headline, /还缺结果证据/)
+
+  const freshAudit = resolveP0LoopAudit({ closure, nextAction })
+  assert.equal(freshAudit.stage, 'bootstrapping')
+  assert.equal(freshAudit.progressText, 'P0 0/6')
+  assert.equal(freshAudit.progressPercent, 0)
+  assert.equal(freshAudit.checklist.length, 6)
+
+  const sectClosedReadiness = resolveMainLoopReadiness({
+    ...baseInput,
+    sect: {
+      ...baseInput.sect,
+      joined: true,
+      availableTaskCount: 2
+    }
+  })
+  const sectClosedClosure = resolveP0LoopClosure({
+    readiness: sectClosedReadiness.byId,
+    evidence: {
+      playerJourneyTags: [
+        ['sect', 'membership']
+      ],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: true,
+      sectJoinableCount: 1
+    }
+  })
+  const sectClosedNextAction = resolveP0LoopNextAction({
+    readinessItems: sectClosedReadiness.items,
+    closureItems: sectClosedClosure.items
+  })
+  assert.equal(sectClosedClosure.byId.sect.state, 'closed')
+  assert.equal(sectClosedNextAction.primary.id, 'story')
+  assert.notEqual(sectClosedNextAction.primary.id, 'sect')
+
+  const sectClosedAudit = resolveP0LoopAudit({
+    closure: sectClosedClosure,
+    nextAction: sectClosedNextAction
+  })
+  assert.equal(sectClosedAudit.stage, 'verifying')
+  assert.equal(sectClosedAudit.progressText, 'P0 1/6')
+  assert.equal(sectClosedAudit.progressPercent, 17)
 
   const blockedReadiness = resolveMainLoopReadiness({
     ...baseInput,
@@ -3095,6 +3145,14 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(richNextAction.allClosed, true)
   assert.equal(richNextAction.primary.kind, 'expand')
   assert.match(richNextAction.headline, /做深系统/)
+
+  const richAudit = resolveP0LoopAudit({
+    closure: richClosure,
+    nextAction: richNextAction
+  })
+  assert.equal(richAudit.stage, 'ready_for_p1')
+  assert.equal(richAudit.progressText, 'P0 6/6')
+  assert.equal(richAudit.progressPercent, 100)
 })
 
 test('player fortune resolver creates deterministic fortune rewards', async () => {
