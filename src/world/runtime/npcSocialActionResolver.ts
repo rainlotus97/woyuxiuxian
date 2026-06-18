@@ -1,5 +1,6 @@
 import type { WorldRuntimeNpcActionResult, WorldRuntimeNpcSocialContext } from './worldRuntimeTypes'
 import { getNpcPowerScore } from './npcProfile'
+import { resolveNpcSchemeAction } from './npcSchemeActionResolver'
 import { seededWorldRoll } from './worldSeed'
 
 function withInteractionStamp(
@@ -221,7 +222,8 @@ function resolveNpcExposure(context: WorldRuntimeNpcSocialContext) {
 }
 
 export function resolveNpcSocialAction(context: WorldRuntimeNpcSocialContext) {
-  return resolveNpcClash(context)
+  return resolveNpcSchemeAction(context)
+    || resolveNpcClash(context)
     || resolveNpcSupport(context)
     || resolveNpcExposure(context)
 }

@@ -551,6 +551,7 @@ export const useWorldStore = defineStore('world', () => {
       if (result.logs?.length) {
         for (const log of result.logs) {
           addWorldRuntimeLog(log)
+          propagateNpcSchemeLog(log)
           if (log.actorIds[0]) {
             appendNpcStory(log.actorIds[0], log.title, log.text, log.severity, log.mapId, log.tags)
           }
@@ -624,6 +625,45 @@ export const useWorldStore = defineStore('world', () => {
 
   function addWorldRuntimeLog(log: WorldRuntimeLogEffect) {
     addLog(log.scope, log.severity, log.title, log.text, log.actorIds, log.tags, log.mapId)
+  }
+
+  function propagateNpcSchemeLog(log: WorldRuntimeLogEffect) {
+    if (!log.tags.includes('scheme') || log.actorIds.length < 2) return
+    const [actorId, targetId] = log.actorIds
+    if (!actorId || !targetId) return
+
+    const actorDefinition = npcDefinitions.value.find(item => item.id === actorId)
+    const targetDefinition = npcDefinitions.value.find(item => item.id === targetId)
+    if (!actorDefinition || !targetDefinition) return
+
+    const witnessPairs = npcStates.value.map(state => ({
+      state,
+      definition: npcDefinitions.value.find(item => item.id === state.id)
+    })).filter(({ state, definition }) => {
+      if (state.id === actorId || state.id === targetId) return false
+      if (state.hpState === 'dead' || state.hpState === 'captured') return false
+      if (!definition) return false
+      return state.locationMapId === log.mapId
+        || Boolean(definition.sectId && definition.sectId === targetDefinition.sectId)
+        || Boolean(definition.sectId && definition.sectId === actorDefinition.sectId)
+    }).slice(0, 4)
+
+    for (const { state, definition } of witnessPairs) {
+      if (!definition) continue
+      const towardActor = getRelationshipState(state.id, actorId)
+      const towardTarget = getRelationshipState(state.id, targetId)
+      const sameSectAsTarget = definition.sectId === targetDefinition.sectId
+      const sameSectAsActor = definition.sectId === actorDefinition.sectId
+      applyRelationshipDeltaToState(towardActor, {
+        hatredDelta: sameSectAsTarget ? 4 : 2,
+        fearDelta: log.tags.includes('captured') ? 3 : 1
+      })
+      applyRelationshipDeltaToState(towardTarget, {
+        favorDelta: sameSectAsTarget ? 2 : 1,
+        debtDelta: sameSectAsTarget ? 1 : 0,
+        fearDelta: sameSectAsActor ? 2 : 0
+      })
+    }
   }
 
   function addLog(

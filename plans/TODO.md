@@ -149,7 +149,9 @@
   - 已建立 `npcRelationshipNetwork.ts`，为 NPC 与 NPC 生成基础关系边并兼容旧存档回填
   - 已让 NPC 与 NPC 在 world tick 中触发冲突、提携、出卖等社交事件
   - 已让资质/命数权重进入关系压力、重要人物排序与战争 aftermath 选人逻辑
-  - 待补：更复杂的行动分发、真实埋伏/俘虏/宗门牵连、跨区域传播链
+  - 已新增 `npcSchemeActionResolver`，支持 NPC 对 NPC 的设伏、反制、负伤与俘获
+  - 已让设伏/俘获消息向同地图、同宗门相关 NPC 传播，推动第三方关系波动
+  - 待补：更复杂的行动分发、宗门层级追责/营救、跨区域长期追踪链
 - [~] 实现 NPC 自主行动结果写回世界日志
   - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
   - 已让 NPC 社交事件统一写入世界日志，并带 actorIds / mapId / tags
