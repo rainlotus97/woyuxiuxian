@@ -602,8 +602,6 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 添加物品到背包
   function addToInventory(item: InventoryItem): boolean {
-    if (isInventoryFull.value) return false
-
     // 如果是可堆叠物品，检查是否已存在
     if (item.type !== 'equipment') {
       const existing = inventory.value.find(i => {
@@ -623,6 +621,8 @@ export const usePlayerStore = defineStore('player', () => {
         return true
       }
     }
+
+    if (isInventoryFull.value) return false
 
     inventory.value.push(item)
     // 更新宗门采集任务进度
