@@ -55,6 +55,28 @@
           </div>
         </div>
 
+        <div class="action-feedback-panel">
+          <div class="feedback-head">
+            <span>最近反馈</span>
+            <strong>{{ latestActionFeedbackTitle }}</strong>
+          </div>
+          <div v-if="latestActionFeedbackItems.length" class="feedback-list">
+            <article
+              v-for="item in latestActionFeedbackItems"
+              :key="item.id"
+              class="feedback-item"
+              :class="`tone-${item.tone}`"
+            >
+              <span>{{ item.label }}</span>
+              <strong>{{ item.title }}</strong>
+              <p>{{ item.text }}</p>
+            </article>
+          </div>
+          <div v-else class="feedback-empty">
+            <span>点击“推演一时辰”或“处理机缘”后，结果会直接写入主角行程和世界日志。</span>
+          </div>
+        </div>
+
         <div class="world-pulse-card">
           <div class="pulse-head">
             <span>{{ worldStore.currentTimeLabel }}</span>
@@ -101,35 +123,6 @@
             </button>
           </div>
         </div>
-      </div>
-    </GameSurface>
-
-    <WorldAdvancePanel
-      :time-label="worldStore.currentTimeLabel"
-      :summary="lastAdvanceSummary"
-      :can-advance="canAdvanceWorld"
-      @advance="handleAdvanceWorld"
-    />
-
-    <GameSurface
-      tone="realm"
-      padding="md"
-      eyebrow="机缘"
-      title="处理一桩小机缘"
-      subtitle="消耗少量体力，立即结算一次与当前天气、挂机安排、区域态势相关的主角奇遇。"
-    >
-      <div class="fortune-panel">
-        <div class="fortune-copy">
-          <span>{{ fortuneHint }}</span>
-          <strong v-if="lastFortuneFeedback">{{ lastFortuneFeedback.result.title }}</strong>
-          <strong v-else>尚未处理机缘</strong>
-          <p v-if="lastFortuneFeedback">{{ lastFortuneFeedback.result.text }}</p>
-          <p v-else>机缘会写入主角行程，并回流修为、灵石、材料或异闻线索。</p>
-          <small v-if="lastFortuneFeedback">{{ lastFortuneFeedback.rewardText }}</small>
-        </div>
-        <GameActionButton icon="缘" tone="gold" :disabled="playerStore.captivity.isCaptured" @click="handlePlayerFortune">
-          处理机缘
-        </GameActionButton>
       </div>
     </GameSurface>
 
@@ -362,7 +355,6 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
-import WorldAdvancePanel from '@/components/world/WorldAdvancePanel.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
@@ -426,6 +418,14 @@ interface MainLoopTask {
   action?: 'toggleIdle'
 }
 
+interface ActionFeedbackItem {
+  id: string
+  label: string
+  title: string
+  text: string
+  tone: 'jade' | 'gold' | 'rose' | 'mist'
+}
+
 const idleModes: Array<{ id: IdleMode; icon: string; label: string; description: string }> = [
   { id: 'cultivate', icon: '🧘', label: '闭关修炼', description: '稳定累积修为，适合准备突破。' },
   { id: 'adventure', icon: '🗺️', label: '外出游历', description: '世界更活跃，也更容易触发奇遇。' },
@@ -435,18 +435,6 @@ const idleModes: Array<{ id: IdleMode; icon: string; label: string; description:
 ]
 
 const idleModeLabel = computed(() => worldStore.getIdleModeLabel(worldStore.idleMode))
-
-const weatherLabel = computed(() => {
-  const labels = {
-    clear: '天朗气清',
-    rain: '灵雨细落',
-    storm: '雷暴压境',
-    flood: '洪水漫野',
-    fire: '火势蔓延',
-    mist: '雾锁山河'
-  }
-  return labels[worldStore.weather]
-})
 
 const heroSubtitle = computed(() => {
   if (playerStore.captivity.isCaptured) {
@@ -466,12 +454,6 @@ const heroSummary = computed(() => {
     return `当前正在${idleModeLabel.value}，挂机期间每秒获得 ${playerStore.cultivationPerSecond} 修为，并持续触发世界演化。`
   }
   return `当前可手动打坐冲境，也可调整挂机模式，让主角以不同方式参与这个不断变化的世界。`
-})
-
-const fortuneHint = computed(() => {
-  if (playerStore.captivity.isCaptured) return '被俘期间无法处理常规机缘'
-  if (playerStore.stamina < 8) return '体力偏低，处理机缘可能受限'
-  return `${worldStore.getIdleModeLabel(worldStore.idleMode)} · ${weatherLabel.value}`
 })
 
 const staminaRecoverLabel = computed(() => {
@@ -594,6 +576,42 @@ const p0FocusItems = computed(() => [
     tone: sectStore.currentSect ? 'gold' : 'mist'
   }
 ])
+
+const latestActionFeedbackItems = computed<ActionFeedbackItem[]>(() => {
+  const items: ActionFeedbackItem[] = []
+
+  if (lastFortuneFeedback.value) {
+    items.push({
+      id: `fortune_${lastFortuneFeedback.value.result.type}_${worldStore.clock.totalTicks}`,
+      label: '机缘',
+      title: lastFortuneFeedback.value.result.title,
+      text: lastFortuneFeedback.value.rewardText,
+      tone: 'gold'
+    })
+  }
+
+  if (lastAdvanceSummary.value) {
+    items.push(...lastAdvanceSummary.value.items.slice(0, 2).map(item => ({
+      id: `advance_${item.id}`,
+      label: item.label,
+      title: item.title,
+      text: item.text,
+      tone: item.tone
+    })))
+  }
+
+  return items.slice(0, 3)
+})
+
+const latestActionFeedbackTitle = computed(() => {
+  if (lastFortuneFeedback.value) return '机缘已结算'
+  if (lastAdvanceSummary.value) {
+    return lastAdvanceSummary.value.totalEvents > 0
+      ? `${lastAdvanceSummary.value.totalEvents} 条世界结果`
+      : '世界平稳流转'
+  }
+  return '等待行动'
+})
 
 const hotspotArea = computed(() => {
   const ranked = Object.values(mapStore.areaStates)
@@ -971,6 +989,7 @@ function handlePlayerFortune() {
 
 .hero-main-card,
 .hero-copy,
+.action-feedback-panel,
 .world-pulse-card,
 .quick-command-panel,
 .loop-hub-panel,
@@ -1079,6 +1098,17 @@ function handlePlayerFortune() {
     radial-gradient(circle at top right, rgba(141, 223, 197, 0.16), transparent 62%);
 }
 
+.action-feedback-panel {
+  min-height: 120px;
+  align-content: start;
+  padding: 10px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.7), rgba(241, 249, 244, 0.5)),
+    radial-gradient(circle at 12% 0%, rgba(255, 224, 150, 0.18), transparent 58%);
+}
+
 .loop-hub-panel {
   grid-column: 1 / -1;
   gap: 10px;
@@ -1097,14 +1127,83 @@ function handlePlayerFortune() {
   gap: 10px;
 }
 
-.quick-command-head span {
+.quick-command-head span,
+.feedback-head span {
   color: rgba(73, 97, 95, 0.68);
   font-size: 11px;
 }
 
-.quick-command-head strong {
+.quick-command-head strong,
+.feedback-head strong {
   color: #315257;
   font-size: 15px;
+}
+
+.feedback-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.feedback-list {
+  display: grid;
+  gap: 8px;
+}
+
+.feedback-item,
+.feedback-empty {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.feedback-item {
+  display: grid;
+  gap: 4px;
+}
+
+.feedback-item span,
+.feedback-empty span {
+  color: rgba(73, 97, 95, 0.66);
+  font-size: 10px;
+}
+
+.feedback-item strong {
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedback-item p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgba(53, 81, 83, 0.74);
+  font-size: 10px;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.feedback-item.tone-gold {
+  border-color: rgba(194, 146, 66, 0.22);
+  background: rgba(255, 250, 236, 0.78);
+}
+
+.feedback-item.tone-rose {
+  border-color: rgba(198, 121, 137, 0.2);
+  background: rgba(255, 244, 247, 0.78);
+}
+
+.feedback-item.tone-mist {
+  border-color: rgba(119, 158, 178, 0.18);
+  background: rgba(247, 253, 255, 0.78);
 }
 
 .quick-command-grid {
@@ -1230,37 +1329,6 @@ function handlePlayerFortune() {
   border-radius: 18px;
   border: 1px solid rgba(188, 141, 58, 0.24);
   background: rgba(255, 250, 236, 0.82);
-}
-
-.fortune-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-}
-
-.fortune-copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.fortune-copy span,
-.fortune-copy small {
-  color: rgba(73, 97, 95, 0.68);
-  font-size: 11px;
-}
-
-.fortune-copy strong {
-  color: #8b6226;
-  font-size: 15px;
-}
-
-.fortune-copy p {
-  margin: 0;
-  color: rgba(53, 81, 83, 0.78);
-  font-size: 12px;
-  line-height: 1.65;
 }
 
 .offline-copy {
@@ -1847,10 +1915,6 @@ function handlePlayerFortune() {
   .offline-banner {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .fortune-panel {
-    grid-template-columns: 1fr;
   }
 
   .hero-actions,
