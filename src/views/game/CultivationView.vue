@@ -677,6 +677,7 @@ const {
   p0Audit,
   p0Acceptance
 } = useP0LoopStatus({
+  worldBriefingCount: computed(() => worldBriefings.value.length),
   hasRecentJourney: computed(() => recentJourneys.value.length > 0)
 })
 
