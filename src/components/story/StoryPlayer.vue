@@ -1,84 +1,45 @@
 <template>
   <div class="story-player">
-    <!-- 加载状态 -->
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-spinner"></div>
-      <p class="loading-text">加载中...</p>
+      <p class="loading-text">卷宗载入中...</p>
     </div>
 
-    <!-- 故事内容 -->
     <template v-else-if="currentNode">
-      <!-- 场景标题 -->
-      <div class="scene-header">
-        <span class="map-name">{{ currentNode.map }}</span>
-        <span class="node-name">{{ currentNode.name }}</span>
-      </div>
+      <StorySceneHeader :map-name="currentNode.map" :node-name="currentNode.name" @back="$emit('back')" />
 
-      <!-- 正文内容 -->
-      <div class="story-content">
-        <!-- 正文（统一处理，避免 v-if/v-else 导致组件切换时状态丢失） -->
-        <TypewriterText
-          :text="displayText"
-          :speed="30"
-          @complete="onTextComplete"
+      <div class="story-stage">
+        <StoryTextPanel>
+          <TypewriterText :text="displayText" :speed="30" @complete="onTextComplete" />
+        </StoryTextPanel>
+
+        <StoryDialogList
+          v-if="showDialogs"
+          :dialogs="currentNode.content.npcDialogs"
+          :active-index="currentDialogIndex"
+          @select="showNextDialog"
         />
 
-        <!-- NPC对话 -->
-        <div v-if="showDialogs" class="npc-dialogs">
-          <div
-            v-for="(dialog, index) in currentNode.content.npcDialogs"
-            :key="index"
-            class="npc-dialog"
-            :class="{ active: currentDialogIndex === index }"
-            @click="showNextDialog(index)"
-          >
-            <span class="speaker">{{ dialog.speaker }}：</span>
-            <span class="content">{{ dialog.content }}</span>
-          </div>
-        </div>
+        <section v-if="currentNode.content.innerMonologue && textComplete" class="inner-monologue">
+          <span>心念</span>
+          <TypewriterText :text="currentNode.content.innerMonologue" :speed="50" />
+        </section>
 
-        <!-- 选项 -->
-        <div v-if="showChoices" class="choices">
-          <button
-            v-for="(choice, index) in currentNode.content.choices"
-            :key="index"
-            class="choice-button"
-            @click="selectChoice(index)"
-          >
-            {{ choice.text }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 内心独白 -->
-      <div v-if="currentNode.content.innerMonologue && textComplete" class="inner-monologue">
-        <TypewriterText :text="currentNode.content.innerMonologue" :speed="50" />
+        <StoryChoiceList
+          v-if="showChoices"
+          :choices="currentNode.content.choices"
+          @choose="selectChoice"
+        />
       </div>
     </template>
 
-    <!-- 无内容 -->
     <div v-else class="empty-state">
+      <div class="empty-mark">卷</div>
       <p>暂无故事内容</p>
     </div>
 
-    <!-- 通知显示 -->
-    <div v-if="notifications.length > 0" class="notifications">
-      <div
-        v-for="(notification, index) in notifications"
-        :key="index"
-        class="notification"
-        :class="notification.type"
-      >
-        {{ notification.message }}
-      </div>
-    </div>
+    <StoryNotificationStack v-if="notifications.length > 0" :notifications="notifications" />
 
-    <!-- 返回按钮 -->
-    <button class="back-button" @click="$emit('back')">
-      ← 返回
-    </button>
-
-    <!-- 结局展示 -->
     <EndingDisplay
       v-if="showEnding && currentTermination"
       :termination="currentTermination"
@@ -88,7 +49,6 @@
       @returnToMenu="handleReturnToMenu"
     />
 
-    <!-- 卷结束展示 -->
     <VolumeEndDisplay
       v-if="showVolumeEnd && currentTermination"
       :volumeNumber="currentTermination.volumeNumber || 1"
@@ -97,25 +57,23 @@
       @returnToMenu="handleReturnToMenu"
     />
 
-    <!-- 支线任务面板 -->
     <SideQuestPanel
       :visible="showSideQuestPanel && !showEnding && !showVolumeEnd && !showGameplay"
       @trigger="onSideQuestTrigger"
       @close="showSideQuestPanel = false"
     />
 
-    <!-- 玩法内嵌组件 -->
-    <GameplayEmbed
-      v-if="showGameplay && currentGameplayTrigger"
-      :gameplay-type="currentGameplayTrigger.type"
-      :target-id="currentGameplayTrigger.targetId"
-      :params="currentGameplayTrigger.params"
-      :can-skip="currentGameplayTrigger.onFailure === 'skip'"
-      @complete="onGameplayComplete"
-      @skip="onGameplaySkip"
-    />
+    <div v-if="showGameplay && currentGameplayTrigger" class="gameplay-layer">
+      <GameplayEmbed
+        :gameplay-type="currentGameplayTrigger.type"
+        :target-id="currentGameplayTrigger.targetId"
+        :params="currentGameplayTrigger.params"
+        :can-skip="currentGameplayTrigger.onFailure === 'skip'"
+        @complete="onGameplayComplete"
+        @skip="onGameplaySkip"
+      />
+    </div>
 
-    <!-- 效果反馈组件 -->
     <EffectFeedback />
   </div>
 </template>
@@ -130,6 +88,11 @@ import VolumeEndDisplay from './VolumeEndDisplay.vue'
 import SideQuestPanel from './SideQuestPanel.vue'
 import EffectFeedback from './EffectFeedback.vue'
 import GameplayEmbed from './GameplayEmbed.vue'
+import StoryChoiceList from './StoryChoiceList.vue'
+import StoryDialogList from './StoryDialogList.vue'
+import StoryNotificationStack from './StoryNotificationStack.vue'
+import StorySceneHeader from './StorySceneHeader.vue'
+import StoryTextPanel from './StoryTextPanel.vue'
 import { gameplayBridge } from '@/story/gameplayBridge'
 import { registerDefaultGameplayHandlers } from '@/story/runtime/registerDefaultGameplayHandlers'
 import { consumeResolvedRouteGameplaySession } from '@/story/runtime/routeGameplaySession'
@@ -143,29 +106,23 @@ const store = useStoryStore()
 const router = useRouter()
 let unregisterGameplayHandlers: (() => void) | null = null
 
-// 状态
 const isLoading = computed(() => store.isLoading)
 const currentNode = computed(() => store.currentNode)
 const notifications = computed(() => store.notifications)
 
-// 内部状态
 const textComplete = ref(false)
 const currentDialogIndex = ref(0)
 const dialogsViewed = ref(false)
 
-// 结局/卷结束状态
 const showEnding = ref(false)
 const showVolumeEnd = ref(false)
 const currentTermination = ref<StoryTermination | null>(null)
 
-// 玩法内嵌状态
 const showGameplay = ref(false)
 const currentGameplayTrigger = ref<GameplayTrigger | null>(null)
 
-// 支线面板状态
 const showSideQuestPanel = ref(true)
 
-// 计算属性
 const perspectiveText = computed(() => {
   if (!currentNode.value) return null
   if (store.currentPerspective === 'male' && currentNode.value.content.maleText) {
@@ -176,7 +133,6 @@ const perspectiveText = computed(() => {
   return null
 })
 
-// 显示的文本（优先使用视角专属文本，否则使用通用文本��
 const displayText = computed(() => {
   return perspectiveText.value || currentNode.value?.content.text || ''
 })
@@ -186,11 +142,16 @@ const showDialogs = computed(() => {
 })
 
 const showChoices = computed(() => {
-  // 需要文本完成，且（没有对话或对话已查看完），且有选项
   const hasChoices = (currentNode.value?.content.choices.length ?? 0) > 0
   const noDialogs = (currentNode.value?.content.npcDialogs.length ?? 0) === 0
   return textComplete.value && (noDialogs || dialogsViewed.value) && hasChoices
 })
+
+function resetReadingState() {
+  textComplete.value = false
+  currentDialogIndex.value = 0
+  dialogsViewed.value = false
+}
 
 function tryLaunchPendingGameplay() {
   if (showGameplay.value) return
@@ -201,16 +162,11 @@ function tryLaunchPendingGameplay() {
   }
 }
 
-// 方法
 function onTextComplete() {
-  console.log('[StoryPlayer] onTextComplete called')
   textComplete.value = true
-  console.log('[StoryPlayer] textComplete is now:', textComplete.value)
 
-  // 检查是否有玩法触发
   const gameplayTrigger = currentNode.value?.content.gameplayTrigger
   if (gameplayTrigger && !showGameplay.value) {
-    console.log('[StoryPlayer] Found gameplay trigger:', gameplayTrigger)
     triggerGameplay(gameplayTrigger)
     return
   }
@@ -231,10 +187,8 @@ async function selectChoice(index: number) {
   const choice = currentNode.value?.content.choices[index]
   if (!choice) return
 
-  // 如果是结束标记
   if (choice.isEndMarker || choice.targetId === null) {
     await store.makeChoice(index)
-    // 检查结束状态
     const termination = store.checkEndNode()
     if (termination) {
       currentTermination.value = termination
@@ -248,22 +202,16 @@ async function selectChoice(index: number) {
   }
 
   await store.makeChoice(index)
-  // 重置状态
-  textComplete.value = false
-  currentDialogIndex.value = 0
-  dialogsViewed.value = false
+  resetReadingState()
 }
 
-// 结局相关方法
 async function handleContinueNextVolume() {
   const success = await store.transitionToNextVolume()
   if (success) {
     showEnding.value = false
     showVolumeEnd.value = false
     currentTermination.value = null
-    textComplete.value = false
-    currentDialogIndex.value = 0
-    dialogsViewed.value = false
+    resetReadingState()
   }
 }
 
@@ -272,9 +220,7 @@ function handleRestart() {
   showEnding.value = false
   showVolumeEnd.value = false
   currentTermination.value = null
-  textComplete.value = false
-  currentDialogIndex.value = 0
-  dialogsViewed.value = false
+  resetReadingState()
 }
 
 function handleReturnToMenu() {
@@ -286,19 +232,15 @@ function handleReturnToMenu() {
 }
 
 function handleViewEndingGallery() {
-  // TODO: 显示结局收集画廊
-  console.log('View ending gallery')
 }
 
-// 玩法相关方法
 async function triggerGameplay(trigger: GameplayTrigger) {
   currentGameplayTrigger.value = trigger
   showGameplay.value = true
 
   const success = await gameplayBridge.trigger(trigger, currentNode.value?.id || '')
   if (!success) {
-    // 没有注册处理器，显示通用玩法界面
-    console.log('[StoryPlayer] No gameplay handler registered, showing generic UI')
+    return
   }
 }
 
@@ -306,7 +248,6 @@ async function onGameplayComplete(result: GameplayResult) {
   const { continueNodeId, shouldRetry } = await gameplayBridge.onComplete(result)
 
   if (shouldRetry) {
-    // 重试
     return
   }
 
@@ -318,10 +259,7 @@ async function onGameplayComplete(result: GameplayResult) {
     await store.goToNode(continueNodeId)
   }
 
-  // 重置状态
-  textComplete.value = false
-  currentDialogIndex.value = 0
-  dialogsViewed.value = false
+  resetReadingState()
 }
 
 async function resumeRouteGameplayResult() {
@@ -343,9 +281,7 @@ async function resumeRouteGameplayResult() {
   }
 
   if (shouldSkip) {
-    textComplete.value = false
-    currentDialogIndex.value = 0
-    dialogsViewed.value = false
+    resetReadingState()
     return
   }
 
@@ -353,9 +289,7 @@ async function resumeRouteGameplayResult() {
     await store.goToNode(continueNodeId)
   }
 
-  textComplete.value = false
-  currentDialogIndex.value = 0
-  dialogsViewed.value = false
+  resetReadingState()
 }
 
 function onGameplaySkip() {
@@ -365,15 +299,10 @@ function onGameplaySkip() {
   currentGameplayTrigger.value = null
 }
 
-// 支线任务触发
 async function onSideQuestTrigger(questId: string) {
-  const success = await store.executeSideQuest(questId)
-  if (success) {
-    console.log('[StoryPlayer] Side quest triggered:', questId)
-  }
+  await store.executeSideQuest(questId)
 }
 
-// 生命周期
 onMounted(async () => {
   unregisterGameplayHandlers = registerDefaultGameplayHandlers(router)
   if (!store.currentNode) {
@@ -387,14 +316,8 @@ onBeforeUnmount(() => {
   unregisterGameplayHandlers = null
 })
 
-// 监听节点变化
-watch(currentNode, (newNode, oldNode) => {
-  console.log('[StoryPlayer] Node changed from', oldNode?.id, 'to', newNode?.id)
-  console.log('[StoryPlayer] New node content:', newNode?.content?.text?.substring(0, 100))
-  console.log('[StoryPlayer] New node choices:', newNode?.content?.choices)
-  textComplete.value = false
-  currentDialogIndex.value = 0
-  dialogsViewed.value = false
+watch(currentNode, () => {
+  resetReadingState()
 })
 
 watch(currentNode, () => {
@@ -402,7 +325,6 @@ watch(currentNode, () => {
   tryLaunchPendingGameplay()
 })
 
-// 暴露给外部使用的API
 defineExpose({
   triggerGameplay
 })
@@ -413,20 +335,32 @@ defineExpose({
   position: relative;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1a1a2a 0%, #2d2d44 50%, #1a1a2a 100%);
-  color: #e8e8e8;
+  background:
+    linear-gradient(180deg, rgba(248, 253, 246, 0.98), rgba(230, 243, 238, 0.96)),
+    radial-gradient(circle at 12% 0%, rgba(203, 153, 68, 0.16), transparent 42%);
+  color: #2f4d47;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: 60px;
+  padding-bottom: 86px;
+}
+
+.story-player > :not(.loading-overlay, .story-notification-stack, .gameplay-layer) {
+  width: min(980px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.story-stage {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(250, 253, 247, 0.96), rgba(232, 243, 239, 0.95));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -437,8 +371,8 @@ defineExpose({
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffd700;
+  border: 3px solid rgba(124, 150, 137, 0.24);
+  border-top-color: #9a6827;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -451,158 +385,70 @@ defineExpose({
 .loading-text {
   margin-top: 16px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.scene-header {
-  margin-bottom: 20px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-}
-
-.map-name {
-  display: block;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 4px;
-}
-
-.node-name {
-  font-size: 18px;
-  font-weight: bold;
-  color: #ffd700;
-}
-
-.story-content {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  min-height: 200px;
-}
-
-.npc-dialogs {
-  margin-top: 20px;
-}
-
-.npc-dialog {
-  padding: 12px;
-  margin-bottom: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.npc-dialog:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.npc-dialog.active {
-  background: rgba(255, 215, 0, 0.1);
-  border-left: 3px solid #ffd700;
-}
-
-.speaker {
-  font-weight: bold;
-  color: #87ceeb;
-}
-
-.content {
-  color: #e8e8e8;
-}
-
-.choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.choice-button {
-  width: 100%;
-  text-align: left;
-  padding: 15px 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: #e8e8e8;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.choice-button:hover {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: #ffd700;
+  color: rgba(49, 76, 70, 0.68);
 }
 
 .inner-monologue {
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(138, 43, 226, 0.1);
-  border-left: 3px solid #8a2be2;
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(125, 151, 139, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(241, 249, 244, 0.9), rgba(255, 252, 236, 0.82));
+  color: rgba(47, 72, 67, 0.76);
   font-style: italic;
-  color: rgba(255, 255, 255, 0.7);
+}
+
+.inner-monologue span {
+  color: #8a5d22;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .empty-state {
+  min-height: 70%;
+  display: grid;
+  gap: 12px;
+  place-items: center;
+  align-content: center;
+  color: rgba(58, 82, 77, 0.62);
+}
+
+.empty-mark {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 1px solid rgba(147, 101, 38, 0.2);
+  background: rgba(255, 255, 255, 0.68);
+  color: rgba(130, 82, 23, 0.82);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.gameplay-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: rgba(255, 255, 255, 0.5);
+  padding: 18px;
+  background: rgba(29, 45, 42, 0.42);
+  backdrop-filter: blur(12px);
 }
 
-.notifications {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 200;
+.gameplay-layer :deep(.gameplay-embed) {
+  width: min(560px, 100%);
 }
 
-.notification {
-  padding: 12px 20px;
-  border-radius: 8px;
-  animation: slide-in 0.3s ease-out;
-}
-
-.notification.success { background: rgba(34, 197, 94, 0.9); }
-.notification.warning { background: rgba(255, 193, 7, 0.9); }
-.notification.info { background: rgba(59, 130, 246, 0.9); }
-.notification.error { background: rgba(239, 68, 68, 0.9); }
-
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
+@media (max-width: 560px) {
+  .story-player {
+    padding: 12px;
+    padding-bottom: 86px;
   }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.back-button {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 </style>
