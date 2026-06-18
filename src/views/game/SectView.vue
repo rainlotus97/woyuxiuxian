@@ -80,6 +80,12 @@
         @change-directive="handleDirectiveChange"
       />
 
+      <SectRecoveryPanel
+        v-if="sectStore.recoveryState.active"
+        :state="sectStore.recoveryState"
+        @act="handleRecoveryAction"
+      />
+
       <SectTasksPanel
         v-if="activeTab === 'tasks'"
         :daily-tasks="sectStore.dailyTasks"
@@ -157,6 +163,7 @@ import SectDirectivePanel from '@/components/sect/SectDirectivePanel.vue'
 import SectDiplomacyPanel from '@/components/sect/SectDiplomacyPanel.vue'
 import SectFacilitiesPanel from '@/components/sect/SectFacilitiesPanel.vue'
 import SectOverviewPanel from '@/components/sect/SectOverviewPanel.vue'
+import SectRecoveryPanel from '@/components/sect/SectRecoveryPanel.vue'
 import SectRecruitPanel from '@/components/sect/SectRecruitPanel.vue'
 import SectTasksPanel from '@/components/sect/SectTasksPanel.vue'
 import type { SectEvent } from '@/types/sect'
@@ -169,6 +176,7 @@ import {
   getDirectiveLabel,
   canAuthorityAccessFacility
 } from '@/sect/runtime/sectPositionResolver'
+import type { SectRecoveryActionId } from '@/sect/runtime/sectRecoveryResolver'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { getSectRelationDescription, getSectSurfaceTone, getSectWorldStatusLabel, type SectDiplomacyRow } from '@/components/sect/sectUi'
@@ -396,6 +404,17 @@ function handleHarvestReady() {
 
   success(`已收取 ${result.harvestedCount} 份成熟作物`)
   info(result.items.slice(0, 3).join('，'))
+}
+
+function handleRecoveryAction(actionId: SectRecoveryActionId) {
+  const result = sectStore.applyRecoveryAction(actionId)
+  if (!result.success) {
+    warning(result.message)
+    return
+  }
+
+  success(result.title ?? '恢复行动已执行')
+  info(result.message)
 }
 
 function handleLeaveSect() {

@@ -157,7 +157,8 @@
 - [~] 增加主角挂机日志与奇遇日志
   - 已建立 `playerJourneys`，接入修炼顿悟、游历所得、采药、宗门差遣、奇遇等挂机记录
   - 已新增 `playerCaptivityResolver`，让主角被俘后不再沿用普通挂机分支，而是转入囚中修行 / 观察守备 / 尝试脱困的独立循环
-  - 待补：更复杂的挂机分支、奖励结构与被俘后的营救/赎回链路
+  - 已让宗门恢复行动支持赎回 / 营救主角，主角被俘不再只是阻塞状态
+  - 待补：更复杂的挂机分支、奖励结构与被俘后的剧情化营救事件
 - [~] 增加世界灾害和区域状态变化
   - 已建立 `worldNarrativeResolver` 与 `areaAnomalies`，支持灾害/遗迹/灵脉/妖潮驱动区域稳定度与压力波动
   - 已让 `CultivationView / MapView` 展示区域异动摘要
@@ -191,7 +192,9 @@
   - 已让战争 aftermath 进入主角被俘与宗门 `stable/rebuilding/collapsed` 状态切换的基础数据层
   - 已让战争结算产出结构化 rewards / penalties 与最近战报，供宗门主循环界面消费
   - 已让主界总览新增 `worldBriefingResolver + WorldBriefingPanel`，把主角被俘、宗门战局、区域异动与关键 NPC 动向汇总为可操作要事
-  - 待补：合并、沦陷后的玩法限制与恢复链路、跨宗门连锁反应
+  - 已新增 `sectRecoveryResolver + SectRecoveryPanel`，让沦陷 / 重建状态可以通过重立山门、暗运资材、修复护山阵、安定弟子等行动恢复
+  - 已修正战后宗门世界态只写入败方所属宗门，避免胜方宗门被错误标成沦陷或重建
+  - 待补：合并、沦陷后的更多玩法限制、跨宗门连锁反应
 - [~] 增加从弟子到宗主的晋升链
   - 已建立 `sectPositionResolver`，统一收口职位权限、设施访问层级、可宣战条件与可用宗门方略
   - 已让 `SectOverviewPanel / SectDirectivePanel` 展示当前权柄层级与激活方略，避免职位成长只停留在文案
@@ -271,6 +274,10 @@
   - 已为 `playerStore` 增加 captivity 持久化状态，支持记录俘虏方与起始 tick
   - 已为 `sectStore` 增加 `worldCondition`，支持 stable / rebuilding / collapsed 世界态
   - 已让 `warAftermathResolver` 可直接驱动主角被俘与宗门重建/沦陷基础状态
+- [x] 让宗门沦陷/重建进入恢复玩法
+  - 已建立 `sectRecoveryResolver`，把恢复阶段、进度、行动消耗、山门血量恢复和主角营救从 store 中抽离
+  - 已建立 `SectRecoveryPanel`，宗门页可直接执行重立山门、暗运资材、修阵、安抚弟子、赎回/营救主角
+  - 已修复战后 `sectCondition` 缺少归属宗门导致的状态误写问题
 - [x] 让世界状态进入真实玩法入口
   - 已新增 `mapAreaAccessResolver`，统一处理被俘、异动、战线与宗门世界态对挑战入口的影响
   - 已让 `AdventureView` / `MapView` 复用同一套挑战准入、扫荡限制与体力修正逻辑

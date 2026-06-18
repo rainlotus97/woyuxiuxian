@@ -82,6 +82,7 @@ export interface WorldRuntimeAftermathResult {
     sinceTick: number | null
   }
   sectCondition?: {
+    sectId: string
     status: 'stable' | 'rebuilding' | 'collapsed'
     occupiedBySectId: string | null
     lastUpdatedTick: number | null

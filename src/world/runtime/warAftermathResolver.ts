@@ -78,6 +78,7 @@ function resolveSectCondition(
   const collapsed = scoreGap >= 24
 
   return {
+    sectId: losingSect.id,
     status: collapsed ? 'collapsed' as const : 'rebuilding' as const,
     occupiedBySectId: collapsed ? winningSectId : null,
     lastUpdatedTick: null

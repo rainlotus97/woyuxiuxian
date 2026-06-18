@@ -25,6 +25,12 @@ import {
   applyDirectiveToTaskRewards,
   getSectDirectiveEffects
 } from '@/sect/runtime/sectDirectiveEffects'
+import {
+  getSectRecoveryOption,
+  resolveSectRecoveryOutcome,
+  resolveSectRecoveryState,
+  type SectRecoveryActionId
+} from '@/sect/runtime/sectRecoveryResolver'
 import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import { useMapStore } from './mapStore'
@@ -64,6 +70,7 @@ interface SectState {
   activeWar: SectWar | null
   activeEvent: SectEvent | null
   worldCondition: SectWorldCondition
+  recoveryProgress: number
   unlockedSects: string[]
   facilityLevels: Record<string, number>
   lastTaskRefresh: number
@@ -91,6 +98,7 @@ function getDefaultSectState(): SectState {
       occupiedBySectId: null,
       lastUpdatedTick: null
     },
+    recoveryProgress: 0,
     unlockedSects: [],
     facilityLevels: {},
     lastTaskRefresh: Date.now(),
@@ -119,6 +127,7 @@ export const useSectStore = defineStore('sect', () => {
         relations: parsed.relations ?? defaults.relations,
         tasks: parsed.tasks ?? defaults.tasks,
         worldCondition: parsed.worldCondition ?? defaults.worldCondition,
+        recoveryProgress: parsed.recoveryProgress ?? defaults.recoveryProgress,
         unlockedSects: parsed.unlockedSects ?? defaults.unlockedSects,
         facilityLevels: parsed.facilityLevels ?? defaults.facilityLevels
       }
@@ -142,6 +151,7 @@ export const useSectStore = defineStore('sect', () => {
   const activeWar = ref<SectWar | null>(initialData.activeWar)
   const activeEvent = ref<SectEvent | null>(initialData.activeEvent)
   const worldCondition = ref<SectWorldCondition>(initialData.worldCondition)
+  const recoveryProgress = ref<number>(initialData.recoveryProgress ?? 0)
   const unlockedSects = ref<string[]>(initialData.unlockedSects)
   const facilityLevels = ref<Record<string, number>>(initialData.facilityLevels)
   const lastTaskRefresh = ref<number>(initialData.lastTaskRefresh)
@@ -211,6 +221,22 @@ export const useSectStore = defineStore('sect', () => {
     return tasks.value.filter(t => t.completed && !t.claimed)
   })
 
+  const recoveryState = computed(() => {
+    const playerStore = usePlayerStore()
+    const captorName = playerStore.captivity.captorSectId
+      ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+      : null
+
+    return resolveSectRecoveryState({
+      worldCondition: worldCondition.value,
+      sectHp: sectHp.value,
+      sectMaxHp: sectMaxHp.value,
+      recoveryProgress: recoveryProgress.value,
+      isPlayerCaptured: playerStore.captivity.isCaptured,
+      captorSectName: captorName
+    })
+  })
+
   // ====== 方法 ======
 
   // 保存到 localStorage
@@ -228,6 +254,7 @@ export const useSectStore = defineStore('sect', () => {
         activeWar: toRaw(activeWar.value),
         activeEvent: toRaw(activeEvent.value),
         worldCondition: toRaw(worldCondition.value),
+        recoveryProgress: recoveryProgress.value,
         unlockedSects: toRaw(unlockedSects.value),
         facilityLevels: toRaw(facilityLevels.value),
         lastTaskRefresh: lastTaskRefresh.value,
@@ -295,6 +322,7 @@ export const useSectStore = defineStore('sect', () => {
       occupiedBySectId: null,
       lastUpdatedTick: null
     }
+    recoveryProgress.value = 0
     lastWarReport.value = null
     activeDirective.value = 'balanced'
     return true
@@ -304,6 +332,76 @@ export const useSectStore = defineStore('sect', () => {
     worldCondition.value = {
       ...worldCondition.value,
       ...condition
+    }
+    if (condition.status === 'stable') {
+      recoveryProgress.value = 0
+    }
+  }
+
+  function applyRecoveryAction(actionId: SectRecoveryActionId) {
+    if (!joinedSectId.value || recoveryState.value.status === 'stable') {
+      return { success: false, message: '当前无需宗门恢复行动' }
+    }
+
+    const playerStore = usePlayerStore()
+    const option = getSectRecoveryOption(
+      recoveryState.value.status,
+      actionId,
+      playerStore.captivity.isCaptured
+    )
+    if (!option) {
+      return { success: false, message: '当前状态下无法执行该恢复行动' }
+    }
+    if (contribution.value < option.contributionCost) {
+      return { success: false, message: `贡献不足，需要 ${option.contributionCost}` }
+    }
+    if (playerStore.gold < option.goldCost) {
+      return { success: false, message: `灵石不足，需要 ${option.goldCost}` }
+    }
+
+    contribution.value -= option.contributionCost
+    playerStore.addGold(-option.goldCost)
+
+    const outcome = resolveSectRecoveryOutcome({
+      worldCondition: worldCondition.value,
+      sectHp: sectHp.value,
+      sectMaxHp: sectMaxHp.value,
+      recoveryProgress: recoveryProgress.value,
+      isPlayerCaptured: playerStore.captivity.isCaptured,
+      captorSectName: playerStore.captivity.captorSectId
+        ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
+        : null
+    }, option)
+
+    recoveryProgress.value = outcome.nextProgress
+    sectHp.value = Math.min(sectMaxHp.value, sectHp.value + Math.max(0, outcome.hpRestore))
+    worldCondition.value = {
+      status: outcome.nextStatus,
+      occupiedBySectId: outcome.nextOccupiedBySectId,
+      lastUpdatedTick: Date.now()
+    }
+
+    if (outcome.clearsCaptivity && playerStore.captivity.isCaptured) {
+      playerStore.clearCaptivity()
+    }
+
+    activeEvent.value = {
+      id: `sect_recovery_${Date.now()}`,
+      type: 'opportunity',
+      title: outcome.title,
+      description: outcome.summary,
+      choices: [],
+      handled: true
+    }
+
+    return {
+      success: true,
+      message: outcome.summary,
+      title: outcome.title,
+      progressGain: option.progressGain,
+      hpRestore: Math.max(0, outcome.hpRestore),
+      clearsCaptivity: outcome.clearsCaptivity,
+      nextStatus: outcome.nextStatus
     }
   }
 
@@ -633,6 +731,19 @@ export const useSectStore = defineStore('sect', () => {
       penalties
     }
     activeWar.value = null
+    sectHp.value = Math.max(
+      1,
+      sectHp.value - Math.max(
+        12,
+        Math.floor(
+          sectMaxHp.value * (
+            attackerWon
+              ? 0.12
+              : 0.22
+          )
+        )
+      )
+    )
     return resolution
   }
 
@@ -1068,6 +1179,7 @@ export const useSectStore = defineStore('sect', () => {
     gardenSlots,
     lastWarReport,
     activeDirective,
+    recoveryProgress,
 
     // 计算属性
     currentSect,
@@ -1081,6 +1193,7 @@ export const useSectStore = defineStore('sect', () => {
     dailyTasks,
     weeklyTasks,
     completedTasks,
+    recoveryState,
     canClaimSalary,
     availableAlchemyRecipes,
     gardenSlotCount,
@@ -1105,6 +1218,7 @@ export const useSectStore = defineStore('sect', () => {
     upgradeFacility,
     setRelation,
     applyWorldCondition,
+    applyRecoveryAction,
     declareWar,
     advanceWar,
     handleWarEnd,

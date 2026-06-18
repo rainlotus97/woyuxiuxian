@@ -575,7 +575,7 @@ export const useWorldStore = defineStore('world', () => {
         )
       }
     }
-    if (result.sectCondition) {
+    if (result.sectCondition && result.sectCondition.sectId === sectStore.joinedSectId) {
       sectStore.applyWorldCondition(result.sectCondition)
     }
     if (result.logs?.length) {
