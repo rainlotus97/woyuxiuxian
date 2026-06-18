@@ -18,11 +18,16 @@
         </div>
 
         <div class="resource-row">
-          <GameStatChip icon="💎" label="灵石" :value="playerStore.gold" tone="gold" />
-          <GameStatChip icon="✨" label="修为" :value="formatCultivation" tone="jade" />
-          <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
-          <GameStatChip icon="👥" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
-          <button class="audio-toggle" :class="{ active: bgmEnabled }" @click="handleToggleBgm">
+          <GameStatChip icon="石" label="灵石" :value="playerStore.gold" tone="gold" />
+          <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" />
+          <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
+          <GameStatChip icon="人" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
+          <button
+            class="audio-toggle"
+            :class="{ active: bgmEnabled }"
+            :aria-label="bgmEnabled ? '关闭背景音' : '开启背景音'"
+            @click="handleToggleBgm"
+          >
             <span><component :is="bgmEnabled ? Volume2 : VolumeX" :size="15" /></span>
             <small>{{ bgmEnabled ? '背景音' : '已静音' }}</small>
           </button>
@@ -50,7 +55,7 @@
           </button>
         </div>
 
-        <div class="menu-grid">
+        <div class="menu-grid" @click.stop>
           <RouterLink
             v-for="item in menuItems"
             :key="item.path"
@@ -98,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import {
   Backpack,
@@ -285,6 +290,13 @@ onMounted(() => {
   startWorldClock()
 })
 
+watch(
+  () => route.fullPath,
+  () => {
+    isMenuExpanded.value = false
+  }
+)
+
 onUnmounted(() => {
   if (worldTickTimer) {
     clearInterval(worldTickTimer)
@@ -300,6 +312,8 @@ onUnmounted(() => {
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background:
     linear-gradient(180deg, #f2fffb 0%, #e5f4ef 48%, #dbece7 100%),
@@ -509,6 +523,10 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
+.nav-shell:not(.expanded) {
+  transform: translateZ(0);
+}
+
 .nav-shell > * {
   pointer-events: auto;
 }
@@ -710,7 +728,34 @@ onUnmounted(() => {
 
   .resource-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .resource-row :deep(.stat-chip) {
+    flex-direction: column;
+    min-height: 48px;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+  }
+
+  .resource-row :deep(.stat-copy small) {
+    display: none;
+  }
+
+  .resource-row :deep(.stat-copy strong) {
+    font-size: 10px;
+  }
+
+  .audio-toggle {
+    min-height: 48px;
+    justify-content: center;
+    padding: 6px 4px;
+  }
+
+  .audio-toggle small {
+    display: none;
   }
 
   .world-summary {

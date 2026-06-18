@@ -91,10 +91,26 @@
           </div>
         </div>
 
+        <div class="resume-brief">
+          <div>
+            <span>下一步</span>
+            <strong>从主界任务台继续</strong>
+            <p>挂机、历险、故事、人物、地图与宗门入口都在主界面聚合。</p>
+          </div>
+          <div>
+            <span>本命</span>
+            <strong>不可重复改动</strong>
+            <p>灵根与气质已写入存档，后续成长通过剧情和玩法推进。</p>
+          </div>
+        </div>
+
         <div class="start-actions">
           <button class="primary-action" @click="handleContinue">
             <span>进入主循环</span>
             <small>继续当前进度</small>
+          </button>
+          <button class="secondary-action" @click="handleSettings">
+            系统设置
           </button>
         </div>
       </div>
@@ -168,6 +184,10 @@ function handleStart() {
 function handleContinue() {
   info('读取当前存档。')
   void router.push('/game/cultivation')
+}
+
+function handleSettings() {
+  void router.push('/game/settings')
 }
 </script>
 
@@ -311,6 +331,40 @@ function handleContinue() {
 .save-stats strong {
   color: #8e6227;
   font-size: 15px;
+}
+
+.resume-brief {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.resume-brief div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(111, 157, 149, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
+    radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
+}
+
+.resume-brief span {
+  color: rgba(70, 99, 96, 0.68);
+  font-size: 11px;
+}
+
+.resume-brief strong {
+  color: #315257;
+  font-size: 14px;
+}
+
+.resume-brief p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.7);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .brand-copy h1 {
@@ -513,6 +567,11 @@ function handleContinue() {
   }
 
   .world-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-brief,
+  .save-stats {
     grid-template-columns: 1fr;
   }
 }
