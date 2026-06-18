@@ -133,38 +133,14 @@
         eyebrow="随身包裹"
         title="背包"
       >
-        <div class="filter-row">
-          <button
-            v-for="filter in loadout.inventoryFilterOptions.value"
-            :key="filter.id"
-            :class="{ active: loadout.inventoryFilter.value === filter.id }"
-            @click="loadout.inventoryFilter.value = filter.id"
-          >
-            {{ filter.label }}
-            <span>{{ filter.count }}</span>
-          </button>
-        </div>
-
-        <div class="inventory-grid">
-          <button
-            v-for="item in loadout.filteredInventory.value"
-            :key="item.id"
-            class="item-slot"
-            :class="`quality-${item.quality}`"
-            @click="loadout.selectInventoryItem(item)"
-          >
-            <span>{{ item.icon }}</span>
-            <b>{{ item.name }}</b>
-            <em v-if="item.quantity > 1">{{ item.quantity }}</em>
-          </button>
-          <div
-            v-for="index in Math.min(loadout.emptyInventorySlots.value, 8)"
-            :key="`empty-${index}`"
-            class="item-slot empty"
-          >
-            <span>空</span>
-          </div>
-        </div>
+        <InventoryGrid
+          :filters="loadout.inventoryFilterOptions.value"
+          :active-filter="loadout.inventoryFilter.value"
+          :items="loadout.filteredInventory.value"
+          :empty-slots="loadout.emptyInventorySlots.value"
+          @update:active-filter="loadout.inventoryFilter.value = $event"
+          @select="loadout.selectInventoryItem"
+        />
       </GameSurface>
 
       <GameSurface
@@ -342,6 +318,7 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import InventoryGrid from '@/components/character/InventoryGrid.vue'
 import { useCharacterLoadout, type CharacterPanelTab } from '@/composables/useCharacterLoadout'
 import type { UnitStats } from '@/types/unit'
 
@@ -657,7 +634,6 @@ function formatPercent(value: number) {
   font-style: normal;
 }
 
-.filter-row,
 .branch-row {
   display: flex;
   flex-wrap: wrap;
@@ -665,7 +641,6 @@ function formatPercent(value: number) {
   margin-bottom: 12px;
 }
 
-.filter-row button,
 .branch-row button {
   min-height: 36px;
   padding: 0 12px;
@@ -678,66 +653,15 @@ function formatPercent(value: number) {
   font-weight: 800;
 }
 
-.filter-row button.active,
 .branch-row button.active {
   color: #8b6326;
   background: rgba(255, 247, 218, 0.86);
   border-color: rgba(188, 141, 58, 0.26);
 }
 
-.filter-row span,
 .branch-row span {
   margin-left: 6px;
   color: rgba(80, 111, 104, 0.68);
-}
-
-.inventory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-  gap: 10px;
-}
-
-.item-slot {
-  position: relative;
-  min-height: 98px;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 7px;
-  padding: 10px;
-  border: 1px solid rgba(123, 153, 145, 0.18);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.62);
-  color: #345b59;
-  font-family: var(--font-game);
-}
-
-.item-slot span {
-  color: #8b6326;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.item-slot b {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.item-slot em {
-  position: absolute;
-  right: 8px;
-  bottom: 7px;
-  color: #5d756f;
-  font-size: 11px;
-  font-style: normal;
-}
-
-.item-slot.empty {
-  border-style: dashed;
-  opacity: 0.52;
 }
 
 .skill-header {

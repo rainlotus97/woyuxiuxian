@@ -247,8 +247,9 @@
 - [~] 统一角色/背包/功法面板
   - 已新增 `CharacterPanel`，将人物总览、穿戴、包裹、功法树收口到同一套养成界面
   - 已新增 `useCharacterLoadout`，统一装备槽、物品筛选、物品使用、功法学习/升级/启停等业务逻辑
+  - 已拆出 `InventoryGrid`，将背包筛选、物品格子、空槽展示从 `CharacterPanel` 中组件化
   - 已将 `ProfileView / InventoryView / SkillView` 降为薄入口，分别默认打开人物 / 包裹 / 功法 tab
-  - 待补：进一步拆出 `EquipmentLoadout / InventoryGrid / SkillTreePanel` 子组件，并让功法、装备、丹药效果更深入影响挂机与战斗
+  - 待补：进一步拆出 `EquipmentLoadout / SkillTreePanel` 子组件，并让功法、装备、丹药效果更深入影响挂机与战斗
 - [~] 为 item 建立统一 schema 和筛选视图
   - 已为 `InventoryItem` 增加 `definitionId`，先打通宗门药园 / 炼丹 / 坊市 / 世界采药 / 历练掉落的统一物品标识
   - 已新增 `inventoryMaterialResolver`，统一材料按 `definitionId / id / name` 的数量统计与消耗快照
