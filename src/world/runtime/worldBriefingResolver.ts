@@ -32,6 +32,14 @@ interface WorldBriefingInput {
     status: 'stable' | 'rebuilding' | 'collapsed' | null
     activeWar: boolean
   }
+  capturedNpc?: {
+    name: string
+    title: string
+    sectName: string
+    captorName: string | null
+    locationName: string
+    severity: 'normal' | 'major' | 'legendary'
+  } | null
   hotspotArea?: {
     name: string
     riskLevel: 'safe' | 'watch' | 'danger' | 'chaos'
@@ -135,6 +143,24 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       action: {
         kind: 'route',
         label: '返回宗门',
+        path: '/game/sect'
+      }
+    })
+  }
+
+  if (input.capturedNpc) {
+    items.push({
+      id: 'npc-captured',
+      icon: '🪢',
+      badge: '俘获',
+      title: `${input.capturedNpc.name}被控制`,
+      summary: `${input.capturedNpc.title}已落入${input.capturedNpc.captorName ?? '未知势力'}手中，${input.capturedNpc.sectName}的关系网会持续受此事牵动。`,
+      meta: `现踪：${input.capturedNpc.locationName}`,
+      tone: input.capturedNpc.severity === 'legendary' ? 'mist' : 'gold',
+      priority: input.capturedNpc.severity === 'legendary' ? 88 : 78,
+      action: {
+        kind: 'route',
+        label: '查看宗门',
         path: '/game/sect'
       }
     })

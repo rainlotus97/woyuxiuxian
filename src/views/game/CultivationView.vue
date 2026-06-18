@@ -433,6 +433,33 @@ const hotspotArea = computed(() => {
   }
 })
 
+const capturedNpcBriefing = computed(() => {
+  const captured = worldStore.importantNpcStates
+    .filter(item => item.state.hpState === 'captured')
+    .sort((a, b) => b.spotlightScore - a.spotlightScore)[0]
+
+  if (!captured) return null
+
+  const profile = worldStore.getNpcDisplayProfile(captured.state.id)
+  const captorFlag = captured.state.flags.find(flag => flag.startsWith('captured_by:'))
+  const captorId = captorFlag?.split(':')[1]
+  const captorProfile = captorId ? worldStore.getNpcDisplayProfile(captorId) : null
+  const sectName = captured.definition.sectId
+    ? getSectById(captured.definition.sectId)?.name ?? captured.definition.sectId
+    : '散修'
+
+  return {
+    name: captured.definition.name,
+    title: profile?.title ?? '无名修士',
+    sectName,
+    captorName: captorProfile?.name ?? captorId ?? null,
+    locationName: profile?.locationName ?? '未知地带',
+    severity: captured.definition.role === 'main' || captured.definition.profile.destinyRank === 'legendary'
+      ? 'legendary' as const
+      : 'major' as const
+  }
+})
+
 const worldBriefings = computed(() => {
   return resolveWorldBriefings({
     captivity: {
@@ -449,6 +476,7 @@ const worldBriefings = computed(() => {
       status: sectStore.currentSect ? sectStore.worldCondition.status : null,
       activeWar: Boolean(sectStore.activeWar)
     },
+    capturedNpc: capturedNpcBriefing.value,
     hotspotArea: hotspotArea.value,
     spotlightNpc: spotlightNpcs.value[0]
       ? {
