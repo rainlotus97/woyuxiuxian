@@ -1100,6 +1100,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectLeave
   } = await load('/src/sect/runtime/sectMembershipResolver.ts')
   const { resolveSectMembershipJourney } = await load('/src/sect/runtime/sectMembershipJourneyResolver.ts')
+  const { resolveSectRewardJourney } = await load('/src/sect/runtime/sectRewardJourneyResolver.ts')
   const { resolveSectEventChoice } = await load('/src/sect/runtime/sectEventResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const {
@@ -1208,6 +1209,26 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(leaveJourney.title, '离开青云宗')
   assert.ok(leaveJourney.tags.includes('leave'))
+
+  const stipendJourney = resolveSectRewardJourney({
+    action: 'stipend',
+    sectName: '青云宗',
+    positionName: '外门弟子',
+    rewards: { gold: 10, contribution: 5 }
+  })
+  assert.equal(stipendJourney.title, '青云宗外门弟子俸禄')
+  assert.equal(stipendJourney.rewards.length, 2)
+  assert.ok(stipendJourney.tags.includes('stipend'))
+
+  const taskRewardJourney = resolveSectRewardJourney({
+    action: 'task_claim_all',
+    sectName: '青云宗',
+    claimedCount: 3,
+    rewards: { contribution: 60, gold: 300, cultivation: 15 }
+  })
+  assert.equal(taskRewardJourney.severity, 'major')
+  assert.ok(taskRewardJourney.text.includes('3项宗门任务'))
+  assert.ok(taskRewardJourney.tags.includes('task'))
 
   const inventoryFixture = [
     { id: 'item_a', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 },

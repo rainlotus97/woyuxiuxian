@@ -176,6 +176,7 @@ import { SECT_FACILITIES, getSectById } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
 import { useSectDuty } from '@/composables/useSectDuty'
 import { useSectMembership } from '@/composables/useSectMembership'
+import { useSectRewards } from '@/composables/useSectRewards'
 import { NPC_RESCUE_COST, useSectViewState } from '@/composables/useSectViewState'
 import {
   type SectDirectiveId,
@@ -214,6 +215,10 @@ const {
 } = useSectViewState()
 const { lastDuty, handleSectDuty: resolveSectDuty } = useSectDuty()
 const { joinSect: joinSectWithJourney, leaveSect: leaveSectWithJourney } = useSectMembership()
+const {
+  claimDailySalary: claimDailySalaryWithJourney,
+  claimAllCompletedTaskRewards: claimAllCompletedTaskRewardsWithJourney
+} = useSectRewards()
 
 const activeTab = ref<'tasks' | 'facilities' | 'diplomacy'>('tasks')
 const showFacilityModal = ref(false)
@@ -248,7 +253,7 @@ function handleClaimReward(taskId: string) {
 }
 
 function handleClaimAllRewards() {
-  const result = sectStore.claimAllCompletedTaskRewards()
+  const result = claimAllCompletedTaskRewardsWithJourney()
   if (result.claimedCount <= 0) {
     warning('暂无可领取的宗门奖励')
     return
@@ -286,8 +291,8 @@ function handleUpgradeFacility(facilityId: string) {
 }
 
 function handleClaimSalary() {
-  const result = sectStore.claimDailySalary()
-  if (result) {
+  const result = claimDailySalaryWithJourney()
+  if (result.success) {
     success(`领取俸禄：${result.gold} 灵石，${result.contribution} 贡献`)
   } else {
     warning('今日俸禄已领取')
