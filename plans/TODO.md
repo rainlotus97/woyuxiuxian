@@ -65,7 +65,13 @@
 
 ## P1 游戏界面
 
-- [ ] 重构 `src/views/GameLayout.vue`
+- [~] 重构 `src/views/GameLayout.vue`
+  - 已完成主循环亮色外壳第一阶段，重新组织顶部状态、快捷导航和展开菜单结构
+  - 已接入世界状态条，显示世界时间、天气、异闻数量与关键态势提示
+  - 已在主循环壳层接入 world tick 心跳，避免世界/NPC 系统只在战斗链路中推进
+- [~] 建立主循环共用 `game-ui` 组件层
+  - 已建立 `GameSurface / GameStatChip / GameProgressBar / GameActionButton / GameDialog`
+  - 已让主界面、历练、地图开始复用同一套面板/弹窗壳层
 - [~] 建立统一游戏 UI 设计 token
   - 色板
   - 阴影
@@ -74,8 +80,9 @@
   - 按钮状态
   - 已在战斗页验证第一批 token 化面板壳：`BattlePanelShell`
 - [ ] 把“页面像应用”的问题逐页收口：
-  - `AdventureView`
-  - `MapView`
+  - `CultivationView`（进行中，已重构为主循环总览页，接入行动排程、宗门态势、重要 NPC、世界日志）
+  - `AdventureView`（进行中，已完成第一阶段亮色重构）
+  - `MapView`（进行中，已接入世界事件摘要、统一弹窗结构，并与世界时钟统一日期展示）
   - `SectView`
   - `StoryView`
   - `ShopView`
@@ -138,6 +145,8 @@
 - [~] 实现 NPC 自主行动结果写回世界日志
   - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
   - 已让 NPC 社交事件统一写入世界日志，并带 actorIds / mapId / tags
+  - 已让 `MapView` 开始消费 `worldStore.visibleLogs` 作为主界面的世界异闻摘要入口
+  - 已让 `CultivationView` 消费 `importantNpcStates + visibleLogs`，将 NPC 动向与世界异闻抬到主首页
   - 待补：重要 NPC 专属事件模版、地图/宗门上下文、日志去重与可见性分级
 - [ ] 实现重要 NPC 的“故事化事件记录”
 - [ ] 增加主角挂机日志与奇遇日志
@@ -149,6 +158,7 @@
   - 已让 `worldStore.advanceTick()` 统一驱动 `sectStore.updateWorldState()` 与 `mapStore.updateAreaWorldState()`
   - 已建立 `src/map/runtime/*` 与 `src/sect/runtime/*` 的世界态势解析层，避免 store 内继续堆条件分支
   - 已让 `sectStore.updateWorldState()` 返回结构化战争结算结果，由 `worldStore` 协调传给地图层处理
+  - 已让 `mapStore` 日历与 `worldStore` 时钟同步，避免主循环和地图页出现两套时间线
   - 待补：更细粒度事件分发、世界系统之间的反馈闭环、重要结果回流到主界面提示
 - [~] 为地图区域增加控制权和风险等级
   - 已为区域增加 `areaStates` 运行时状态，支持 `controllingSectId / riskLevel / stability / pressure / contested`

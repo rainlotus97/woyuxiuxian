@@ -1,30 +1,62 @@
 <template>
   <div class="adventure-view">
-    <!-- 体力值显示 -->
-    <div class="stamina-bar">
-      <div class="stamina-header">
-        <span class="stamina-icon">⚡</span>
-        <span class="stamina-text">体力</span>
-        <span class="stamina-value">{{ playerStore.stamina }}/{{ playerStore.maxStamina }}</span>
+    <GameSurface
+      tone="mist"
+      padding="lg"
+      eyebrow="历练日程"
+      title="界域历险"
+      subtitle="按宗门边境与天地气象择地修行。高风险区域机缘与凶险并存。"
+    >
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-tags">
+            <span class="hero-pill">{{ worldStore.currentTimeLabel }}</span>
+            <span class="hero-pill">{{ weatherLabel }}</span>
+          </div>
+          <p>{{ heroSummary }}</p>
+        </div>
+
+        <div class="hero-stats">
+          <GameStatChip icon="📍" label="开放区域" :value="unlockedAreaCount" tone="jade" />
+          <GameStatChip icon="⭐" label="历练星级" :value="clearedAreaCount" tone="gold" />
+          <GameStatChip icon="🏷️" label="高压区域" :value="highRiskAreaCount" tone="rose" />
+        </div>
       </div>
-      <div class="stamina-progress">
-        <div class="stamina-fill" :style="{ width: playerStore.staminaPercent + '%' }"></div>
+    </GameSurface>
+
+    <GameSurface
+      class="stamina-panel"
+      tone="gold"
+      padding="md"
+      eyebrow="行脚消耗"
+      title="体力调息"
+      :subtitle="staminaHint"
+    >
+      <template #header>
+        <GameActionButton icon="💎" tone="gold" @click="showBuyStaminaModal = true">
+          购买体力
+        </GameActionButton>
+      </template>
+
+      <GameProgressBar
+        label="当前体力"
+        :current="playerStore.stamina"
+        :max="playerStore.maxStamina"
+        :hint="staminaRecoverLabel"
+        tone="gold"
+      />
+    </GameSurface>
+
+    <div class="section-header">
+      <div>
+        <span class="section-eyebrow">历练图册</span>
+        <h2>可挑战区域</h2>
       </div>
-      <div class="stamina-info">
-        <span v-if="playerStore.stamina < playerStore.maxStamina" class="recover-time">
-          {{ Math.floor(playerStore.nextRecoverCountdown / 60) }}:{{ String(playerStore.nextRecoverCountdown % 60).padStart(2, '0') }} 后恢复+1
-        </span>
-        <span v-else class="stamina-full">已满</span>
-        <button class="buy-stamina-btn" @click="showBuyStaminaModal = true">
-          <span class="gem-icon">💎</span>
-          购买
-        </button>
-      </div>
+      <span class="section-note">{{ areas.length }} 个区域</span>
     </div>
 
-    <!-- 区域列表 -->
     <div class="areas-list">
-      <div
+      <GameSurface
         v-for="area in areas"
         :key="area.id"
         class="area-card"
@@ -32,23 +64,27 @@
           locked: !isAreaUnlockedByPlayer(area),
           cleared: getAreaStars(area.id) > 0
         }"
+        :tone="getAreaStars(area.id) > 0 ? 'realm' : 'jade'"
+        padding="lg"
+        clickable
+        compact
       >
-        <!-- 区域头部 -->
         <div class="area-header">
-          <div class="area-icon">{{ area.icon }}</div>
-          <div class="area-info">
-            <div class="area-name">{{ area.name }}</div>
-            <div class="area-realm" :style="{ color: getRealmColor(area.requiredRealm) }">
-              {{ getRealmRequirementText(area.requiredRealm, area.requiredRealmLevel) }}
+          <div class="area-leading">
+            <div class="area-icon">{{ area.icon }}</div>
+            <div class="area-copy">
+              <strong>{{ area.name }}</strong>
+              <small :style="{ color: getRealmColor(area.requiredRealm) }">
+                {{ getRealmRequirementText(area.requiredRealm, area.requiredRealmLevel) }}
+              </small>
             </div>
           </div>
-          <div class="area-difficulty" :style="{ color: getDifficultyColor(area.difficulty) }">
+          <span class="difficulty-badge" :style="{ color: getDifficultyColor(area.difficulty) }">
             {{ getDifficultyLabel(area.difficulty) }}
-          </div>
+          </span>
         </div>
 
-        <!-- 区域描述 -->
-        <div class="area-desc">{{ area.description }}</div>
+        <p class="area-desc">{{ area.description }}</p>
 
         <div v-if="getAreaEncounterHint(area)" class="area-world-state">
           <span
@@ -60,139 +96,135 @@
           <p>{{ getAreaEncounterHint(area)?.encounterNote }}</p>
         </div>
 
-        <!-- 掉落预览 -->
-        <div class="area-drops">
-          <span class="drops-label">掉落:</span>
-          <div class="drops-items">
-            <span
-              v-for="drop in area.drops.slice(0, 4)"
-              :key="drop.id"
-              class="drop-preview"
-              :class="drop.quality"
-              :title="drop.name"
-            >
-              {{ drop.icon }}
-            </span>
-            <span v-if="area.drops.length > 4" class="more-drops">+{{ area.drops.length - 4 }}</span>
+        <div class="area-meta-grid">
+          <div class="drop-strip">
+            <span class="meta-label">掉落</span>
+            <div class="drops-items">
+              <span
+                v-for="drop in area.drops.slice(0, 4)"
+                :key="drop.id"
+                class="drop-preview"
+                :class="drop.quality"
+                :title="drop.name"
+              >
+                {{ drop.icon }}
+              </span>
+              <span v-if="area.drops.length > 4" class="more-drops">+{{ area.drops.length - 4 }}</span>
+            </div>
+          </div>
+
+          <div class="meta-chips">
+            <GameStatChip icon="⚡" label="体力" :value="area.staminaCost" tone="gold" />
+            <GameStatChip icon="🌊" label="波次" :value="`${getDifficultyWaves(area.difficulty)}波`" tone="jade" />
           </div>
         </div>
 
-        <!-- 星级评价 -->
-        <div class="area-stars" v-if="getAreaStars(area.id) > 0">
+        <div v-if="getAreaStars(area.id) > 0" class="area-stars">
           <span v-for="i in 3" :key="i" class="star" :class="{ filled: i <= getAreaStars(area.id) }">★</span>
         </div>
 
-        <!-- 体力消耗和波次 -->
-        <div class="area-meta">
-          <div class="area-cost">
-            <span class="cost-icon">⚡</span>
-            <span class="cost-value">{{ area.staminaCost }}</span>
-          </div>
-          <div class="area-waves">
-            <span class="waves-icon">🌊</span>
-            <span class="waves-value">{{ getDifficultyWaves(area.difficulty) }}波</span>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="area-actions">
-          <!-- 未解锁 -->
-          <template v-if="!isAreaUnlockedByPlayer(area)">
-            <button class="action-btn locked-btn" disabled>
-              <span class="lock-icon">🔒</span>
+        <template #footer>
+          <div class="area-actions">
+            <GameActionButton
+              v-if="!isAreaUnlockedByPlayer(area)"
+              icon="🔒"
+              tone="stone"
+              block
+              disabled
+            >
               境界不足
-            </button>
-          </template>
+            </GameActionButton>
 
-          <!-- 已解锁未通关 -->
-          <template v-else-if="getAreaStars(area.id) === 0">
-            <button
-              class="action-btn challenge-btn"
-              :disabled="playerStore.stamina < area.staminaCost"
-              @click="handleChallenge(area)"
-            >
-              <span class="btn-icon">⚔️</span>
-              挑战
-            </button>
-          </template>
+            <template v-else-if="getAreaStars(area.id) === 0">
+              <GameActionButton
+                icon="⚔️"
+                tone="jade"
+                block
+                :disabled="playerStore.stamina < area.staminaCost"
+                @click="handleChallenge(area)"
+              >
+                挑战
+              </GameActionButton>
+            </template>
 
-          <!-- 已通关 -->
-          <template v-else>
-            <button
-              class="action-btn challenge-btn"
-              :disabled="playerStore.stamina < area.staminaCost"
-              @click="handleChallenge(area)"
-            >
-              <span class="btn-icon">⚔️</span>
-              挑战
-            </button>
-            <button
-              class="action-btn sweep-btn"
-              :disabled="playerStore.stamina < area.staminaCost * 3"
-              @click="handleSweep(area)"
-            >
-              <span class="btn-icon">🔄</span>
-              扫荡x3
-            </button>
-          </template>
-        </div>
-      </div>
+            <template v-else>
+              <GameActionButton
+                icon="⚔️"
+                tone="jade"
+                block
+                :disabled="playerStore.stamina < area.staminaCost"
+                @click="handleChallenge(area)"
+              >
+                挑战
+              </GameActionButton>
+              <GameActionButton
+                icon="🔄"
+                tone="gold"
+                block
+                :disabled="playerStore.stamina < area.staminaCost * 3"
+                @click="handleSweep(area)"
+              >
+                扫荡x3
+              </GameActionButton>
+            </template>
+          </div>
+        </template>
+      </GameSurface>
     </div>
 
-    <!-- 购买体力弹窗 -->
-    <div v-if="showBuyStaminaModal" class="modal-overlay" @click.self="showBuyStaminaModal = false">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <span class="modal-title">购买体力</span>
-          <button class="modal-close" @click="showBuyStaminaModal = false">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="stamina-options">
-            <div
-              v-for="option in staminaBuyOptions"
-              :key="option.amount"
-              class="stamina-option"
-              :class="{ disabled: playerStore.gold < option.cost || playerStore.stamina >= playerStore.maxStamina }"
-              @click="handleBuyStamina(option)"
-            >
-              <div class="option-amount">
-                <span class="option-icon">⚡</span>
-                <span class="option-value">+{{ option.amount }}</span>
-              </div>
-              <div class="option-cost">
-                <span class="cost-gem">💎</span>
-                <span class="cost-value">{{ option.cost }}</span>
-              </div>
-            </div>
+    <GameDialog
+      :visible="showBuyStaminaModal"
+      title="购买体力"
+      eyebrow="坊市补给"
+      @close="showBuyStaminaModal = false"
+    >
+      <div class="stamina-options">
+        <button
+          v-for="option in staminaBuyOptions"
+          :key="option.amount"
+          class="stamina-option"
+          :class="{ disabled: playerStore.gold < option.cost || playerStore.stamina >= playerStore.maxStamina }"
+          @click="handleBuyStamina(option)"
+        >
+          <div class="option-amount">
+            <span class="option-icon">⚡</span>
+            <strong>+{{ option.amount }}</strong>
           </div>
-          <div class="stamina-tip">
-            <span>💡 体力每分钟自动恢复{{ playerStore.staminaRecoverRate }}点</span>
+          <div class="option-cost">
+            <span>💎</span>
+            <b>{{ option.cost }}</b>
           </div>
-        </div>
+        </button>
       </div>
-    </div>
+      <p class="dialog-tip">体力每分钟自动恢复 {{ playerStore.staminaRecoverRate }} 点。</p>
+    </GameDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
+import GameStatChip from '@/components/game-ui/GameStatChip.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
+import { useToast } from '@/composables/useToast'
 import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
-import { useToast } from '@/composables/useToast'
 import {
   AREAS,
-  type AreaDefinition,
-  type DropItem,
+  DIFFICULTY_CONFIG,
+  REALM_PRIMARY_COLOR,
   getRealmRequirementText,
   isAreaUnlocked,
   rollReward,
-  DIFFICULTY_CONFIG,
-  REALM_PRIMARY_COLOR,
+  type AreaDefinition,
+  type DropItem,
   type Realm
 } from '@/types/adventure'
 
@@ -205,91 +237,115 @@ const { info, warning, success } = useToast()
 
 const showBuyStaminaModal = ref(false)
 
-// 体力购买选项
 const staminaBuyOptions = [
   { amount: 20, cost: 50 },
   { amount: 50, cost: 100 },
   { amount: 100, cost: 180 }
 ]
 
-// 定时器ID
 let recoverTimer: number | null = null
 
-// 获取区域列表
 const areas = AREAS
 
-// 获取境界颜色
+const weatherLabel = computed(() => {
+  const labels = {
+    clear: '天朗气清',
+    rain: '细雨浸山',
+    storm: '雷雨压境',
+    flood: '洪水漫野',
+    fire: '火势蔓延',
+    mist: '雾锁荒林'
+  }
+  return labels[worldStore.weather]
+})
+
+const heroSummary = computed(() => {
+  const highRisk = areas.filter(area => {
+    const encounter = getAreaEncounterHint(area)
+    return encounter?.riskLevel === 'danger' || encounter?.riskLevel === 'chaos'
+  }).length
+  if (highRisk > 0) {
+    return `当前有 ${highRisk} 处高压区域正在酝酿冲突，适合夺取机缘，也更容易遭遇强敌。`
+  }
+  return '今日边境相对平稳，适合循序推进历练、扫荡已通关区域并积累修为。'
+})
+
+const unlockedAreaCount = computed(() => areas.filter(area => isAreaUnlockedByPlayer(area)).length)
+const clearedAreaCount = computed(() => areas.filter(area => getAreaStars(area.id) > 0).length)
+const highRiskAreaCount = computed(() => {
+  return areas.filter(area => {
+    const encounter = getAreaEncounterHint(area)
+    return encounter?.riskLevel === 'danger' || encounter?.riskLevel === 'chaos'
+  }).length
+})
+
+const staminaHint = computed(() => {
+  if (playerStore.stamina >= playerStore.maxStamina) return '灵息充盈，可立即远行。'
+  return '体力不足时可先扫荡低耗区域，或暂回宗门修整。'
+})
+
+const staminaRecoverLabel = computed(() => {
+  if (playerStore.stamina >= playerStore.maxStamina) return '体力已满'
+  return `${Math.floor(playerStore.nextRecoverCountdown / 60)}:${String(playerStore.nextRecoverCountdown % 60).padStart(2, '0')} 后恢复+1`
+})
+
 function getRealmColor(realm: Realm): string {
   return REALM_PRIMARY_COLOR[realm] || '#7eb8da'
 }
 
-// 获取难度颜色
 function getDifficultyColor(difficulty: string): string {
   return DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG]?.color || '#7eb8da'
 }
 
-// 获取难度标签
 function getDifficultyLabel(difficulty: string): string {
   return DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG]?.label || difficulty
 }
 
-// 获取难度对应的波数
 function getDifficultyWaves(difficulty: string): number {
   return DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG]?.waves || 1
 }
 
-// 检查区域是否解锁
 function isAreaUnlockedByPlayer(area: AreaDefinition): boolean {
   return isAreaUnlocked(area, playerStore.realm, playerStore.realmLevel)
 }
 
-// 获取区域星级
 function getAreaStars(areaId: string): number {
   const progress = playerStore.getAreaProgress(areaId)
   return progress?.stars ?? 0
 }
 
-// 挑战区域
 function handleChallenge(area: AreaDefinition) {
   if (playerStore.stamina < area.staminaCost) {
     warning('体力不足！')
     return
   }
 
-  // 消耗体力
   playerStore.consumeStamina(area.staminaCost)
-
-  // 进入战斗
   router.push({
     path: '/game/battle',
     query: { areaId: area.id }
   })
 }
 
-// 扫荡区域（快速完成3次）
 function handleSweep(area: AreaDefinition) {
   const sweepCost = area.staminaCost * 3
   if (playerStore.stamina < sweepCost) {
-    warning('体力不足！需要' + sweepCost + '点体力')
+    warning(`体力不足！需要${sweepCost}点体力`)
     return
   }
 
-  // 消耗体力
   playerStore.consumeStamina(sweepCost)
 
-  // 计算扫荡奖励
   let totalExp = 0
   let totalGold = 0
   const allDrops: Map<string, { item: DropItem; quantity: number }> = new Map()
   const encounter = getAreaEncounterHint(area)
   const rewardMultiplier = encounter?.rewardMultiplier ?? 1
 
-  for (let i = 0; i < 3; i++) {
-    // 经验和灵石
+  for (let index = 0; index < 3; index++) {
     totalExp += Math.max(1, Math.floor(rollReward(area.expReward) * rewardMultiplier))
     totalGold += Math.max(1, Math.floor(rollReward(area.goldReward) * rewardMultiplier))
 
-    // 掉落物品
     const drops = resolveEncounterDrops(area.drops, encounter)
     for (const drop of drops) {
       const existing = allDrops.get(drop.item.id)
@@ -301,11 +357,9 @@ function handleSweep(area: AreaDefinition) {
     }
   }
 
-  // 发放奖励
   playerStore.addCultivation(totalExp)
   playerStore.addGold(totalGold)
 
-  // 添加掉落物品到背包
   const dropMessages: string[] = []
   for (const [, drop] of allDrops) {
     const added = playerStore.addToInventory({
@@ -322,29 +376,25 @@ function handleSweep(area: AreaDefinition) {
     }
   }
 
-  // 更新通关记录
   const progress = playerStore.getAreaProgress(area.id)
   if (progress) {
     playerStore.updateAreaProgress(area.id, {
       clearCount: progress.clearCount + 3,
-      stars: Math.max(progress.stars, 1) // 扫荡至少给1星
+      stars: Math.max(progress.stars, 1)
     })
   }
 
-  // 显示结果
   success(`扫荡完成！获得 ${totalExp} 修为, ${totalGold} 灵石`)
   if (dropMessages.length > 0) {
-    info('获得物品: ' + dropMessages.slice(0, 3).join(', ') + (dropMessages.length > 3 ? '...' : ''))
+    info(`获得物品: ${dropMessages.slice(0, 3).join(', ')}${dropMessages.length > 3 ? '...' : ''}`)
   }
 
-  // 更新宗门任务进度（扫荡3次）
-  for (let i = 0; i < 3; i++) {
+  for (let index = 0; index < 3; index++) {
     sectStore.updateTaskProgress('battle', 'monster')
     sectStore.updateTaskProgress('explore', area.id)
   }
 }
 
-// 购买体力
 function handleBuyStamina(option: { amount: number; cost: number }) {
   const result = playerStore.buyStamina(option.cost, option.amount)
   if (result.success) {
@@ -359,9 +409,7 @@ function getAreaEncounterHint(area: AreaDefinition) {
   return resolveAdventureAreaEncounter(area.id, mapStore.areaStates, worldStore.weather)
 }
 
-// 启动体力恢复定时器
 onMounted(() => {
-  // 每秒检查体力恢复
   recoverTimer = window.setInterval(() => {
     playerStore.recoverStamina()
   }, 1000)
@@ -376,167 +424,152 @@ onUnmounted(() => {
 
 <style scoped>
 .adventure-view {
-  padding-bottom: 16px;
+  display: grid;
+  gap: 14px;
+  padding-bottom: 10px;
 }
 
-/* 体力值条 */
-.stamina-bar {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 14px;
+  align-items: start;
 }
 
-.stamina-header {
+.hero-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.hero-copy p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.84);
+  line-height: 1.7;
+  font-size: 13px;
+}
+
+.hero-tags {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(104, 150, 145, 0.2);
+  color: rgba(74, 97, 96, 0.78);
+  font-size: 11px;
 }
 
-.stamina-icon {
-  font-size: 1rem;
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.stamina-text {
-  color: var(--color-muted);
-  font-size: 0.75rem;
+.stamina-panel {
+  margin-top: -2px;
 }
 
-.stamina-value {
-  color: rgb(232 228 217);
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-left: auto;
-}
-
-.stamina-progress {
-  height: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stamina-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.stamina-info {
+.section-header {
   display: flex;
+  align-items: end;
   justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
+  gap: 12px;
+  padding: 0 2px;
 }
 
-.recover-time {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
+.section-eyebrow {
+  color: rgba(73, 97, 95, 0.72);
+  font-size: 11px;
 }
 
-.stamina-full {
-  font-size: 0.6875rem;
-  color: #4ade80;
+.section-header h2 {
+  margin: 4px 0 0;
+  color: #8e6227;
+  font-size: 20px;
 }
 
-.buy-stamina-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  border-radius: 12px;
-  color: #fbbf24;
-  font-size: 0.6875rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.section-note {
+  color: rgba(73, 97, 95, 0.72);
+  font-size: 12px;
 }
 
-.buy-stamina-btn:active {
-  transform: scale(0.95);
-}
-
-.gem-icon {
-  font-size: 0.75rem;
-}
-
-/* 区域列表 */
 .areas-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
 }
 
-.area-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  transition: all 0.15s ease;
-}
-
 .area-card.locked {
-  opacity: 0.6;
+  opacity: 0.74;
 }
 
 .area-card.cleared {
-  border-color: rgba(74, 222, 128, 0.3);
+  border-color: rgba(98, 177, 132, 0.28);
 }
 
 .area-header {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.area-leading {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
 }
 
 .area-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 24px;
+}
+
+.area-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.area-copy strong {
+  color: #315257;
+  font-size: 16px;
+}
+
+.area-copy small {
+  font-size: 11px;
+}
+
+.difficulty-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  background: rgba(126, 184, 218, 0.1);
-  border-radius: 8px;
-}
-
-.area-info {
-  flex: 1;
-}
-
-.area-name {
-  font-size: 0.9375rem;
-  color: rgb(232 228 217);
-  font-weight: 500;
-}
-
-.area-realm {
-  font-size: 0.6875rem;
-  margin-top: 2px;
-}
-
-.area-difficulty {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  padding: 2px 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(105, 149, 143, 0.16);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .area-desc {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-  margin-bottom: 8px;
-  line-height: 1.4;
+  margin: 12px 0 0;
+  color: rgba(49, 82, 87, 0.8);
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .area-world-state {
-  margin-bottom: 8px;
+  margin-top: 12px;
   display: grid;
   gap: 6px;
 }
@@ -546,48 +579,53 @@ onUnmounted(() => {
   align-items: center;
   width: fit-content;
   max-width: 100%;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border: 1px solid rgba(126, 184, 218, 0.28);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.2);
-  font-size: 0.625rem;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .area-world-state p {
   margin: 0;
-  color: rgba(217, 223, 226, 0.76);
-  font-size: 0.625rem;
-  line-height: 1.45;
+  color: rgba(73, 97, 95, 0.78);
+  font-size: 11px;
+  line-height: 1.55;
 }
 
-.area-drops {
-  display: flex;
+.area-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  margin-top: 14px;
 }
 
-.drops-label {
-  font-size: 0.625rem;
-  color: var(--color-muted);
+.drop-strip {
+  display: grid;
+  gap: 8px;
+}
+
+.meta-label {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
 }
 
 .drops-items {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .drop-preview {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.3);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .drop-preview.common { border: 1px solid #9ca3af; }
@@ -597,283 +635,123 @@ onUnmounted(() => {
 .drop-preview.legendary { border: 1px solid #fbbf24; }
 
 .more-drops {
-  font-size: 0.5625rem;
-  color: var(--color-muted);
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  color: rgba(73, 97, 95, 0.72);
+  font-size: 10px;
+}
+
+.meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .area-stars {
   display: flex;
-  gap: 2px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-top: 12px;
 }
 
 .star {
-  font-size: 0.75rem;
-  color: rgba(251, 191, 36, 0.3);
+  font-size: 14px;
+  color: rgba(251, 191, 36, 0.26);
 }
 
 .star.filled {
-  color: #fbbf24;
-}
-
-.area-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.area-cost,
-.area-waves {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-}
-
-.cost-icon,
-.waves-icon {
-  font-size: 0.75rem;
-}
-
-.area-waves {
-  color: #60a5fa;
+  color: #f0b84d;
 }
 
 .area-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: none;
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.challenge-btn {
-  background: rgba(126, 184, 218, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.4);
-  color: #7eb8da;
-}
-
-.challenge-btn:not(:disabled):active {
-  transform: scale(0.98);
-  background: rgba(126, 184, 218, 0.3);
-}
-
-.sweep-btn {
-  background: rgba(74, 222, 128, 0.2);
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  color: #4ade80;
-}
-
-.sweep-btn:not(:disabled):active {
-  transform: scale(0.98);
-  background: rgba(74, 222, 128, 0.3);
-}
-
-.locked-btn {
-  background: rgba(107, 114, 128, 0.2);
-  border: 1px solid rgba(107, 114, 128, 0.4);
-  color: #6b7280;
-}
-
-.btn-icon {
-  font-size: 0.875rem;
-}
-
-.lock-icon {
-  font-size: 0.875rem;
-}
-
-/* 弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: linear-gradient(180deg, rgba(35, 38, 52, 0.98) 0%, rgba(25, 27, 38, 0.98) 100%);
-  border: 1px solid rgba(200, 164, 92, 0.3);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 320px;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(126, 184, 218, 0.15);
-}
-
-.modal-title {
-  font-size: 1rem;
-  color: var(--color-accent-warm);
-  font-weight: 500;
-}
-
-.modal-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: var(--color-muted);
-  font-size: 1.125rem;
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .stamina-options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 10px;
 }
 
 .stamina-option {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.stamina-option:not(.disabled):active {
-  transform: scale(0.98);
-  background: rgba(251, 191, 36, 0.1);
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(104, 150, 145, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  color: #355256;
+  font-family: var(--font-game);
+  text-align: left;
 }
 
 .stamina-option.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.45;
 }
 
-.option-amount {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.option-icon {
-  font-size: 1rem;
-}
-
-.option-value {
-  font-size: 0.9375rem;
-  color: #fbbf24;
-  font-weight: 500;
-}
-
+.option-amount,
 .option-cost {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-.cost-gem {
-  font-size: 0.875rem;
+.option-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff0b0, #ffcc79);
+  color: #8e6227;
 }
 
-.stamina-tip {
-  margin-top: 14px;
-  padding: 10px;
-  background: rgba(126, 184, 218, 0.1);
-  border-radius: 8px;
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-  text-align: center;
+.dialog-tip {
+  margin: 14px 0 0;
+  color: rgba(73, 97, 95, 0.76);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-/* 横屏适配 */
-@media (max-height: 500px) and (orientation: landscape) {
-  .stamina-bar {
-    padding: 8px;
-    margin-bottom: 10px;
+@media (max-width: 880px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
   }
 
-  .stamina-header {
-    margin-bottom: 4px;
+  .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .areas-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+  .area-meta-grid {
+    grid-template-columns: 1fr;
   }
 
-  .area-card {
-    padding: 8px;
+  .meta-chips {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    align-items: start;
+    flex-direction: column;
   }
 
   .area-header {
-    margin-bottom: 4px;
+    flex-direction: column;
   }
 
-  .area-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 1.125rem;
-  }
-
-  .area-name {
-    font-size: 0.8125rem;
-  }
-
-  .area-desc {
-    display: none;
-  }
-
-  .area-drops {
-    margin-bottom: 6px;
-  }
-
-  .area-cost {
-    margin-bottom: 6px;
-  }
-
-  .action-btn {
-    padding: 6px 8px;
-    font-size: 0.6875rem;
+  .area-actions {
+    grid-template-columns: 1fr;
   }
 }
 </style>

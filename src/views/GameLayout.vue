@@ -1,107 +1,111 @@
 <template>
   <div class="game-layout">
-    <!-- 顶部状态栏 -->
-    <div class="status-bar">
-      <div class="player-info">
-        <span class="realm" :class="getRealmClass">{{ playerStore.realmInfo.fullName }}</span>
-        <span class="name">{{ playerStore.name }}</span>
-      </div>
-      <div class="resources">
-        <div class="resource-item">
-          <span class="resource-icon">💎</span>
-          <span class="resource-value">{{ playerStore.gold }}</span>
-        </div>
-        <div class="resource-item">
-          <span class="resource-icon">✨</span>
-          <span class="resource-value">{{ formatCultivation }}</span>
-        </div>
-      </div>
+    <div class="layout-backdrop">
+      <div class="mist mist-a"></div>
+      <div class="mist mist-b"></div>
+      <div class="mist mist-c"></div>
     </div>
 
-    <!-- 主内容区 -->
-    <div class="main-content" :class="{ 'menu-open': isMenuExpanded }">
-      <RouterView />
-    </div>
-
-    <!-- 底部导航 -->
-    <nav class="bottom-nav" :class="{ expanded: isMenuExpanded }">
-      <!-- 主菜单按钮 -->
-      <div class="menu-toggle" @click="toggleMenu">
-        <div class="toggle-icon" :class="{ active: isMenuExpanded }">
-          <span class="toggle-line"></span>
-          <span class="toggle-line"></span>
-          <span class="toggle-line"></span>
-        </div>
-        <span class="toggle-label">{{ isMenuExpanded ? '收起' : '菜单' }}</span>
-      </div>
-
-      <!-- 菜单内容区 -->
-      <div v-if="isMenuExpanded" class="menu-items">
-        <RouterLink
-          v-for="item in menuItems"
-          :key="item.path"
-          :to="item.path"
-          class="menu-item"
-          :class="{ active: isActive(item.path) }"
-          @click="handleMenuClick"
-        >
-          <div class="item-icon">{{ item.icon }}</div>
-          <div class="item-content">
-            <span class="item-name">{{ item.name }}</span>
-            <span class="item-desc">{{ item.desc }}</span>
+    <header class="top-shell">
+      <GameSurface class="status-shell" tone="mist" padding="md">
+        <div class="status-row">
+          <div class="player-block">
+            <div class="avatar-orb">{{ realmIcon }}</div>
+            <div class="player-copy">
+              <span class="realm-pill" :class="getRealmClass">{{ playerStore.realmInfo.fullName }}</span>
+              <strong>{{ playerStore.name }}</strong>
+              <small>修为 {{ formatCultivation }}</small>
+            </div>
           </div>
-        </RouterLink>
-      </div>
 
-      <!-- 快捷入口（收起时显示） -->
-      <div v-if="!isMenuExpanded" class="quick-access">
-        <RouterLink
-          v-for="item in quickAccessItems"
-          :key="item.path"
-          :to="item.path"
-          class="quick-item"
-          :class="{ active: isActive(item.path) }"
-        >
-          <span class="quick-icon">{{ item.icon }}</span>
-          <span class="quick-label">{{ item.shortName }}</span>
-        </RouterLink>
-      </div>
-    </nav>
+          <div class="resource-row">
+            <GameStatChip icon="💎" label="灵石" :value="playerStore.gold" tone="gold" />
+            <GameStatChip icon="✨" label="修为" :value="formatCultivation" tone="jade" />
+          </div>
+        </div>
+      </GameSurface>
 
-    <!-- 模态框 -->
+      <GameSurface class="world-shell" :tone="sectAlertTone" padding="md" compact>
+        <div class="world-row">
+          <div class="world-copy">
+            <span class="world-eyebrow">天地流转</span>
+            <strong>{{ worldStore.currentTimeLabel }} · {{ weatherLabel }}</strong>
+            <p>{{ sectAlertSummary }}</p>
+          </div>
+
+          <div class="world-meta">
+            <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
+            <GameStatChip icon="👥" label="已识人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
+          </div>
+        </div>
+      </GameSurface>
+    </header>
+
+    <main class="main-shell">
+      <RouterView />
+    </main>
+
+    <footer class="nav-shell">
+      <GameSurface class="nav-surface" tone="jade" padding="md">
+        <div class="nav-header">
+          <div class="nav-copy">
+            <span class="nav-eyebrow">主循环</span>
+            <strong>{{ currentMenuItem?.name || '修仙界面' }}</strong>
+          </div>
+          <button class="menu-toggle" @click="toggleMenu">
+            <span>{{ isMenuExpanded ? '收起' : '展开' }}</span>
+          </button>
+        </div>
+
+        <div v-if="isMenuExpanded" class="menu-grid">
+          <RouterLink
+            v-for="item in menuItems"
+            :key="item.path"
+            :to="item.path"
+            class="menu-card"
+            :class="{ active: isActive(item.path) }"
+            @click="handleMenuClick"
+          >
+            <span class="menu-icon">{{ item.icon }}</span>
+            <div class="menu-copy">
+              <strong>{{ item.name }}</strong>
+              <small>{{ item.desc }}</small>
+            </div>
+          </RouterLink>
+        </div>
+
+        <div v-else class="quick-bar">
+          <RouterLink
+            v-for="item in quickAccessItems"
+            :key="item.path"
+            :to="item.path"
+            class="quick-card"
+            :class="{ active: isActive(item.path) }"
+          >
+            <span class="quick-icon">{{ item.icon }}</span>
+            <span class="quick-label">{{ item.shortName }}</span>
+          </RouterLink>
+        </div>
+      </GameSurface>
+    </footer>
+
     <AnnouncementModal />
     <ItemAcquireModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { RouterView, RouterLink, useRoute } from 'vue-router'
-import { usePlayerStore } from '@/stores/playerStore'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
+import GameStatChip from '@/components/game-ui/GameStatChip.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
+import { usePlayerStore } from '@/stores/playerStore'
+import { useSectStore } from '@/stores/sectStore'
+import { useWorldStore } from '@/stores/worldStore'
+import { getSectById } from '@/types/sect'
 
-const playerStore = usePlayerStore()
-const route = useRoute()
-
-const isMenuExpanded = ref(false)
-
-// 菜单项配置
-const menuItems = [
-  { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '闭关修炼，提升境界', icon: '🧘' },
-  { path: '/game/story', name: '故事', shortName: '故事', desc: '体验剧情故事', icon: '📖' },
-  { path: '/game/adventure', name: '历险', shortName: '历险', desc: '探索世界、历练战斗', icon: '⚔️' },
-  { path: '/game/map', name: '地图', shortName: '地图', desc: '探索四大界域', icon: '🗺️' },
-  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '加入宗门修行', icon: '🏛️' },
-  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '招募培养伙伴', icon: '👥' },
-  { path: '/game/skills', name: '功法', shortName: '功法', desc: '学习功法技能', icon: '📜' },
-  { path: '/game/inventory', name: '背包', shortName: '背包', desc: '管理物品装备', icon: '🎒' },
-  { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '购买所需物品', icon: '🏪' },
-  { path: '/game/profile', name: '角色', shortName: '角色', desc: '查看角色属性', icon: '👤' },
-  { path: '/game/settings', name: '设置', shortName: '设置', desc: '游戏设置选项', icon: '⚙️' }
-]
-
-// 快捷入口（底部常驻显示的3个）
 interface MenuItem {
   path: string
   name: string
@@ -110,48 +114,98 @@ interface MenuItem {
   icon: string
 }
 
+const playerStore = usePlayerStore()
+const sectStore = useSectStore()
+const worldStore = useWorldStore()
+const route = useRoute()
+const isMenuExpanded = ref(false)
+let worldTickTimer: number | null = null
+
+const WORLD_TICK_INTERVAL_MS = 60 * 1000
+
+const menuItems: MenuItem[] = [
+  { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '吐纳灵气，突破小境。', icon: '🧘' },
+  { path: '/game/story', name: '故事', shortName: '故事', desc: '主线、支线与人物因果。', icon: '📖' },
+  { path: '/game/adventure', name: '历险', shortName: '历险', desc: '历练刷图，搜罗材料。', icon: '⚔️' },
+  { path: '/game/map', name: '地图', shortName: '地图', desc: '查看界域、战线与风险。', icon: '🗺️' },
+  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '宗门关系、任务和战事。', icon: '🏛️' },
+  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '伙伴、灵兽与同行者。', icon: '👥' },
+  { path: '/game/skills', name: '功法', shortName: '功法', desc: '功法树、招式与搭配。', icon: '📜' },
+  { path: '/game/inventory', name: '背包', shortName: '背包', desc: '丹药、材料、法器与装备。', icon: '🎒' },
+  { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '补货、交易与稀有奇珍。', icon: '🏪' },
+  { path: '/game/profile', name: '角色', shortName: '角色', desc: '角色面板与成长总览。', icon: '👤' },
+  { path: '/game/settings', name: '设置', shortName: '设置', desc: '音画、存档与辅助选项。', icon: '⚙️' }
+]
+
 const quickAccessItems = computed<MenuItem[]>(() => {
   const currentPath = route.path
-  const firstItem = menuItems[0]!
-  const items: MenuItem[] = [firstItem]
-
+  const items: MenuItem[] = [menuItems[0]!]
   const currentItem = menuItems.find(item => item.path === currentPath)
-  if (currentItem && currentItem.path !== '/game/cultivation') {
+  if (currentItem && currentItem.path !== items[0]?.path) {
     items.push(currentItem)
   }
 
-  while (items.length < 3) {
-    const defaultItem = menuItems.find(item => !items.some(i => i.path === item.path))
-    if (defaultItem) {
-      items.push(defaultItem)
-    } else {
-      break
+  for (const item of menuItems) {
+    if (items.length >= 4) break
+    if (!items.some(existing => existing.path === item.path)) {
+      items.push(item)
     }
   }
 
-  return items.slice(0, 3)
+  return items.slice(0, 4)
 })
 
-// 境界样式
-const getRealmClass = computed(() => {
-  const realm = playerStore.realm
-  const classMap: Record<string, string> = {
-    '炼气': 'realm-qi',
-    '筑基': 'realm-foundation',
-    '金丹': 'realm-golden',
-    '元婴': 'realm-infant',
-    '化神': 'realm-god',
-    '渡劫': 'realm-tribulation',
-    '大乘': 'realm-mahayana',
-    '仙人': 'realm-immortal'
+const currentMenuItem = computed(() => menuItems.find(item => item.path === route.path) ?? null)
+
+const weatherLabel = computed(() => {
+  const labels: Record<typeof worldStore.weather, string> = {
+    clear: '天朗气清',
+    rain: '灵雨细落',
+    storm: '雷暴压境',
+    flood: '洪水漫野',
+    fire: '火势蔓延',
+    mist: '雾锁山河'
   }
-  for (const [key, value] of Object.entries(classMap)) {
-    if (realm.includes(key)) return value
-  }
-  return ''
+  return labels[worldStore.weather]
 })
 
-// 修为格式化
+const sectAlertSummary = computed(() => {
+  if (playerStore.captivity.isCaptured) {
+    const captor = playerStore.captivity.captorSectId
+      ? getSectById(playerStore.captivity.captorSectId)?.name ?? '敌对势力'
+      : '敌对势力'
+    return `你当前被${captor}控制，主循环行动应优先处理脱困。`
+  }
+
+  if (!sectStore.joinedSectId || !sectStore.currentSect) {
+    return worldStore.visibleLogs[0]?.title ?? '尚未加入宗门，游历与结识人物会决定你的归属。'
+  }
+
+  if (sectStore.worldCondition.status === 'collapsed') {
+    return `${sectStore.currentSect.name}已陷入沦陷状态，宗门循环需要尽快重建。`
+  }
+
+  if (sectStore.worldCondition.status === 'rebuilding') {
+    return `${sectStore.currentSect.name}正在重建，资源调配与人手稳定优先。`
+  }
+
+  if (sectStore.activeWar) {
+    return `${sectStore.currentSect.name}正卷入战事，地图和世界异闻会持续变化。`
+  }
+
+  return `${sectStore.currentSect.name}山门暂稳，当前可通过历练、宗门事务与人物关系推进局势。`
+})
+
+const sectAlertTone = computed<'jade' | 'gold' | 'mist'>(() => {
+  if (playerStore.captivity.isCaptured || sectStore.worldCondition.status === 'collapsed') {
+    return 'mist'
+  }
+  if (sectStore.activeWar || sectStore.worldCondition.status === 'rebuilding') {
+    return 'gold'
+  }
+  return 'jade'
+})
+
 const formatCultivation = computed(() => {
   const cur = playerStore.cultivation
   const max = playerStore.maxCultivation
@@ -161,7 +215,38 @@ const formatCultivation = computed(() => {
   return `${cur}/${max}`
 })
 
-function isActive(path: string): boolean {
+const realmIcon = computed(() => {
+  const realm = playerStore.realm
+  if (realm.includes('炼气')) return '气'
+  if (realm.includes('筑基')) return '筑'
+  if (realm.includes('金丹')) return '丹'
+  if (realm.includes('元婴')) return '婴'
+  if (realm.includes('化神')) return '神'
+  if (realm.includes('渡劫')) return '劫'
+  if (realm.includes('大乘')) return '乘'
+  return '仙'
+})
+
+const getRealmClass = computed(() => {
+  const realm = playerStore.realm
+  const classMap: Record<string, string> = {
+    炼气: 'realm-qi',
+    筑基: 'realm-foundation',
+    金丹: 'realm-golden',
+    元婴: 'realm-infant',
+    化神: 'realm-god',
+    渡劫: 'realm-tribulation',
+    大乘: 'realm-mahayana',
+    仙人: 'realm-immortal'
+  }
+
+  for (const [key, value] of Object.entries(classMap)) {
+    if (realm.includes(key)) return value
+  }
+  return ''
+})
+
+function isActive(path: string) {
   return route.path === path
 }
 
@@ -172,463 +257,384 @@ function toggleMenu() {
 function handleMenuClick() {
   isMenuExpanded.value = false
 }
+
+function startWorldClock() {
+  worldStore.simulateOffline()
+  if (worldTickTimer) return
+  worldTickTimer = window.setInterval(() => {
+    worldStore.advanceTick()
+  }, WORLD_TICK_INTERVAL_MS)
+}
+
+onMounted(() => {
+  startWorldClock()
+})
+
+onUnmounted(() => {
+  if (worldTickTimer) {
+    clearInterval(worldTickTimer)
+    worldTickTimer = null
+  }
+})
 </script>
 
 <style scoped>
 .game-layout {
-  height: 100vh;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-/* ��部状态栏 */
-.status-bar {
-  background: linear-gradient(145deg, rgb(35 38 52) 0%, rgba(30, 32, 48, 0.95) 100%);
-  border-bottom: 1px solid rgba(200, 164, 92, 0.2);
-  padding: 10px 16px;
-  padding-left: max(16px, calc(16px + env(safe-area-inset-left, 0px)));
-  padding-right: max(16px, calc(16px + env(safe-area-inset-right, 0px)));
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.player-info {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.realm {
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.realm-qi { color: #7eb8da; text-shadow: 0 0 8px rgba(126, 184, 218, 0.5); }
-.realm-foundation { color: #4ade80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
-.realm-golden { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.6); }
-.realm-infant { color: #a78bfa; text-shadow: 0 0 12px rgba(167, 139, 250, 0.6); }
-.realm-god { color: #f472b6; text-shadow: 0 0 12px rgba(244, 114, 182, 0.6); }
-.realm-tribulation { color: #67e8f9; text-shadow: 0 0 14px rgba(103, 232, 249, 0.6); }
-.realm-mahayana { color: #fcd34d; text-shadow: 0 0 16px rgba(252, 211, 77, 0.7); }
-.realm-immortal { color: #fef08a; text-shadow: 0 0 20px rgba(254, 240, 138, 0.8); }
-
-.name {
-  color: rgb(232 228 217);
-  font-size: 0.875rem;
-}
-
-.resources {
-  display: flex;
-  gap: 16px;
-}
-
-.resource-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.resource-icon {
-  font-size: 0.875rem;
-}
-
-.resource-value {
-  color: var(--color-accent);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* 主内容区 */
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px;
-  padding-left: calc(12px + env(safe-area-inset-left));
-  padding-right: calc(12px + env(safe-area-inset-right));
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* 隐藏滚动条 */
-.main-content::-webkit-scrollbar {
-  display: none;
-}
-.main-content {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* 底部导航 */
-.bottom-nav {
-  background: linear-gradient(180deg, rgba(35, 38, 52, 0.98) 0%, rgb(20 22 30) 100%);
-  border-top: 1px solid rgba(200, 164, 92, 0.15);
-  padding: 8px 12px;
-  /* 底部padding = 基础8px + 安全区域（iPhone上有34px，普通浏览器为0） */
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(12px + env(safe-area-inset-left, 0px));
-  padding-right: calc(12px + env(safe-area-inset-right, 0px));
-  flex-shrink: 0;
-}
-
-/* 菜单切换按钮 */
-.menu-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(200, 164, 92, 0.1);
-  border: 1px solid rgba(200, 164, 92, 0.3);
-  border-radius: 20px;
-  cursor: pointer;
-  margin: 0 auto;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-.menu-toggle:active {
-  transform: scale(0.98);
-  background: rgba(200, 164, 92, 0.15);
-}
-
-.toggle-icon {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 18px;
-}
-
-.toggle-line {
-  width: 100%;
-  height: 2px;
-  background: var(--color-accent-warm);
-  border-radius: 1px;
-  transition: all 0.25s ease;
-}
-
-.toggle-icon.active .toggle-line:nth-child(1) {
-  transform: rotate(45deg) translate(4px, 4px);
-}
-
-.toggle-icon.active .toggle-line:nth-child(2) {
-  opacity: 0;
-}
-
-.toggle-icon.active .toggle-line:nth-child(3) {
-  transform: rotate(-45deg) translate(4px, -4px);
-}
-
-.toggle-label {
-  color: var(--color-accent-warm);
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-/* 展开的菜单项 */
-.menu-items {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px 0;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #f2fffb 0%, #e5f4ef 48%, #dbece7 100%),
+    radial-gradient(circle at top, rgba(126, 212, 188, 0.22), transparent 48%);
 }
 
-.menu-item {
+.layout-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mist {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(34px);
+  opacity: 0.52;
+}
+
+.mist-a {
+  inset: 4% auto auto -8%;
+  width: 240px;
+  height: 240px;
+  background: rgba(132, 223, 198, 0.36);
+}
+
+.mist-b {
+  inset: auto 8% 20% auto;
+  width: 220px;
+  height: 220px;
+  background: rgba(251, 225, 162, 0.32);
+}
+
+.mist-c {
+  inset: auto auto -12% 18%;
+  width: 280px;
+  height: 220px;
+  background: rgba(179, 220, 230, 0.28);
+}
+
+.top-shell,
+.main-shell,
+.nav-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.top-shell {
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
+  display: grid;
+  gap: 10px;
+}
+
+.status-shell,
+.world-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.status-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.15);
-  border-radius: 12px;
-  text-decoration: none;
-  transition: all 0.2s ease;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-.menu-item:hover {
-  background: rgba(126, 184, 218, 0.1);
-  border-color: rgba(126, 184, 218, 0.3);
-}
-
-.menu-item:active {
-  transform: scale(0.98);
-}
-
-.menu-item.active {
-  background: rgba(200, 164, 92, 0.15);
-  border-color: rgba(200, 164, 92, 0.4);
-}
-
-.item-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
+.player-block {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(126, 184, 218, 0.1);
-  border-radius: 10px;
+  gap: 12px;
 }
 
-.menu-item.active .item-icon {
-  background: rgba(200, 164, 92, 0.2);
+.avatar-orb {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff0b0, #73d4be);
+  color: #8e6227;
+  font-size: 20px;
+  box-shadow: 0 12px 24px rgba(113, 196, 177, 0.18);
 }
 
-.item-content {
-  text-align: center;
-}
-
-.item-name {
-  display: block;
-  font-size: 0.8125rem;
-  color: rgb(232 228 217);
-  font-weight: 500;
-}
-
-.item-desc {
-  display: block;
-  font-size: 0.625rem;
-  color: var(--color-muted);
-  margin-top: 2px;
-}
-
-/* 快捷入口 */
-.quick-access {
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0;
-}
-
-.quick-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.player-copy {
+  display: grid;
   gap: 4px;
-  padding: 6px 16px;
-  text-decoration: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
-.quick-item:active {
-  transform: scale(0.95);
+.player-copy strong {
+  color: #315257;
+  font-size: 16px;
+}
+
+.player-copy small {
+  color: rgba(74, 97, 96, 0.7);
+  font-size: 11px;
+}
+
+.realm-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(123, 166, 176, 0.2);
+  background: rgba(255, 255, 255, 0.74);
+  font-size: 11px;
+}
+
+.realm-qi { color: #4d99c2; }
+.realm-foundation { color: #4caa73; }
+.realm-golden { color: #c28b25; }
+.realm-infant { color: #8966cb; }
+.realm-god { color: #c05d8f; }
+.realm-tribulation { color: #3ba7bd; }
+.realm-mahayana { color: #c2932f; }
+.realm-immortal { color: #a6882d; }
+
+.resource-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.world-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.world-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.world-eyebrow {
+  color: rgba(73, 97, 95, 0.72);
+  font-size: 11px;
+}
+
+.world-copy strong {
+  color: #8e6227;
+  font-size: 14px;
+}
+
+.world-copy p {
+  margin: 0;
+  color: rgba(55, 82, 84, 0.78);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.world-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.main-shell {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.nav-shell {
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.nav-surface {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.nav-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.nav-eyebrow {
+  color: rgba(73, 97, 95, 0.72);
+  font-size: 11px;
+}
+
+.nav-copy strong {
+  color: #8e6227;
+  font-size: 18px;
+}
+
+.menu-toggle {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(188, 141, 58, 0.24);
+  background: rgba(255, 251, 237, 0.82);
+  color: #8b6226;
+  font-family: var(--font-game);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.menu-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 120px;
+  padding: 14px;
+  text-decoration: none;
+  border-radius: 18px;
+  border: 1px solid rgba(103, 149, 144, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.94), rgba(241, 249, 244, 0.82)),
+    radial-gradient(circle at top, rgba(170, 232, 214, 0.15), transparent 62%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(87, 126, 121, 0.14);
+}
+
+.menu-card.active {
+  border-color: rgba(188, 141, 58, 0.3);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 236, 0.98), rgba(247, 240, 215, 0.88)),
+    radial-gradient(circle at top, rgba(255, 213, 112, 0.2), transparent 62%);
+}
+
+.menu-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 20px;
+}
+
+.menu-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.menu-copy strong {
+  color: #315257;
+  font-size: 14px;
+}
+
+.menu-copy small {
+  color: rgba(74, 97, 96, 0.7);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.quick-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  text-decoration: none;
+  border-radius: 18px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.quick-card.active {
+  border-color: rgba(188, 141, 58, 0.28);
+  background: rgba(255, 249, 233, 0.82);
 }
 
 .quick-icon {
-  font-size: 1.375rem;
+  font-size: 18px;
 }
 
 .quick-label {
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  line-height: 1.2;
+  color: #496463;
+  font-size: 11px;
 }
 
-.quick-item.active .quick-label {
-  color: var(--color-accent-warm);
-}
-
-/* 小屏幕适配 */
-@media (max-width: 360px) {
-  .menu-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 860px) {
+  .status-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .status-bar {
-    padding: 8px 12px;
+  .world-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .resources {
-    gap: 10px;
+  .resource-row {
+    justify-content: flex-start;
   }
 
-  .realm, .name, .resource-value {
-    font-size: 0.75rem;
-  }
-}
-
-/* 平板和桌面端适配 */
-@media (min-width: 768px) {
-  .game-layout {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  .status-bar {
-    padding: 12px 20px;
-    padding-top: max(14px, calc(12px + env(safe-area-inset-top)));
-    padding-left: max(20px, calc(20px + env(safe-area-inset-left)));
-    padding-right: max(20px, calc(20px + env(safe-area-inset-right)));
-  }
-
-  .main-content {
-    padding: 16px;
-    padding-left: max(16px, calc(16px + env(safe-area-inset-left)));
-    padding-right: max(16px, calc(16px + env(safe-area-inset-right)));
-  }
-
-  .bottom-nav {
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    padding-left: max(20px, calc(20px + env(safe-area-inset-left, 0px)));
-    padding-right: max(20px, calc(20px + env(safe-area-inset-right, 0px)));
+  .world-meta {
+    justify-content: flex-start;
   }
 
   .menu-grid {
-    grid-template-columns: repeat(4, 1fr);
-    max-width: 500px;
-    margin: 0 auto;
-  }
-
-  .menu-item {
-    padding: 14px 10px;
-  }
-
-  .item-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 1.75rem;
-  }
-
-  .quick-item {
-    padding: 8px 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-/* 桌面端 */
-@media (min-width: 1024px) {
-  .game-layout {
-    max-width: 900px;
+@media (max-width: 640px) {
+  .main-shell {
+    padding: 10px;
   }
 
-  .status-bar {
-    padding: 14px 24px;
-    padding-top: max(16px, calc(14px + env(safe-area-inset-top, 0px)));
-    padding-left: max(24px, calc(24px + env(safe-area-inset-left, 0px)));
-    padding-right: max(24px, calc(24px + env(safe-area-inset-right, 0px)));
+  .nav-shell,
+  .top-shell {
+    padding-inline: 10px;
   }
 
-  .bottom-nav {
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    padding-left: max(24px, calc(24px + env(safe-area-inset-left, 0px)));
-    padding-right: max(24px, calc(24px + env(safe-area-inset-right, 0px)));
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .realm {
-    font-size: 1rem;
+  .quick-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  .name {
-    font-size: 1rem;
-  }
-
-  .resource-icon {
-    font-size: 1rem;
-  }
-
-  .resource-value {
-    font-size: 1rem;
-  }
-
-  .main-content {
-    padding: 20px;
-    padding-left: max(20px, calc(20px + env(safe-area-inset-left)));
-    padding-right: max(20px, calc(20px + env(safe-area-inset-right)));
-  }
-}
-
-/* 横屏手机 - 紧凑布局 */
-@media (max-height: 500px) and (orientation: landscape) {
-  /* 状态栏紧凑 */
-  .status-bar {
-    padding: 4px 12px;
-    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px)));
-    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px)));
-  }
-
-  .realm, .name {
-    font-size: 0.75rem;
-  }
-
-  .resources {
-    gap: 12px;
-  }
-
-  .resource-icon, .resource-value {
-    font-size: 0.75rem;
-  }
-
-  /* 主内容区紧凑 */
-  .main-content {
-    padding: 6px 8px;
-    padding-left: max(16px, calc(8px + env(safe-area-inset-left, 0px)));
-    padding-right: max(16px, calc(8px + env(safe-area-inset-right, 0px)));
-  }
-
-  /* 底部导航紧凑 */
-  .bottom-nav {
-    padding: 4px 12px;
-    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
-    padding-left: calc(12px + env(safe-area-inset-left, 0px));
-    padding-right: calc(12px + env(safe-area-inset-right, 0px));
-  }
-
-  .menu-toggle {
-    padding: 4px 12px;
-  }
-
-  .toggle-label {
-    font-size: 0.625rem;
-  }
-
-  /* 菜单项 - 竖着的2列布局 */
-  .menu-items {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-    padding-top: 4px;
-  }
-
-  .menu-item {
-    padding: 4px;
-    gap: 2px;
-  }
-
-  .item-icon {
-    width: 24px;
-    height: 24px;
-    font-size: 0.875rem;
-  }
-
-  .item-name {
-    font-size: 0.5rem;
-  }
-
-  .item-desc {
-    display: none;
-  }
-
-  .quick-access {
-    flex-direction: row;
-    justify-content: space-around;
-    gap: 4px;
-    padding-top: 4px;
-    align-items: center;
-  }
-
-  .quick-item {
-    padding: 4px 8px;
-  }
-
-  .quick-icon {
-    font-size: 0.875rem;
-  }
-
-  .quick-label {
-    font-size: 0.5625rem;
+  .menu-card {
+    min-height: 108px;
   }
 }
 </style>

@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watchEffect, toRaw } from 'vue'
 import type { WorldRealm, GameDate, MapArea, HistoryEvent, HistoryEventType } from '@/types/map'
+import type { WorldClock } from '@/types/world'
 import type { AreaRuntimeState } from '@/map/runtime/mapRuntimeTypes'
 import {
   WORLD_REALMS,
   WORLD_REALM_CONFIGS,
+  MONTH_SEASONS,
   SEASON_EFFECTS,
   createInitialGameDate,
   advanceGameDate,
@@ -78,6 +80,10 @@ const STORAGE_KEY = 'woyu-xiuxian-map'
 
 // 事件ID计数器
 let eventIdCounter = 0
+
+function toAbsoluteDayValue(input: { year: number; month: number; day: number }) {
+  return ((input.year - 1) * 12 * 30) + ((input.month - 1) * 30) + (input.day - 1)
+}
 
 export const useMapStore = defineStore('map', () => {
   // ====== 状态 ======
@@ -221,6 +227,27 @@ export const useMapStore = defineStore('map', () => {
     }
 
     return currentDate.value
+  }
+
+  function syncCalendarFromWorldClock(clock: Pick<WorldClock, 'year' | 'month' | 'day'>) {
+    const nextAbsoluteDay = toAbsoluteDayValue(clock)
+    const currentAbsoluteDay = toAbsoluteDayValue(currentDate.value)
+    const diff = nextAbsoluteDay - currentAbsoluteDay
+
+    currentDate.value = {
+      year: clock.year,
+      month: clock.month,
+      day: clock.day,
+      season: MONTH_SEASONS[clock.month]!
+    }
+
+    if (diff > 0) {
+      totalDaysPlayed.value += diff
+      checkRealmUnlocks()
+
+      const sectStore = useSectStore()
+      sectStore.refreshTasks()
+    }
   }
 
   // 检查界域解锁
@@ -501,6 +528,7 @@ export const useMapStore = defineStore('map', () => {
     isRealmUnlockedByPlayer,
     getSectsInArea,
     getUnlockedSects,
+    syncCalendarFromWorldClock,
     applyWarResolution,
     updateAreaWorldState,
     getEventsByType,

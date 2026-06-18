@@ -126,7 +126,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     requiredRealm: '炼气',
     requiredRealmLevel: 1,
     adjacentAreas: ['azure_valley', 'cloud_peak'],
-    sects: ['qingyun_sect', 'sword_mountain'],
+    sects: ['qingyun_sect', 'forge_sect'],
     resources: ['灵草', '青云石'],
     isUnlocked: true,
     isConquered: false,

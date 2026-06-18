@@ -225,6 +225,7 @@ export const useWorldStore = defineStore('world', () => {
   function resolveWorldSystems() {
     const mapStore = useMapStore()
     const sectStore = useSectStore()
+    mapStore.syncCalendarFromWorldClock(clock.value)
     const sectUpdate = sectStore.updateWorldState(clock.value.totalTicks)
     const mapUpdate = mapStore.updateAreaWorldState(clock.value.totalTicks, weather.value, sectUpdate.warResolution)
     if (mapUpdate.ownershipChanges.length > 0) {

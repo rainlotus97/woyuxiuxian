@@ -1,111 +1,296 @@
 <template>
   <div class="cultivation-view">
-    <div class="game-panel">
-      <h2 class="panel-title">修炼</h2>
-      <p class="panel-desc">打坐修炼，感悟天地灵气</p>
+    <GameSurface
+      tone="mist"
+      padding="lg"
+      eyebrow="主界总览"
+      title="修途总览"
+      :subtitle="heroSubtitle"
+    >
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="hero-header">
+            <div class="hero-avatar" :class="{ active: playerStore.isIdling }">{{ playerStore.icon }}</div>
+            <div class="hero-copy">
+              <span class="hero-realm">{{ playerStore.realmInfo.fullName }}</span>
+              <strong>{{ playerStore.name }}</strong>
+              <p>{{ heroSummary }}</p>
+            </div>
+          </div>
 
-      <div class="cultivation-area">
-        <div class="character">
-          <div class="avatar" :class="{ 'is-idling': playerStore.isIdling }">
-            {{ playerStore.icon }}
-          </div>
-          <div class="status" :class="{ 'idling': playerStore.isIdling }">
-            {{ playerStore.isIdling ? '修炼中...' : '入定中...' }}
-          </div>
-          <div v-if="playerStore.isIdling" class="idle-indicator">
-            <span class="pulse">挂机中</span>
+          <div v-if="offlineGains > 0" class="offline-banner">
+            <div class="offline-copy">
+              <span>离线积累</span>
+              <strong>+{{ offlineGains }} 修为</strong>
+            </div>
+            <GameActionButton icon="🎁" tone="gold" @click="claimOfflineGains">领取</GameActionButton>
           </div>
         </div>
 
-        <div class="realm-info">
-          <span class="realm-name"
-            :style="{ background: playerStore.realmColor, '-webkit-background-clip': 'text', '-webkit-text-fill-color': 'transparent', 'background-clip': 'text' }">{{
-              playerStore.realmInfo.fullName }}</span>
-        </div>
-
-        <div class="progress-section">
-          <div class="progress-label">
-            <span>修为</span>
-            <span v-if="playerStore.realmLevel === 9">{{ playerStore.cultivation }}</span>
-            <span v-else>{{ playerStore.cultivation }} / {{ playerStore.maxCultivation }}</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill cultivation" :style="{ width: `${playerStore.cultivationProgress}%` }"></div>
-          </div>
-        </div>
-
-        <!-- 离线收益提示 -->
-        <div v-if="offlineGains > 0" class="offline-gains" @click="claimOfflineGains">
-          <span class="gain-icon">🎁</span>
-          <span>离线收益: +{{ offlineGains }} 修为</span>
-          <span class="tap-hint">点击领取</span>
+        <div class="hero-stats">
+          <GameStatChip icon="☯️" label="行动模式" :value="idleModeLabel" tone="jade" />
+          <GameStatChip icon="⚡" label="体力" :value="`${playerStore.stamina}/${playerStore.maxStamina}`" tone="gold" />
+          <GameStatChip icon="📜" label="世界异闻" :value="recentLogs.length" tone="rose" />
         </div>
       </div>
+    </GameSurface>
 
-      <div class="action-buttons">
-        <GameButton @click="toggleIdle" :class="{ 'active': playerStore.isIdling }">
-          {{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}
-        </GameButton>
-        <GameButton @click="handleMeditate" :disabled="playerStore.isIdling">
-          打坐修炼
-        </GameButton>
-        <GameButton @click="handleBreakthrough" :disabled="!playerStore.canBreakthrough"
-          :class="{ 'can-breakthrough': playerStore.canBreakthrough }">
-          突破境界
-        </GameButton>
-      </div>
+    <div class="overview-grid">
+      <GameSurface tone="gold" padding="md" eyebrow="修炼进程" title="境界推进" :subtitle="breakthroughHint">
+        <div class="progress-stack">
+          <GameProgressBar
+            label="修为进度"
+            :current="playerStore.cultivation"
+            :max="playerStore.maxCultivation"
+            tone="gold"
+          />
+          <GameProgressBar
+            label="体力储备"
+            :current="playerStore.stamina"
+            :max="playerStore.maxStamina"
+            :hint="staminaRecoverLabel"
+            tone="jade"
+          />
+        </div>
 
-      <!-- 挂机说明 -->
-      <div class="idle-info">
-        <p v-if="playerStore.isMaxRealm && playerStore.realmLevel === 9">
-          💡 已达最高境界
-        </p>
-        <p v-else-if="playerStore.realmLevel === 9">
-          💡 {{ playerStore.realm }}九层修为满后需要手动突破至{{ playerStore.nextRealm }}
-        </p>
-        <p v-else>
-          💡 挂机中每秒自动获得 {{ CULTIVATION_PER_TICK }} 修为，{{ playerStore.realm }}{{ playerStore.realmLevel }}层满后自动升至{{
-            playerStore.realmLevel + 1 }}层
-        </p>
-      </div>
+        <template #footer>
+          <div class="action-grid">
+            <GameActionButton
+              :icon="playerStore.isIdling ? '⏸️' : '▶️'"
+              :tone="playerStore.isIdling ? 'rose' : 'jade'"
+              block
+              @click="toggleIdle"
+            >
+              {{ playerStore.isIdling ? '停止挂机' : '开始挂机' }}
+            </GameActionButton>
+            <GameActionButton icon="🧘" tone="gold" block :disabled="playerStore.isIdling" @click="handleMeditate">
+              打坐修炼
+            </GameActionButton>
+            <GameActionButton
+              icon="⤴️"
+              tone="jade"
+              block
+              :disabled="!playerStore.canBreakthrough"
+              @click="handleBreakthrough"
+            >
+              突破境界
+            </GameActionButton>
+          </div>
+        </template>
+      </GameSurface>
+
+      <GameSurface tone="jade" padding="md" eyebrow="挂机安排" title="行动排程" subtitle="挂机期间，主角与世界同步推进。">
+        <div class="idle-mode-list">
+          <button
+            v-for="mode in idleModes"
+            :key="mode.id"
+            class="idle-mode-card"
+            :class="{ active: worldStore.idleMode === mode.id }"
+            @click="handleIdleModeChange(mode.id)"
+          >
+            <span class="mode-icon">{{ mode.icon }}</span>
+            <div class="mode-copy">
+              <strong>{{ mode.label }}</strong>
+              <small>{{ mode.description }}</small>
+            </div>
+          </button>
+        </div>
+      </GameSurface>
     </div>
+
+    <div class="world-grid">
+      <GameSurface
+        :tone="sectPanelTone"
+        padding="md"
+        eyebrow="宗门态势"
+        title="所属势力"
+        :subtitle="sectStatusText"
+      >
+        <div class="sect-panel">
+          <div v-if="sectStore.currentSect" class="sect-summary">
+            <div class="sect-heading">
+              <span class="sect-icon">{{ sectStore.currentSect.icon }}</span>
+              <div>
+                <strong>{{ sectStore.currentSect.name }}</strong>
+                <small>{{ sectStore.positionName }} · 声望 {{ sectStore.reputation }}</small>
+              </div>
+            </div>
+
+            <div class="sect-chip-row">
+              <GameStatChip icon="🏯" label="宗门状态" :value="sectConditionLabel" :tone="sectStatusChipTone" />
+              <GameStatChip icon="🎖️" label="贡献" :value="sectStore.contribution" tone="gold" />
+            </div>
+
+            <div v-if="sectStore.activeEvent" class="sect-event-banner">
+              <strong>{{ sectStore.activeEvent.title }}</strong>
+              <p>{{ sectStore.activeEvent.description }}</p>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <strong>尚未拜入宗门</strong>
+            <p>地图、故事与人物关系会持续解锁宗门归属。当前更适合优先推进历练和剧情。</p>
+          </div>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="realm" padding="md" eyebrow="重要人物" title="命运相逢" subtitle="关键 NPC 会持续在世界中成长、受伤、结盟或反目。">
+        <div class="npc-list">
+          <div v-for="npc in spotlightNpcs" :key="npc.id" class="npc-card">
+            <div class="npc-leading">
+              <div class="npc-badge">{{ npc.name.slice(0, 1) }}</div>
+              <div class="npc-copy">
+                <strong>{{ npc.name }}</strong>
+                <small>{{ npc.realm }}{{ npc.realmLevel }}层 · {{ npc.goalLabel }}</small>
+              </div>
+            </div>
+            <div class="npc-meta">
+              <span class="bond-pill" :class="`bond-${npc.bondTone}`">{{ npc.bondLabel }}</span>
+              <span class="state-pill">{{ npc.hpLabel }}</span>
+            </div>
+          </div>
+        </div>
+      </GameSurface>
+    </div>
+
+    <GameSurface tone="mist" padding="md" eyebrow="世界流转" title="近期异闻" subtitle="挂机时，天气、宗门和 NPC 都会写入世界日志。">
+      <div class="log-list">
+        <div v-for="log in recentLogs" :key="log.id" class="log-card" :class="`severity-${log.severity}`">
+          <div class="log-head">
+            <strong>{{ log.title }}</strong>
+            <span>{{ log.timeLabel }}</span>
+          </div>
+          <p>{{ log.text }}</p>
+        </div>
+      </div>
+    </GameSurface>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { usePlayerStore } from '@/stores/playerStore'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
+import GameStatChip from '@/components/game-ui/GameStatChip.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
-import { useAudio, sfxMeditate, sfxBreakthrough } from '@/composables/useAudio'
+import { useAudio, sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
-import GameButton from '@/components/common/GameButton.vue'
+import { usePlayerStore } from '@/stores/playerStore'
+import { useSectStore } from '@/stores/sectStore'
+import { useWorldStore } from '@/stores/worldStore'
+import type { IdleMode, NpcHealthState, RelationshipState } from '@/types/world'
+import { getSectById } from '@/types/sect'
 
 const playerStore = usePlayerStore()
+const sectStore = useSectStore()
+const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
 const { startCultivationBgm } = useAudio()
 const { showItemAcquire } = useModal()
 
-// 挂机配置
-const IDLE_INTERVAL = 1000 // 1秒
-// 每秒修为获取量由 playerStore.cultivationPerSecond 提供
-
-const CULTIVATION_PER_TICK = computed(() => playerStore.cultivationPerSecond)
-
-// 离线收益
+const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
-
-// 挂机定时器
 let idleTimer: number | null = null
+
+const idleModes: Array<{ id: IdleMode; icon: string; label: string; description: string }> = [
+  { id: 'cultivate', icon: '🧘', label: '闭关修炼', description: '稳定累积修为，适合准备突破。' },
+  { id: 'adventure', icon: '🗺️', label: '外出游历', description: '世界更活跃，也更容易触发奇遇。' },
+  { id: 'sectDuty', icon: '🏛️', label: '宗门差遣', description: '倾向于触发宗门事件与贡献收益。' },
+  { id: 'gatherHerbs', icon: '🌿', label: '采集灵草', description: '偏向获得药草和基础材料。' },
+  { id: 'trainSkill', icon: '📜', label: '演练功法', description: '强化功法熟练度与战斗准备。' }
+]
+
+const idleModeLabel = computed(() => worldStore.getIdleModeLabel(worldStore.idleMode))
+
+const heroSubtitle = computed(() => {
+  if (playerStore.captivity.isCaptured) {
+    const captor = playerStore.captivity.captorSectId
+      ? getSectById(playerStore.captivity.captorSectId)?.name ?? '敌对势力'
+      : '敌对势力'
+    return `你当前被${captor}俘获，世界仍在运转，优先处理脱困与宗门后续。`
+  }
+  if (sectStore.activeWar && sectStore.currentSect) {
+    return `${sectStore.currentSect.name}卷入战事，挂机时世界风险、区域控制权和 NPC 命运会继续变化。`
+  }
+  return '这里是整个修仙循环的总入口：修炼、世界变化、宗门态势与重要人物在同一处汇流。'
+})
+
+const heroSummary = computed(() => {
+  if (playerStore.isIdling) {
+    return `当前正在${idleModeLabel.value}，挂机期间每秒获得 ${playerStore.cultivationPerSecond} 修为，并持续触发世界演化。`
+  }
+  return `当前可手动打坐冲境，也可调整挂机模式，让主角以不同方式参与这个不断变化的世界。`
+})
+
+const staminaRecoverLabel = computed(() => {
+  if (playerStore.stamina >= playerStore.maxStamina) return '体力已满'
+  return `${Math.floor(playerStore.nextRecoverCountdown / 60)}:${String(playerStore.nextRecoverCountdown % 60).padStart(2, '0')} 后恢复+1`
+})
+
+const breakthroughHint = computed(() => {
+  if (playerStore.isMaxRealm && playerStore.realmLevel === 9) return '已抵达当前版本的最高境界。'
+  if (playerStore.canBreakthrough && playerStore.nextRealm) return `条件已满，可突破至${playerStore.nextRealm}。`
+  if (playerStore.realmLevel === 9 && playerStore.nextRealm) return `${playerStore.realm}九层圆满后，可手动突破至${playerStore.nextRealm}。`
+  return `挂机中每秒自动获得 ${playerStore.cultivationPerSecond} 修为。`
+})
+
+const sectConditionLabel = computed(() => {
+  const labels = {
+    stable: '山门安稳',
+    rebuilding: '宗门重建',
+    collapsed: '宗门沦陷'
+  }
+  return labels[sectStore.worldCondition.status]
+})
+
+const sectStatusText = computed(() => {
+  if (!sectStore.currentSect) return '未加入宗门时，故事推进与世界变化将决定你的归属。'
+  if (playerStore.captivity.isCaptured) return '你已被俘，部分宗门循环应转向营救、赎回或脱逃。'
+  if (sectStore.activeWar) return '当前存在宗门战争，地图风险与控制权会跟随战局波动。'
+  return '宗门状态会受到外交、战争、重建和玩家挂机行为影响。'
+})
+
+const sectPanelTone = computed<'jade' | 'gold' | 'mist'>(() => {
+  if (playerStore.captivity.isCaptured || sectStore.worldCondition.status === 'collapsed') return 'mist'
+  if (sectStore.activeWar || sectStore.worldCondition.status === 'rebuilding') return 'gold'
+  return 'jade'
+})
+
+const sectStatusChipTone = computed<'jade' | 'gold' | 'rose'>(() => {
+  if (playerStore.captivity.isCaptured || sectStore.worldCondition.status === 'collapsed') return 'rose'
+  if (sectStore.activeWar || sectStore.worldCondition.status === 'rebuilding') return 'gold'
+  return 'jade'
+})
+
+const spotlightNpcs = computed(() => {
+  return worldStore.importantNpcStates
+    .slice(0, 4)
+    .map(item => {
+      const relationship = worldStore.getRelationshipState(item.state.id)
+      return {
+        id: item.state.id,
+        name: item.definition?.name ?? item.state.id,
+        realm: item.state.realm,
+        realmLevel: item.state.realmLevel,
+        goalLabel: getNpcGoalLabel(item.state.currentGoal),
+        bondLabel: getBondLabel(relationship),
+        bondTone: getBondTone(relationship),
+        hpLabel: getNpcHealthLabel(item.state.hpState)
+      }
+    })
+})
+
+const recentLogs = computed(() => worldStore.visibleLogs.slice(0, 4))
 
 onMounted(() => {
   startCultivationBgm()
+  worldStore.simulateOffline()
 
-  // 计算离线收益
   if (playerStore.idleStartTime) {
     offlineGains.value = playerStore.calculateOfflineGains()
   }
 
-  // 如果之前在挂机，恢复挂机
   if (playerStore.isIdling) {
     startIdleLoop()
   }
@@ -115,17 +300,18 @@ onUnmounted(() => {
   stopIdleLoop()
 })
 
-// 领取离线收益
 function claimOfflineGains() {
-  if (offlineGains.value > 0) {
-    playerStore.addCultivation(offlineGains.value)
-    success(`获得 ${offlineGains.value} 修为`)
-    offlineGains.value = 0
-  }
+  if (offlineGains.value <= 0) return
+  playerStore.addCultivation(offlineGains.value)
+  success(`获得 ${offlineGains.value} 修为`)
+  offlineGains.value = 0
 }
 
-// 切换挂机状态
 function toggleIdle() {
+  if (playerStore.captivity.isCaptured) {
+    warning('被俘期间无法继续常规挂机')
+    return
+  }
   if (playerStore.isIdling) {
     stopIdle()
   } else {
@@ -133,36 +319,28 @@ function toggleIdle() {
   }
 }
 
-// 开始挂机
 function startIdle() {
   playerStore.startIdle()
   startIdleLoop()
-  info('开始挂机修炼')
+  info(`开始${idleModeLabel.value}`)
 }
 
-// 开始挂机循环
-function startIdleLoop() {
-  idleTimer = window.setInterval(() => {
-    // 非最高境界的9层且修为满，停止增长（等待手动突破）
-    if (playerStore.realmLevel === 9 && !playerStore.isMaxRealm) {
-      if (playerStore.cultivation >= playerStore.maxCultivation) {
-        return
-      }
-    }
-
-    // 增加修为
-    playerStore.addCultivation(CULTIVATION_PER_TICK.value)
-  }, IDLE_INTERVAL)
-}
-
-// 停止挂机
 function stopIdle() {
   playerStore.stopIdle()
   stopIdleLoop()
   info('停止挂机修炼')
 }
 
-// 停止挂机循环
+function startIdleLoop() {
+  if (idleTimer) return
+  idleTimer = window.setInterval(() => {
+    if (playerStore.realmLevel === 9 && !playerStore.isMaxRealm && playerStore.cultivation >= playerStore.maxCultivation) {
+      return
+    }
+    playerStore.addCultivation(playerStore.cultivationPerSecond)
+  }, IDLE_INTERVAL)
+}
+
 function stopIdleLoop() {
   if (idleTimer) {
     clearInterval(idleTimer)
@@ -170,31 +348,23 @@ function stopIdleLoop() {
   }
 }
 
-// 手动打坐
 function handleMeditate() {
   if (playerStore.isIdling) {
     warning('挂机中无法手动打坐')
     return
   }
 
-  sfxMeditate()
-
-  // 检查是否已满（最高境界可以无限累加）
   if (!playerStore.isMaxRealm && playerStore.cultivation >= playerStore.maxCultivation) {
-    if (playerStore.realmLevel === 9) {
-      warning('修为已满，请突破境界')
-    } else {
-      warning('修为已满')
-    }
+    warning(playerStore.realmLevel === 9 ? '修为已满，请突破境界' : '修为已满')
     return
   }
 
-  const gain = playerStore.cultivationPerSecond * 15 // 手动打坐一次相当于15秒的挂机收益
+  sfxMeditate()
+  const gain = playerStore.cultivationPerSecond * 15
   playerStore.addCultivation(gain)
   success(`修为 +${gain}`)
 }
 
-// 突破境界
 function handleBreakthrough() {
   if (!playerStore.canBreakthrough) {
     warning('条件不足，无法突破')
@@ -203,17 +373,14 @@ function handleBreakthrough() {
 
   const oldRealm = playerStore.realm
   const nextRealm = playerStore.nextRealm
-
   if (!nextRealm) {
     warning('已达最高境界')
     return
   }
 
   sfxBreakthrough()
-
   if (playerStore.breakthrough()) {
     success(`突破成功！进入${nextRealm}一层`)
-
     showItemAcquire({
       name: `${nextRealm}境界`,
       quantity: 1,
@@ -223,215 +390,341 @@ function handleBreakthrough() {
     })
   }
 }
+
+function handleIdleModeChange(mode: IdleMode) {
+  worldStore.setIdleMode(mode)
+  if (playerStore.isIdling) {
+    info(`挂机安排已切换为${worldStore.getIdleModeLabel(mode)}`)
+  }
+}
+
+function getNpcGoalLabel(goal: string) {
+  const labels: Record<string, string> = {
+    cultivate: '潜修',
+    adventure: '游历',
+    challenge: '寻战',
+    recover: '疗伤',
+    seekTreasure: '寻宝',
+    sectDuty: '宗务'
+  }
+  return labels[goal] ?? goal
+}
+
+function getNpcHealthLabel(state: NpcHealthState) {
+  const labels: Record<NpcHealthState, string> = {
+    healthy: '安好',
+    injured: '带伤',
+    critical: '濒危',
+    dead: '陨落',
+    captured: '被俘'
+  }
+  return labels[state]
+}
+
+function getBondLabel(relationship: RelationshipState) {
+  const labels: Record<RelationshipState['bond'], string> = {
+    stranger: '陌路',
+    friend: '友善',
+    rival: '竞争',
+    enemy: '仇敌',
+    mentor: '师承',
+    companion: '同行',
+    lover: '情愫'
+  }
+  return labels[relationship.bond]
+}
+
+function getBondTone(relationship: RelationshipState) {
+  if (relationship.bond === 'enemy' || relationship.bond === 'rival') return 'hostile'
+  if (relationship.bond === 'companion' || relationship.bond === 'lover' || relationship.bond === 'mentor') return 'warm'
+  return 'neutral'
+}
 </script>
 
 <style scoped>
 .cultivation-view {
-  padding-bottom: 16px;
+  display: grid;
+  gap: 14px;
+  padding-bottom: 10px;
 }
 
-.panel-title {
-  font-size: 1.125rem;
-  color: var(--color-accent-warm);
-  margin: 0 0 4px 0;
-  text-align: center;
+.hero-grid,
+.overview-grid,
+.world-grid {
+  display: grid;
+  gap: 14px;
 }
 
-.panel-desc {
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  margin: 0 0 16px 0;
-  text-align: center;
+.hero-grid {
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  align-items: start;
 }
 
-.cultivation-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+.hero-main,
+.hero-copy,
+.hero-stats,
+.progress-stack,
+.sect-panel,
+.log-list {
+  display: grid;
+  gap: 12px;
 }
 
-.character {
-  text-align: center;
-}
-
-.avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, rgba(126, 184, 218, 0.2), rgba(126, 184, 218, 0.1));
-  border: 2px solid var(--color-accent);
+.hero-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto 8px;
-  transition: all 0.3s ease;
+  gap: 14px;
 }
 
-.avatar.is-idling {
-  border-color: #4ade80;
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
-  animation: pulse-glow 2s ease-in-out infinite;
+.hero-avatar {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 238, 180, 0.95), rgba(121, 212, 189, 0.88));
+  color: #8c6226;
+  font-size: 30px;
+  box-shadow: 0 18px 34px rgba(101, 171, 156, 0.2);
 }
 
-@keyframes pulse-glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
-  }
-
-  50% {
-    box-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
-  }
+.hero-avatar.active {
+  box-shadow: 0 18px 34px rgba(93, 199, 157, 0.28);
 }
 
-.status {
-  font-size: 0.75rem;
-  color: var(--color-accent);
+.hero-copy {
+  min-width: 0;
+  gap: 4px;
 }
 
-.status.idling {
-  color: #4ade80;
+.hero-realm {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(104, 150, 145, 0.18);
+  color: rgba(73, 97, 95, 0.82);
+  font-size: 11px;
 }
 
-.idle-indicator {
-  margin-top: 4px;
+.hero-copy strong {
+  color: #315257;
+  font-size: 20px;
 }
 
-.idle-indicator .pulse {
-  display: inline-block;
-  padding: 2px 8px;
-  background: rgba(74, 222, 128, 0.2);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 4px;
-  font-size: 0.625rem;
-  color: #4ade80;
-  animation: pulse 2s ease-in-out infinite;
+.hero-copy p,
+.empty-state p,
+.sect-event-banner p,
+.log-card p {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.8);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.6;
-  }
+.hero-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.realm-info {
+.offline-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.realm-name {
-  font-size: 1rem;
-  color: var(--color-success);
-  font-weight: 500;
-}
-
-.progress-section {
-  width: 100%;
-  max-width: 280px;
-}
-
-.progress-label {
-  display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-  margin-bottom: 4px;
-  color: var(--color-muted);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(188, 141, 58, 0.24);
+  background: rgba(255, 250, 236, 0.82);
 }
 
-.progress-bar {
-  height: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
+.offline-copy {
+  display: grid;
+  gap: 2px;
 }
 
-.progress-fill {
-  height: 100%;
-  transition: width 0.3s ease;
+.offline-copy span {
+  color: rgba(115, 88, 42, 0.72);
+  font-size: 11px;
 }
 
-.progress-fill.cultivation {
-  background: linear-gradient(90deg, #eab308, #facc15);
+.offline-copy strong,
+.sect-heading strong,
+.empty-state strong,
+.npc-copy strong,
+.log-head strong {
+  color: #8b6226;
+  font-size: 14px;
 }
 
-.offline-gains {
+.overview-grid,
+.world-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.idle-mode-list,
+.npc-list {
+  display: grid;
+  gap: 10px;
+}
+
+.idle-mode-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  background: rgba(255, 255, 255, 0.64);
+  color: #315257;
+  text-align: left;
 }
 
-.offline-gains:hover {
-  background: rgba(245, 158, 11, 0.2);
+.idle-mode-card.active {
+  border-color: rgba(188, 141, 58, 0.28);
+  background: rgba(255, 249, 233, 0.82);
 }
 
-.gain-icon {
-  font-size: 1.25rem;
+.mode-icon,
+.sect-icon,
+.npc-badge {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 20px;
+  flex: 0 0 auto;
 }
 
-.tap-hint {
-  font-size: 0.625rem;
-  color: var(--color-muted);
-  margin-left: auto;
+.mode-copy,
+.sect-heading > div,
+.npc-copy {
+  display: grid;
+  gap: 3px;
 }
 
-.action-buttons {
+.mode-copy small,
+.sect-heading small,
+.npc-copy small,
+.log-head span,
+.state-pill {
+  color: rgba(75, 100, 98, 0.72);
+  font-size: 11px;
+}
+
+.sect-heading,
+.npc-leading,
+.npc-meta,
+.log-head {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sect-chip-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  justify-content: center;
+}
+
+.sect-event-banner {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 246, 228, 0.72);
+  border: 1px solid rgba(197, 150, 70, 0.18);
+}
+
+.npc-card,
+.log-card,
+.empty-state {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.npc-meta {
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
-.action-buttons :deep(.game-button.active) {
-  background: linear-gradient(145deg, #166534, #15803d);
-  border-color: #22c55e;
+.bond-pill,
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 146, 149, 0.18);
+  background: rgba(246, 252, 251, 0.78);
 }
 
-.action-buttons :deep(.game-button.can-breakthrough) {
-  background: linear-gradient(145deg, #854d0e, #a16207);
-  border-color: #fbbf24;
-  animation: pulse-breakthrough 1.5s ease-in-out infinite;
+.bond-warm {
+  color: #8b6226;
+  background: rgba(255, 248, 233, 0.86);
+  border-color: rgba(194, 146, 66, 0.22);
 }
 
-@keyframes pulse-breakthrough {
+.bond-hostile {
+  color: #9b4353;
+  background: rgba(255, 242, 245, 0.84);
+  border-color: rgba(199, 121, 138, 0.22);
+}
 
-  0%,
-  100% {
-    box-shadow: 0 0 5px rgba(251, 191, 36, 0.3);
+.bond-neutral {
+  color: #4b6f6f;
+}
+
+.log-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.log-card {
+  display: grid;
+  gap: 8px;
+}
+
+.log-card.severity-major {
+  border-color: rgba(195, 141, 54, 0.24);
+  background: rgba(255, 250, 239, 0.8);
+}
+
+.log-card.severity-legendary {
+  border-color: rgba(198, 121, 137, 0.24);
+  background: rgba(255, 245, 247, 0.82);
+}
+
+@media (max-width: 980px) {
+  .hero-grid,
+  .overview-grid,
+  .world-grid,
+  .log-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero-header,
+  .offline-banner {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  50% {
-    box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+  .hero-stats {
+    grid-template-columns: 1fr;
   }
-}
 
-.idle-info {
-  margin-top: 16px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.idle-info p {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  text-align: center;
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
