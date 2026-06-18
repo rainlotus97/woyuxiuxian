@@ -15,9 +15,18 @@ const hostEl = ref<HTMLElement | null>(null)
 let game: Phaser.Game | null = null
 let resizeObserver: ResizeObserver | null = null
 
+function disposeGame() {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  game?.destroy(true)
+  game = null
+  hostEl.value?.replaceChildren()
+}
+
 function mountGame() {
   const host = hostEl.value
   if (!host) return
+  disposeGame()
   const rect = host.getBoundingClientRect()
   game = createGame({
     parent: host,
@@ -39,10 +48,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  resizeObserver?.disconnect()
-  resizeObserver = null
-  game?.destroy(true)
-  game = null
+  disposeGame()
 })
 </script>
 

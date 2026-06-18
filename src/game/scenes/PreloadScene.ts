@@ -57,21 +57,38 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private loadBattleAssets() {
-    this.load.image('bg_cloud_base', battleBgBase)
-    this.load.image('bg_cloud_glow', battleBgGlow)
-    this.load.image('bg_mountain_far', battleMountainFar)
-    this.load.image('bg_mountain_near', battleMountainNear)
-    this.load.image('bg_cloud_1', battleCloudOne)
-    this.load.image('bg_cloud_2', battleCloudTwo)
-    this.load.image('bg_cloud_3', battleCloudThree)
-    this.load.image('bg_cloud_4', battleCloudFour)
-    this.load.spritesheet('actor_ally', rpgCharacterSprites, { frameWidth: 32, frameHeight: 32, startFrame: 24, endFrame: 35 })
-    this.load.spritesheet('actor_enemy', rpgCharacterSprites, { frameWidth: 32, frameHeight: 32, startFrame: 96, endFrame: 107 })
-    this.load.spritesheet('actor_boss', rpgSoldierSprites, { frameWidth: 32, frameHeight: 32, startFrame: 0, endFrame: 17 })
+    this.queueImage('bg_cloud_base', battleBgBase)
+    this.queueImage('bg_cloud_glow', battleBgGlow)
+    this.queueImage('bg_mountain_far', battleMountainFar)
+    this.queueImage('bg_mountain_near', battleMountainNear)
+    this.queueImage('bg_cloud_1', battleCloudOne)
+    this.queueImage('bg_cloud_2', battleCloudTwo)
+    this.queueImage('bg_cloud_3', battleCloudThree)
+    this.queueImage('bg_cloud_4', battleCloudFour)
+    this.queueSpritesheet('actor_ally', rpgCharacterSprites, { frameWidth: 32, frameHeight: 32, startFrame: 24, endFrame: 35 })
+    this.queueSpritesheet('actor_enemy', rpgCharacterSprites, { frameWidth: 32, frameHeight: 32, startFrame: 96, endFrame: 107 })
+    this.queueSpritesheet('actor_boss', rpgSoldierSprites, { frameWidth: 32, frameHeight: 32, startFrame: 0, endFrame: 17 })
+  }
+
+  private queueImage(key: string, url: string) {
+    if (!this.textures.exists(key)) {
+      this.load.image(key, url)
+    }
+  }
+
+  private queueSpritesheet(key: string, url: string, frameConfig: Phaser.Types.Loader.FileTypes.ImageFrameConfig) {
+    if (!this.textures.exists(key)) {
+      this.load.spritesheet(key, url, frameConfig)
+    }
+  }
+
+  private createCanvasTexture(key: string, width: number, height: number) {
+    if (this.textures.exists(key)) return null
+    return this.textures.createCanvas(key, width, height)
   }
 
   private createRingTexture(key: string) {
-    const canvas = this.textures.createCanvas(key, 120, 120)
+    const canvas = this.createCanvasTexture(key, 120, 120)
     const ctx = canvas?.getContext()
     if (!canvas || !ctx) return
 
@@ -87,7 +104,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createSparkTexture(key: string) {
-    const canvas = this.textures.createCanvas(key, 24, 24)
+    const canvas = this.createCanvasTexture(key, 24, 24)
     const ctx = canvas?.getContext()
     if (!canvas || !ctx) return
     const gradient = ctx.createRadialGradient(12, 12, 1, 12, 12, 11)
@@ -101,7 +118,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createAuraTexture(key: string) {
-    const canvas = this.textures.createCanvas(key, 160, 160)
+    const canvas = this.createCanvasTexture(key, 160, 160)
     const ctx = canvas?.getContext()
     if (!canvas || !ctx) return
     const gradient = ctx.createRadialGradient(80, 80, 8, 80, 80, 78)
@@ -115,7 +132,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createSlashTexture(key: string, color: number) {
-    const canvas = this.textures.createCanvas(key, 160, 96)
+    const canvas = this.createCanvasTexture(key, 160, 96)
     const ctx = canvas?.getContext()
     if (!canvas || !ctx) return
     const gradient = ctx.createLinearGradient(20, 80, 140, 12)

@@ -157,8 +157,13 @@ export class BattleScene extends Phaser.Scene {
     this.latestUnits = new Map()
     this.readyTimer?.destroy()
     this.readyTimer = null
+    this.time?.removeAllEvents()
+    this.tweens?.killAll()
     for (const off of this.unsubscribers) off()
     this.unsubscribers = []
+    for (const actor of this.actors.values()) {
+      this.destroyActor(actor)
+    }
     this.actors.clear()
   }
 
@@ -239,12 +244,7 @@ export class BattleScene extends Phaser.Scene {
     const ids = new Set(units.map(unit => unit.id))
     for (const [id, actor] of this.actors.entries()) {
       if (!ids.has(id)) {
-        actor.sprite.destroy()
-        actor.shadow.destroy()
-        actor.hpBar.destroy()
-        actor.hpBg.destroy()
-        actor.hpFrame.destroy()
-        actor.name.destroy()
+        this.destroyActor(actor)
         this.actors.delete(id)
       }
     }
@@ -538,5 +538,14 @@ export class BattleScene extends Phaser.Scene {
 
   private getPlacements(units: BattleRuntimeUnit[], side: 'ally' | 'enemy') {
     return resolveBattleFormation(units, this.arenaTheme, side, this.scale.width, this.scale.height)
+  }
+
+  private destroyActor(actor: ActorSprite) {
+    actor.sprite.destroy()
+    actor.shadow.destroy()
+    actor.hpBar.destroy()
+    actor.hpBg.destroy()
+    actor.hpFrame.destroy()
+    actor.name.destroy()
   }
 }
