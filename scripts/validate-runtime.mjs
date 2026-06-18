@@ -536,6 +536,12 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveAlchemySuccessRate,
     resolveAvailableAlchemyRecipes
   } = await load('/src/sect/runtime/sectAlchemyResolver.ts')
+  const {
+    resolveManualSectTaskProgress,
+    resolveSectTaskClaim,
+    resolveSectTaskClaimAll,
+    resolveSectTaskProgress
+  } = await load('/src/sect/runtime/sectTaskResolver.ts')
   const { getSeedById } = await load('/src/types/garden.ts')
   const { ALCHEMY_RECIPES, getAlchemyRecipeById } = await load('/src/types/alchemy.ts')
 
@@ -667,6 +673,50 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(failedAlchemy.success, false)
   assert.equal(failedAlchemy.consumesMaterials, true)
   assert.ok(failedAlchemy.message.includes('材料已消耗'))
+
+  const taskFixture = [
+    {
+      id: 'daily_battle',
+      name: '巡山除妖',
+      description: '击败山中妖兽',
+      type: 'daily',
+      requirements: { type: 'battle', target: 'monster', count: 2 },
+      rewards: { contribution: 10, gold: 20, exp: 5 },
+      progress: 1,
+      completed: false,
+      claimed: false
+    },
+    {
+      id: 'daily_any_craft',
+      name: '内务炼制',
+      description: '完成任意炼制',
+      type: 'daily',
+      requirements: { type: 'craft', target: 'any', count: 1 },
+      rewards: { contribution: 6, gold: 8 },
+      progress: 0,
+      completed: false,
+      claimed: false
+    }
+  ]
+  const progressedTasks = resolveSectTaskProgress(taskFixture, {
+    joinedSectId: 'qingyun_sect',
+    type: 'battle',
+    target: 'monster'
+  })
+  assert.deepEqual(progressedTasks.advancedTaskIds, ['daily_battle'])
+  assert.deepEqual(progressedTasks.completedTaskIds, ['daily_battle'])
+  assert.equal(progressedTasks.tasks[0].completed, true)
+
+  const manualTask = resolveManualSectTaskProgress(taskFixture, 'daily_any_craft')
+  assert.equal(manualTask.tasks[1].completed, true)
+  const singleClaim = resolveSectTaskClaim(progressedTasks.tasks[0], 'warfare')
+  assert.equal(singleClaim.canClaim, true)
+  assert.equal(singleClaim.reward.reputation, 14)
+  const claimAll = resolveSectTaskClaimAll(progressedTasks.tasks, 'balanced')
+  assert.deepEqual(claimAll.taskIds, ['daily_battle'])
+  assert.equal(claimAll.reward.contribution, 10)
+  assert.equal(claimAll.reward.gold, 20)
+  assert.equal(claimAll.reward.exp, 5)
 })
 
 const results = await Promise.all(diagnostics)

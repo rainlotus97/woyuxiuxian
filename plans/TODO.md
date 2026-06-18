@@ -233,6 +233,7 @@
   - 已新增 `sectStipendResolver`，统一宗门俸禄预览、领取冷却与方略加成贡献，避免 UI 展示与实际领取分裂
   - 已新增 `sectGardenResolver`，统一药园槽位、种子可用性、成熟判断、加速费用与方略加成收获产量
   - 已新增 `sectAlchemyResolver`，统一炼丹配方可用性、材料校验、成功率、消耗与产出物品生成
+  - 已新增 `sectTaskResolver`，统一宗门任务进度推进、单个领奖与一键领奖聚合
   - 待补：更多设施联动、前线资源调度与职位专属循环事件
 
 ## P2 养成与经济
@@ -273,7 +274,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect stipend / garden / alchemy rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect stipend / garden / alchemy / task rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

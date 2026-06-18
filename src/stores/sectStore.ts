@@ -25,6 +25,12 @@ import {
   applyDirectiveToTaskRewards,
   getSectDirectiveEffects
 } from '@/sect/runtime/sectDirectiveEffects'
+import {
+  resolveManualSectTaskProgress,
+  resolveSectTaskClaim,
+  resolveSectTaskClaimAll,
+  resolveSectTaskProgress
+} from '@/sect/runtime/sectTaskResolver'
 import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
   getSectRecoveryOption,
@@ -461,13 +467,9 @@ export const useSectStore = defineStore('sect', () => {
 
   // 完成任务进度（手动触发特定任务）
   function completeTask(taskId: string): boolean {
-    const task = tasks.value.find(t => t.id === taskId)
-    if (!task || task.completed) return false
-
-    task.progress++
-    if (task.progress >= task.requirements.count) {
-      task.completed = true
-    }
+    const resolution = resolveManualSectTaskProgress(tasks.value, taskId)
+    if (resolution.advancedTaskIds.length === 0) return false
+    tasks.value = resolution.tasks
     return true
   }
 
@@ -478,67 +480,52 @@ export const useSectStore = defineStore('sect', () => {
     type: SectTask['requirements']['type'],
     target?: string
   ): void {
-    if (!joinedSectId.value) return
-
-    for (const task of tasks.value) {
-      // 跳过已完成或已领取的任务
-      if (task.completed || task.claimed) continue
-      // 检查任务类型是否匹配
-      if (task.requirements.type !== type) continue
-      // 如果指定了目标，检查目标是否匹配（'any' 表示任意目标）
-      if (target && task.requirements.target !== target && task.requirements.target !== 'any') continue
-
-      // 增加进度
-      task.progress++
-      // 检查是否完成
-      if (task.progress >= task.requirements.count) {
-        task.completed = true
-      }
+    const resolution = resolveSectTaskProgress(tasks.value, {
+      joinedSectId: joinedSectId.value,
+      type,
+      target
+    })
+    if (resolution.advancedTaskIds.length > 0) {
+      tasks.value = resolution.tasks
     }
   }
 
   // 领取任务奖励
   function claimTaskReward(taskId: string): boolean {
     const task = tasks.value.find(t => t.id === taskId)
-    if (!task || !task.completed || task.claimed) return false
+    const claim = resolveSectTaskClaim(task, activeDirective.value)
+    if (!claim.canClaim || !claim.taskId) return false
 
-    // 发放奖励
-    task.claimed = true
-    addContribution(task.rewards.contribution)
-    addReputation(activeDirective.value === 'warfare' ? 14 : 10)
+    tasks.value = tasks.value.map(item => item.id === claim.taskId ? { ...item, claimed: true } : item)
+    addContribution(claim.reward.contribution)
+    addReputation(claim.reward.reputation)
     const playerStore = usePlayerStore()
-    playerStore.addGold(task.rewards.gold)
-    if (task.rewards.exp) {
-      playerStore.addCultivation(task.rewards.exp)
+    playerStore.addGold(claim.reward.gold)
+    if (claim.reward.exp > 0) {
+      playerStore.addCultivation(claim.reward.exp)
     }
     return true
   }
 
   function claimAllCompletedTaskRewards() {
-    const completedTaskIds = tasks.value
-      .filter(task => task.completed && !task.claimed)
-      .map(task => task.id)
-
-    let claimedCount = 0
-    let totalContribution = 0
-    let totalGold = 0
-    let totalExp = 0
-
-    for (const taskId of completedTaskIds) {
-      const task = tasks.value.find(item => item.id === taskId)
-      if (!task) continue
-      if (!claimTaskReward(taskId)) continue
-      claimedCount++
-      totalContribution += task.rewards.contribution
-      totalGold += task.rewards.gold
-      totalExp += task.rewards.exp ?? 0
+    const claim = resolveSectTaskClaimAll(tasks.value, activeDirective.value)
+    const claimedTaskIds = new Set(claim.taskIds)
+    if (claimedTaskIds.size > 0) {
+      tasks.value = tasks.value.map(task => claimedTaskIds.has(task.id) ? { ...task, claimed: true } : task)
+      addContribution(claim.reward.contribution)
+      addReputation(claim.reward.reputation)
+      const playerStore = usePlayerStore()
+      playerStore.addGold(claim.reward.gold)
+      if (claim.reward.exp > 0) {
+        playerStore.addCultivation(claim.reward.exp)
+      }
     }
 
     return {
-      claimedCount,
-      totalContribution,
-      totalGold,
-      totalExp
+      claimedCount: claim.taskIds.length,
+      totalContribution: claim.reward.contribution,
+      totalGold: claim.reward.gold,
+      totalExp: claim.reward.exp
     }
   }
 
