@@ -52,6 +52,7 @@ export interface InventoryItem {
 interface PlayerState {
   // 基础信息
   id: string
+  created: boolean
   name: string
   icon: string
   element: Element
@@ -111,6 +112,7 @@ interface PlayerState {
 function getDefaultPlayer(): PlayerState {
   return {
     id: 'protagonist',
+    created: false,
     name: '云逸',
     icon: '剑',
     element: '金',
@@ -204,6 +206,12 @@ export const usePlayerStore = defineStore('player', () => {
       initialData = {
         ...defaults,
         ...parsed,
+        created: parsed.created ?? Boolean(
+          parsed.name
+          || parsed.cultivation
+          || parsed.realmLevel && parsed.realmLevel > 1
+          || parsed.gold && parsed.gold !== defaults.gold
+        ),
         // 确保技能系统的新属性有默认值
         learnedSkills: parsed.learnedSkills ?? defaults.learnedSkills,
         skillPoints: parsed.skillPoints ?? defaults.skillPoints,
@@ -218,6 +226,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   const id = ref(initialData.id)
+  const created = ref(initialData.created)
   const name = ref(initialData.name)
   const icon = ref(initialData.icon)
   const element = ref<Element>(initialData.element)
@@ -405,6 +414,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (profile.icon) icon.value = profile.icon.slice(0, 2)
     if (profile.element) element.value = profile.element
     if (profile.quality) quality.value = profile.quality
+    created.value = true
   }
 
   // 保存到 localStorage
@@ -412,6 +422,7 @@ export const usePlayerStore = defineStore('player', () => {
     try {
       const data: PlayerState = {
         id: id.value,
+        created: created.value,
         name: name.value,
         icon: icon.value,
         element: element.value,
@@ -1083,7 +1094,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     // 状态
-    id, name, icon, element, quality,
+    id, created, name, icon, element, quality,
     realm, realmLevel, cultivation, maxCultivation,
     level, gold,
     baseStats, equipmentBonuses, skillBonuses, totalStats,

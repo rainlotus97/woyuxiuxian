@@ -7,15 +7,12 @@
       title="修途总览"
       :subtitle="heroSubtitle"
     >
-      <div class="hero-grid">
+      <div class="hero-grid compact">
         <div class="hero-main">
-          <div class="hero-header">
-            <div class="hero-avatar" :class="{ active: playerStore.isIdling }">{{ playerStore.icon }}</div>
-            <div class="hero-copy">
-              <span class="hero-realm">{{ playerStore.realmInfo.fullName }}</span>
-              <strong>{{ playerStore.name }}</strong>
-              <p>{{ heroSummary }}</p>
-            </div>
+          <div class="hero-copy">
+            <span class="hero-realm">{{ idleModeLabel }}</span>
+            <strong>{{ playerStore.isIdling ? '主角正在行动' : '等待安排' }}</strong>
+            <p>{{ heroSummary }}</p>
           </div>
 
           <div v-if="offlineGains > 0" class="offline-banner">
@@ -28,9 +25,9 @@
         </div>
 
         <div class="hero-stats">
-          <GameStatChip icon="☯️" label="行动模式" :value="idleModeLabel" tone="jade" />
           <GameStatChip icon="⚡" label="体力" :value="`${playerStore.stamina}/${playerStore.maxStamina}`" tone="gold" />
           <GameStatChip icon="📜" label="世界异闻" :value="recentLogs.length" tone="rose" />
+          <GameStatChip icon="🧭" label="待办要事" :value="worldBriefings.length" tone="jade" />
         </div>
       </div>
     </GameSurface>
@@ -271,7 +268,7 @@ import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
-import { useAudio, sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
+import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -298,7 +295,6 @@ const sectStore = useSectStore()
 const worldStore = useWorldStore()
 const router = useRouter()
 const { success, warning, info } = useToast()
-const { startCultivationBgm } = useAudio()
 const { showItemAcquire } = useModal()
 
 const IDLE_INTERVAL = 1000
@@ -523,7 +519,6 @@ const worldBriefings = computed(() => {
 })
 
 onMounted(() => {
-  startCultivationBgm()
   worldStore.simulateOffline()
 
   if (playerStore.idleStartTime) {
@@ -674,7 +669,7 @@ function handleBriefingAction(item: WorldBriefingItem) {
 .cultivation-view {
   display: grid;
   gap: 14px;
-  padding-bottom: 10px;
+  padding-bottom: 88px;
 }
 
 .hero-grid,
@@ -689,6 +684,11 @@ function handleBriefingAction(item: WorldBriefingItem) {
   align-items: start;
 }
 
+.hero-grid.compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .hero-main,
 .hero-copy,
 .hero-stats,
@@ -698,28 +698,6 @@ function handleBriefingAction(item: WorldBriefingItem) {
 .journey-list {
   display: grid;
   gap: 12px;
-}
-
-.hero-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.hero-avatar {
-  width: 68px;
-  height: 68px;
-  display: grid;
-  place-items: center;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(255, 238, 180, 0.95), rgba(121, 212, 189, 0.88));
-  color: #8c6226;
-  font-size: 30px;
-  box-shadow: 0 18px 34px rgba(101, 171, 156, 0.2);
-}
-
-.hero-avatar.active {
-  box-shadow: 0 18px 34px rgba(93, 199, 157, 0.28);
 }
 
 .hero-copy {
@@ -755,6 +733,7 @@ function handleBriefingAction(item: WorldBriefingItem) {
 
 .hero-stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(520px, 45vw);
 }
 
 .offline-banner {
@@ -1121,10 +1100,15 @@ function handleBriefingAction(item: WorldBriefingItem) {
 
 @media (max-width: 980px) {
   .hero-grid,
+  .hero-grid.compact,
   .overview-grid,
   .world-grid,
   .log-list {
     grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    min-width: 0;
   }
 }
 

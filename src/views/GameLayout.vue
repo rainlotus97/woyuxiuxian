@@ -22,6 +22,10 @@
           <GameStatChip icon="✨" label="修为" :value="formatCultivation" tone="jade" />
           <GameStatChip icon="📜" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" />
           <GameStatChip icon="👥" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" />
+          <button class="audio-toggle" :class="{ active: bgmEnabled }" @click="handleToggleBgm">
+            <span>{{ bgmEnabled ? '音' : '静' }}</span>
+            <small>{{ bgmEnabled ? '背景音' : '已静音' }}</small>
+          </button>
         </div>
 
         <p class="world-summary">{{ sectAlertSummary }}</p>
@@ -88,6 +92,7 @@ import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
+import { useAudio } from '@/composables/useAudio'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -104,6 +109,7 @@ interface MenuItem {
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const { bgmEnabled, toggleBgm, startCultivationBgm } = useAudio()
 const route = useRoute()
 const isMenuExpanded = ref(false)
 let worldTickTimer: number | null = null
@@ -243,6 +249,13 @@ function toggleMenu() {
 
 function handleMenuClick() {
   isMenuExpanded.value = false
+}
+
+function handleToggleBgm() {
+  toggleBgm()
+  if (bgmEnabled.value) {
+    startCultivationBgm()
+  }
 }
 
 function startWorldClock() {
@@ -411,6 +424,41 @@ onUnmounted(() => {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.audio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #4b6767;
+  font-family: var(--font-game);
+  cursor: pointer;
+}
+
+.audio-toggle.active {
+  border-color: rgba(188, 141, 58, 0.28);
+  background: rgba(255, 249, 233, 0.82);
+  color: #8b6226;
+}
+
+.audio-toggle span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 235, 169, 0.82);
+  font-size: 13px;
+}
+
+.audio-toggle small {
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .world-summary {

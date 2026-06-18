@@ -10,7 +10,7 @@
         </div>
       </div>
 
-      <div class="guide-panel">
+      <div v-if="!playerStore.created" class="guide-panel">
         <div class="guide-head">
           <span>创建引导</span>
           <strong>定下本命</strong>
@@ -57,6 +57,44 @@
           </button>
           <button class="secondary-action" @click="handleContinue">
             继续修炼
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="guide-panel save-panel">
+        <div class="guide-head">
+          <span>当前存档</span>
+          <strong>重入尘世</strong>
+        </div>
+
+        <div class="save-profile">
+          <div class="save-avatar">{{ playerStore.icon }}</div>
+          <div>
+            <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
+            <strong>{{ playerStore.name }}</strong>
+            <p>灵根与本命已定，后续通过角色、功法、宗门与剧情继续成长。</p>
+          </div>
+        </div>
+
+        <div class="save-stats">
+          <div>
+            <span>修为</span>
+            <strong>{{ playerStore.cultivation }}/{{ playerStore.maxCultivation }}</strong>
+          </div>
+          <div>
+            <span>灵石</span>
+            <strong>{{ playerStore.gold }}</strong>
+          </div>
+          <div>
+            <span>体力</span>
+            <strong>{{ playerStore.stamina }}/{{ playerStore.maxStamina }}</strong>
+          </div>
+        </div>
+
+        <div class="start-actions">
+          <button class="primary-action" @click="handleContinue">
+            <span>进入主循环</span>
+            <small>继续当前进度</small>
           </button>
         </div>
       </div>
@@ -204,6 +242,75 @@ function handleContinue() {
   margin: 0;
   color: rgba(70, 99, 96, 0.68);
   font-size: 12px;
+}
+
+.save-panel {
+  align-content: center;
+}
+
+.save-profile {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(111, 157, 149, 0.18);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.save-avatar {
+  width: 78px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #fff2bd, #91dfc2);
+  color: #8e6227;
+  font-size: 32px;
+}
+
+.save-profile div:last-child {
+  display: grid;
+  gap: 6px;
+}
+
+.save-profile span,
+.save-stats span {
+  color: rgba(70, 99, 96, 0.68);
+  font-size: 12px;
+}
+
+.save-profile strong {
+  color: #315257;
+  font-size: 24px;
+}
+
+.save-profile p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.72);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.save-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.save-stats div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(111, 157, 149, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.save-stats strong {
+  color: #8e6227;
+  font-size: 15px;
 }
 
 .brand-copy h1 {
