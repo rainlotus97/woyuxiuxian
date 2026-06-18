@@ -12,6 +12,10 @@ import {
   type ShopQuality
 } from '@/shop/config/shopCatalog'
 import { SHOP_MERCHANT_ITEM_RULES } from '@/shop/config/shopMerchantCatalog'
+import {
+  resolveShopMerchantEvents,
+  type ShopMerchantEventResolution
+} from './shopMerchantEventResolver'
 
 export interface ShopInventoryContext {
   totalTicks: number
@@ -64,6 +68,7 @@ export interface ShopMerchantInfluence {
   categoryStockModifiers: Partial<Record<Exclude<ShopCategoryId, 'all'>, number>>
   tags: string[]
   merchantNames: string[]
+  eventResolution: ShopMerchantEventResolution
 }
 
 export interface ShopInventoryItem {
@@ -300,15 +305,18 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
   ))
 
   if (!merchants.length) {
+    const eventResolution = resolveShopMerchantEvents([])
     return {
       priceModifier: 1,
       stockModifier: 1,
       categoryStockModifiers: {},
       tags: [],
-      merchantNames: []
+      merchantNames: [],
+      eventResolution
     }
   }
 
+  const eventResolution = resolveShopMerchantEvents(merchants)
   const categoryWeights: Partial<Record<Exclude<ShopCategoryId, 'all'>, number>> = {}
   let relationshipTotal = 0
   let activeCount = 0
@@ -326,11 +334,12 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
 
   if (activeCount === 0) {
     return {
-      priceModifier: 1,
-      stockModifier: 1,
-      categoryStockModifiers: {},
-      tags: [],
-      merchantNames: []
+      priceModifier: eventResolution.priceModifier,
+      stockModifier: eventResolution.stockModifier,
+      categoryStockModifiers: eventResolution.categoryStockModifiers,
+      tags: eventResolution.tags,
+      merchantNames: eventResolution.merchantNames,
+      eventResolution
     }
   }
 
@@ -341,13 +350,22 @@ export function resolveShopMerchantInfluence(context: ShopInventoryContext): Sho
       Number(clamp(1 + (weight / activeCount) * 0.14, 1, 1.32).toFixed(3))
     ])
   ) as Partial<Record<Exclude<ShopCategoryId, 'all'>, number>>
+  for (const [category, modifier] of Object.entries(eventResolution.categoryStockModifiers)) {
+    const key = category as Exclude<ShopCategoryId, 'all'>
+    categoryStockModifiers[key] = Number(((categoryStockModifiers[key] ?? 1) * (modifier ?? 1)).toFixed(3))
+  }
+  const merchantNames = [...new Set([
+    ...merchants.slice(0, 2).map(merchant => merchant.name),
+    ...eventResolution.merchantNames
+  ])].slice(0, 3)
 
   return {
-    priceModifier: Number(clamp(1 - Math.max(0, averageRelationshipWeight - 1) * 0.08, 0.92, 1).toFixed(3)),
-    stockModifier: Number(clamp(1 + Math.max(0, averageRelationshipWeight - 1) * 0.08, 1, 1.12).toFixed(3)),
+    priceModifier: Number(clamp((1 - Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.priceModifier, 0.86, 1).toFixed(3)),
+    stockModifier: Number(clamp((1 + Math.max(0, averageRelationshipWeight - 1) * 0.08) * eventResolution.stockModifier, 1, 1.24).toFixed(3)),
     categoryStockModifiers,
-    tags: ['人物商缘'],
-    merchantNames: merchants.slice(0, 2).map(merchant => merchant.name)
+    tags: [...new Set(['人物商缘', ...eventResolution.tags])],
+    merchantNames,
+    eventResolution
   }
 }
 
@@ -357,7 +375,21 @@ export function resolveShopCatalogEntries(context: ShopInventoryContext): ShopCa
     merchantNames: []
   }))
   const merchantEntries = resolveShopMerchantItemEntries(context)
-  return [...baseEntries, ...merchantEntries]
+  const eventEntries = resolveShopMerchantEventEntries(context)
+  return [...baseEntries, ...merchantEntries, ...eventEntries]
+}
+
+function resolveShopMerchantEventEntries(context: ShopInventoryContext): ShopCatalogEntry[] {
+  return resolveShopMerchantEvents(context.merchantNpcStates ?? []).events.flatMap(event => {
+    if (!event.item) return []
+    return [{
+      definition: {
+        ...event.item,
+        description: `${event.item.description} 事件：${event.title}。`
+      },
+      merchantNames: [event.merchantName]
+    }]
+  })
 }
 
 function resolveShopMerchantItemEntries(context: ShopInventoryContext): ShopCatalogEntry[] {

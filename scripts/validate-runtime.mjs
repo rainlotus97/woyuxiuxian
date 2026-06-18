@@ -821,6 +821,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveShopMerchantInfluence,
     resolveShopPurchase
   } = await load('/src/shop/runtime/shopInventoryResolver.ts')
+  const { resolveShopMerchantEvents } = await load('/src/shop/runtime/shopMerchantEventResolver.ts')
   const {
     resolveSectAuthority,
     canAuthorityAccessFacility,
@@ -1447,15 +1448,24 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok(merchantInfluence.categoryStockModifiers.breakthrough > 1)
   assert.ok(merchantInfluence.priceModifier < 1)
   assert.ok(merchantInfluence.tags.includes('人物商缘'))
+  assert.ok(merchantInfluence.tags.includes('药脉折价'))
+  assert.equal(merchantInfluence.eventResolution.events[0]?.tag, '药脉折价')
+  const merchantEvents = resolveShopMerchantEvents(merchantMarketContext.merchantNpcStates)
+  assert.equal(merchantEvents.events.length, 1)
+  assert.equal(merchantEvents.events[0].item?.definitionId, 'food_jade_marrow_soup')
   const merchantInventory = createShopInventory(merchantMarketContext)
   const merchantPill = merchantInventory.find(item => item.definition.id === 'shop_pill_001')
   const merchantPrivatePill = merchantInventory.find(item => item.definition.id === 'merchant_pill_bai_ruoli_001')
+  const merchantEventFood = merchantInventory.find(item => item.definition.id === 'merchant_event_npc_bai_ruoli_jade_soup')
   assert.ok(merchantPill, 'merchant shop should include qi gathering pill')
   assert.ok(merchantPrivatePill, 'merchant shop should include private medicine item')
+  assert.ok(merchantEventFood, 'merchant event should inject temporary food item')
   assert.ok(merchantPill.stock >= stablePill.stock)
   assert.ok(merchantPill.price <= stablePill.price)
   assert.ok(merchantPill.tags.some(tag => tag.includes('白若璃')))
   assert.ok(merchantPrivatePill.tags.some(tag => tag.includes('白若璃私货')))
+  assert.ok(merchantEventFood.tags.some(tag => tag.includes('药脉折价')))
+  assert.ok(merchantEventFood.tags.some(tag => tag.includes('白若璃私货')))
   assert.equal(merchantPrivatePill.definition.definitionId, 'pill_baicao_life')
   const lowFavorMerchantContext = {
     ...merchantMarketContext,
@@ -1479,6 +1489,17 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(merchantPrivatePurchase.success, true)
   assert.equal(merchantPrivatePurchase.inventoryItem?.definitionId, 'pill_baicao_life')
+  const merchantEventPurchase = resolveShopPurchase({
+    stockId: merchantEventFood.stockId,
+    inventory: [merchantEventFood],
+    purchasedByStockId: {},
+    gold: merchantEventFood.price,
+    contribution: 0,
+    playerInventory: [],
+    isInventoryFull: false
+  })
+  assert.equal(merchantEventPurchase.success, true)
+  assert.equal(merchantEventPurchase.inventoryItem?.definitionId, 'food_jade_marrow_soup')
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)
