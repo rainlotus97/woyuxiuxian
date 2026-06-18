@@ -7,6 +7,10 @@ import {
   getPetExpForLevel,
   PET_DEFINITIONS
 } from '@/types/pet'
+import {
+  applyPetBondStatBonuses,
+  resolvePetBondEffects
+} from '@/pet/runtime/petBondResolver'
 
 interface PetState {
   ownedPets: OwnedPet[]
@@ -61,10 +65,14 @@ export const usePetStore = defineStore('pets', () => {
     .map(owned => {
       const definition = getPetDefinitionById(owned.definitionId)
       if (!definition) return null
+      const baseStats = calculatePetStats(definition, owned)
+      const bondEffects = resolvePetBondEffects(definition, owned)
       return {
         owned,
         definition,
-        stats: calculatePetStats(definition, owned)
+        stats: applyPetBondStatBonuses(baseStats, bondEffects.statBonuses),
+        baseStats,
+        bondEffects
       }
     })
     .filter((item): item is NonNullable<typeof item> => item !== null))

@@ -528,17 +528,57 @@ test('player journey resolver produces mode rewards', async () => {
     resolveBattleSkillProgression,
     resolveIdleSkillTrainingProgression
   } = await load('/src/character/runtime/characterSkillProgressResolver.ts')
+  const {
+    applyPetBondStatBonuses,
+    resolvePetBondEffects,
+    resolvePetJourneyRewards
+  } = await load('/src/pet/runtime/petBondResolver.ts')
+  const { buildPetBattleUnit } = await load('/src/game/battle/allyRosterFactory.ts')
+  const { getPetDefinitionById, calculatePetStats } = await load('/src/types/pet.ts')
   const baseClock = { year: 1, month: 1, day: 1, shichenIndex: 4, totalTicks: 1, lastSimulatedAt: 0 }
   const learnedSkills = [
     { id: 'basic_sword', level: 1, enabled: true },
     { id: 'gathering_qi', level: 1, enabled: true },
     { id: 'sword_rain', level: 3, enabled: false }
   ]
+  const petDefinition = getPetDefinitionById('pet_cloud_fox')
+  assert.ok(petDefinition, 'fixture pet should exist')
+  const ownedPet = {
+    definitionId: petDefinition.id,
+    level: 3,
+    exp: 0,
+    maxExp: 100,
+    intimacy: 80,
+    currentHp: petDefinition.baseStats.maxHp,
+    currentMp: petDefinition.baseStats.maxMp,
+    equipped: true
+  }
+  const petBond = resolvePetBondEffects(petDefinition, ownedPet)
+  const basePetStats = calculatePetStats(petDefinition, ownedPet)
+  const bondedPetStats = applyPetBondStatBonuses(basePetStats, petBond.statBonuses)
+  assert.ok(bondedPetStats.speed > basePetStats.speed)
+  assert.ok(bondedPetStats.critRate > basePetStats.critRate)
+  assert.ok(petBond.battleStatusEffects.some(effect => effect.type === 'dodge'))
+  const petJourneyRewards = resolvePetJourneyRewards({
+    basePetExp: 10,
+    basePetIntimacy: 1,
+    bondEffects: petBond.journeyEffects
+  })
+  assert.ok(petJourneyRewards.petExp > 10)
+  assert.equal(petJourneyRewards.petIntimacy, 2)
+  const petUnit = buildPetBattleUnit({
+    owned: ownedPet,
+    definition: petDefinition,
+    stats: bondedPetStats,
+    bondEffects: petBond
+  })
+  assert.ok(petUnit.statusEffects.some(effect => effect.type === 'dodge'))
   const baseContext = {
     clock: baseClock,
     weather: 'rain',
     baseCultivationGain: 100,
     hasEquippedPet: true,
+    petBondEffects: petBond.journeyEffects,
     learnedSkills,
     activeAnomaly: { areaId: 'qingyun_mountain' },
     fallbackAreaId: 'qingyun_mountain',
@@ -548,6 +588,7 @@ test('player journey resolver produces mode rewards', async () => {
   const cultivate = resolvePlayerJourney({ ...baseContext, idleMode: 'cultivate' })
   assert.equal(cultivate.cultivationDelta, 110)
   assert.ok(cultivate.petExpDelta >= 2)
+  assert.ok(cultivate.petIntimacyDelta >= 1)
 
   let herb = null
   for (let tick = 1; tick < 80 && !herb; tick++) {

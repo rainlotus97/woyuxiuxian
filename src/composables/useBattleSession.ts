@@ -255,7 +255,12 @@ export function useBattleSession() {
       allies.push(buildCompanionBattleUnit({ owned, definition, stats }, playerStore.realm))
     }
     if (petStore.equippedPet) {
-      allies.push(buildPetBattleUnit(petStore.equippedPet))
+      allies.push(buildPetBattleUnit({
+        owned: petStore.equippedPet.owned,
+        definition: petStore.equippedPet.definition,
+        stats: petStore.equippedPet.stats,
+        bondEffects: petStore.equippedPet.bondEffects
+      }))
     }
     return allies
   }

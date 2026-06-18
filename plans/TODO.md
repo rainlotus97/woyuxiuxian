@@ -285,6 +285,7 @@
   - 已新增 `characterBreakthroughResolver`，让破境预览、成功率、辅助丹药、失败惩罚和技能点奖励从 `playerStore` 中抽离为可测试规则
   - 已新增 `characterFoodEffectResolver`，让灵果 / 玉髓羹等食物可恢复体力并在若干次挂机结算内提升修炼收益
   - 已新增 `characterSkillProgressResolver`，让演练功法挂机和战斗胜利结算推动已学功法经验成长，并通过 `skill_exp` 行程奖励记录
+  - 已新增 `petBondResolver`，让灵兽亲密度与特质转化为上阵属性、常驻战斗状态和挂机陪伴收益
   - 已在人物总览展示修为/秒、调息增幅与修炼收益来源
 
 ## P3 资产与音频

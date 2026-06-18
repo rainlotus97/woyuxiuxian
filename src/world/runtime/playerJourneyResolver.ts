@@ -12,6 +12,10 @@ import {
   type SkillExpDelta,
   type SkillProgressSkillInput
 } from '@/character/runtime/characterSkillProgressResolver'
+import {
+  resolvePetJourneyRewards,
+  type PetBondJourneyEffects
+} from '@/pet/runtime/petBondResolver'
 import { seededWorldRoll } from './worldSeed'
 
 export interface PlayerJourneyInventoryItem {
@@ -43,6 +47,7 @@ export interface PlayerJourneyResolverContext {
   weather: WorldWeather
   baseCultivationGain: number
   hasEquippedPet: boolean
+  petBondEffects?: PetBondJourneyEffects | null
   learnedSkills?: SkillProgressSkillInput[]
   activeAnomaly: WorldAreaAnomaly | null
   fallbackAreaId: string | null
@@ -79,10 +84,14 @@ function resolveCultivationJourney(context: PlayerJourneyResolverContext): Playe
     : context.baseCultivationGain
   result.cultivationDelta += gain
   if (context.hasEquippedPet) {
-    result.petExpDelta += 2
-    if (seededWorldRoll(context.clock.totalTicks, 'pet-cultivate-exp') > 0.58) {
-      result.petExpDelta += 2
-    }
+    const basePetExp = 2 + (seededWorldRoll(context.clock.totalTicks, 'pet-cultivate-exp') > 0.58 ? 2 : 0)
+    const petRewards = resolvePetJourneyRewards({
+      basePetExp,
+      basePetIntimacy: 0,
+      bondEffects: context.petBondEffects ?? null
+    })
+    result.petExpDelta += petRewards.petExp
+    result.petIntimacyDelta += petRewards.petIntimacy
   }
   if (seededWorldRoll(context.clock.totalTicks, 'player-cultivate-insight') > 0.94) {
     result.journeys.push({
@@ -100,11 +109,14 @@ function resolveAdventureJourney(context: PlayerJourneyResolverContext): PlayerJ
   const result = createEmptyResolution()
   result.cultivationDelta += Math.floor(context.baseCultivationGain * 0.35)
   if (context.hasEquippedPet) {
-    result.petExpDelta += 3
-    result.petIntimacyDelta += 1
-    if (seededWorldRoll(context.clock.totalTicks, 'pet-adventure-exp') > 0.7) {
-      result.petExpDelta += 3
-    }
+    const basePetExp = 3 + (seededWorldRoll(context.clock.totalTicks, 'pet-adventure-exp') > 0.7 ? 3 : 0)
+    const petRewards = resolvePetJourneyRewards({
+      basePetExp,
+      basePetIntimacy: 1,
+      bondEffects: context.petBondEffects ?? null
+    })
+    result.petExpDelta += petRewards.petExp
+    result.petIntimacyDelta += petRewards.petIntimacy
   }
 
   if (seededWorldRoll(context.clock.totalTicks, 'player-adventure-find') > 0.78) {

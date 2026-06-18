@@ -1,6 +1,10 @@
 import { createUnit, type Unit, type UnitStats } from '@/types/unit'
 import type { CompanionDefinition, OwnedCompanion } from '@/types/companion'
 import type { OwnedPet, PetDefinition } from '@/types/pet'
+import {
+  resolvePetBondEffects,
+  type PetBondEffectResolution
+} from '@/pet/runtime/petBondResolver'
 
 interface BattleCompanionSource {
   owned: OwnedCompanion
@@ -12,6 +16,7 @@ interface BattlePetSource {
   owned: OwnedPet
   definition: PetDefinition
   stats: UnitStats
+  bondEffects?: PetBondEffectResolution
 }
 
 function mapCompanionQualityToUnitQuality(definition: CompanionDefinition): Unit['quality'] {
@@ -53,6 +58,7 @@ export function buildCompanionBattleUnit(
 
 export function buildPetBattleUnit(source: BattlePetSource): Unit {
   const { owned, definition, stats } = source
+  const bondEffects = source.bondEffects ?? resolvePetBondEffects(definition, owned)
   return createUnit({
     id: `pet_${owned.definitionId}`,
     name: definition.name,
@@ -74,6 +80,7 @@ export function buildPetBattleUnit(source: BattlePetSource): Unit {
       critRate: stats.critRate,
       critDamage: stats.critDamage
     },
-    skills: [...definition.skills]
+    skills: [...definition.skills],
+    statusEffects: [...bondEffects.battleStatusEffects]
   })
 }

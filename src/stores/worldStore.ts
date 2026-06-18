@@ -432,6 +432,7 @@ export const useWorldStore = defineStore('world', () => {
       weather: weather.value,
       baseCultivationGain: baseGain,
       hasEquippedPet: Boolean(petStore.equippedPet),
+      petBondEffects: petStore.equippedPet?.bondEffects.journeyEffects ?? null,
       learnedSkills: toSkillProgressInput(playerStore.learnedSkills),
       activeAnomaly: areaAnomalies.value[0] ?? null,
       fallbackAreaId: mapStore.currentRealmAreas[0]?.id ?? null,
