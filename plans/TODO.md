@@ -45,7 +45,11 @@
   - 已支持护盾吸收伤害与 DOT 回合开始扣血
   - 已支持 `demon_summon -> 深渊魔侍` 召唤链路，召唤物可进入战场、行动序列和目标选择
   - 待补：召唤物专属技能、退场规则、玩家侧召唤技接入
-- [ ] 增加回放日志结构，支持剧情战和世界事件战共用
+- [~] 增加回放日志结构，支持剧情战和世界事件战共用
+  - 已新增 `battleReplay.ts`，定义结构化 `BattleReplayEvent`、actor/target 引用、事件类型与日志映射
+  - 已让 `BattleRuntime` 记录 battle_start / turn_start / turn_status / command / effect / summon / defeat / battle_end 事件
+  - 已在 `BattleRuntimeSnapshot` 暴露最近 replayEvents，并保留现有 `logs` UI 兼容层
+  - 待补：剧情战结算持久化完整 replay、世界事件战读取 replay 摘要、战斗回放 UI
 - [x] 增加战斗场景 arena 配置
   - 已建立 `src/game/battle/config/arenas.ts`
   - 已抽离 `battleArenaBuilder`、`battleSceneLayout`，避免舞台结构和站位逻辑堆进 `BattleScene`

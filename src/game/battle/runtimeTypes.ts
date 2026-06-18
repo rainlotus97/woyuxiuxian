@@ -1,6 +1,7 @@
 import type { Skill } from '@/types/skill'
 import type { StatusEffect, Unit } from '@/types/unit'
 import type { BattleActorRole } from './presentationRoles'
+import type { BattleReplayEvent, BattleReplayLogEntry } from './battleReplay'
 
 export type BattleRuntimePhase = 'intro' | 'running' | 'selecting' | 'animating' | 'ended'
 export type BattleRuntimeResult = 'victory' | 'defeat' | 'fled' | null
@@ -28,11 +29,7 @@ export interface BattleRuntimeHit {
   isHeal?: boolean
 }
 
-export interface BattleRuntimeLog {
-  id: string
-  text: string
-  severity: 'normal' | 'major'
-}
+export type BattleRuntimeLog = BattleReplayLogEntry
 
 export interface BattleRuntimeSnapshot {
   phase: BattleRuntimePhase
@@ -43,6 +40,7 @@ export interface BattleRuntimeSnapshot {
   turn: number
   result: BattleRuntimeResult
   logs: BattleRuntimeLog[]
+  replayEvents: BattleReplayEvent[]
 }
 
 export interface BattlePreparedEffect {

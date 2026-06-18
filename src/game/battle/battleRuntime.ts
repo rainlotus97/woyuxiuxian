@@ -12,6 +12,7 @@ import {
 } from './statusRuntime'
 import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
+import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
 import type {
   BattleResolvedCommand,
   BattleRuntimeCommand,
@@ -49,6 +50,7 @@ export class BattleRuntime {
   logs: BattleRuntimeLog[] = []
   private pendingTurnContext: BattleTurnContext = { hits: [], logs: [] }
   private summonSerial = 0
+  private replayRecorder = new BattleReplayRecorder()
 
   constructor(allies: Unit[], enemies: Unit[]) {
     this.units = [
@@ -56,7 +58,7 @@ export class BattleRuntime {
       ...enemies.map((unit, index) => toBattleRuntimeUnit(unit, 'enemy' as const, index * 8 + Math.random() * 18))
     ]
     this.phase = 'running'
-    this.addLog('战斗开始，灵火在阵中流转。', 'major')
+    this.addReplayEvent(this.replayRecorder.recordBattleStart(this.turn, '战斗开始，灵火在阵中流转。'))
   }
 
   get aliveAllies() {
@@ -178,6 +180,10 @@ export class BattleRuntime {
 
     const appliedEffects = applyPreparedEffects(this.units, resolved.preparedEffects)
     const summonOutcomes = applyPreparedSummons(this.units, resolved.preparedSummons, () => this.nextSummonSerial())
+    const commandTargets = resolved.targetIds
+      .map(targetId => this.units.find(unit => unit.id === targetId))
+      .filter((unit): unit is BattleRuntimeUnit => Boolean(unit))
+    this.replayRecorder.recordCommand(this.turn, resolved, actor, commandTargets, skill ? this.getSpiritFireCost(skill) : 0)
     const defeatedTargets = new Set<string>()
     let totalDamage = 0
     let totalHealing = 0
@@ -195,44 +201,83 @@ export class BattleRuntime {
         totalStatuses++
         const target = this.units.find(unit => unit.id === effect.targetId)
         if (target) {
-          this.addLog(`${target.name}获得${this.getStatusLabel(effect.appliedStatus.type)}效果。`, 'normal')
+          this.addReplayEvent(this.replayRecorder.record({
+            turn: this.turn,
+            type: 'effect',
+            text: `${target.name}获得${this.getStatusLabel(effect.appliedStatus.type)}效果。`,
+            severity: 'normal',
+            actor,
+            targets: [target],
+            payload: {
+              effectType: 'status',
+              statusType: effect.appliedStatus.type,
+              duration: effect.appliedStatus.duration,
+              value: effect.appliedStatus.value ?? null
+            }
+          }))
         }
       }
       if (effect.targetDefeated) {
         defeatedTargets.add(effect.targetId)
+      }
+      if (effect.effectType === 'damage' || effect.effectType === 'heal') {
+        this.replayRecorder.recordEffect(
+          this.turn,
+          effect,
+          this.units.find(unit => unit.id === effect.actorId),
+          this.units.find(unit => unit.id === effect.targetId)
+        )
       }
     }
 
     for (const summon of summonOutcomes) {
       if (summon.success) {
         totalSummons++
-        this.addLog(`${actor.name}唤出${summon.summonName}加入战场。`, 'major')
+        this.addReplayEvent(this.replayRecorder.recordSummon(this.turn, summon, actor))
         continue
       }
       if (summon.reason === 'limit') {
-        this.addLog(`${actor.name}试图继续召唤${summon.summonName}，但战场已无可用召唤位。`, 'normal')
+        this.addReplayEvent(this.replayRecorder.recordSummon(this.turn, summon, actor))
       }
     }
 
     for (const targetId of defeatedTargets) {
       const target = this.units.find(unit => unit.id === targetId)
       if (target) {
-        this.addLog(`${target.name}被击败。`, 'major')
+        this.addReplayEvent(this.replayRecorder.recordDefeat(this.turn, target))
       }
     }
 
     if (totalDamage > 0 && totalHealing > 0) {
-      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害并恢复${totalHealing}点气血。`, skill ? 'major' : 'normal')
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害并恢复${totalHealing}点气血。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalDamage,
+        totalHealing
+      })
     } else if (totalDamage > 0) {
-      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害。`, skill ? 'major' : 'normal')
+      this.addLog(`${actor.name}施展${resolved.actionName}，造成${totalDamage}点伤害。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalDamage
+      })
     } else if (totalHealing > 0) {
-      this.addLog(`${actor.name}施展${resolved.actionName}，恢复${totalHealing}点气血。`, 'major')
+      this.addLog(`${actor.name}施展${resolved.actionName}，恢复${totalHealing}点气血。`, 'major', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalHealing
+      })
     } else if (totalSummons > 0) {
-      this.addLog(`${actor.name}施展${resolved.actionName}，召来${totalSummons}个战场助力。`, 'major')
+      this.addLog(`${actor.name}施展${resolved.actionName}，召来${totalSummons}个战场助力。`, 'major', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalSummons
+      })
     } else if (totalStatuses > 0) {
-      this.addLog(`${actor.name}施展${resolved.actionName}，灵力效果在战场扩散。`, 'major')
+      this.addLog(`${actor.name}施展${resolved.actionName}，灵力效果在战场扩散。`, 'major', 'command', actor, commandTargets, {
+        actionName: resolved.actionName,
+        totalStatuses
+      })
     } else {
-      this.addLog(`${actor.name}施展${resolved.actionName}。`, skill ? 'major' : 'normal')
+      this.addLog(`${actor.name}施展${resolved.actionName}。`, skill ? 'major' : 'normal', 'command', actor, commandTargets, {
+        actionName: resolved.actionName
+      })
     }
 
     this.finishAction()
@@ -242,13 +287,13 @@ export class BattleRuntime {
     if (this.aliveEnemies.length === 0) {
       this.result = 'victory'
       this.phase = 'ended'
-      this.addLog('战斗胜利。', 'major')
+      this.addReplayEvent(this.replayRecorder.recordBattleEnd(this.turn, 'victory', '战斗胜利。'))
       return
     }
     if (this.aliveAllies.length === 0) {
       this.result = 'defeat'
       this.phase = 'ended'
-      this.addLog('战斗失败。', 'major')
+      this.addReplayEvent(this.replayRecorder.recordBattleEnd(this.turn, 'defeat', '战斗失败。'))
       return
     }
     this.currentActorId = null
@@ -259,7 +304,7 @@ export class BattleRuntime {
   flee() {
     this.result = 'fled'
     this.phase = 'ended'
-    this.addLog('你脱离了战场。', 'major')
+    this.addReplayEvent(this.replayRecorder.recordBattleEnd(this.turn, 'fled', '你脱离了战场。'))
   }
 
   snapshot(): BattleRuntimeSnapshot {
@@ -271,8 +316,13 @@ export class BattleRuntime {
       maxSpiritFire: this.maxSpiritFire,
       turn: this.turn,
       result: this.result,
-      logs: this.logs.slice(-6)
+      logs: this.logs.slice(-6),
+      replayEvents: this.replayRecorder.getRecentEvents(12)
     }
+  }
+
+  getReplayEvents() {
+    return this.replayRecorder.getEvents()
   }
 
   consumePendingTurnContext(): BattleTurnContext {
@@ -288,8 +338,27 @@ export class BattleRuntime {
     return 1
   }
 
-  private addLog(text: string, severity: BattleRuntimeLog['severity']) {
-    this.logs.push({ id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, text, severity })
+  private addLog(
+    text: string,
+    severity: BattleRuntimeLog['severity'],
+    type: BattleReplayEvent['type'] = 'command',
+    actor?: BattleRuntimeUnit,
+    targets?: BattleRuntimeUnit[],
+    payload?: BattleReplayEvent['payload']
+  ) {
+    this.addReplayEvent(this.replayRecorder.record({
+      turn: this.turn,
+      type,
+      text,
+      severity,
+      actor,
+      targets,
+      payload
+    }))
+  }
+
+  private addReplayEvent(event: BattleReplayEvent) {
+    this.logs.push(this.replayRecorder.createLog(event))
     if (this.logs.length > 40) {
       this.logs = this.logs.slice(-24)
     }
@@ -320,6 +389,7 @@ export class BattleRuntime {
   private startTurn(actor: BattleRuntimeUnit) {
     actor.actionGauge = 0
     this.currentActorId = actor.id
+    this.replayRecorder.recordTurnStart(this.turn, actor)
     if (actor.side === 'ally') {
       this.spiritFire = Math.min(this.maxSpiritFire, this.spiritFire + 1)
     }
@@ -330,7 +400,7 @@ export class BattleRuntime {
       logs: turnStart.logs
     }
     for (const log of turnStart.logs) {
-      this.addLog(log, turnStart.actorDefeated ? 'major' : 'normal')
+      this.addReplayEvent(this.replayRecorder.recordStatusLog(this.turn, actor, log, turnStart.actorDefeated ? 'major' : 'normal'))
     }
 
     if (turnStart.actorDefeated) {
