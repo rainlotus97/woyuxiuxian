@@ -1,181 +1,182 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="close">
-    <div class="modal-content">
-      <!-- 头部 -->
-      <div class="modal-header">
-        <div class="header-info">
-          <span class="facility-icon">{{ facility?.icon }}</span>
-          <div class="header-text">
-            <h3 class="facility-name">{{ facility?.name }}</h3>
-            <span class="facility-level">Lv.{{ facilityLevel }}</span>
+  <GameDialog :visible="visible" :title="facility?.name || ''" eyebrow="宗门设施" @close="close">
+    <template v-if="facility">
+      <div class="facility-shell">
+        <GameSurface tone="mist" padding="md" compact>
+          <div class="facility-head">
+            <div class="facility-leading">
+              <div class="facility-icon">{{ facility.icon }}</div>
+              <div class="facility-copy">
+                <strong>{{ facility.name }}</strong>
+                <small>Lv.{{ facilityLevel }}/{{ facility.maxLevel }}</small>
+              </div>
+            </div>
+            <span class="effect-pill">{{ currentEffect }}</span>
           </div>
-        </div>
-        <button class="close-btn" @click="close">×</button>
-      </div>
+        </GameSurface>
 
-      <!-- 效果说明 -->
-      <div class="facility-effect">
-        <span class="effect-label">当前效果:</span>
-        <span class="effect-value">{{ currentEffect }}</span>
-      </div>
+        <div v-if="facilityId === 'alchemy_furnace'" class="section-stack">
+          <GameSurface tone="gold" padding="md" compact>
+            <div class="section-copy">
+              <span class="section-label">炼丹配方</span>
+            </div>
+          </GameSurface>
 
-      <!-- 炼丹炉内容 -->
-      <div v-if="facilityId === 'alchemy_furnace'" class="facility-body">
-        <div class="section-title">炼丹配方</div>
-        <div class="recipe-list">
-          <div
-            v-for="recipe in availableRecipes"
-            :key="recipe.id"
-            class="recipe-card"
-            :class="{ disabled: !canCraft(recipe) }"
-            @click="handleCraft(recipe)"
-          >
-            <div class="recipe-header">
-              <span class="recipe-icon">{{ recipe.icon }}</span>
-              <div class="recipe-info">
-                <span class="recipe-name">{{ recipe.name }}</span>
-                <span class="recipe-quality" :class="recipe.quality">
-                  {{ getQualityLabel(recipe.quality) }}
+          <div class="recipe-list">
+            <GameSurface
+              v-for="recipe in availableRecipes"
+              :key="recipe.id"
+              tone="mist"
+              padding="md"
+              compact
+              class="recipe-card"
+            >
+              <div class="recipe-head">
+                <div class="recipe-leading">
+                  <span class="recipe-icon">{{ recipe.icon }}</span>
+                  <div class="recipe-copy">
+                    <strong>{{ recipe.name }}</strong>
+                    <small>{{ getQualityLabel(recipe.quality) }}</small>
+                  </div>
+                </div>
+                <span class="success-rate">成功率 {{ getSuccessRate(recipe) }}%</span>
+              </div>
+
+              <div class="material-list">
+                <span
+                  v-for="mat in recipe.materials"
+                  :key="mat.itemId"
+                  class="material-chip"
+                  :class="{ insufficient: !hasMaterial(mat) }"
+                >
+                  {{ getMaterialName(mat.itemId) }} x{{ mat.quantity }}
                 </span>
               </div>
-            </div>
-            <div class="recipe-materials">
-              <span class="material-label">材料:</span>
-              <span
-                v-for="mat in recipe.materials"
-                :key="mat.itemId"
-                class="material-item"
-                :class="{ insufficient: !hasMaterial(mat) }"
-              >
-                {{ getMaterialName(mat.itemId) }} x{{ mat.quantity }}
-              </span>
-            </div>
-            <div class="recipe-footer">
-              <span class="success-rate">成功率: {{ getSuccessRate(recipe) }}%</span>
-              <button
-                class="craft-btn"
-                :disabled="!canCraft(recipe)"
-                @click.stop="handleCraft(recipe)"
-              >
-                炼制
-              </button>
-            </div>
+
+              <div class="surface-actions">
+                <GameActionButton
+                  icon="🧪"
+                  tone="gold"
+                  :disabled="!canCraft(recipe)"
+                  @click="handleCraft(recipe)"
+                >
+                  炼制
+                </GameActionButton>
+              </div>
+            </GameSurface>
           </div>
         </div>
-      </div>
 
-      <!-- 药园内容 -->
-      <div v-else-if="facilityId === 'medicine_garden'" class="facility-body">
-        <div class="section-title">药园槽位</div>
-        <div class="garden-slots">
-          <div
-            v-for="(slot, index) in displaySlots"
-            :key="index"
-            class="garden-slot"
-            :class="{ locked: index >= slotCount, planted: slot != null, ready: isReady(slot) }"
-          >
-            <template v-if="index >= slotCount">
-              <div class="slot-locked">
-                <span class="lock-icon">🔒</span>
-                <span class="lock-text">需要药园Lv.{{ getRequiredLevel(index) }}</span>
+        <div v-else-if="facilityId === 'medicine_garden'" class="section-stack">
+          <div class="garden-grid">
+            <GameSurface
+              v-for="(slot, index) in displaySlots"
+              :key="index"
+              :tone="index >= slotCount ? 'mist' : isReady(slot) ? 'gold' : 'jade'"
+              padding="md"
+              compact
+              class="garden-slot"
+            >
+              <div v-if="index >= slotCount" class="slot-copy">
+                <strong>锁定槽位</strong>
+                <small>需要药园 Lv.{{ getRequiredLevel(index) }}</small>
               </div>
-            </template>
-            <template v-else-if="slot">
-              <div class="slot-planted">
-                <span class="crop-icon">{{ getCropIcon(slot) }}</span>
-                <div class="crop-info">
-                  <span class="crop-name">{{ getCropName(slot) }}</span>
-                  <span v-if="isReady(slot)" class="crop-status ready">已成熟</span>
-                  <span v-else class="crop-status">{{ getRemainingTime(slot) }}</span>
+
+              <template v-else-if="slot">
+                <div class="slot-copy">
+                  <strong>{{ getCropName(slot) }}</strong>
+                  <small>{{ isReady(slot) ? '已成熟，可收获' : getRemainingTime(slot) }}</small>
                 </div>
-                <div class="slot-actions">
-                  <button
+
+                <div class="surface-actions">
+                  <GameActionButton
                     v-if="isReady(slot)"
-                    class="action-btn harvest"
+                    icon="🌿"
+                    tone="gold"
                     @click="handleHarvest(index)"
                   >
                     收获
-                  </button>
-                  <button
+                  </GameActionButton>
+                  <GameActionButton
                     v-else
-                    class="action-btn accelerate"
+                    icon="⚡"
+                    tone="jade"
                     @click="handleAccelerate(index)"
                   >
                     加速
-                  </button>
+                  </GameActionButton>
                 </div>
-              </div>
-            </template>
-            <template v-else>
-              <div class="slot-empty" @click="showSeedSelector(index)">
-                <span class="empty-icon">🌱</span>
-                <span class="empty-text">点击种植</span>
-              </div>
-            </template>
-          </div>
-        </div>
+              </template>
 
-        <!-- 种子选择器 -->
-        <div v-if="selectingSlot !== null" class="seed-selector">
-          <div class="selector-header">
-            <span>选择种子</span>
-            <button class="close-selector" @click="selectingSlot = null">×</button>
+              <template v-else>
+                <div class="slot-copy">
+                  <strong>空闲药田</strong>
+                  <small>选择种子后可开始培育。</small>
+                </div>
+
+                <div class="surface-actions">
+                  <GameActionButton icon="🌱" tone="jade" @click="showSeedSelector(index)">
+                    种植
+                  </GameActionButton>
+                </div>
+              </template>
+            </GameSurface>
           </div>
-          <div class="seed-list">
-            <div
-              v-for="seed in availableSeeds"
-              :key="seed.id"
-              class="seed-card"
-              :class="{ disabled: !canPlant(seed) }"
-              @click="handlePlant(seed)"
-            >
-              <span class="seed-icon">{{ seed.icon }}</span>
-              <div class="seed-info">
-                <span class="seed-name">{{ seed.name }}</span>
-                <span class="seed-time">{{ seed.growTime }}分钟</span>
-              </div>
-              <span class="seed-price">💎{{ seed.buyPrice }}</span>
+
+          <GameSurface v-if="selectingSlot !== null" tone="gold" padding="md" compact>
+            <div class="section-copy">
+              <span class="section-label">选择种子</span>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 其他设施内容 -->
-      <div v-else class="facility-body">
-        <div class="section-title">设施信息</div>
-        <div class="facility-description">
-          {{ facility?.description }}
+            <div class="seed-list">
+              <button
+                v-for="seed in availableSeeds"
+                :key="seed.id"
+                class="seed-card"
+                :class="{ disabled: !canPlant(seed) }"
+                @click="handlePlant(seed)"
+              >
+                <div class="seed-leading">
+                  <span class="seed-icon">{{ seed.icon }}</span>
+                  <div class="seed-copy">
+                    <strong>{{ seed.name }}</strong>
+                    <small>{{ seed.growTime }} 分钟</small>
+                  </div>
+                </div>
+                <span class="seed-price">💎{{ seed.buyPrice }}</span>
+              </button>
+            </div>
+          </GameSurface>
         </div>
-        <div class="upgrade-info">
-          <div class="current-level">
-            <span class="label">当前等级:</span>
-            <span class="value">Lv.{{ facilityLevel }}</span>
-          </div>
-          <div class="next-effect" v-if="facilityLevel < (facility?.maxLevel || 5)">
-            <span class="label">下一级效果:</span>
-            <span class="value">{{ nextEffect }}</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- 升级按钮 -->
-      <div class="modal-footer">
-        <button
-          v-if="canUpgrade"
-          class="upgrade-btn"
-          :disabled="!canUpgrade"
-          @click="handleUpgrade"
-        >
-          <span class="upgrade-icon">⬆️</span>
-          升级 ({{ upgradeCost }})
-        </button>
+        <GameSurface v-else tone="mist" padding="md" compact>
+          <div class="section-copy">
+            <span class="section-label">设施说明</span>
+            <p>{{ facility.description }}</p>
+            <small v-if="facilityLevel < facility.maxLevel">下一阶段：{{ nextEffect }}</small>
+          </div>
+        </GameSurface>
       </div>
-    </div>
-  </div>
+    </template>
+
+    <template #footer>
+      <GameActionButton
+        v-if="canUpgrade"
+        icon="⬆️"
+        tone="gold"
+        @click="handleUpgrade"
+      >
+        升级（{{ upgradeCost }}）
+      </GameActionButton>
+    </template>
+  </GameDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useSectStore } from '@/stores/sectStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { SECT_FACILITIES } from '@/types/sect'
@@ -189,90 +190,74 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'close'): void
+  close: []
 }>()
 
 const sectStore = useSectStore()
 const playerStore = usePlayerStore()
 const { success, warning } = useToast()
-
 const selectingSlot = ref<number | null>(null)
 
-// 获取设施信息
-const facility = computed(() => {
-  return SECT_FACILITIES.find(f => f.id === props.facilityId)
-})
+const facility = computed(() => SECT_FACILITIES.find(item => item.id === props.facilityId) ?? null)
+const facilityLevel = computed(() => sectStore.getFacilityLevel(props.facilityId))
 
-// 设施等级
-const facilityLevel = computed(() => {
-  return sectStore.getFacilityLevel(props.facilityId)
-})
-
-// 当前效果描述
 const currentEffect = computed(() => {
-  if (!facility.value) return ''
-  const effect = facility.value.effects[0]
+  const effect = facility.value?.effects[0]
   if (!effect) return ''
-  // value 表示每级增加的百分比
   const bonus = facilityLevel.value * effect.value
   return `${effect.description.replace(/\+\d+%/, '')}+${bonus}%`
 })
 
-// 下一级效果
 const nextEffect = computed(() => {
-  if (!facility.value) return ''
-  const effect = facility.value.effects[0]
+  const effect = facility.value?.effects[0]
   if (!effect) return ''
   const bonus = (facilityLevel.value + 1) * effect.value
   return `${effect.description.replace(/\+\d+%/, '')}+${bonus}%`
 })
 
-// 是否可以升级
 const canUpgrade = computed(() => {
   if (!facility.value) return false
-  if (facilityLevel.value >= (facility.value.maxLevel || 5)) return false
-  return sectStore.contribution >= (facility.value.upgradeCost?.contribution || 0) &&
-         playerStore.gold >= (facility.value.upgradeCost?.gold || 0)
+  if (facilityLevel.value >= facility.value.maxLevel) return false
+  return sectStore.contribution >= facility.value.upgradeCost.contribution
+    && playerStore.gold >= facility.value.upgradeCost.gold
 })
 
-// 升级消耗
 const upgradeCost = computed(() => {
-  if (!facility.value?.upgradeCost) return ''
+  if (!facility.value) return ''
   return `${facility.value.upgradeCost.contribution}贡献 ${facility.value.upgradeCost.gold}灵石`
 })
 
-// ====== 炼丹相关 ======
-
 const availableRecipes = computed(() => {
-  return ALCHEMY_RECIPES.filter(r => r.requiredFacilityLevel <= facilityLevel.value)
+  return ALCHEMY_RECIPES.filter(recipe => recipe.requiredFacilityLevel <= facilityLevel.value)
 })
 
-function canCraft(recipe: AlchemyRecipe): boolean {
-  for (const mat of recipe.materials) {
-    if (!hasMaterial(mat)) return false
-  }
-  return true
-}
-
-function hasMaterial(mat: { itemId: string; quantity: number }): boolean {
-  if (mat.itemId === 'gold') {
-    return playerStore.gold >= mat.quantity
-  }
-  const item = playerStore.inventory.find(i => i.id === mat.itemId || i.name === mat.itemId)
+function hasMaterial(mat: { itemId: string; quantity: number }) {
+  if (mat.itemId === 'gold') return playerStore.gold >= mat.quantity
+  const item = playerStore.inventory.find(entry => entry.id === mat.itemId || entry.name === mat.itemId)
   return (item?.quantity || 0) >= mat.quantity
 }
 
-function getMaterialName(itemId: string): string {
-  if (itemId === 'gold') return '灵石'
-  const item = playerStore.inventory.find(i => i.id === itemId || i.name === itemId)
+function canCraft(recipe: AlchemyRecipe) {
+  return recipe.materials.every(hasMaterial)
+}
+
+function getMaterialName(itemId: string) {
+  const names: Record<string, string> = {
+    gold: '灵石',
+    herb_spirit_grass: '灵草',
+    herb_spirit_flower: '灵花',
+    herb_immortal_grass: '仙草'
+  }
+  if (names[itemId]) return names[itemId]
+  const item = playerStore.inventory.find(entry => entry.id === itemId || entry.name === itemId)
   return item?.name || itemId
 }
 
-function getSuccessRate(recipe: AlchemyRecipe): number {
+function getSuccessRate(recipe: AlchemyRecipe) {
   return Math.min(100, Math.floor((recipe.baseSuccessRate + facilityLevel.value * 0.05) * 100))
 }
 
-function getQualityLabel(quality: string): string {
+function getQualityLabel(quality: string) {
   const labels: Record<string, string> = {
     common: '凡品',
     fine: '灵品',
@@ -289,82 +274,53 @@ function handleCraft(recipe: AlchemyRecipe) {
     return
   }
   const result = sectStore.craftAlchemy(recipe.id)
-  if (result.success) {
-    success(result.message)
-  } else {
-    warning(result.message)
-  }
+  if (result.success) success(result.message)
+  else warning(result.message)
 }
 
-// ====== 药园相关 ======
-
 const slotCount = computed(() => {
-  const level = facilityLevel.value
-  if (level >= 5) return 3
-  if (level >= 3) return 2
+  if (facilityLevel.value >= 5) return 3
+  if (facilityLevel.value >= 3) return 2
   return 1
 })
 
-const displaySlots = computed<(PlantedCrop | null)[]>(() => {
-  return [0, 1, 2].map(i => {
-    if (i < sectStore.gardenSlots.length) {
-      return sectStore.gardenSlots[i] ?? null
-    }
-    return null
-  })
-})
+const displaySlots = computed<(PlantedCrop | null)[]>(() => [0, 1, 2].map(index => sectStore.gardenSlots[index] ?? null))
+const availableSeeds = computed(() => SEEDS.filter(seed => seed.requiredGardenLevel <= facilityLevel.value))
 
-const availableSeeds = computed(() => {
-  return SEEDS.filter(s => s.requiredGardenLevel <= facilityLevel.value)
-})
-
-function getRequiredLevel(slotIndex: number): number {
+function getRequiredLevel(slotIndex: number) {
   if (slotIndex === 0) return 1
   if (slotIndex === 1) return 3
   return 5
 }
 
-function getCropIcon(slot: PlantedCrop | null): string {
+function getCropName(slot: PlantedCrop | null) {
   if (!slot) return ''
-  const seed = SEEDS.find(s => s.id === slot.seedId)
-  return seed?.icon || '🌱'
+  return SEEDS.find(seed => seed.id === slot.seedId)?.name || '未知作物'
 }
 
-function getCropName(slot: PlantedCrop | null): string {
-  if (!slot) return ''
-  const seed = SEEDS.find(s => s.id === slot.seedId)
-  return seed?.name || '未知作物'
+function isReady(slot: PlantedCrop | null) {
+  return Boolean(slot && Date.now() >= slot.readyAt)
 }
 
-function isReady(slot: PlantedCrop | null): boolean {
-  if (!slot) return false
-  return Date.now() >= slot.readyAt
-}
-
-function getRemainingTime(slot: PlantedCrop | null): string {
+function getRemainingTime(slot: PlantedCrop | null) {
   if (!slot) return ''
   const remaining = slot.readyAt - Date.now()
   if (remaining <= 0) return '已成熟'
-
   const hours = Math.floor(remaining / (1000 * 60 * 60))
   const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-  if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
-  }
-  return `${minutes}分钟`
+  return hours > 0 ? `${hours}小时${minutes}分钟` : `${minutes}分钟`
 }
 
 function showSeedSelector(slotIndex: number) {
   selectingSlot.value = slotIndex
 }
 
-function canPlant(seed: SeedDefinition): boolean {
+function canPlant(seed: SeedDefinition) {
   return playerStore.gold >= seed.buyPrice
 }
 
 function handlePlant(seed: SeedDefinition) {
   if (selectingSlot.value === null) return
-
   const result = sectStore.plantSeed(seed.id, selectingSlot.value)
   if (result.success) {
     success(result.message)
@@ -376,504 +332,161 @@ function handlePlant(seed: SeedDefinition) {
 
 function handleHarvest(slotIndex: number) {
   const result = sectStore.harvestCrop(slotIndex)
-  if (result.success) {
-    success(result.message)
-  } else {
-    warning(result.message)
-  }
+  if (result.success) success(result.message)
+  else warning(result.message)
 }
 
 function handleAccelerate(slotIndex: number) {
   const result = sectStore.accelerateCrop(slotIndex)
-  if (result.success) {
-    success(result.message)
-  } else {
-    warning(result.message)
-  }
+  if (result.success) success(result.message)
+  else warning(result.message)
 }
 
-// ====== 通用操作 ======
-
 function handleUpgrade() {
-  const result = sectStore.upgradeFacility(props.facilityId)
-  if (result) {
-    success('升级成功')
-  } else {
-    warning('升级失败，资源不足')
-  }
+  if (sectStore.upgradeFacility(props.facilityId)) success('升级成功')
+  else warning('升级失败，资源不足')
 }
 
 function close() {
+  selectingSlot.value = null
   emit('close')
 }
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
+.facility-shell,
+.section-stack,
+.recipe-list,
+.garden-grid,
+.seed-list {
+  display: grid;
+  gap: 12px;
 }
 
-.modal-content {
-  background: linear-gradient(180deg, rgba(35, 38, 52, 0.98) 0%, rgba(25, 27, 38, 0.98) 100%);
-  border: 1px solid rgba(126, 184, 218, 0.3);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid rgba(126, 184, 218, 0.15);
-}
-
-.header-info {
+.facility-head,
+.facility-leading,
+.recipe-head,
+.recipe-leading,
+.seed-leading,
+.surface-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.facility-icon {
-  font-size: 2rem;
-}
-
-.header-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.facility-name {
-  font-size: 1.125rem;
-  color: var(--color-accent);
-  font-weight: 500;
-}
-
-.facility-level {
-  font-size: 0.75rem;
-  color: var(--color-accent-warm);
-}
-
-.close-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: var(--color-muted);
-  font-size: 1.25rem;
-  cursor: pointer;
-}
-
-.facility-effect {
-  padding: 12px 16px;
-  background: rgba(126, 184, 218, 0.1);
-  display: flex;
+.facility-head,
+.recipe-head {
   justify-content: space-between;
-  align-items: center;
 }
 
-.effect-label {
-  font-size: 0.75rem;
-  color: var(--color-muted);
+.facility-icon,
+.recipe-icon,
+.seed-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  font-size: 22px;
 }
 
-.effect-value {
-  font-size: 0.875rem;
-  color: var(--color-success);
+.facility-copy,
+.recipe-copy,
+.seed-copy,
+.slot-copy,
+.section-copy {
+  display: grid;
+  gap: 4px;
 }
 
-.facility-body {
-  padding: 16px;
+.facility-copy strong,
+.recipe-copy strong,
+.seed-copy strong,
+.slot-copy strong,
+.section-copy strong {
+  color: #315257;
+  font-size: 14px;
 }
 
-.section-title {
-  font-size: 0.875rem;
-  color: var(--color-accent);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(126, 184, 218, 0.15);
+.facility-copy small,
+.recipe-copy small,
+.seed-copy small,
+.slot-copy small,
+.section-label,
+.section-copy p,
+.section-copy small,
+.success-rate {
+  color: rgba(73, 97, 95, 0.74);
+  font-size: 11px;
 }
 
-/* 炼丹配方样式 */
-.recipe-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.section-copy p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.recipe-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.effect-pill {
+  color: #8b6226;
+  font-size: 11px;
 }
 
-.recipe-card:hover:not(.disabled) {
-  border-color: var(--color-accent);
-}
-
-.recipe-card.disabled {
-  opacity: 0.5;
-}
-
-.recipe-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.recipe-icon {
-  font-size: 1.5rem;
-}
-
-.recipe-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.recipe-name {
-  font-size: 0.9375rem;
-  color: rgb(232 228 217);
-}
-
-.recipe-quality {
-  font-size: 0.625rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.recipe-quality.common { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
-.recipe-quality.fine { background: rgba(126, 184, 218, 0.2); color: #7eb8da; }
-.recipe-quality.rare { background: rgba(183, 148, 246, 0.2); color: #b794f6; }
-.recipe-quality.epic { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-.recipe-quality.legendary { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
-
-.recipe-materials {
+.material-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
-.material-label {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-}
-
-.material-item {
-  font-size: 0.6875rem;
-  color: var(--color-text);
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-.material-item.insufficient {
-  color: var(--color-danger);
-}
-
-.recipe-footer {
-  display: flex;
-  justify-content: space-between;
+.material-chip {
+  display: inline-flex;
   align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  color: #486566;
+  font-size: 11px;
 }
 
-.success-rate {
-  font-size: 0.75rem;
-  color: var(--color-success);
+.material-chip.insufficient {
+  color: #a64f61;
+  border-color: rgba(198, 121, 137, 0.22);
+  background: rgba(255, 243, 246, 0.84);
 }
 
-.craft-btn {
-  padding: 6px 16px;
-  background: linear-gradient(145deg, rgba(126, 184, 218, 0.3), rgba(126, 184, 218, 0.1));
-  border: 1px solid rgba(126, 184, 218, 0.4);
-  border-radius: 8px;
-  color: var(--color-accent);
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-
-.craft-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 药园样式 */
-.garden-slots {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.garden-slot {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  min-height: 60px;
-}
-
-.garden-slot.locked {
-  opacity: 0.5;
-}
-
-.garden-slot.planted {
-  border-color: rgba(74, 222, 128, 0.3);
-}
-
-.garden-slot.ready {
-  border-color: rgba(251, 191, 36, 0.5);
-}
-
-.slot-locked {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 4px;
-}
-
-.lock-icon {
-  font-size: 1.25rem;
-}
-
-.lock-text {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-}
-
-.slot-planted {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.crop-icon {
-  font-size: 1.5rem;
-}
-
-.crop-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.crop-name {
-  font-size: 0.875rem;
-  color: rgb(232 228 217);
-}
-
-.crop-status {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-}
-
-.crop-status.ready {
-  color: var(--color-success);
-}
-
-.slot-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  border: none;
-}
-
-.action-btn.harvest {
-  background: rgba(74, 222, 128, 0.2);
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  color: #4ade80;
-}
-
-.action-btn.accelerate {
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  color: #fbbf24;
-}
-
-.slot-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 4px;
-  cursor: pointer;
-}
-
-.empty-icon {
-  font-size: 1.5rem;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-
-/* 种子选择器 */
-.seed-selector {
-  margin-top: 16px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-}
-
-.selector-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  font-size: 0.875rem;
-  color: var(--color-accent);
-}
-
-.close-selector {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: var(--color-muted);
-  cursor: pointer;
-}
-
-.seed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.surface-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .seed-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.seed-card:hover:not(.disabled) {
-  border-color: var(--color-accent);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(188, 141, 58, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: left;
 }
 
 .seed-card.disabled {
   opacity: 0.5;
 }
 
-.seed-icon {
-  font-size: 1.25rem;
-}
-
-.seed-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.seed-name {
-  font-size: 0.8125rem;
-  color: rgb(232 228 217);
-}
-
-.seed-time {
-  font-size: 0.6875rem;
-  color: var(--color-muted);
-}
-
 .seed-price {
-  font-size: 0.75rem;
-  color: #fbbf24;
+  color: #8b6226;
+  font-size: 11px;
 }
 
-/* 其他设施样式 */
-.facility-description {
-  font-size: 0.8125rem;
-  color: var(--color-muted);
-  line-height: 1.5;
-  margin-bottom: 16px;
-}
-
-.upgrade-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.current-level,
-.next-effect {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8125rem;
-}
-
-.label {
-  color: var(--color-muted);
-}
-
-.value {
-  color: var(--color-accent);
-}
-
-/* 底部 */
-.modal-footer {
-  padding: 16px;
-  border-top: 1px solid rgba(126, 184, 218, 0.15);
-}
-
-.upgrade-btn {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(145deg, rgba(200, 164, 92, 0.3), rgba(200, 164, 92, 0.1));
-  border: 1px solid rgba(200, 164, 92, 0.4);
-  border-radius: 12px;
-  color: var(--color-accent-warm);
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.upgrade-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.upgrade-icon {
-  font-size: 1rem;
+@media (max-width: 720px) {
+  .facility-head,
+  .recipe-head,
+  .seed-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

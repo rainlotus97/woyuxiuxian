@@ -83,12 +83,13 @@
   - `CultivationView`（进行中，已重构为主循环总览页，接入行动排程、宗门态势、重要 NPC、世界日志）
   - `AdventureView`（进行中，已完成第一阶段亮色重构）
   - `MapView`（进行中，已接入世界事件摘要、统一弹窗结构，并与世界时钟统一日期展示）
-  - `SectView`
+  - `SectView`（进行中，已拆成总览 / 招募 / 任务 / 设施 / 外交子面板，并切到统一亮色宗门主循环界面）
   - `StoryView`
   - `ShopView`
 - [~] 增加统一弹层/面板组件，替代页面内重复容器样式
   - 已在战斗页建立 `BattlePanelShell` 作为第一阶段复用容器
-  - 待补：主界面、坊市、宗门、地图共用面板 token
+  - 已让宗门页设施弹层切到 `GameDialog + GameSurface + GameActionButton`
+  - 待补：主界面、坊市、地图共用面板 token
 
 ## P1 剧情系统
 
