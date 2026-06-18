@@ -4,9 +4,9 @@
       <div class="brand-panel">
         <span class="seal">修</span>
         <div class="brand-copy">
-          <p>文字修仙 · 世界自演</p>
+          <p>2D 文字修仙 · 世界自演</p>
           <h1>我欲修仙</h1>
-          <strong>从一口灵气开始，卷入宗门、人物与天地异变。</strong>
+          <strong>挂机修炼、奇遇历险、宗门势力与 NPC 命运会在同一个世界时钟里推进。</strong>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
       <div v-else class="guide-panel save-panel">
         <div class="guide-head">
           <span>当前存档</span>
-          <strong>重入尘世</strong>
+          <strong>继续修途</strong>
         </div>
 
         <div class="save-profile">
@@ -72,7 +72,7 @@
           <div>
             <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根</span>
             <strong>{{ playerStore.name }}</strong>
-            <p>灵根与本命已定，后续通过角色、功法、宗门与剧情继续成长。</p>
+            <p>本命已定，不在首页重复改动。后续成长通过角色、功法、宗门、人物和剧情推进。</p>
           </div>
         </div>
 
@@ -92,15 +92,20 @@
         </div>
 
         <div class="resume-brief">
-          <div>
+          <div class="resume-card primary">
             <span>下一步</span>
-            <strong>从主界任务台继续</strong>
-            <p>挂机、历险、故事、人物、地图与宗门入口都在主界面聚合。</p>
+            <strong>主界任务台</strong>
+            <p>进入后先处理挂机、历险、故事、人物、地图与宗门这些核心循环。</p>
           </div>
-          <div>
+          <div class="resume-card">
             <span>本命</span>
             <strong>不可重复改动</strong>
-            <p>灵根与气质已写入存档，后续成长通过剧情和玩法推进。</p>
+            <p>灵根与气质已经写入存档，避免每次打开游戏都像重新建号。</p>
+          </div>
+          <div class="resume-card">
+            <span>声音</span>
+            <strong>默认静音</strong>
+            <p>背景音需要进入游戏后手动开启，也可以在系统设置中关闭音效。</p>
           </div>
         </div>
 
@@ -117,19 +122,19 @@
 
       <aside class="world-preview">
         <div class="preview-card active">
-          <span>主循环</span>
-          <strong>修炼 / 历练 / 宗门</strong>
-          <p>进入后直接操作，不再停留在纯文字菜单。</p>
+          <span>P0 主循环</span>
+          <strong>修炼 / 历险 / 故事</strong>
+          <p>先保证进入、行动、反馈、返回这些基础链路稳定可玩。</p>
         </div>
         <div class="preview-card">
-          <span>世界</span>
-          <strong>NPC 会行动</strong>
-          <p>人物关系、坊市、宗门战事都会留下日志。</p>
+          <span>P0 世界</span>
+          <strong>NPC / 奇遇 / 日志</strong>
+          <p>挂机时世界继续推进，人物关系与异闻会写入主界面。</p>
         </div>
         <div class="preview-card">
-          <span>资料片式扩展</span>
-          <strong>故事与地图分离</strong>
-          <p>后续卷宗、地图和事件会按模块扩展。</p>
+          <span>P1 扩展</span>
+          <strong>地图 / 宗门 / 战斗深化</strong>
+          <p>可玩闭环稳定后，再继续扩展大世界、势力吞并和表现层。</p>
         </div>
       </aside>
     </section>
@@ -335,11 +340,11 @@ function handleSettings() {
 
 .resume-brief {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.resume-brief div {
+.resume-card {
   display: grid;
   gap: 6px;
   padding: 14px;
@@ -348,6 +353,13 @@ function handleSettings() {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
     radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
+}
+
+.resume-card.primary {
+  border-color: rgba(188, 141, 58, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 231, 0.8), rgba(239, 252, 246, 0.64)),
+    radial-gradient(circle at top right, rgba(255, 213, 112, 0.2), transparent 64%);
 }
 
 .resume-brief span {

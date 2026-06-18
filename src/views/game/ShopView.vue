@@ -58,13 +58,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import ShopItemCard from '@/components/shop/ShopItemCard.vue'
 import ShopMarketSummary from '@/components/shop/ShopMarketSummary.vue'
 import ShopPurchaseDialog from '@/components/shop/ShopPurchaseDialog.vue'
 import ShopToolbar from '@/components/shop/ShopToolbar.vue'
-import { useAudio, sfxSpiritStone } from '@/composables/useAudio'
+import { sfxSpiritStone } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useToast } from '@/composables/useToast'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -80,7 +80,6 @@ import type { ShopInventoryItem } from '@/shop/runtime/shopInventoryResolver'
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const shopStore = useShopStore()
-const { startShopBgm } = useAudio()
 const { showItemAcquire } = useModal()
 const { success, warning } = useToast()
 
@@ -100,10 +99,6 @@ const marketTags = computed(() => {
   }
   if (sectStore.joinedSectId) tags.add('宗门渠道')
   return [...tags]
-})
-
-onMounted(() => {
-  startShopBgm()
 })
 
 function handleBuy(item: ShopInventoryItem) {

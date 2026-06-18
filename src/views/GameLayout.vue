@@ -38,7 +38,9 @@
     </header>
 
     <main class="main-shell" @click="closeMenu">
-      <RouterView />
+      <div class="content-stage">
+        <RouterView />
+      </div>
     </main>
 
     <div v-if="isMenuExpanded" class="nav-scrim" @click="closeMenu"></div>
@@ -143,7 +145,7 @@ interface MenuItem {
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
-const { bgmEnabled, toggleBgm, startCultivationBgm } = useAudio()
+const { bgmEnabled, toggleBgm } = useAudio()
 const route = useRoute()
 const isMenuExpanded = ref(false)
 let worldTickTimer: number | null = null
@@ -273,9 +275,6 @@ function closeMenu() {
 
 function handleToggleBgm() {
   toggleBgm()
-  if (bgmEnabled.value) {
-    startCultivationBgm()
-  }
 }
 
 function startWorldClock() {
@@ -507,10 +506,16 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 12px calc(104px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
+}
+
+.content-stage {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  position: relative;
 }
 
 .nav-shell {
@@ -537,6 +542,7 @@ onUnmounted(() => {
   z-index: 10;
   background: rgba(42, 68, 67, 0.16);
   backdrop-filter: blur(3px);
+  cursor: pointer;
 }
 
 .nav-drawer {
@@ -709,7 +715,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 10px 10px calc(92px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 10px calc(98px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -724,6 +730,40 @@ onUnmounted(() => {
     gap: 8px;
     padding: 9px;
     border-radius: 18px;
+  }
+
+  .player-block {
+    gap: 9px;
+  }
+
+  .avatar-orb {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+  }
+
+  .player-copy {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 4px 8px;
+  }
+
+  .player-copy strong {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .player-copy small {
+    grid-column: 1 / -1;
+    font-size: 10px;
+  }
+
+  .realm-pill {
+    padding: 3px 7px;
+    font-size: 10px;
   }
 
   .resource-row {
