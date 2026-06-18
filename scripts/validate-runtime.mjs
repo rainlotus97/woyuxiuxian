@@ -78,9 +78,11 @@ test('story battle replay archive summarizes and dedupes route sessions', async 
   const {
     clearStoryBattleReplayArchive,
     createStoryBattleReplayRecord,
+    getStoryBattleReplayRecord,
     getStoryBattleReplaySummaries,
     saveStoryBattleReplayRecord
   } = await load('/src/story/runtime/storyBattleReplayArchive.ts')
+  const { createStoryBattleReplayViewerState } = await load('/src/story/runtime/storyBattleReplayViewer.ts')
 
   clearStoryBattleReplayArchive()
   const record = createStoryBattleReplayRecord({
@@ -114,6 +116,17 @@ test('story battle replay archive summarizes and dedupes route sessions', async 
   assert.equal(summaries.length, 1)
   assert.equal(summaries[0].sessionId, 'story-session-a')
   assert.equal(summaries[0].resultLabel, '败北')
+
+  const savedRecord = getStoryBattleReplayRecord('story-battle-replay-retry')
+  assert.ok(savedRecord, 'saved replay record should be readable by id')
+  const viewer = createStoryBattleReplayViewerState(savedRecord)
+  assert.equal(viewer.totalTurns, 2)
+  assert.equal(viewer.turns.length, 2)
+  assert.equal(viewer.turns[0].title, '第 1 手')
+  assert.deepEqual(viewer.actorNames, [])
+  assert.equal(viewer.turns[1].events[0].typeLabel, '终局')
+  assert.equal(viewer.turns[1].events[0].payloadText, 'victory')
+  assert.equal(viewer.turns[1].events[0].detailText, 'victory')
 })
 
 test('battle runtime tracks skill cooldown by actor turns', async () => {

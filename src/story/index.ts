@@ -36,9 +36,11 @@ export {
   createStoryBattleReplayRecord,
   saveStoryBattleReplayRecord,
   getStoryBattleReplayArchive,
+  getStoryBattleReplayRecord,
   getStoryBattleReplaySummaries,
   clearStoryBattleReplayArchive
 } from './runtime/storyBattleReplayArchive'
+export { createStoryBattleReplayViewerState } from './runtime/storyBattleReplayViewer'
 export {
   STORY_CHARACTER_BINDINGS,
   getStoryCharacterBindingById,

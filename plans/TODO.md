@@ -57,7 +57,8 @@
   - 已在 `BattleRuntimeSnapshot` 暴露最近 replayEvents，并保留现有 `logs` UI 兼容层
   - 已新增 `storyBattleReplayArchive`，剧情战结算会持久化完整 replay、生成摘要并随 `GameplayResult.data.replay` 写回故事玩法结果
   - 已在故事入口新增剧情战纪要面板，展示最近剧情战结果、手数、关键事件与战况数量
-  - 待补：世界事件战读取 replay 摘要、完整战斗回放播放器 UI
+  - 已新增 `storyBattleReplayViewer`，支持完整 replay 按回合分组、事件类型标注、行动者/目标/payload 详情展示
+  - 待补：世界事件战读取 replay 摘要、独立战斗回放播放页与逐帧动画化播放
 - [x] 增加战斗场景 arena 配置
   - 已建立 `src/game/battle/config/arenas.ts`
   - 已抽离 `battleArenaBuilder`、`battleSceneLayout`，避免舞台结构和站位逻辑堆进 `BattleScene`

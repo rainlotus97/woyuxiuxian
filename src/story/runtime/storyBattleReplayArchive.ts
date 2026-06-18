@@ -127,6 +127,10 @@ export function getStoryBattleReplayArchive(): StoryBattleReplayRecord[] {
   return readArchive()
 }
 
+export function getStoryBattleReplayRecord(id: string): StoryBattleReplayRecord | null {
+  return readArchive().find(record => record.id === id) ?? null
+}
+
 export function getStoryBattleReplaySummaries(): StoryBattleReplaySummary[] {
   return readArchive().map(({ events: _events, ...summary }) => summary)
 }
