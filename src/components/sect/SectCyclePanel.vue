@@ -16,8 +16,15 @@
         </div>
 
         <p class="card-copy">{{ taskSummary }}</p>
+        <div v-if="lastDutyTitle" class="duty-feedback">
+          <strong>{{ lastDutyTitle }}</strong>
+          <span>{{ lastDutyText }}</span>
+        </div>
 
         <div class="action-row">
+          <GameActionButton icon="令" tone="jade" @click="$emit('resolve-duty')">
+            处理差遣
+          </GameActionButton>
           <GameActionButton icon="🎁" tone="gold" :disabled="rewardReadyCount === 0" @click="$emit('claim-all-tasks')">
             一键领取
           </GameActionButton>
@@ -164,9 +171,12 @@ const props = defineProps<{
   facilitySummary: string
   activeWar: SectWar | null
   lastWarReport: WarReport | null
+  lastDutyTitle: string | null
+  lastDutyText: string | null
 }>()
 
 defineEmits<{
+  'resolve-duty': []
   'claim-all-tasks': []
   'claim-salary': []
   'harvest-ready': []
@@ -227,6 +237,26 @@ const warSummary = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.duty-feedback {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  background: rgba(244, 252, 248, 0.78);
+}
+
+.duty-feedback strong {
+  color: #8b6226;
+  font-size: 12px;
+}
+
+.duty-feedback span {
+  color: rgba(73, 97, 95, 0.76);
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .card-head {

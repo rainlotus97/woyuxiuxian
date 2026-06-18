@@ -48,6 +48,10 @@ import {
 import { resolveSectEventChoice } from '@/sect/runtime/sectEventResolver'
 import { resolveSectStipend } from '@/sect/runtime/sectStipendResolver'
 import {
+  resolveSectDuty,
+  type SectDutyResult
+} from '@/sect/runtime/sectDutyResolver'
+import {
   getSectRecoveryOption,
   resolveSectRecoveryOutcome,
   resolveSectRecoveryState,
@@ -549,6 +553,43 @@ export const useSectStore = defineStore('sect', () => {
     }
   }
 
+  function resolveManualSectDuty(): SectDutyResult {
+    const playerStore = usePlayerStore()
+    const duty = resolveSectDuty({
+      joinedSectId: joinedSectId.value,
+      sectName: currentSect.value?.name ?? null,
+      positionName: positionName.value,
+      directive: activeDirective.value,
+      stamina: playerStore.stamina,
+      tasks: tasks.value
+    })
+
+    if (!duty.success) return duty
+
+    if (!playerStore.consumeStamina(duty.staminaCost)) {
+      return {
+        ...duty,
+        success: false,
+        reason: `体力不足，需要 ${duty.staminaCost} 点体力。`,
+        title: '无法处理宗门差遣',
+        text: `体力不足，需要 ${duty.staminaCost} 点体力。`
+      }
+    }
+
+    if (duty.taskId) {
+      const progress = resolveManualSectTaskProgress(tasks.value, duty.taskId)
+      tasks.value = progress.tasks
+    }
+
+    addContribution(duty.rewards.contribution)
+    playerStore.addGold(duty.rewards.gold)
+    if (duty.rewards.cultivation > 0) {
+      playerStore.addCultivation(duty.rewards.cultivation)
+    }
+
+    return duty
+  }
+
   function getInventoryMaterialQuantity(materialId: string) {
     const playerStore = usePlayerStore()
     return resolveInventoryMaterialQuantity(playerStore.inventory, materialId)
@@ -1034,6 +1075,7 @@ export const useSectStore = defineStore('sect', () => {
     addReputation,
     applyStoryReputation,
     completeTask,
+    resolveManualSectDuty,
     updateTaskProgress,
     claimTaskReward,
     claimAllCompletedTaskRewards,

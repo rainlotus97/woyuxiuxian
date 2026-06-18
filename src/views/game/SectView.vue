@@ -63,6 +63,9 @@
         :facility-summary="facilitySummary"
         :active-war="sectStore.activeWar"
         :last-war-report="sectStore.lastWarReport"
+        :last-duty-title="lastDuty?.title ?? null"
+        :last-duty-text="lastDuty?.text ?? null"
+        @resolve-duty="handleSectDuty"
         @claim-all-tasks="handleClaimAllRewards"
         @claim-salary="handleClaimSalary"
         @harvest-ready="handleHarvestReady"
@@ -171,6 +174,7 @@ import SectRecruitPanel from '@/components/sect/SectRecruitPanel.vue'
 import SectTasksPanel from '@/components/sect/SectTasksPanel.vue'
 import { SECT_FACILITIES, getSectById } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
+import { useSectDuty } from '@/composables/useSectDuty'
 import { NPC_RESCUE_COST, useSectViewState } from '@/composables/useSectViewState'
 import {
   type SectDirectiveId,
@@ -207,6 +211,7 @@ const {
   visibleSectEvent,
   worldStatusLabel
 } = useSectViewState()
+const { lastDuty, handleSectDuty: resolveSectDuty } = useSectDuty()
 
 const activeTab = ref<'tasks' | 'facilities' | 'diplomacy'>('tasks')
 const showFacilityModal = ref(false)
@@ -249,6 +254,17 @@ function handleClaimAllRewards() {
 
   success(`已领取 ${result.claimedCount} 项宗门奖励`)
   info(`获得 ${result.totalContribution} 贡献、${result.totalGold} 灵石${result.totalExp > 0 ? `、${result.totalExp} 修为` : ''}`)
+}
+
+function handleSectDuty() {
+  const result = resolveSectDuty()
+  if (!result.success) {
+    warning(result.reason)
+    return
+  }
+
+  success(result.title)
+  info(`贡献 +${result.rewards.contribution}，修为 +${result.rewards.cultivation}，灵石 +${result.rewards.gold}`)
 }
 
 function handleDirectiveChange(directive: SectDirectiveId) {

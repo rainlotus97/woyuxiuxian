@@ -1085,6 +1085,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectTaskProgress,
     resolveSectTaskRefresh
   } = await load('/src/sect/runtime/sectTaskResolver.ts')
+  const { resolveSectDuty } = await load('/src/sect/runtime/sectDutyResolver.ts')
   const {
     resolveFacilityLevel,
     resolveFacilityUpgrade,
@@ -2033,6 +2034,39 @@ test('map and sect rules block invalid gameplay paths', async () => {
 
   const manualTask = resolveManualSectTaskProgress(taskFixture, 'daily_any_craft')
   assert.equal(manualTask.tasks[1].completed, true)
+  const dutyProgress = resolveSectDuty({
+    joinedSectId: 'qingyun_sect',
+    sectName: '青云宗',
+    positionName: '外门弟子',
+    directive: 'balanced',
+    stamina: 100,
+    tasks: taskFixture
+  })
+  assert.equal(dutyProgress.success, true)
+  assert.equal(dutyProgress.taskId, 'daily_battle')
+  assert.equal(dutyProgress.completedTask, true)
+  assert.equal(dutyProgress.staminaCost, 10)
+  assert.equal(dutyProgress.rewards.contribution, 4)
+  const dutyBlocked = resolveSectDuty({
+    joinedSectId: null,
+    sectName: null,
+    positionName: '散修',
+    directive: 'balanced',
+    stamina: 100,
+    tasks: taskFixture
+  })
+  assert.equal(dutyBlocked.success, false)
+  assert.ok(dutyBlocked.reason.includes('尚未加入宗门'))
+  const dutyStaminaBlocked = resolveSectDuty({
+    joinedSectId: 'qingyun_sect',
+    sectName: '青云宗',
+    positionName: '外门弟子',
+    directive: 'balanced',
+    stamina: 2,
+    tasks: taskFixture
+  })
+  assert.equal(dutyStaminaBlocked.success, false)
+  assert.ok(dutyStaminaBlocked.reason.includes('体力不足'))
   const singleClaim = resolveSectTaskClaim(progressedTasks.tasks[0], 'warfare')
   assert.equal(singleClaim.canClaim, true)
   assert.equal(singleClaim.reward.reputation, 14)
