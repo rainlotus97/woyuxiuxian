@@ -86,31 +86,19 @@
         <div class="guide-head">
           <span>当前存档</span>
           <strong>继续修途</strong>
-          <p>本命已定，首页只负责读取存档和进入主循环。灵根、气质、头像不再从这里重选，后续变化交给角色成长、剧情和机缘。</p>
+          <p>本命已写入存档。首页只保留继续入口、声音状态和 P0 目标，不再承担角色编辑器职责。</p>
         </div>
 
-        <div class="save-pass">
+        <div class="save-hero-card">
           <div class="save-profile">
             <div class="save-avatar">{{ playerStore.icon }}</div>
-            <div>
+            <div class="save-profile-copy">
               <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根 · {{ playerStore.quality }}</span>
               <strong>{{ playerStore.name }}</strong>
-              <p>创建信息已写入存档。首页不再提供反复重选灵根和气质，后续变化交给角色成长、剧情、功法和机缘。</p>
+              <p>下一步进入主界任务台，优先跑通挂机、历险、故事、人物、地图、宗门六项闭环。</p>
             </div>
           </div>
 
-          <div class="save-lock-row" aria-label="创建设定状态">
-            <span>本命锁定</span>
-            <span>声音默认关闭</span>
-            <span>P0 优先</span>
-          </div>
-        </div>
-
-        <div class="save-command-docket" aria-label="当前修途摘要">
-          <div>
-            <span>主循环</span>
-            <strong>先跑通六项基础玩法</strong>
-          </div>
           <button class="primary-action docket-action" @click="handleContinue">
             <Play :size="18" />
             <span>进入游戏</span>
@@ -118,20 +106,10 @@
           </button>
         </div>
 
-        <div class="save-next-step">
-          <div>
-            <span>推荐先做</span>
-            <strong>进入主界任务台</strong>
-            <p>先把挂机、历险、故事、人物、地图、宗门这六个 P0 入口跑通，再继续扩展战斗和大世界深度。</p>
-          </div>
-        </div>
-
-        <div class="locked-profile-grid" aria-label="本命信息">
-          <div v-for="item in lockedProfileItems" :key="item.label" class="locked-profile-item">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-            <small>{{ item.hint }}</small>
-          </div>
+        <div class="save-lock-row" aria-label="创建设定状态">
+          <span>本命锁定</span>
+          <span>声音默认关闭</span>
+          <span>优先 P0 闭环</span>
         </div>
 
         <div class="save-stats">
@@ -295,12 +273,6 @@ function getRedirectPath() {
   return '/game/cultivation'
 }
 
-const lockedProfileItems = [
-  { label: '本命灵根', value: `${playerStore.element}灵根`, hint: '首页不可重选' },
-  { label: '先天气质', value: playerStore.quality, hint: '由机缘继续变化' },
-  { label: '声音状态', value: '默认静音', hint: '进游戏后手动开声' }
-]
-
 function formatAmount(value: number) {
   if (Number.isInteger(value)) return String(value)
   return value.toFixed(1)
@@ -441,13 +413,10 @@ function formatAmount(value: number) {
     linear-gradient(90deg, rgba(255, 226, 145, 0.24), transparent 62%);
 }
 
-.save-pass {
+.creation-lock-note {
   display: grid;
-  gap: 10px;
-}
-
-.creation-lock-note,
-.save-next-step {
+  gap: 6px;
+  padding: 12px 14px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   border-radius: 14px;
   background:
@@ -455,37 +424,36 @@ function formatAmount(value: number) {
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.18), transparent 64%);
 }
 
-.creation-lock-note {
-  display: grid;
-  gap: 6px;
-  padding: 12px 14px;
-}
-
-.creation-lock-note strong,
-.save-next-step strong {
+.creation-lock-note strong {
   color: #8e6227;
   font-size: 14px;
 }
 
-.creation-lock-note p,
-.save-next-step p {
+.creation-lock-note p {
   margin: 0;
   color: rgba(49, 82, 87, 0.72);
   font-size: 12px;
   line-height: 1.7;
 }
 
-.save-profile {
+.save-hero-card {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  padding: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
+  gap: 6px;
+  align-items: stretch;
+  padding: 12px;
   border: 1px solid rgba(111, 157, 149, 0.18);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 252, 247, 0.7)),
-    linear-gradient(90deg, rgba(255, 236, 178, 0.34), transparent 52%);
+    linear-gradient(180deg, rgba(255, 255, 252, 0.86), rgba(242, 252, 247, 0.72)),
+    radial-gradient(circle at top right, rgba(255, 224, 151, 0.2), transparent 64%);
+}
+
+.save-profile {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
 }
 
 .save-lock-row {
@@ -506,7 +474,7 @@ function formatAmount(value: number) {
 }
 
 .save-avatar {
-  width: 86px;
+  width: 76px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -516,42 +484,14 @@ function formatAmount(value: number) {
     linear-gradient(145deg, #fff2bd, #91dfc2),
     repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
   color: #8e6227;
-  font-size: 34px;
+  font-size: 31px;
   box-shadow: 0 16px 30px rgba(94, 144, 130, 0.18);
 }
 
-.save-command-docket {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.42fr);
-  gap: 12px;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid rgba(91, 151, 132, 0.18);
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(242, 255, 249, 0.86), rgba(255, 251, 235, 0.64)),
-    linear-gradient(90deg, rgba(130, 213, 188, 0.16), transparent);
-}
-
-.save-command-docket > div {
-  display: grid;
-  gap: 5px;
-}
-
-.save-command-docket span {
-  color: rgba(70, 99, 96, 0.68);
-  font-size: 11px;
-}
-
-.save-command-docket strong {
-  color: #315257;
-  font-size: 15px;
-  line-height: 1.4;
-}
-
-.save-profile div:last-child {
+.save-profile-copy {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .save-profile span,
@@ -572,65 +512,10 @@ function formatAmount(value: number) {
   line-height: 1.7;
 }
 
-.save-next-step {
-  display: grid;
-  gap: 14px;
-  align-items: center;
-  padding: 14px;
-}
-
-.save-next-step > div {
-  display: grid;
-  gap: 6px;
-}
-
-.save-next-step span {
-  color: rgba(70, 99, 96, 0.68);
-  font-size: 12px;
-}
-
 .save-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-}
-
-.locked-profile-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.locked-profile-item {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-  padding: 12px;
-  border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(242, 252, 247, 0.54)),
-    radial-gradient(circle at top right, rgba(255, 224, 151, 0.16), transparent 64%);
-}
-
-.locked-profile-item span {
-  color: rgba(70, 99, 96, 0.68);
-  font-size: 11px;
-}
-
-.locked-profile-item strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #315257;
-  font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.locked-profile-item small {
-  color: rgba(49, 82, 87, 0.68);
-  font-size: 10px;
-  line-height: 1.5;
 }
 
 .save-stats div {
@@ -1038,9 +923,7 @@ function formatAmount(value: number) {
 
   .creation-step-row,
   .save-lock-row,
-  .save-command-docket,
-  .save-next-step,
-  .locked-profile-grid,
+  .save-hero-card,
   .save-stats,
   .save-action-row,
   .priority-grid {

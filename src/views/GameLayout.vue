@@ -48,13 +48,7 @@
     </main>
 
     <Transition name="scrim-fade">
-      <button
-        v-if="isMenuExpanded"
-        class="nav-scrim"
-        type="button"
-        aria-label="关闭功能菜单"
-        @click="closeMenu"
-      ></button>
+      <div v-if="isMenuExpanded" class="nav-scrim" aria-hidden="true"></div>
     </Transition>
 
     <footer class="nav-shell" :class="{ expanded: isMenuExpanded }">
@@ -577,15 +571,14 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: 0 0 calc(min(58vh, 500px) + 78px + env(safe-area-inset-bottom, 0px));
+  inset: auto 0 calc(min(58vh, 500px) + 78px + env(safe-area-inset-bottom, 0px)) 0;
+  height: 42px;
   z-index: 34;
   border: 0;
   padding: 0;
   border-radius: 0;
-  background: rgba(48, 78, 74, 0.14);
-  backdrop-filter: blur(2px);
-  cursor: pointer;
-  pointer-events: auto;
+  background: linear-gradient(180deg, transparent, rgba(48, 78, 74, 0.1));
+  pointer-events: none;
 }
 
 .nav-drawer {
@@ -898,7 +891,7 @@ onUnmounted(() => {
   }
 
   .nav-scrim {
-    inset: 0 0 calc(min(60vh, 480px) + 76px + env(safe-area-inset-bottom, 0px));
+    inset: auto 0 calc(min(60vh, 480px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
   }
 
   .menu-grid {

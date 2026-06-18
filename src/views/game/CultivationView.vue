@@ -517,7 +517,7 @@ const sectStatusChipTone = computed<'jade' | 'gold' | 'rose'>(() => {
 
 const spotlightNpcs = computed(() => {
   return worldStore.importantNpcStates
-    .slice(0, 4)
+    .slice(0, 2)
     .map(item => {
       const relationship = worldStore.getRelationshipState(item.state.id)
       const profile = worldStore.getNpcDisplayProfile(item.state.id)
@@ -560,10 +560,10 @@ const spotlightNpcs = computed(() => {
     })
 })
 
-const recentLogs = computed(() => worldStore.visibleLogViews.slice(0, 4))
-const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4))
-const npcStories = computed(() => worldStore.importantNpcStoryViews.slice(0, 4))
-const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
+const recentLogs = computed(() => worldStore.visibleLogViews.slice(0, 3))
+const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 3))
+const npcStories = computed(() => worldStore.importantNpcStoryViews.slice(0, 3))
+const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 3))
 
 const latestPulseText = computed(() => {
   if (playerStore.captivity.isCaptured) return '主角被俘，当前主循环应优先处理脱困、赎回或宗门营救。'
