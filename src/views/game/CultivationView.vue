@@ -6,7 +6,7 @@
       padding="lg"
       compact
       eyebrow="主循环"
-      title="主界"
+      title="修仙行动台"
       :subtitle="heroSubtitle"
     >
       <div class="home-hero-layout">
@@ -142,7 +142,7 @@
       </div>
     </GameSurface>
 
-    <div class="overview-grid">
+    <div class="overview-grid secondary-home-grid">
       <GameSurface tone="gold" padding="md" eyebrow="修炼进程" title="境界推进" :subtitle="breakthroughHint">
         <div class="progress-stack">
           <GameProgressBar
@@ -206,7 +206,7 @@
       </GameSurface>
     </div>
 
-    <div class="world-grid">
+    <div class="world-grid secondary-home-grid">
       <WorldBriefingPanel :items="worldBriefings" @action="handleWorldBriefingAction" />
 
       <GameSurface tone="mist" padding="md" eyebrow="挂机见闻" title="主角行程" subtitle="挂机期间，主角会留下自己的经历、收获和奇遇。">
@@ -642,17 +642,15 @@ const latestActionFeedbackTitle = computed(() => {
 })
 
 const hotspotArea = computed(() => {
-  const accessibleAreaIds = new Set(
-    mapStore.currentRealmAreas
-      .filter(area => isMapAreaUnlocked({
+  const ranked = Object.values(mapStore.areaStates)
+    .filter(state => {
+      const area = mapStore.getAreaInfo(state.areaId)
+      return Boolean(area && mapStore.realmUnlockStatus[area.realm] && isMapAreaUnlocked({
         area,
         playerRealm: playerStore.realm,
         playerRealmLevel: playerStore.realmLevel
       }))
-      .map(area => area.id)
-  )
-  const ranked = Object.values(mapStore.areaStates)
-    .filter(state => accessibleAreaIds.has(state.areaId))
+    })
     .filter(state => state.riskLevel === 'danger' || state.riskLevel === 'chaos' || state.contested)
     .sort((a, b) => {
       const scoreA = a.pressure + (a.riskLevel === 'chaos' ? 30 : a.riskLevel === 'danger' ? 20 : 8) + (a.contested ? 12 : 0)
@@ -1037,11 +1035,26 @@ function handlePlayerFortune() {
 }
 
 .main-loop-surface {
-  border-radius: 18px;
-  box-shadow: 0 14px 34px rgba(88, 123, 116, 0.12);
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(88, 123, 116, 0.1);
+}
+
+.main-loop-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 14% 6%, rgba(255, 226, 145, 0.26), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(113, 216, 190, 0.22), transparent 30%),
+    linear-gradient(130deg, transparent 0 36%, rgba(255, 242, 196, 0.24) 36% 37%, transparent 37% 100%);
+  pointer-events: none;
 }
 
 .main-loop-surface :deep(.surface-header) {
+  position: relative;
+  z-index: 1;
   margin-bottom: 8px;
 }
 
@@ -1062,7 +1075,9 @@ function handlePlayerFortune() {
 }
 
 .home-hero-layout {
-  grid-template-columns: minmax(0, 0.88fr) minmax(320px, 1.12fr);
+  position: relative;
+  z-index: 1;
+  grid-template-columns: minmax(0, 0.78fr) minmax(340px, 1.22fr);
   align-items: stretch;
   gap: 10px;
 }
@@ -1084,22 +1099,23 @@ function handlePlayerFortune() {
 .hero-main-card {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  padding: 10px;
+  min-height: 132px;
+  padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.58), rgba(241, 249, 244, 0.4)),
-    radial-gradient(circle at 12% 20%, rgba(255, 223, 147, 0.22), transparent 44%);
+    linear-gradient(180deg, rgba(255, 255, 252, 0.72), rgba(241, 249, 244, 0.5)),
+    radial-gradient(circle at 12% 20%, rgba(255, 223, 147, 0.24), transparent 44%);
 }
 
 .protagonist-token {
-  width: 70px;
+  width: 76px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 4px;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(188, 141, 58, 0.26);
   background:
     linear-gradient(145deg, #fff2bd, #90dfc2),
@@ -1110,7 +1126,7 @@ function handlePlayerFortune() {
 
 .protagonist-token span {
   color: #8e6227;
-  font-size: 26px;
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -1138,7 +1154,7 @@ function handlePlayerFortune() {
 
 .hero-copy strong {
   color: #315257;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .hero-actions {
@@ -1161,18 +1177,19 @@ function handlePlayerFortune() {
 
 .world-pulse-card {
   align-content: space-between;
-  padding: 10px;
+  min-height: 132px;
+  padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.2);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 251, 236, 0.62), rgba(239, 252, 246, 0.44)),
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.22), transparent 62%);
 }
 
 .quick-command-panel {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.62), rgba(241, 249, 244, 0.48)),
     radial-gradient(circle at top right, rgba(141, 223, 197, 0.16), transparent 62%);
@@ -1181,9 +1198,9 @@ function handlePlayerFortune() {
 .action-feedback-panel {
   min-height: 120px;
   align-content: start;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.7), rgba(241, 249, 244, 0.5)),
     radial-gradient(circle at 12% 0%, rgba(255, 224, 150, 0.18), transparent 58%);
@@ -1192,9 +1209,9 @@ function handlePlayerFortune() {
 .loop-hub-panel {
   grid-column: 1 / -1;
   gap: 10px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(188, 141, 58, 0.18);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 252, 240, 0.58), rgba(241, 250, 245, 0.44)),
     radial-gradient(circle at 18% 0%, rgba(255, 224, 150, 0.2), transparent 48%);
@@ -1301,12 +1318,13 @@ function handlePlayerFortune() {
   align-items: center;
   padding: 8px 10px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 14px;
+  border-radius: 11px;
   background: rgba(255, 255, 255, 0.68);
   color: #315257;
   font-family: var(--font-game);
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .quick-command.primary {
@@ -1368,7 +1386,7 @@ function handlePlayerFortune() {
   gap: 4px;
   padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.14);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.6);
 }
 
@@ -1438,18 +1456,18 @@ function handlePlayerFortune() {
 
 .loop-task-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
 .loop-readiness-strip {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.56fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.52fr) auto;
   align-items: center;
   gap: 12px;
   padding: 12px;
   border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.76), rgba(241, 249, 244, 0.62)),
     radial-gradient(circle at top right, rgba(255, 213, 112, 0.16), transparent 62%);
@@ -1504,7 +1522,7 @@ function handlePlayerFortune() {
   align-content: center;
   padding: 8px 10px;
   border: 1px solid rgba(194, 146, 66, 0.2);
-  border-radius: 12px;
+  border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(255, 251, 235, 0.88), rgba(242, 253, 247, 0.72)),
     radial-gradient(circle at top right, rgba(255, 220, 132, 0.16), transparent 60%);
@@ -1512,6 +1530,7 @@ function handlePlayerFortune() {
   font-family: var(--font-game);
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .next-loop-action span {
@@ -1590,15 +1609,15 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 82px;
+  min-height: 118px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
-  grid-template-rows: 1fr auto;
-  gap: 8px 9px;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 7px;
   align-items: stretch;
-  padding: 9px;
+  padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 12px;
+  border-radius: 11px;
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.9), rgba(241, 249, 244, 0.78)),
     radial-gradient(circle at top right, rgba(158, 225, 207, 0.16), transparent 58%);
@@ -1606,6 +1625,7 @@ function handlePlayerFortune() {
   font-family: var(--font-game);
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
@@ -1646,11 +1666,11 @@ function handlePlayerFortune() {
 }
 
 .task-icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.76);
   color: #8b6226;
   font-size: 16px;
@@ -1671,7 +1691,7 @@ function handlePlayerFortune() {
 .task-copy strong {
   overflow: hidden;
   color: #315257;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1684,19 +1704,12 @@ function handlePlayerFortune() {
   font-size: 10px;
   font-style: normal;
   line-height: 1.55;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
 .task-copy i {
-  display: -webkit-box;
-  overflow: hidden;
-  color: rgba(49, 82, 87, 0.62);
-  font-size: 10px;
-  font-style: normal;
-  line-height: 1.5;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: none;
 }
 
 .task-copy b {
@@ -1737,7 +1750,6 @@ function handlePlayerFortune() {
 }
 
 .task-meta {
-  grid-column: 2;
   width: fit-content;
   max-width: 100%;
   min-height: 24px;
@@ -1748,6 +1760,18 @@ function handlePlayerFortune() {
   background: rgba(255, 255, 255, 0.72);
   color: rgba(75, 100, 98, 0.76);
   font-size: 10px;
+}
+
+.secondary-home-grid {
+  opacity: 0.96;
+}
+
+.secondary-home-grid :deep(.game-surface) {
+  border-radius: 12px;
+}
+
+.secondary-home-grid :deep(.surface-copy strong) {
+  font-size: 15px;
 }
 
 .overview-grid,
@@ -2099,11 +2123,11 @@ function handlePlayerFortune() {
 
 @media (max-width: 720px) {
   .loop-task-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .loop-task-card {
-    min-height: 88px;
+    min-height: 108px;
   }
 
   .loop-readiness-strip {
@@ -2127,6 +2151,10 @@ function handlePlayerFortune() {
 
   .quick-command-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .task-copy b {
+    display: none;
   }
 
   .action-grid {

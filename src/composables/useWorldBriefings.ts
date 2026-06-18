@@ -3,6 +3,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { isMapAreaUnlocked } from '@/map/runtime/mapAreaUnlockResolver'
 import { getSectById } from '@/types/sect'
 import {
   resolveWorldBriefings,
@@ -55,6 +56,14 @@ export function useWorldBriefings(options: UseWorldBriefingsOptions = {}): {
 
   const fallbackHotspotArea = computed<WorldBriefingHotspotInput | null>(() => {
     const ranked = Object.values(mapStore.areaStates)
+      .filter(state => {
+        const area = mapStore.getAreaInfo(state.areaId)
+        return Boolean(area && mapStore.realmUnlockStatus[area.realm] && isMapAreaUnlocked({
+          area,
+          playerRealm: playerStore.realm,
+          playerRealmLevel: playerStore.realmLevel
+        }))
+      })
       .filter(state => state.riskLevel === 'danger' || state.riskLevel === 'chaos' || state.contested)
       .sort((a, b) => {
         const scoreA = a.pressure + (a.riskLevel === 'chaos' ? 30 : a.riskLevel === 'danger' ? 20 : 8) + (a.contested ? 12 : 0)

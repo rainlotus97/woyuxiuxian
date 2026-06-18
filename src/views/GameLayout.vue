@@ -328,16 +328,16 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%),
     radial-gradient(circle at 12% 4%, rgba(255, 223, 138, 0.28), transparent 28%),
     radial-gradient(circle at 86% 0%, rgba(115, 212, 190, 0.18), transparent 32%),
     repeating-linear-gradient(90deg, rgba(87, 137, 125, 0.035) 0 1px, transparent 1px 72px),
-    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.03) 0 1px, transparent 1px 72px);
+    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.03) 0 1px, transparent 1px 72px),
+    linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%);
   color: #315257;
 }
 
@@ -377,7 +377,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(5px + env(safe-area-inset-top, 0px)) 10px 0;
+  padding: calc(4px + env(safe-area-inset-top, 0px)) 10px 0;
   z-index: 6;
   pointer-events: none;
 }
@@ -394,13 +394,13 @@ onUnmounted(() => {
   grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 6px 10px;
-  padding: 6px 8px;
-  border: 1px solid rgba(101, 152, 145, 0.2);
-  border-radius: 14px;
+  padding: 6px 8px 5px;
+  border: 1px solid rgba(101, 152, 145, 0.18);
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.84), rgba(242, 251, 246, 0.68)),
     linear-gradient(90deg, rgba(255, 238, 184, 0.2), transparent 46%);
-  box-shadow: 0 10px 24px rgba(88, 123, 116, 0.09);
+  box-shadow: 0 8px 22px rgba(88, 123, 116, 0.08);
   backdrop-filter: blur(16px);
   pointer-events: auto;
 }
@@ -422,15 +422,15 @@ onUnmounted(() => {
 }
 
 .avatar-orb {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 9px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   background: linear-gradient(135deg, #fff0b0, #73d4be);
   color: #8e6227;
-  font-size: 20px;
+  font-size: 18px;
   box-shadow: 0 12px 24px rgba(113, 196, 177, 0.18);
 }
 
@@ -481,14 +481,15 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 6px 9px;
+  min-height: 34px;
+  padding: 5px 8px;
   border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 13px;
+  border-radius: 11px;
   background: rgba(255, 255, 255, 0.58);
   color: #4b6767;
   font-family: var(--font-game);
   cursor: pointer;
+  touch-action: manipulation;
   transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
@@ -504,8 +505,8 @@ onUnmounted(() => {
 
 .audio-toggle span,
 .home-toggle span {
-  width: 23px;
-  height: 23px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -535,11 +536,12 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px calc(82px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px calc(96px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  scroll-padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
   isolation: isolate;
 }
 
@@ -556,7 +558,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 18;
-  padding: 0 10px calc(7px + env(safe-area-inset-bottom, 0px));
+  padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -571,8 +573,8 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: auto 0 calc(min(58vh, 500px) + 78px + env(safe-area-inset-bottom, 0px)) 0;
-  height: 42px;
+  inset: auto 0 calc(min(56vh, 480px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
+  height: 36px;
   z-index: 34;
   border: 0;
   padding: 0;
@@ -583,9 +585,9 @@ onUnmounted(() => {
 
 .nav-drawer {
   margin-bottom: 10px;
-  max-height: min(58vh, 500px);
+  max-height: min(56vh, 480px);
   overflow: auto;
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
   position: relative;
   z-index: 43;
@@ -653,6 +655,7 @@ onUnmounted(() => {
   background: rgba(255, 251, 237, 0.82);
   color: #8b6226;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .menu-grid {
@@ -670,7 +673,7 @@ onUnmounted(() => {
   min-height: 86px;
   padding: 12px;
   text-decoration: none;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(103, 149, 144, 0.2);
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.94), rgba(241, 249, 244, 0.82)),
@@ -720,14 +723,14 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 56px;
+  height: 54px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
   padding: 6px;
   border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
     radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
@@ -736,14 +739,14 @@ onUnmounted(() => {
 }
 
 .tab-item {
-  height: 44px;
+  height: 42px;
   min-width: 0;
   display: grid;
   place-items: center;
   gap: 3px;
   padding: 4px 2px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: rgba(65, 91, 89, 0.74);
   font-family: var(--font-game);
@@ -751,6 +754,7 @@ onUnmounted(() => {
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .tab-item svg {
@@ -854,7 +858,7 @@ onUnmounted(() => {
 
   .resource-row :deep(.stat-chip) {
     flex-direction: column;
-    min-height: 44px;
+    min-height: 40px;
     justify-content: center;
     gap: 2px;
     padding: 5px 3px;
@@ -870,7 +874,7 @@ onUnmounted(() => {
 
   .audio-toggle,
   .home-toggle {
-    min-height: 42px;
+    min-height: 40px;
     justify-content: center;
     padding: 6px 4px;
     gap: 3px;
@@ -887,11 +891,11 @@ onUnmounted(() => {
   }
 
   .nav-drawer {
-    max-height: min(60vh, 480px);
+    max-height: min(58vh, 460px);
   }
 
   .nav-scrim {
-    inset: auto 0 calc(min(60vh, 480px) + 76px + env(safe-area-inset-bottom, 0px)) 0;
+    inset: auto 0 calc(min(58vh, 460px) + 74px + env(safe-area-inset-bottom, 0px)) 0;
   }
 
   .menu-grid {
@@ -905,12 +909,12 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 54px;
-    border-radius: 15px;
+    height: 52px;
+    border-radius: 13px;
   }
 
   .tab-item {
-    height: 42px;
+    height: 40px;
     font-size: 10px;
   }
 }

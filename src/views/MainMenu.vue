@@ -9,7 +9,7 @@
           <div class="mountain-line"></div>
         </div>
         <div class="brand-copy">
-          <p>2D 挂机文字修仙 · 世界自演</p>
+          <p>2D 挂机修仙 · 明亮手游主界</p>
           <h1>我欲修仙</h1>
           <strong>挂机修炼、奇遇历险、宗门势力与 NPC 命运会在同一个世界时钟里推进。</strong>
           <div class="brand-tags" aria-label="当前版本重点">
@@ -95,7 +95,7 @@
             <div class="save-profile-copy">
               <span>{{ playerStore.realmInfo.fullName }} · {{ playerStore.element }}灵根 · {{ playerStore.quality }}</span>
               <strong>{{ playerStore.name }}</strong>
-              <p>下一步进入主界任务台，优先跑通挂机、历险、故事、人物、地图、宗门六项闭环。</p>
+              <p>进入后直接落在主界行动台，优先跑通挂机、历险、故事、人物、地图、宗门六项闭环。</p>
             </div>
           </div>
 
@@ -108,7 +108,7 @@
 
         <div class="save-lock-row" aria-label="创建设定状态">
           <span>本命锁定</span>
-          <span>声音默认关闭</span>
+          <span>入场静音</span>
           <span>优先 P0 闭环</span>
         </div>
 
@@ -130,7 +130,7 @@
         <div class="priority-board">
           <div class="priority-title">
             <span>P0 当前目标</span>
-            <strong>先让主循环真的可玩</strong>
+            <strong>主入口、主界壳层、六项基础入口先稳定</strong>
           </div>
           <div class="priority-grid">
             <div v-for="item in priorityItems" :key="item.title" class="priority-item">
@@ -287,6 +287,8 @@ function formatAmount(value: number) {
   padding: 14px;
   color: #315257;
   background:
+    radial-gradient(circle at 18% 12%, rgba(255, 226, 145, 0.34), transparent 24%),
+    radial-gradient(circle at 86% 10%, rgba(108, 203, 180, 0.26), transparent 30%),
     linear-gradient(90deg, rgba(69, 118, 104, 0.052) 1px, transparent 1px),
     linear-gradient(0deg, rgba(69, 118, 104, 0.044) 1px, transparent 1px),
     linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.28) 34% 35%, transparent 35% 100%),
@@ -315,7 +317,7 @@ function formatAmount(value: number) {
 .guide-panel,
 .world-preview {
   border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(244, 252, 247, 0.78)),
     linear-gradient(90deg, rgba(255, 235, 170, 0.18), transparent 38%);
@@ -324,6 +326,8 @@ function formatAmount(value: number) {
 }
 
 .brand-panel {
+  position: relative;
+  overflow: hidden;
   grid-area: brand;
   min-height: 310px;
   display: grid;
@@ -331,6 +335,19 @@ function formatAmount(value: number) {
   gap: 22px;
   align-items: center;
   padding: 34px;
+}
+
+.brand-panel::before {
+  content: '';
+  position: absolute;
+  inset: auto -6% 0 -6%;
+  height: 92px;
+  background:
+    linear-gradient(140deg, transparent 0 28%, rgba(85, 135, 119, 0.2) 28% 38%, transparent 38%),
+    linear-gradient(38deg, transparent 0 34%, rgba(151, 99, 38, 0.14) 34% 48%, transparent 48%),
+    linear-gradient(180deg, transparent, rgba(95, 151, 137, 0.16));
+  opacity: 0.92;
+  pointer-events: none;
 }
 
 .brand-art {
@@ -413,6 +430,11 @@ function formatAmount(value: number) {
     linear-gradient(90deg, rgba(255, 226, 145, 0.24), transparent 62%);
 }
 
+.save-panel .guide-head {
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(111, 157, 149, 0.14);
+}
+
 .creation-lock-note {
   display: grid;
   gap: 6px;
@@ -437,19 +459,38 @@ function formatAmount(value: number) {
 }
 
 .save-hero-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.36fr);
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) minmax(164px, 0.38fr);
+  gap: 12px;
   align-items: stretch;
-  padding: 12px;
-  border: 1px solid rgba(111, 157, 149, 0.18);
-  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(188, 141, 58, 0.22);
+  border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.86), rgba(242, 252, 247, 0.72)),
+    linear-gradient(180deg, rgba(255, 255, 252, 0.92), rgba(242, 252, 247, 0.76)),
     radial-gradient(circle at top right, rgba(255, 224, 151, 0.2), transparent 64%);
 }
 
+.save-hero-card::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  width: 150px;
+  height: 52px;
+  border-radius: 999px 999px 14px 14px;
+  background:
+    linear-gradient(130deg, transparent 0 30%, rgba(104, 156, 137, 0.2) 30% 44%, transparent 44%),
+    linear-gradient(40deg, transparent 0 38%, rgba(188, 141, 58, 0.18) 38% 52%, transparent 52%);
+  opacity: 0.68;
+  pointer-events: none;
+}
+
 .save-profile {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
   gap: 14px;
@@ -467,7 +508,7 @@ function formatAmount(value: number) {
   display: grid;
   place-items: center;
   border: 1px solid rgba(188, 141, 58, 0.18);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 250, 233, 0.72);
   color: #8b6226;
   font-size: 11px;
@@ -478,7 +519,7 @@ function formatAmount(value: number) {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid rgba(188, 141, 58, 0.22);
   background:
     linear-gradient(145deg, #fff2bd, #91dfc2),
@@ -537,7 +578,7 @@ function formatAmount(value: number) {
   gap: 12px;
   padding: 14px;
   border: 1px solid rgba(111, 157, 149, 0.16);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
     radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
@@ -555,7 +596,7 @@ function formatAmount(value: number) {
 
 .priority-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -563,15 +604,15 @@ function formatAmount(value: number) {
   min-width: 0;
   display: grid;
   gap: 5px;
-  padding: 10px;
+  padding: 9px;
   border: 1px solid rgba(111, 157, 149, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
 }
 
 .priority-item span {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 9px;
@@ -629,7 +670,7 @@ function formatAmount(value: number) {
 .guide-panel {
   grid-area: guide;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   padding: 24px;
 }
 
@@ -805,7 +846,10 @@ function formatAmount(value: number) {
 }
 
 .primary-action.docket-action {
-  min-height: 62px;
+  position: relative;
+  z-index: 1;
+  min-height: 68px;
+  border-radius: 12px;
 }
 
 .secondary-action {
@@ -925,9 +969,12 @@ function formatAmount(value: number) {
   .save-lock-row,
   .save-hero-card,
   .save-stats,
-  .save-action-row,
-  .priority-grid {
+  .save-action-row {
     grid-template-columns: 1fr;
+  }
+
+  .priority-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
