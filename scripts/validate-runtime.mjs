@@ -2990,6 +2990,28 @@ test('p0 loop closure summarizes observable result evidence', async () => {
   assert.equal(idleOnlyClosure.byId.idle.state, 'closed')
   assert.equal(idleOnlyClosure.byId.adventure.state, 'actionable')
 
+  const npcJourneyClosure = resolveP0LoopClosure({
+    readiness: readiness.byId,
+    evidence: {
+      playerJourneyTags: [['npc', 'relationship', 'greet']],
+      storyCurrentNodeId: null,
+      storyCompletedCount: 0,
+      unlockedNpcCount: 5,
+      npcStoryCount: 0,
+      worldBriefingCount: 1,
+      mapTotalAreaCount: 6,
+      mapConqueredCount: 0,
+      mapHistoryCount: 0,
+      areaAnomalyCount: 0,
+      sectJoined: false,
+      sectJoinableCount: 1
+    }
+  })
+
+  assert.equal(npcJourneyClosure.byId.npc.state, 'closed')
+  assert.equal(npcJourneyClosure.byId.npc.evidence, '已有人物纪闻或互动行程')
+  assert.equal(npcJourneyClosure.closedCount, 1)
+
   const storyOnlyClosure = resolveP0LoopClosure({
     readiness: readiness.byId,
     evidence: {

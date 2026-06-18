@@ -14,7 +14,7 @@
     </div>
 
     <!-- 伙伴列表 -->
-    <div v-if="activeTab === 'bonds'" class="npc-bond-panel">
+    <GameSurface v-if="activeTab === 'bonds'" tone="gold" padding="md" compact class="npc-bond-panel">
       <div class="bond-hero">
         <div>
           <span>人物缘分</span>
@@ -22,61 +22,28 @@
           <p>与世界中的关键人物互动会提升好感，并把关系变化写入世界日志与人物纪闻。</p>
         </div>
         <div class="bond-hero-actions">
-          <button class="observe-btn" :disabled="!canObserveNpcActivity" @click="handleObserveNpcActivity">
-            <span>闻</span>
-            <strong>探听一时辰</strong>
-          </button>
+          <GameActionButton icon="闻" tone="gold" :disabled="!canObserveNpcActivity" @click="handleObserveNpcActivity">
+            探听一时辰
+          </GameActionButton>
           <div class="bond-count">{{ worldStore.npcCompanionCandidates.length }}</div>
         </div>
       </div>
 
-      <div class="activity-panel">
-        <div class="activity-head">
-          <div>
-            <span>人物动向</span>
-            <strong>{{ npcActivityInsight?.totalEvents ? `${npcActivityInsight.totalEvents} 条新纪闻` : '静候消息' }}</strong>
-          </div>
-          <small>{{ npcActivityInsight?.timeLabel ?? worldStore.currentTimeLabel }}</small>
-        </div>
-        <div class="activity-list">
-          <div
-            v-for="item in activityItems"
-            :key="item.id"
-            class="activity-item"
-            :class="`tone-${item.tone}`"
-          >
-            <span class="activity-label">{{ item.label }}</span>
-            <div class="activity-copy">
-              <strong>{{ item.title }}</strong>
-              <p>{{ item.text }}</p>
-              <small>{{ item.npcName }} · {{ item.timeLabel }}</small>
-            </div>
-          </div>
-        </div>
-      </div>
+      <NpcActivityPanel
+        :items="activityItems"
+        :total-events="npcActivityInsight?.totalEvents ?? 0"
+        :time-label="npcActivityInsight?.timeLabel ?? worldStore.currentTimeLabel"
+      />
 
       <div class="npc-bond-list">
-        <button
+        <NpcBondCard
           v-for="candidate in worldStore.npcCompanionCandidates"
           :key="candidate.id"
-          class="npc-bond-card"
-          :class="`bond-${candidate.bond}`"
-          @click="handleNpcInteraction(candidate.id, candidate.canInvite ? 'invite' : 'greet')"
-        >
-          <div class="npc-mark">{{ candidate.name.slice(0, 1) }}</div>
-          <div class="npc-bond-copy">
-            <span>{{ candidate.title }} · {{ candidate.realm }} · {{ candidate.locationName }}</span>
-            <strong>{{ candidate.name }}</strong>
-            <p>{{ candidate.summary }}</p>
-            <div class="npc-bond-meta">
-              <em>{{ candidate.statusLabel }}</em>
-              <em>好感 {{ candidate.favor }}</em>
-            </div>
-          </div>
-          <span class="npc-action">{{ candidate.actionLabel }}</span>
-        </button>
+          :candidate="candidate"
+          @interact="handleNpcInteraction"
+        />
       </div>
-    </div>
+    </GameSurface>
 
     <div v-if="activeTab === 'companions'" class="companions-panel">
       <div v-if="companionStore.ownedCompanionDetails.length === 0" class="empty-state">
@@ -318,6 +285,10 @@ import { SKILL_DEFINITIONS } from '@/types/skill'
 import { useToast } from '@/composables/useToast'
 import { useNpcActivityInsight } from '@/composables/useNpcActivityInsight'
 import { useNpcInteraction } from '@/composables/useNpcInteraction'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
+import NpcActivityPanel from '@/components/companion/NpcActivityPanel.vue'
+import NpcBondCard from '@/components/companion/NpcBondCard.vue'
 import type { NpcInteractionKind } from '@/world/runtime/npcCompanionResolver'
 
 const companionStore = useCompanionStore()
@@ -548,44 +519,6 @@ function handleObserveNpcActivity() {
   flex: 0 0 auto;
 }
 
-.observe-btn {
-  min-height: 54px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  padding: 8px 12px;
-  border: 1px solid rgba(188, 141, 58, 0.24);
-  border-radius: 16px;
-  background: rgba(255, 249, 231, 0.86);
-  color: #8b6226;
-  font-family: var(--font-game);
-  cursor: pointer;
-}
-
-.observe-btn:disabled {
-  opacity: 0.48;
-  cursor: not-allowed;
-}
-
-.observe-btn span {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #8b6226;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.observe-btn strong {
-  color: #8b6226;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
 .bond-count {
   width: 54px;
   height: 54px;
@@ -599,214 +532,11 @@ function handleObserveNpcActivity() {
   font-weight: 800;
 }
 
-.activity-panel {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 14px;
-  border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(247, 253, 255, 0.92), rgba(241, 249, 244, 0.82)),
-    radial-gradient(circle at top right, rgba(174, 218, 240, 0.14), transparent 58%);
-  box-shadow: 0 12px 28px rgba(87, 126, 121, 0.1);
-}
-
-.activity-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.activity-head div {
-  display: grid;
-  gap: 4px;
-}
-
-.activity-head span {
-  color: rgba(73, 97, 95, 0.68);
-  font-size: 11px;
-}
-
-.activity-head strong {
-  color: #315257;
-  font-size: 15px;
-}
-
-.activity-head small {
-  color: rgba(73, 97, 95, 0.62);
-  font-size: 10px;
-  text-align: right;
-}
-
-.activity-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.activity-item {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid rgba(103, 149, 144, 0.14);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.activity-item.tone-gold {
-  border-color: rgba(188, 141, 58, 0.22);
-  background: rgba(255, 250, 236, 0.78);
-}
-
-.activity-item.tone-rose {
-  border-color: rgba(198, 121, 137, 0.2);
-  background: rgba(255, 248, 249, 0.76);
-}
-
-.activity-item.tone-mist {
-  border-color: rgba(119, 158, 178, 0.18);
-  background: rgba(247, 253, 255, 0.72);
-}
-
-.activity-label {
-  min-width: 42px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #8b6226;
-  font-size: 10px;
-}
-
-.activity-copy {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.activity-copy strong {
-  overflow: hidden;
-  color: #315257;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.activity-copy p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  color: rgba(53, 81, 83, 0.76);
-  font-size: 11px;
-  line-height: 1.55;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.activity-copy small {
-  color: rgba(73, 97, 95, 0.62);
-  font-size: 10px;
-}
-
 .npc-bond-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-}
-
-.npc-bond-card {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.68);
-  color: #315257;
-  font-family: var(--font-game);
-  text-align: left;
-  cursor: pointer;
-}
-
-.npc-bond-card.bond-friend,
-.npc-bond-card.bond-companion,
-.npc-bond-card.bond-lover {
-  border-color: rgba(188, 141, 58, 0.26);
-  background: rgba(255, 250, 236, 0.88);
-}
-
-.npc-mark {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  background: linear-gradient(145deg, rgba(255, 238, 180, 0.96), rgba(125, 216, 191, 0.78));
-  color: #8b6226;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.npc-bond-copy {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-}
-
-.npc-bond-copy span {
-  overflow: hidden;
-  color: rgba(73, 97, 95, 0.66);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.npc-bond-copy strong {
-  color: #315257;
-  font-size: 15px;
-}
-
-.npc-bond-copy p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  color: rgba(53, 81, 83, 0.78);
-  font-size: 12px;
-  line-height: 1.55;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.npc-bond-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.npc-bond-meta em,
-.npc-action {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: rgba(73, 97, 95, 0.78);
-  font-size: 10px;
-  font-style: normal;
-}
-
-.npc-action {
-  grid-column: 1 / -1;
-  width: fit-content;
-  color: #8b6226;
-  background: rgba(255, 249, 233, 0.9);
+  margin-top: 14px;
 }
 
 /* 功能标签 */
@@ -814,24 +544,33 @@ function handleObserveNpcActivity() {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+  padding: 6px;
+  border: 1px solid rgba(103, 149, 144, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.88), rgba(239, 249, 245, 0.76)),
+    radial-gradient(circle at top, rgba(255, 223, 147, 0.16), transparent 58%);
 }
 
 .tab-btn {
   flex: 1;
+  min-height: 42px;
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 8px;
-  color: var(--color-muted);
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(103, 149, 144, 0.14);
+  border-radius: 12px;
+  color: rgba(65, 91, 89, 0.74);
+  font-family: var(--font-game);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .tab-btn.active {
-  background: rgba(126, 184, 218, 0.2);
-  border-color: rgba(126, 184, 218, 0.4);
-  color: #7eb8da;
+  background: rgba(255, 248, 229, 0.92);
+  border-color: rgba(194, 146, 66, 0.24);
+  color: #8b6226;
+  box-shadow: inset 0 0 0 1px rgba(194, 146, 66, 0.12);
 }
 
 /* 空状态 */
