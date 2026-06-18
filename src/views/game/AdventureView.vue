@@ -448,6 +448,7 @@ function handleSweep(area: AreaDefinition) {
   for (const [, drop] of allDrops) {
     const added = playerStore.addToInventory({
       id: `drop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      definitionId: drop.item.id,
       name: drop.item.name,
       icon: drop.item.icon,
       type: drop.item.type === 'equipment' ? 'equipment' : 'material',

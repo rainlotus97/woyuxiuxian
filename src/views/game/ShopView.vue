@@ -375,6 +375,7 @@ function confirmBuy() {
   // 添加到背包
   const inventoryItem: InventoryItem = {
     id: `item_${Date.now()}`,
+    definitionId: item.id,
     name: item.name,
     icon: item.icon,
     type: item.type,

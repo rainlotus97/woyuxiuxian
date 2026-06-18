@@ -17,6 +17,7 @@ import type { AreaProgress } from '@/types/adventure'
 // 背包物品接口
 export interface InventoryItem {
   id: string
+  definitionId?: string
   equipmentId?: string  // 如果是装备，指向装备ID
   equipmentData?: Equipment  // 完整的装备数据（用于卸下的装备）
   name: string
@@ -605,9 +606,18 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 如果是可堆叠物品，检查是否已存在
     if (item.type !== 'equipment') {
-      const existing = inventory.value.find(i => i.name === item.name && i.type === item.type)
+      const existing = inventory.value.find(i => {
+        if (i.type !== item.type) return false
+        if (item.definitionId && i.definitionId) {
+          return i.definitionId === item.definitionId
+        }
+        return i.name === item.name
+      })
       if (existing) {
         existing.quantity += item.quantity
+        if (!existing.definitionId && item.definitionId) {
+          existing.definitionId = item.definitionId
+        }
         // 更新宗门采集任务进度
         updateCollectTaskProgress(item)
         return true

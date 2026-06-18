@@ -32,5 +32,14 @@ export interface SectWarResolution {
   status: 'victory' | 'defeat'
   attackerScore: number
   defenderScore: number
+  rewards?: {
+    contribution: number
+    gold: number
+    reputation: number
+  }
+  penalties?: {
+    contribution: number
+    reputation: number
+  }
   log?: SectRuntimeLogEffect
 }

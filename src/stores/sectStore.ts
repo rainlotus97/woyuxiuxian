@@ -26,6 +26,23 @@ import { SEEDS, getSeedById, type PlantedCrop } from '@/types/garden'
 
 const STORAGE_KEY = 'woyu-xiuxian-sect'
 
+interface SectWarReport {
+  warId: string
+  title: string
+  summary: string
+  time: number
+  winner: 'attacker' | 'defender'
+  rewards: {
+    contribution: number
+    gold: number
+    reputation: number
+  }
+  penalties: {
+    contribution: number
+    reputation: number
+  }
+}
+
 // 宗门状态接口
 interface SectState {
   joinedSectId: string | null
@@ -44,6 +61,7 @@ interface SectState {
   lastTaskRefresh: number
   lastSalaryClaim: number
   gardenSlots: (PlantedCrop | null)[]  // 药园槽位
+  lastWarReport: SectWarReport | null
 }
 
 // 默认宗门状态
@@ -68,7 +86,8 @@ function getDefaultSectState(): SectState {
     facilityLevels: {},
     lastTaskRefresh: Date.now(),
     lastSalaryClaim: 0,
-    gardenSlots: [null, null, null]  // 默认3个药园槽位
+    gardenSlots: [null, null, null],  // 默认3个药园槽位
+    lastWarReport: null
   }
 }
 
@@ -118,6 +137,7 @@ export const useSectStore = defineStore('sect', () => {
   const lastTaskRefresh = ref<number>(initialData.lastTaskRefresh)
   const lastSalaryClaim = ref<number>(initialData.lastSalaryClaim)
   const gardenSlots = ref<(PlantedCrop | null)[]>(initialData.gardenSlots || [null, null, null])
+  const lastWarReport = ref<SectWarReport | null>(initialData.lastWarReport ?? null)
 
   // ====== 计算属性 ======
 
@@ -199,7 +219,8 @@ export const useSectStore = defineStore('sect', () => {
         facilityLevels: toRaw(facilityLevels.value),
         lastTaskRefresh: lastTaskRefresh.value,
         lastSalaryClaim: lastSalaryClaim.value,
-        gardenSlots: toRaw(gardenSlots.value)
+        gardenSlots: toRaw(gardenSlots.value),
+        lastWarReport: toRaw(lastWarReport.value)
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -260,6 +281,7 @@ export const useSectStore = defineStore('sect', () => {
       occupiedBySectId: null,
       lastUpdatedTick: null
     }
+    lastWarReport.value = null
     return true
   }
 
@@ -358,6 +380,60 @@ export const useSectStore = defineStore('sect', () => {
       playerStore.addCultivation(task.rewards.exp)
     }
     return true
+  }
+
+  function claimAllCompletedTaskRewards() {
+    const completedTaskIds = tasks.value
+      .filter(task => task.completed && !task.claimed)
+      .map(task => task.id)
+
+    let claimedCount = 0
+    let totalContribution = 0
+    let totalGold = 0
+    let totalExp = 0
+
+    for (const taskId of completedTaskIds) {
+      const task = tasks.value.find(item => item.id === taskId)
+      if (!task) continue
+      if (!claimTaskReward(taskId)) continue
+      claimedCount++
+      totalContribution += task.rewards.contribution
+      totalGold += task.rewards.gold
+      totalExp += task.rewards.exp ?? 0
+    }
+
+    return {
+      claimedCount,
+      totalContribution,
+      totalGold,
+      totalExp
+    }
+  }
+
+  function getInventoryMaterialQuantity(materialId: string) {
+    const playerStore = usePlayerStore()
+    return playerStore.inventory
+      .filter(item => item.type === 'material')
+      .filter(item => item.definitionId === materialId || item.id === materialId || item.name === materialId)
+      .reduce((total, item) => total + item.quantity, 0)
+  }
+
+  function consumeInventoryMaterial(materialId: string, quantity: number) {
+    const playerStore = usePlayerStore()
+    let remaining = quantity
+    const matchedItems = playerStore.inventory
+      .filter(item => item.type === 'material')
+      .filter(item => item.definitionId === materialId || item.id === materialId || item.name === materialId)
+
+    for (const item of matchedItems) {
+      if (remaining <= 0) break
+      const consumeCount = Math.min(item.quantity, remaining)
+      remaining -= consumeCount
+      item.quantity -= consumeCount
+    }
+
+    playerStore.inventory = playerStore.inventory.filter(item => item.quantity > 0)
+    return remaining <= 0
   }
 
   // 生成任务
@@ -484,6 +560,12 @@ export const useSectStore = defineStore('sect', () => {
     if (!war) return null
 
     const winner = attackerWon ? 'attacker' : 'defender'
+    const rewards = attackerWon
+      ? { contribution: 500, gold: 1000, reputation: 100 }
+      : { contribution: 200, gold: 500, reputation: 0 }
+    const penalties = attackerWon
+      ? { contribution: 0, reputation: 0 }
+      : { contribution: 200, reputation: 100 }
     war.result = {
       winner,
       rewards: winner === 'attacker' ? ['500贡献点', '1000灵石', '100声望'] : ['200贡献点', '500灵石'],
@@ -491,19 +573,30 @@ export const useSectStore = defineStore('sect', () => {
     }
 
     if (winner === 'attacker') {
-      addContribution(500)
+      addContribution(rewards.contribution)
       const playerStore = usePlayerStore()
-      playerStore.addGold(1000)
-      addReputation(100)
+      playerStore.addGold(rewards.gold)
+      addReputation(rewards.reputation)
     } else {
-      addContribution(200)
+      addContribution(rewards.contribution)
       const playerStore = usePlayerStore()
-      playerStore.addGold(500)
-      contribution.value = Math.max(0, contribution.value - 200)
-      reputation.value = Math.max(0, reputation.value - 100)
+      playerStore.addGold(rewards.gold)
+      contribution.value = Math.max(0, contribution.value - penalties.contribution)
+      reputation.value = Math.max(0, reputation.value - penalties.reputation)
     }
 
     relations.value[war.defenderSectId] = attackerWon ? 'hostile' : 'neutral'
+    lastWarReport.value = {
+      warId: war.id,
+      title: attackerWon ? '宗门凯旋' : '宗门失利',
+      summary: attackerWon
+        ? '前线告捷，山门获得新的声望与资源。'
+        : '前线败退，宗门需要重新整饬人手与威望。',
+      time: Date.now(),
+      winner,
+      rewards,
+      penalties
+    }
     const resolution: SectWarResolution = {
       warId: war.id,
       attackerSectId: war.attackerSectId,
@@ -511,7 +604,9 @@ export const useSectStore = defineStore('sect', () => {
       winner,
       status: attackerWon ? 'victory' : 'defeat',
       attackerScore: war.attackerScore,
-      defenderScore: war.defenderScore
+      defenderScore: war.defenderScore,
+      rewards,
+      penalties
     }
     activeWar.value = null
     return resolution
@@ -685,8 +780,8 @@ export const useSectStore = defineStore('sect', () => {
           return { success: false, message: `灵石不足，需要${material.quantity}灵石` }
         }
       } else {
-        const owned = playerStore.inventory.find(i => i.id === material.itemId || i.name === material.itemId)
-        if (!owned || owned.quantity < material.quantity) {
+        const ownedQuantity = getInventoryMaterialQuantity(material.itemId)
+        if (ownedQuantity < material.quantity) {
           return { success: false, message: `材料不足：${material.itemId}` }
         }
       }
@@ -697,16 +792,7 @@ export const useSectStore = defineStore('sect', () => {
       if (material.itemId === 'gold') {
         playerStore.addGold(-material.quantity)
       } else {
-        const owned = playerStore.inventory.find(i => i.id === material.itemId || i.name === material.itemId)
-        if (owned) {
-          owned.quantity -= material.quantity
-          if (owned.quantity <= 0) {
-            const index = playerStore.inventory.indexOf(owned)
-            if (index > -1) {
-              playerStore.inventory.splice(index, 1)
-            }
-          }
-        }
+        consumeInventoryMaterial(material.itemId, material.quantity)
       }
     }
 
@@ -718,6 +804,7 @@ export const useSectStore = defineStore('sect', () => {
       // 产出丹药
       const pillItem = {
         id: `pill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        definitionId: recipe.id,
         name: recipe.output.name,
         icon: recipe.output.icon,
         type: 'consumable' as const,
@@ -833,6 +920,7 @@ export const useSectStore = defineStore('sect', () => {
     const playerStore = usePlayerStore()
     const harvestedItem = {
       id: `${seed.harvest.itemId}_${Date.now()}`,
+      definitionId: seed.harvest.itemId,
       name: seed.harvest.itemName,
       icon: seed.harvest.icon,
       type: 'material' as const,
@@ -886,6 +974,37 @@ export const useSectStore = defineStore('sect', () => {
     return { success: true, message: '加速成功，作物已成熟' }
   }
 
+  const readyGardenSlots = computed(() => {
+    const now = Date.now()
+    return gardenSlots.value.filter((slot, index) => index < gardenSlotCount.value && slot && slot.readyAt <= now).length
+  })
+
+  const activeGardenSlots = computed(() => {
+    return gardenSlots.value.filter((slot, index) => index < gardenSlotCount.value && Boolean(slot)).length
+  })
+
+  function harvestAllReadyCrops() {
+    const readyIndices = gardenSlots.value
+      .map((slot, index) => ({ slot, index }))
+      .filter(entry => entry.index < gardenSlotCount.value && entry.slot && Date.now() >= entry.slot.readyAt)
+      .map(entry => entry.index)
+
+    let harvestedCount = 0
+    const itemLabels: string[] = []
+
+    for (const index of readyIndices) {
+      const result = harvestCrop(index)
+      if (!result.success || !result.item || !result.quantity) continue
+      harvestedCount++
+      itemLabels.push(`${result.item.icon}${result.item.name}x${result.quantity}`)
+    }
+
+    return {
+      harvestedCount,
+      items: itemLabels
+    }
+  }
+
   // 监听变化自动保存
   watchEffect(() => {
     saveToStorage()
@@ -909,6 +1028,7 @@ export const useSectStore = defineStore('sect', () => {
     lastTaskRefresh,
     lastSalaryClaim,
     gardenSlots,
+    lastWarReport,
 
     // 计算属性
     currentSect,
@@ -924,6 +1044,8 @@ export const useSectStore = defineStore('sect', () => {
     canClaimSalary,
     availableAlchemyRecipes,
     gardenSlotCount,
+    readyGardenSlots,
+    activeGardenSlots,
     availableSeeds,
 
     // 方法
@@ -936,6 +1058,7 @@ export const useSectStore = defineStore('sect', () => {
     completeTask,
     updateTaskProgress,
     claimTaskReward,
+    claimAllCompletedTaskRewards,
     generateTasks,
     refreshTasks,
     getFacilityLevel,
@@ -955,6 +1078,7 @@ export const useSectStore = defineStore('sect', () => {
     // 药园
     plantSeed,
     harvestCrop,
+    harvestAllReadyCrops,
     accelerateCrop,
     saveToStorage
   }

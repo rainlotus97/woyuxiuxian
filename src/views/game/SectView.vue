@@ -44,6 +44,31 @@
         </GameSurface>
       </div>
 
+      <SectCyclePanel
+        :total-task-count="sectStore.dailyTasks.length + sectStore.weeklyTasks.length"
+        :completed-task-count="completedTaskCount"
+        :reward-ready-count="sectStore.completedTasks.length"
+        :can-claim-salary="sectStore.canClaimSalary"
+        :task-summary="taskSummary"
+        :garden-slot-count="sectStore.gardenSlotCount"
+        :active-garden-slots="sectStore.activeGardenSlots"
+        :ready-garden-slots="sectStore.readyGardenSlots"
+        :garden-summary="gardenSummary"
+        :garden-hint="gardenHint"
+        :alchemy-level="sectStore.getFacilityLevel('alchemy_furnace')"
+        :garden-level="sectStore.getFacilityLevel('medicine_garden')"
+        :available-recipe-count="sectStore.availableAlchemyRecipes.length"
+        :facility-summary="facilitySummary"
+        :active-war="sectStore.activeWar"
+        :last-war-report="sectStore.lastWarReport"
+        @claim-all-tasks="handleClaimAllRewards"
+        @claim-salary="handleClaimSalary"
+        @harvest-ready="handleHarvestReady"
+        @open-facility="handleUseFacility"
+        @go-tab="handleTabSelect"
+        @ack-war-report="handleAcknowledgeWarReport"
+      />
+
       <SectTasksPanel
         v-if="activeTab === 'tasks'"
         :daily-tasks="sectStore.dailyTasks"
@@ -116,6 +141,7 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import FacilityModal from '@/components/sect/FacilityModal.vue'
+import SectCyclePanel from '@/components/sect/SectCyclePanel.vue'
 import SectDiplomacyPanel from '@/components/sect/SectDiplomacyPanel.vue'
 import SectFacilitiesPanel from '@/components/sect/SectFacilitiesPanel.vue'
 import SectOverviewPanel from '@/components/sect/SectOverviewPanel.vue'
@@ -193,6 +219,10 @@ const visibleSectEvent = computed<SectEvent | null>(() => {
   return sectStore.activeEvent ?? null
 })
 
+const completedTaskCount = computed(() => {
+  return [...sectStore.dailyTasks, ...sectStore.weeklyTasks].filter(task => task.completed).length
+})
+
 const diplomacyRows = computed<SectDiplomacyRow[]>(() => {
   if (!sectStore.currentSect) return []
 
@@ -215,6 +245,37 @@ const diplomacyRows = computed<SectDiplomacyRow[]>(() => {
 const diplomacySubtitle = computed(() => {
   if (sectStore.activeWar) return '战局已经开启，后续应继续补充更细粒度的宣战、停战与战后限制。'
   return '外交关系会被世界 tick 推动变化，也可由玩家主动宣战。'
+})
+
+const taskSummary = computed(() => {
+  if (sectStore.completedTasks.length > 0) {
+    return `已有 ${sectStore.completedTasks.length} 项宗务可立即结算，适合在推进地图或剧情前先回收贡献与灵石。`
+  }
+  return '当前暂无待领奖励，继续通过讨伐、采集、炼制与探索积累贡献。'
+})
+
+const gardenSummary = computed(() => {
+  if (sectStore.readyGardenSlots > 0) {
+    return `${sectStore.readyGardenSlots} 株已成熟`
+  }
+  if (sectStore.activeGardenSlots > 0) {
+    return '药园生长中'
+  }
+  return '药园待播种'
+})
+
+const gardenHint = computed(() => {
+  if (sectStore.readyGardenSlots > 0) {
+    return '成熟作物已经可以直接回收，用来支撑炼丹与宗门采集任务。'
+  }
+  if (sectStore.activeGardenSlots > 0) {
+    return '当前已有作物在生长，成熟后可直接回流材料链。'
+  }
+  return '药园当前空置，建议尽快播种以建立灵草到丹药的稳定循环。'
+})
+
+const facilitySummary = computed(() => {
+  return '炼丹炉决定丹药层级，药园决定灵草供给。两者等级越高，宗门经济链越完整。'
 })
 
 const activeWarLabel = computed(() => {
@@ -245,6 +306,17 @@ function handleClaimReward(taskId: string) {
   }
 }
 
+function handleClaimAllRewards() {
+  const result = sectStore.claimAllCompletedTaskRewards()
+  if (result.claimedCount <= 0) {
+    warning('暂无可领取的宗门奖励')
+    return
+  }
+
+  success(`已领取 ${result.claimedCount} 项宗门奖励`)
+  info(`获得 ${result.totalContribution} 贡献、${result.totalGold} 灵石${result.totalExp > 0 ? `、${result.totalExp} 修为` : ''}`)
+}
+
 function handleUpgradeFacility(facilityId: string) {
   if (sectStore.upgradeFacility(facilityId)) {
     success('设施升级成功')
@@ -260,6 +332,17 @@ function handleClaimSalary() {
   } else {
     warning('今日俸禄已领取')
   }
+}
+
+function handleHarvestReady() {
+  const result = sectStore.harvestAllReadyCrops()
+  if (result.harvestedCount <= 0) {
+    warning('当前没有可收取的成熟作物')
+    return
+  }
+
+  success(`已收取 ${result.harvestedCount} 份成熟作物`)
+  info(result.items.slice(0, 3).join('，'))
 }
 
 function handleLeaveSect() {
@@ -286,6 +369,10 @@ function handleEventChoice(choiceId: string) {
   }
 }
 
+function handleTabSelect(tabId: 'tasks' | 'facilities' | 'diplomacy') {
+  activeTab.value = tabId
+}
+
 function canUseFacility(facilityId: string) {
   return facilityId === 'alchemy_furnace' || facilityId === 'medicine_garden'
 }
@@ -293,6 +380,11 @@ function canUseFacility(facilityId: string) {
 function handleUseFacility(facilityId: string) {
   selectedFacilityId.value = facilityId
   showFacilityModal.value = true
+}
+
+function handleAcknowledgeWarReport() {
+  sectStore.lastWarReport = null
+  info('战报已收起')
 }
 
 function closeFacilityModal() {

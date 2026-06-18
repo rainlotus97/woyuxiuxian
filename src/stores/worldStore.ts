@@ -407,6 +407,7 @@ export const useWorldStore = defineStore('world', () => {
         const quantity = 1 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-herb-count') * 3)
         playerStore.addToInventory({
           id: `world_herb_${Date.now()}_${clock.value.totalTicks}`,
+          definitionId: 'herb_spirit_grass',
           name: '灵草',
           icon: '草',
           type: 'material',
