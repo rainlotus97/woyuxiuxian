@@ -1,4 +1,5 @@
 import type { Realm, Element } from './unit'
+import type { WorldRealm } from './map'
 
 export type ShichenName = '子' | '丑' | '寅' | '卯' | '辰' | '巳' | '午' | '未' | '申' | '酉' | '戌' | '亥'
 export type IdleMode = 'cultivate' | 'adventure' | 'sectDuty' | 'gatherHerbs' | 'trainSkill'
@@ -56,6 +57,12 @@ export interface NpcDefinition {
   sectId?: string
   aptitude: AptitudeProfile
   personality: PersonalityProfile
+  profile: {
+    title: string
+    origin: string
+    background: string
+    destinyTags: string[]
+  }
   tags: string[]
 }
 
@@ -87,6 +94,68 @@ export interface WorldLogEntry {
   mapId?: string
   tags: string[]
   revealed: boolean
+}
+
+export interface WorldRewardItem {
+  id: string
+  name: string
+  icon: string
+  type: 'equipment' | 'consumable' | 'material'
+  quality: string
+  quantity: number
+  description?: string
+  effects?: {
+    type: string
+    value: number
+    duration?: number
+  }[]
+}
+
+export interface PlayerJourneyReward {
+  type: 'gold' | 'cultivation' | 'contribution' | 'reputation' | 'item' | 'flag'
+  label: string
+  value: number | string
+}
+
+export interface PlayerJourneyEntry {
+  id: string
+  tick: number
+  timeLabel: string
+  mode: IdleMode
+  severity: WorldLogSeverity
+  title: string
+  text: string
+  areaId?: string
+  rewards: PlayerJourneyReward[]
+  tags: string[]
+}
+
+export interface NpcStoryRecord {
+  id: string
+  tick: number
+  timeLabel: string
+  npcId: string
+  title: string
+  text: string
+  severity: WorldLogSeverity
+  mapId?: string
+  tags: string[]
+}
+
+export interface WorldAreaAnomaly {
+  id: string
+  tick: number
+  timeLabel: string
+  areaId: string
+  realm: WorldRealm
+  type: 'flood' | 'fire' | 'beast_tide' | 'ruins' | 'spiritual_vein' | 'bandit'
+  severity: WorldLogSeverity
+  title: string
+  text: string
+  riskHint: string
+  stabilityDelta: number
+  pressureDelta: number
+  untilTick: number | null
 }
 
 export const SHICHEN_NAMES: ShichenName[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']

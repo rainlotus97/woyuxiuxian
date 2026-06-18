@@ -141,13 +141,45 @@
               <div class="npc-badge">{{ npc.name.slice(0, 1) }}</div>
               <div class="npc-copy">
                 <strong>{{ npc.name }}</strong>
-                <small>{{ npc.realm }}{{ npc.realmLevel }}层 · {{ npc.goalLabel }}</small>
+                <small>{{ npc.title }} · {{ npc.realm }}{{ npc.realmLevel }}层 · {{ npc.goalLabel }}</small>
               </div>
             </div>
             <div class="npc-meta">
               <span class="bond-pill" :class="`bond-${npc.bondTone}`">{{ npc.bondLabel }}</span>
               <span class="state-pill">{{ npc.hpLabel }}</span>
             </div>
+            <p class="npc-story">{{ npc.background }}</p>
+            <div class="npc-tags">
+              <span v-for="tag in npc.destinyTags.slice(0, 3)" :key="tag" class="tag-pill">{{ tag }}</span>
+            </div>
+          </div>
+        </div>
+      </GameSurface>
+    </div>
+
+    <div class="world-grid">
+      <GameSurface tone="gold" padding="md" eyebrow="挂机见闻" title="主角行程" subtitle="挂机期间，主角会留下自己的经历、收获和奇遇。">
+        <div class="journey-list">
+          <div v-for="journey in recentJourneys" :key="journey.id" class="log-card" :class="`severity-${journey.severity}`">
+            <div class="log-head">
+              <strong>{{ journey.title }}</strong>
+              <span>{{ journey.timeLabel }}</span>
+            </div>
+            <p>{{ journey.text }}</p>
+            <small class="log-reward">{{ formatJourneyRewards(journey.rewards) }}</small>
+          </div>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="mist" padding="md" eyebrow="天地异变" title="区域异动" subtitle="灾害、遗迹、妖潮与灵脉会改变地图压力与修炼节奏。">
+        <div class="journey-list">
+          <div v-for="anomaly in areaAnomalies" :key="anomaly.id" class="anomaly-card" :class="`severity-${anomaly.severity}`">
+            <div class="log-head">
+              <strong>{{ getAnomalyIcon(anomaly.type) }} {{ anomaly.title }}</strong>
+              <span>{{ anomaly.timeLabel }}</span>
+            </div>
+            <p>{{ anomaly.text }}</p>
+            <small class="log-reward">{{ anomaly.riskHint }}</small>
           </div>
         </div>
       </GameSurface>
@@ -161,6 +193,18 @@
             <span>{{ log.timeLabel }}</span>
           </div>
           <p>{{ log.text }}</p>
+        </div>
+      </div>
+    </GameSurface>
+
+    <GameSurface tone="realm" padding="md" eyebrow="人物纪闻" title="命运回响" subtitle="重要人物的成长、负伤、破境与冲突会沉淀成可追踪的故事记录。">
+      <div class="log-list">
+        <div v-for="story in npcStories" :key="story.id" class="log-card" :class="`severity-${story.severity}`">
+          <div class="log-head">
+            <strong>{{ story.title }}</strong>
+            <span>{{ story.timeLabel }}</span>
+          </div>
+          <p>{{ story.text }}</p>
         </div>
       </div>
     </GameSurface>
@@ -179,8 +223,16 @@ import { useModal } from '@/composables/useModal'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
-import type { IdleMode, NpcHealthState, RelationshipState } from '@/types/world'
+import type { IdleMode } from '@/types/world'
 import { getSectById } from '@/types/sect'
+import {
+  formatJourneyRewards,
+  getAnomalyIcon,
+  getBondLabel,
+  getBondTone,
+  getNpcGoalLabel,
+  getNpcHealthLabel
+} from '@/components/world/worldUi'
 
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
@@ -268,20 +320,27 @@ const spotlightNpcs = computed(() => {
     .slice(0, 4)
     .map(item => {
       const relationship = worldStore.getRelationshipState(item.state.id)
+      const profile = worldStore.getNpcDisplayProfile(item.state.id)
       return {
         id: item.state.id,
         name: item.definition?.name ?? item.state.id,
+        title: profile?.title ?? '无名修士',
+        background: profile?.background ?? '命数未明。',
+        destinyTags: profile?.destinyTags ?? [],
         realm: item.state.realm,
         realmLevel: item.state.realmLevel,
         goalLabel: getNpcGoalLabel(item.state.currentGoal),
-        bondLabel: getBondLabel(relationship),
-        bondTone: getBondTone(relationship),
+        bondLabel: getBondLabel(relationship.bond),
+        bondTone: getBondTone(relationship.bond),
         hpLabel: getNpcHealthLabel(item.state.hpState)
       }
     })
 })
 
 const recentLogs = computed(() => worldStore.visibleLogs.slice(0, 4))
+const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4))
+const npcStories = computed(() => worldStore.importantNpcStories.slice(0, 4))
+const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
 
 onMounted(() => {
   startCultivationBgm()
@@ -398,47 +457,6 @@ function handleIdleModeChange(mode: IdleMode) {
   }
 }
 
-function getNpcGoalLabel(goal: string) {
-  const labels: Record<string, string> = {
-    cultivate: '潜修',
-    adventure: '游历',
-    challenge: '寻战',
-    recover: '疗伤',
-    seekTreasure: '寻宝',
-    sectDuty: '宗务'
-  }
-  return labels[goal] ?? goal
-}
-
-function getNpcHealthLabel(state: NpcHealthState) {
-  const labels: Record<NpcHealthState, string> = {
-    healthy: '安好',
-    injured: '带伤',
-    critical: '濒危',
-    dead: '陨落',
-    captured: '被俘'
-  }
-  return labels[state]
-}
-
-function getBondLabel(relationship: RelationshipState) {
-  const labels: Record<RelationshipState['bond'], string> = {
-    stranger: '陌路',
-    friend: '友善',
-    rival: '竞争',
-    enemy: '仇敌',
-    mentor: '师承',
-    companion: '同行',
-    lover: '情愫'
-  }
-  return labels[relationship.bond]
-}
-
-function getBondTone(relationship: RelationshipState) {
-  if (relationship.bond === 'enemy' || relationship.bond === 'rival') return 'hostile'
-  if (relationship.bond === 'companion' || relationship.bond === 'lover' || relationship.bond === 'mentor') return 'warm'
-  return 'neutral'
-}
 </script>
 
 <style scoped>
@@ -465,7 +483,8 @@ function getBondTone(relationship: RelationshipState) {
 .hero-stats,
 .progress-stack,
 .sect-panel,
-.log-list {
+.log-list,
+.journey-list {
   display: grid;
   gap: 12px;
 }
@@ -645,6 +664,7 @@ function getBondTone(relationship: RelationshipState) {
 
 .npc-card,
 .log-card,
+.anomaly-card,
 .empty-state {
   padding: 12px 14px;
   border-radius: 16px;
@@ -655,6 +675,31 @@ function getBondTone(relationship: RelationshipState) {
 .npc-meta {
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.npc-story {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.78);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.npc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 146, 149, 0.18);
+  color: rgba(73, 97, 95, 0.82);
+  font-size: 10px;
 }
 
 .bond-pill,
@@ -693,6 +738,11 @@ function getBondTone(relationship: RelationshipState) {
   gap: 8px;
 }
 
+.anomaly-card {
+  display: grid;
+  gap: 8px;
+}
+
 .log-card.severity-major {
   border-color: rgba(195, 141, 54, 0.24);
   background: rgba(255, 250, 239, 0.8);
@@ -701,6 +751,21 @@ function getBondTone(relationship: RelationshipState) {
 .log-card.severity-legendary {
   border-color: rgba(198, 121, 137, 0.24);
   background: rgba(255, 245, 247, 0.82);
+}
+
+.anomaly-card.severity-major {
+  border-color: rgba(195, 141, 54, 0.24);
+  background: rgba(255, 250, 239, 0.8);
+}
+
+.anomaly-card.severity-legendary {
+  border-color: rgba(198, 121, 137, 0.24);
+  background: rgba(255, 245, 247, 0.82);
+}
+
+.log-reward {
+  color: rgba(73, 97, 95, 0.66);
+  font-size: 11px;
 }
 
 @media (max-width: 980px) {

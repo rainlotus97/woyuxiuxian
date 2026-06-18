@@ -524,6 +524,7 @@ export const useMapStore = defineStore('map', () => {
     recordEvent,
     getAreaInfo,
     getAreaState,
+    upsertAreaState,
     isAreaConquered,
     isRealmUnlockedByPlayer,
     getSectsInArea,

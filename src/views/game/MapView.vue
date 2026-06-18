@@ -60,6 +60,26 @@
       </GameSurface>
     </div>
 
+    <GameSurface
+      v-if="areaAnomalies.length > 0"
+      tone="gold"
+      padding="md"
+      eyebrow="区域异动"
+      title="灾害与机缘"
+      subtitle="地图上的压力、遗迹与灵脉异动会持续反馈到世界循环。"
+    >
+      <div class="anomaly-strip">
+        <div v-for="anomaly in areaAnomalies" :key="anomaly.id" class="anomaly-item" :class="`severity-${anomaly.severity}`">
+          <div class="anomaly-head">
+            <strong>{{ getAnomalyIcon(anomaly.type) }} {{ anomaly.title }}</strong>
+            <span>{{ anomaly.timeLabel }}</span>
+          </div>
+          <p>{{ anomaly.text }}</p>
+          <small>{{ anomaly.riskHint }}</small>
+        </div>
+      </div>
+    </GameSurface>
+
     <div class="section-header">
       <div>
         <span class="section-eyebrow">区域图册</span>
@@ -204,6 +224,7 @@ import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { WORLD_REALMS, WORLD_REALM_CONFIGS, type MapArea } from '@/types/map'
 import { getSectById } from '@/types/sect'
+import { getAnomalyIcon } from '@/components/world/worldUi'
 
 const router = useRouter()
 const mapStore = useMapStore()
@@ -213,6 +234,7 @@ const worldStore = useWorldStore()
 const selectedArea = ref<MapArea | null>(null)
 
 const recentWorldLogs = computed(() => worldStore.visibleLogs.slice(0, 3))
+const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 3))
 const worldSeason = computed(() => {
   const month = worldStore.clock.month
   if (month <= 3) return '春'
@@ -365,6 +387,12 @@ function handleChallenge(area: MapArea) {
   gap: 10px;
 }
 
+.anomaly-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .world-log-item {
   padding: 12px 14px;
   border-radius: 16px;
@@ -388,6 +416,50 @@ function handleChallenge(area: MapArea) {
   display: block;
   margin-top: 8px;
   color: rgba(73, 97, 95, 0.62);
+  font-size: 10px;
+}
+
+.anomaly-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(103, 149, 144, 0.16);
+  background: rgba(255, 255, 255, 0.66);
+  display: grid;
+  gap: 8px;
+}
+
+.anomaly-item.severity-major {
+  border-color: rgba(195, 141, 54, 0.24);
+  background: rgba(255, 250, 239, 0.8);
+}
+
+.anomaly-item.severity-legendary {
+  border-color: rgba(198, 121, 137, 0.24);
+  background: rgba(255, 245, 247, 0.82);
+}
+
+.anomaly-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.anomaly-item strong {
+  color: #315257;
+  font-size: 13px;
+}
+
+.anomaly-item p {
+  margin: 0;
+  color: rgba(73, 97, 95, 0.78);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.anomaly-item small,
+.anomaly-head span {
+  color: rgba(73, 97, 95, 0.66);
   font-size: 10px;
 }
 
@@ -579,6 +651,10 @@ function handleChallenge(area: MapArea) {
 @media (max-width: 920px) {
   .realm-hero,
   .top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .anomaly-strip {
     grid-template-columns: 1fr;
   }
 

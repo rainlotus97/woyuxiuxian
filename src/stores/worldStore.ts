@@ -4,7 +4,10 @@ import type {
   IdleMode,
   NpcDefinition,
   NpcRuntimeState,
+  NpcStoryRecord,
+  PlayerJourneyEntry,
   RelationshipState,
+  WorldAreaAnomaly,
   WorldClock,
   WorldLogEntry,
   WorldWeather
@@ -22,6 +25,8 @@ import {
 } from '@/world/runtime/relationshipState'
 import { resolveWarAftermath } from '@/world/runtime/warAftermathResolver'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
+import { getAreaById } from '@/types/map'
+import { getSectById } from '@/types/sect'
 import type {
   WorldRuntimeAftermathResult,
   WorldRuntimeLogEffect,
@@ -32,6 +37,12 @@ import { usePlayerStore } from './playerStore'
 import { usePetStore } from './petStore'
 import { useMapStore } from './mapStore'
 import { useSectStore } from './sectStore'
+import {
+  createAreaAnomaly,
+  createNpcStoryRecord,
+  createPlayerJourney,
+  resolveWorldDisasterTrigger
+} from '@/world/runtime/worldNarrativeResolver'
 
 interface WorldState {
   clock: WorldClock
@@ -40,6 +51,9 @@ interface WorldState {
   npcDefinitions: NpcDefinition[]
   npcStates: NpcRuntimeState[]
   logs: WorldLogEntry[]
+  playerJourneys: PlayerJourneyEntry[]
+  npcStories: NpcStoryRecord[]
+  areaAnomalies: WorldAreaAnomaly[]
   unlockedNpcIds: string[]
   worldFlags: string[]
 }
@@ -70,6 +84,12 @@ function createNpcDefinitions(): NpcDefinition[] {
       sectId: 'qingyun_sect',
       aptitude: { root: '水', rootGrade: 'heavenly', talent: 'destined', comprehension: 96, luck: 88, physique: 74, willpower: 98 },
       personality: { ambition: 54, loyalty: 92, cruelty: 12, affection: 72, caution: 88, greed: 8 },
+      profile: {
+        title: '青云圣女',
+        origin: '青州苏氏',
+        background: '青云宗圣女，传闻身怀前世记忆，对主线有极强牵引力。',
+        destinyTags: ['轮回', '水灵根', '正道核心']
+      },
       tags: ['圣女', '轮回', '主线保护']
     },
     {
@@ -80,6 +100,12 @@ function createNpcDefinitions(): NpcDefinition[] {
       homeMapId: 'qingyang_well',
       aptitude: { root: '空', rootGrade: 'mutated', talent: 'monster', comprehension: 90, luck: 62, physique: 48, willpower: 99 },
       personality: { ambition: 35, loyalty: 96, cruelty: 38, affection: 70, caution: 91, greed: 10 },
+      profile: {
+        title: '残魂护道者',
+        origin: '古井遗迹',
+        background: '寄宿于古井残阵的前辈神魂，擅长洞悉灵脉与命数的缝隙。',
+        destinyTags: ['空灵根', '古修传承', '守护']
+      },
       tags: ['残魂', '守护者', '主线保护']
     },
     {
@@ -91,6 +117,12 @@ function createNpcDefinitions(): NpcDefinition[] {
       sectId: 'blood_sect',
       aptitude: { root: '火', rootGrade: 'single', talent: 'genius', comprehension: 78, luck: 56, physique: 84, willpower: 71 },
       personality: { ambition: 92, loyalty: 18, cruelty: 86, affection: 12, caution: 42, greed: 74 },
+      profile: {
+        title: '血魔少主',
+        origin: '血海魔岭',
+        background: '血魔宗重点培养的魔道天才，行事狠戾，极易在世界线中成长成反派核心。',
+        destinyTags: ['火灵根', '魔修', '反派种子']
+      },
       tags: ['反派种子', '魔修']
     },
     {
@@ -102,6 +134,12 @@ function createNpcDefinitions(): NpcDefinition[] {
       sectId: 'qingyun_sect',
       aptitude: { root: '金', rootGrade: 'dual', talent: 'spirit', comprehension: 67, luck: 50, physique: 66, willpower: 64 },
       personality: { ambition: 61, loyalty: 72, cruelty: 20, affection: 52, caution: 59, greed: 28 },
+      profile: {
+        title: '青云内门',
+        origin: '青云宗',
+        background: '青云宗内门弟子，适合作为同门线、竞争线和伙伴线的过渡人物。',
+        destinyTags: ['金灵根', '剑修', '同门候选']
+      },
       tags: ['同门候选', '剑修']
     }
   ]
@@ -131,9 +169,29 @@ function getDefaultWorldState(): WorldState {
     npcDefinitions,
     npcStates: createNpcStates(npcDefinitions),
     logs: [],
+    playerJourneys: [],
+    npcStories: [],
+    areaAnomalies: [],
     unlockedNpcIds: npcDefinitions.filter(item => item.role === 'main').map(item => item.id),
     worldFlags: []
   }
+}
+
+function mergeNpcDefinitionsWithDefaults(definitions: NpcDefinition[] | undefined, defaults: NpcDefinition[]) {
+  if (!definitions?.length) return defaults
+
+  return defaults.map(defaultDefinition => {
+    const existing = definitions.find(item => item.id === defaultDefinition.id)
+    if (!existing) return defaultDefinition
+
+    return {
+      ...defaultDefinition,
+      ...existing,
+      aptitude: { ...defaultDefinition.aptitude, ...existing.aptitude },
+      personality: { ...defaultDefinition.personality, ...existing.personality },
+      profile: { ...defaultDefinition.profile, ...existing.profile }
+    }
+  })
 }
 
 export const useWorldStore = defineStore('world', () => {
@@ -143,16 +201,20 @@ export const useWorldStore = defineStore('world', () => {
     if (saved) {
       const parsed = JSON.parse(saved) as Partial<WorldState>
       const defaults = getDefaultWorldState()
+      const mergedNpcDefinitions = mergeNpcDefinitionsWithDefaults(parsed.npcDefinitions, defaults.npcDefinitions)
       initialData = {
         ...defaults,
         ...parsed,
         clock: { ...defaults.clock, ...parsed.clock },
-        npcDefinitions: parsed.npcDefinitions?.length ? parsed.npcDefinitions : defaults.npcDefinitions,
+        npcDefinitions: mergedNpcDefinitions,
         npcStates: mergeNpcRelationshipNetwork(
-          parsed.npcDefinitions?.length ? parsed.npcDefinitions : defaults.npcDefinitions,
+          mergedNpcDefinitions,
           parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates
         ),
         logs: parsed.logs ?? defaults.logs,
+        playerJourneys: parsed.playerJourneys ?? defaults.playerJourneys,
+        npcStories: parsed.npcStories ?? defaults.npcStories,
+        areaAnomalies: parsed.areaAnomalies ?? defaults.areaAnomalies,
         unlockedNpcIds: parsed.unlockedNpcIds ?? defaults.unlockedNpcIds,
         worldFlags: parsed.worldFlags ?? defaults.worldFlags
       }
@@ -170,11 +232,17 @@ export const useWorldStore = defineStore('world', () => {
   const npcDefinitions = ref<NpcDefinition[]>([...initialData.npcDefinitions])
   const npcStates = ref<NpcRuntimeState[]>([...initialData.npcStates])
   const logs = ref<WorldLogEntry[]>([...initialData.logs])
+  const playerJourneys = ref<PlayerJourneyEntry[]>([...initialData.playerJourneys])
+  const npcStories = ref<NpcStoryRecord[]>([...initialData.npcStories])
+  const areaAnomalies = ref<WorldAreaAnomaly[]>([...initialData.areaAnomalies])
   const unlockedNpcIds = ref<string[]>([...initialData.unlockedNpcIds])
   const worldFlags = ref<string[]>([...initialData.worldFlags])
 
   const currentTimeLabel = computed(() => formatWorldTime(clock.value))
   const visibleLogs = computed(() => logs.value.slice(0, 12))
+  const recentPlayerJourneys = computed(() => playerJourneys.value.slice(0, 6))
+  const importantNpcStories = computed(() => npcStories.value.slice(0, 6))
+  const activeAreaAnomalies = computed(() => areaAnomalies.value.slice(0, 6))
   const unlockedNpcDefinitions = computed(() => npcDefinitions.value.filter(definition => unlockedNpcIds.value.includes(definition.id)))
   const importantNpcStates = computed(() => npcStates.value.map(state => ({
     state,
@@ -189,6 +257,9 @@ export const useWorldStore = defineStore('world', () => {
       npcDefinitions: toRaw(npcDefinitions.value),
       npcStates: toRaw(npcStates.value),
       logs: toRaw(logs.value),
+      playerJourneys: toRaw(playerJourneys.value),
+      npcStories: toRaw(npcStories.value),
+      areaAnomalies: toRaw(areaAnomalies.value),
       unlockedNpcIds: toRaw(unlockedNpcIds.value),
       worldFlags: toRaw(worldFlags.value)
     }
@@ -220,6 +291,7 @@ export const useWorldStore = defineStore('world', () => {
     resolveWorldSystems()
     resolvePlayerAction()
     resolveNpcActions()
+    resolveNarrativeWorldPulse()
   }
 
   function resolveWorldSystems() {
@@ -252,6 +324,42 @@ export const useWorldStore = defineStore('world', () => {
       })
       applyWarAftermath(aftermath)
     }
+  }
+
+  function resolveNarrativeWorldPulse() {
+    const mapStore = useMapStore()
+    const anomaly = resolveWorldDisasterTrigger({
+      clock: clock.value,
+      weather: weather.value,
+      areaStates: mapStore.areaStates
+    })
+
+    if (!anomaly) return
+
+    const area = getAreaById(anomaly.areaId)
+    if (!area) return
+
+    const runtimeAnomaly = createAreaAnomaly(clock.value, area, anomaly)
+    areaAnomalies.value.unshift(runtimeAnomaly)
+    if (areaAnomalies.value.length > 40) {
+      areaAnomalies.value = areaAnomalies.value.slice(0, 40)
+    }
+
+    mapStore.upsertAreaState(area.id, {
+      stability: Math.max(12, (mapStore.getAreaState(area.id)?.stability ?? 50) + anomaly.stabilityDelta),
+      pressure: Math.max(0, (mapStore.getAreaState(area.id)?.pressure ?? 20) + anomaly.pressureDelta),
+      lastUpdatedTick: clock.value.totalTicks
+    })
+
+    addLog(
+      'world',
+      runtimeAnomaly.severity,
+      runtimeAnomaly.title,
+      runtimeAnomaly.text,
+      [],
+      ['world', 'anomaly', runtimeAnomaly.type],
+      runtimeAnomaly.areaId
+    )
   }
 
   function advanceClock(updateTimestamp: boolean) {
@@ -300,6 +408,7 @@ export const useWorldStore = defineStore('world', () => {
   function resolvePlayerAction() {
     const playerStore = usePlayerStore()
     const petStore = usePetStore()
+    const mapStore = useMapStore()
     const mode = idleMode.value
     const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 60))
     if (mode === 'cultivate') {
@@ -312,7 +421,9 @@ export const useWorldStore = defineStore('world', () => {
         }
       }
       if (seededWorldRoll(clock.value.totalTicks, 'player-cultivate-insight') > 0.94) {
-        addLog('player', 'major', '修炼顿悟', `你在${currentTimeLabel.value}心有所感，额外凝聚了${gain}点修为。`, ['player'], ['cultivation'])
+        recordPlayerJourney('major', '修炼顿悟', `你在${currentTimeLabel.value}心有所感，额外凝聚了${gain}点修为。`, [
+          { type: 'cultivation', label: '修为', value: gain }
+        ], undefined, ['cultivation', 'insight'])
       }
     } else if (mode === 'adventure') {
       playerStore.addCultivation(Math.floor(baseGain * 0.35))
@@ -326,28 +437,49 @@ export const useWorldStore = defineStore('world', () => {
       if (seededWorldRoll(clock.value.totalTicks, 'player-adventure-find') > 0.78) {
         const gold = 8 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-adventure-gold') * 24)
         playerStore.addGold(gold)
-        addLog('player', 'normal', '游历所得', `你在城外寻到一处废弃洞府，带回${gold}枚灵石。`, ['player'], ['adventure'])
+        const anomaly = areaAnomalies.value[0]
+        recordPlayerJourney('normal', '游历所得', `你在城外寻到一处废弃洞府，带回${gold}枚灵石。`, [
+          { type: 'gold', label: '灵石', value: gold }
+        ], anomaly?.areaId, ['adventure', 'loot'])
+      }
+      if (seededWorldRoll(clock.value.totalTicks, 'player-adventure-encounter') > 0.9) {
+        const anomaly = areaAnomalies.value[0]
+        const areaId = anomaly?.areaId ?? mapStore.currentRealmAreas[0]?.id
+        const cultivationGain = 12 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-adventure-insight') * 30)
+        playerStore.addCultivation(cultivationGain)
+        recordPlayerJourney('major', '奇遇现身', `你在${getAreaLabel(areaId)}偶遇一处残阵，借机参悟，额外获得${cultivationGain}点修为。`, [
+          { type: 'cultivation', label: '修为', value: cultivationGain }
+        ], areaId, ['adventure', 'fortune'])
       }
     } else if (mode === 'gatherHerbs') {
       if (seededWorldRoll(clock.value.totalTicks, 'player-herb-gather') > 0.62) {
+        const quantity = 1 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-herb-count') * 3)
         playerStore.addToInventory({
           id: `world_herb_${Date.now()}_${clock.value.totalTicks}`,
           name: '灵草',
           icon: '草',
           type: 'material',
           quality: 'common',
-          quantity: 1 + Math.floor(seededWorldRoll(clock.value.totalTicks, 'player-herb-count') * 3),
+          quantity,
           description: '世界游历采得的灵草'
         })
-        addLog('player', 'normal', '采得灵草', '你循着雨后灵气，在山石夹缝间采到几株灵草。', ['player'], ['herb'])
+        recordPlayerJourney('normal', '采得灵草', '你循着雨后灵气，在山石夹缝间采到几株灵草。', [
+          { type: 'item', label: '灵草', value: quantity }
+        ], undefined, ['herb', 'gather'])
       }
     } else if (mode === 'sectDuty') {
       if (seededWorldRoll(clock.value.totalTicks, 'player-sect-duty') > 0.8) {
-        addLog('sect', 'normal', '宗门差遣', '宗门执事派你巡查山门，几名外门弟子对你多了些敬意。', ['player'], ['sect'])
+        const sectStore = useSectStore()
+        sectStore.addContribution(8)
+        sectStore.addReputation(3)
+        recordPlayerJourney('normal', '宗门差遣', '宗门执事派你巡查山门，几名外门弟子对你多了些敬意。', [
+          { type: 'contribution', label: '贡献', value: 8 },
+          { type: 'reputation', label: '声望', value: 3 }
+        ], sectStore.currentSect?.areaId, ['sect', 'duty'])
       }
     } else if (mode === 'trainSkill') {
       if (seededWorldRoll(clock.value.totalTicks, 'player-skill-train') > 0.86) {
-        addLog('player', 'normal', '功法熟稔', '你反复演练剑诀，灵力运转比先前顺畅了些。', ['player'], ['skill'])
+        recordPlayerJourney('normal', '功法熟稔', '你反复演练剑诀，灵力运转比先前顺畅了些。', [], undefined, ['skill', 'training'])
       }
     }
   }
@@ -424,6 +556,9 @@ export const useWorldStore = defineStore('world', () => {
       if (result.logs?.length) {
         for (const log of result.logs) {
           addWorldRuntimeLog(log)
+          if (log.actorIds[0]) {
+            appendNpcStory(log.actorIds[0], log.title, log.text, log.severity, log.mapId, log.tags)
+          }
         }
       }
     }
@@ -520,6 +655,115 @@ export const useWorldStore = defineStore('world', () => {
     }
   }
 
+  function recordPlayerJourney(
+    severity: WorldLogEntry['severity'],
+    title: string,
+    text: string,
+    rewards: PlayerJourneyEntry['rewards'],
+    areaId?: string,
+    tags: string[] = []
+  ) {
+    const entry = createPlayerJourney(clock.value, idleMode.value, {
+      severity,
+      title,
+      text,
+      rewards,
+      areaId,
+      tags
+    })
+    playerJourneys.value.unshift(entry)
+    if (playerJourneys.value.length > 80) {
+      playerJourneys.value = playerJourneys.value.slice(0, 80)
+    }
+    addLog('player', severity, title, text, ['player'], ['player-journey', ...tags], areaId)
+  }
+
+  function appendNpcStory(
+    npcId: string,
+    title: string,
+    text: string,
+    severity: WorldLogEntry['severity'],
+    mapId?: string,
+    tags: string[] = []
+  ) {
+    const record = createNpcStoryRecord(clock.value, npcId, {
+      title,
+      text,
+      severity,
+      mapId,
+      tags
+    })
+    npcStories.value.unshift(record)
+    if (npcStories.value.length > 80) {
+      npcStories.value = npcStories.value.slice(0, 80)
+    }
+  }
+
+  function getAreaLabel(areaId?: string) {
+    if (!areaId) return '未知地带'
+    return getAreaById(areaId)?.name ?? areaId
+  }
+
+  function getNpcDisplayProfile(npcId: string) {
+    const definition = npcDefinitions.value.find(item => item.id === npcId)
+    const state = npcStates.value.find(item => item.id === npcId)
+    const relationship = getRelationshipState(npcId)
+    if (!definition || !state) return null
+
+    return {
+      id: npcId,
+      name: definition.name,
+      title: definition.profile.title,
+      origin: definition.profile.origin,
+      background: definition.profile.background,
+      destinyTags: definition.profile.destinyTags,
+      sectName: definition.sectId ? getSectById(definition.sectId)?.name ?? definition.sectId : '散修',
+      root: `${definition.aptitude.root}${getRootGradeLabel(definition.aptitude.rootGrade)}`,
+      talent: getTalentGradeLabel(definition.aptitude.talent),
+      realm: `${state.realm}${state.realmLevel}层`,
+      locationName: getAreaLabel(state.locationMapId),
+      bond: relationship.bond,
+      bondLabel: getBondLabel(relationship.bond),
+      hpState: state.hpState
+    }
+  }
+
+  function getRootGradeLabel(grade: NpcDefinition['aptitude']['rootGrade']) {
+    const labels: Record<NpcDefinition['aptitude']['rootGrade'], string> = {
+      mixed: '杂灵根',
+      dual: '双灵根',
+      single: '单灵根',
+      heavenly: '天灵根',
+      mutated: '异灵根'
+    }
+    return labels[grade]
+  }
+
+  function getTalentGradeLabel(grade: NpcDefinition['aptitude']['talent']) {
+    const labels: Record<NpcDefinition['aptitude']['talent'], string> = {
+      mortal: '凡才',
+      good: '良才',
+      spirit: '灵才',
+      genius: '天骄',
+      monster: '妖孽',
+      destined: '命定'
+    }
+    return labels[grade]
+  }
+
+  function getBondLabel(bond: RelationshipState['bond']) {
+    const labels: Record<RelationshipState['bond'], string> = {
+      stranger: '陌路',
+      friend: '友善',
+      rival: '争锋',
+      enemy: '仇敌',
+      mentor: '师承',
+      companion: '同行',
+      lover: '情愫'
+    }
+    return labels[bond]
+  }
+
   function unlockNpc(npcId: string, reason?: string) {
     const definition = npcDefinitions.value.find(item => item.id === npcId)
     if (!definition) return false
@@ -610,10 +854,16 @@ export const useWorldStore = defineStore('world', () => {
     npcDefinitions,
     npcStates,
     logs,
+    playerJourneys,
+    npcStories,
+    areaAnomalies,
     unlockedNpcIds,
     worldFlags,
     currentTimeLabel,
     visibleLogs,
+    recentPlayerJourneys,
+    importantNpcStories,
+    activeAreaAnomalies,
     unlockedNpcDefinitions,
     importantNpcStates,
     setIdleMode,
@@ -623,6 +873,7 @@ export const useWorldStore = defineStore('world', () => {
     unlockNpc,
     isNpcUnlocked,
     getRelationshipState,
+    getNpcDisplayProfile,
     applyStoryRelationshipChange,
     addWorldFlag,
     hasWorldFlag

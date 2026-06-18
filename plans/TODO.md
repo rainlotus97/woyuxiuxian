@@ -80,9 +80,9 @@
   - 按钮状态
   - 已在战斗页验证第一批 token 化面板壳：`BattlePanelShell`
 - [ ] 把“页面像应用”的问题逐页收口：
-  - `CultivationView`（进行中，已重构为主循环总览页，接入行动排程、宗门态势、重要 NPC、世界日志）
+  - `CultivationView`（进行中，已重构为主循环总览页，并接入行动排程、宗门态势、重要 NPC 卡、挂机日志、区域异动、人物纪闻）
   - `AdventureView`（进行中，已完成第一阶段亮色重构）
-  - `MapView`（进行中，已接入世界事件摘要、统一弹窗结构，并与世界时钟统一日期展示）
+  - `MapView`（进行中，已接入世界事件摘要、区域异动摘要、统一弹窗结构，并与世界时钟统一日期展示）
   - `SectView`（进行中，已拆成总览 / 招募 / 任务 / 设施 / 外交子面板，并切到统一亮色宗门主循环界面）
   - `StoryView`
   - `ShopView`
@@ -148,10 +148,18 @@
   - 已让 NPC 社交事件统一写入世界日志，并带 actorIds / mapId / tags
   - 已让 `MapView` 开始消费 `worldStore.visibleLogs` 作为主界面的世界异闻摘要入口
   - 已让 `CultivationView` 消费 `importantNpcStates + visibleLogs`，将 NPC 动向与世界异闻抬到主首页
-  - 待补：重要 NPC 专属事件模版、地图/宗门上下文、日志去重与可见性分级
-- [ ] 实现重要 NPC 的“故事化事件记录”
-- [ ] 增加主角挂机日志与奇遇日志
-- [ ] 增加世界灾害和区域状态变化
+  - 已新增 `npcStories / playerJourneys / areaAnomalies`，让重要 NPC 纪闻、主角挂机日志与区域异动有独立承载
+  - 待补：更丰富的事件模版、地图/宗门上下文、日志去重与可见性分级
+- [~] 实现重要 NPC 的“故事化事件记录”
+  - 已将 NPC 破境、冲突、提携等结果沉淀为 `npcStories`
+  - 待补：主线级人物专属事件模版、阶段性传记节点
+- [~] 增加主角挂机日志与奇遇日志
+  - 已建立 `playerJourneys`，接入修炼顿悟、游历所得、采药、宗门差遣、奇遇等挂机记录
+  - 待补：更复杂的挂机分支和奖励结构
+- [~] 增加世界灾害和区域状态变化
+  - 已建立 `worldNarrativeResolver` 与 `areaAnomalies`，支持灾害/遗迹/灵脉/妖潮驱动区域稳定度与压力波动
+  - 已让 `CultivationView / MapView` 展示区域异动摘要
+  - 待补：与地图具体区域卡、历练入口和宗门限制的更强联动
 
 ## P2 宗门/地图系统
 
