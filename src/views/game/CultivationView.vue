@@ -55,88 +55,17 @@
           </div>
         </div>
 
-        <div class="loop-hub-panel">
-          <div class="loop-readiness-strip">
-            <div>
-              <span>{{ p0Audit.progressText }}</span>
-              <strong>{{ p0Audit.title }}</strong>
-              <small>{{ p0Audit.subtitle }}</small>
-              <i class="p0-progress-meter" aria-hidden="true">
-                <b :style="{ width: `${p0Audit.progressPercent}%` }"></b>
-              </i>
-            </div>
-            <button
-              type="button"
-              class="next-loop-action"
-              :class="`kind-${p0NextAction.primary.kind}`"
-              @click="handleNextP0Action"
-            >
-              <span>{{ p0NextAction.primary.actionHint }}</span>
-              <strong>{{ p0NextAction.primary.title }}</strong>
-              <small>{{ p0NextAction.primary.reason }}</small>
-            </button>
-            <div class="readiness-counts">
-              <span class="state-ready">可行动 {{ loopReadiness.counts.ready }}</span>
-              <span class="state-warning">需处理 {{ loopReadiness.counts.warning }}</span>
-              <span class="state-blocked">阻塞 {{ loopReadiness.counts.blocked }}</span>
-              <span class="state-closed">闭环 {{ p0LoopClosure.counts.closed }}/{{ p0LoopClosure.totalCount }}</span>
-            </div>
-          </div>
-
-          <div class="p0-acceptance-panel" :class="`state-${p0Acceptance.state}`">
-            <div class="acceptance-copy">
-              <span>{{ p0Acceptance.gateLabel }}</span>
-              <strong>{{ p0Acceptance.headline }}</strong>
-              <small v-if="p0Acceptance.primaryGap">
-                当前缺口：{{ p0Acceptance.primaryGap.label }} · {{ p0Acceptance.primaryGap.detail }}
-              </small>
-              <small v-else>可以开始安排 P1 的大世界、战斗和宗门深化。</small>
-            </div>
-            <div class="acceptance-side">
-              <div class="acceptance-gap-list" aria-label="P0 验收缺口">
-                <button
-                  v-for="item in p0Acceptance.remainingItems"
-                  :key="item.id"
-                  type="button"
-                  :class="`gap-${item.state}`"
-                  @click="handleAcceptanceGap(item.id)"
-                >
-                  {{ item.label }} · {{ item.stateLabel }}
-                </button>
-                <span v-if="p0Acceptance.readyForP1" class="gap-closed">P0 验收完成</span>
-              </div>
-              <button
-                v-if="p0Acceptance.primaryGap"
-                type="button"
-                class="acceptance-action"
-                @click="handleAcceptancePrimaryGap"
-              >
-                <span>{{ p0Acceptance.primaryGap.nextAction }}</span>
-                <strong>处理缺口</strong>
-              </button>
-            </div>
-          </div>
-
-          <div class="loop-task-grid" aria-label="P0 主循环入口">
-            <button
-              v-for="task in mainLoopTasks"
-              :key="task.id"
-              class="loop-task-card"
-              :class="[`tone-${task.tone}`, `state-${task.readiness.state}`, { active: task.active }]"
-              @click="handleTaskAction(task)"
-            >
-              <span class="task-icon">{{ task.icon }}</span>
-              <span class="task-copy">
-                <small>{{ task.label }}</small>
-                <strong>{{ task.title }}</strong>
-                <em>{{ task.summary }}</em>
-                <i>{{ task.readiness.reason }}</i>
-                <b :class="`closure-${task.closure.state}`">{{ task.closure.evidence }}</b>
-              </span>
-              <span class="task-meta">{{ task.meta }}</span>
-            </button>
-          </div>
-        </div>
+        <P0LoopHubPanel
+          :audit="p0Audit"
+          :acceptance="p0Acceptance"
+          :next-action="p0NextAction"
+          :readiness="loopReadiness"
+          :closure="p0LoopClosure"
+          :tasks="mainLoopTasks"
+          @next-action="handleNextP0Action"
+          @acceptance-gap="handleAcceptanceGap"
+          @task="handleTaskAction"
+        />
 
         <div class="home-status-band">
           <div class="world-pulse-card">
@@ -407,6 +336,8 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import P0LoopHubPanel from '@/components/p0/P0LoopHubPanel.vue'
+import type { P0MainLoopTask } from '@/components/p0/p0LoopUi'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
@@ -425,11 +356,7 @@ import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import type { IdleMode } from '@/types/world'
 import { getSectById } from '@/types/sect'
-import type {
-  MainLoopReadinessItem,
-  MainLoopReadinessKey
-} from '@/world/runtime/mainLoopReadinessResolver'
-import type { P0LoopClosureItem } from '@/world/runtime/p0LoopClosureResolver'
+import type { MainLoopReadinessKey } from '@/world/runtime/mainLoopReadinessResolver'
 import {
   formatJourneyRewards,
   getAnomalyIcon,
@@ -459,19 +386,6 @@ const { lastIdleJourneyFeedback, recordIdleJourney } = useIdleJourneyFeedback()
 const IDLE_INTERVAL = 1000
 const offlineGains = ref(0)
 let idleTimer: number | null = null
-
-interface MainLoopTask {
-  id: MainLoopReadinessKey
-  icon: string
-  label: string
-  title: string
-  summary: string
-  meta: string
-  tone: 'jade' | 'gold' | 'rose' | 'mist'
-  readiness: MainLoopReadinessItem
-  closure: P0LoopClosureItem
-  active?: boolean
-}
 
 interface ActionFeedbackItem {
   id: string
@@ -733,7 +647,7 @@ const { worldBriefings } = useWorldBriefings({
   latestLog: latestLogBriefing
 })
 
-const mainLoopTasks = computed<MainLoopTask[]>(() => {
+const mainLoopTasks = computed<P0MainLoopTask[]>(() => {
   const firstNpc = spotlightNpcs.value[0]
   const latestStoryLabel = storyStore.currentNode?.name ?? storyStore.currentNodeId ?? '未入卷'
   const sectTitle = sectStore.currentSect ? sectStore.currentSect.name : '选择宗门'
@@ -945,28 +859,16 @@ function handleIdleModeChange(mode: IdleMode) {
   }
 }
 
-function handleTaskAction(task: MainLoopTask) {
-  handleP0LoopAction(task.id)
+function handleTaskAction(taskId: MainLoopReadinessKey) {
+  handleP0LoopAction(taskId)
 }
 
 function handleNextP0Action() {
-  const task = mainLoopTasks.value.find(item => item.id === p0NextAction.value.primary.id)
-  if (task) {
-    handleTaskAction(task)
-  }
+  handleP0LoopAction(p0NextAction.value.primary.id)
 }
 
-function handleAcceptancePrimaryGap() {
-  const gapId = p0Acceptance.value.primaryGap?.id
-  if (!gapId) return
-  handleAcceptanceGap(gapId)
-}
-
-function handleAcceptanceGap(gapId: string) {
-  const task = mainLoopTasks.value.find(item => item.id === gapId)
-  if (task) {
-    handleTaskAction(task)
-  }
+function handleAcceptanceGap(gapId: MainLoopReadinessKey) {
+  handleP0LoopAction(gapId)
 }
 
 function handleAdvanceWorld() {
@@ -1054,7 +956,6 @@ function handlePlayerFortune() {
 .world-pulse-card,
 .home-status-band,
 .quick-command-panel,
-.loop-hub-panel,
 .progress-stack,
 .sect-panel,
 .log-list,
@@ -1171,17 +1072,6 @@ function handlePlayerFortune() {
   background:
     linear-gradient(180deg, rgba(255, 255, 252, 0.7), rgba(241, 249, 244, 0.5)),
     radial-gradient(circle at 12% 0%, rgba(255, 224, 150, 0.18), transparent 58%);
-}
-
-.loop-hub-panel {
-  grid-column: 1 / -1;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid rgba(188, 141, 58, 0.18);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 240, 0.58), rgba(241, 250, 245, 0.44)),
-    radial-gradient(circle at 18% 0%, rgba(255, 224, 150, 0.2), transparent 48%);
 }
 
 .home-status-band {
@@ -1425,469 +1315,6 @@ function handlePlayerFortune() {
   margin-left: 6px;
   color: rgba(139, 98, 38, 0.7);
   font-size: 11px;
-}
-
-.loop-task-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.loop-readiness-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.52fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(103, 149, 144, 0.16);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.76), rgba(241, 249, 244, 0.62)),
-    radial-gradient(circle at top right, rgba(255, 213, 112, 0.16), transparent 62%);
-}
-
-.p0-acceptance-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(103, 149, 144, 0.14);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.72), rgba(241, 249, 244, 0.58)),
-    radial-gradient(circle at top right, rgba(141, 223, 197, 0.14), transparent 60%);
-}
-
-.p0-acceptance-panel.state-accepted {
-  border-color: rgba(88, 164, 143, 0.22);
-  background: rgba(239, 252, 247, 0.84);
-}
-
-.p0-acceptance-panel.state-blocked {
-  border-color: rgba(199, 121, 138, 0.22);
-  background: rgba(255, 244, 247, 0.84);
-}
-
-.acceptance-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.acceptance-copy span {
-  color: #8b6226;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.acceptance-copy strong {
-  overflow: hidden;
-  color: #315257;
-  font-size: 12px;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.acceptance-copy small {
-  display: -webkit-box;
-  overflow: hidden;
-  color: rgba(53, 81, 83, 0.68);
-  font-size: 10px;
-  line-height: 1.45;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.acceptance-gap-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.acceptance-side {
-  min-width: min(430px, 48vw);
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-}
-
-.acceptance-gap-list span,
-.acceptance-gap-list button {
-  flex: 0 0 auto;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(103, 149, 144, 0.14);
-  background: rgba(255, 255, 255, 0.66);
-  color: rgba(73, 97, 95, 0.74);
-  font-family: var(--font-game);
-  font-size: 10px;
-}
-
-.acceptance-gap-list button {
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-}
-
-.acceptance-gap-list button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(194, 146, 66, 0.26);
-  background: rgba(255, 251, 236, 0.9);
-}
-
-.acceptance-gap-list button:focus-visible {
-  outline: 2px solid rgba(194, 146, 66, 0.48);
-  outline-offset: 2px;
-}
-
-.acceptance-gap-list .gap-blocked {
-  color: #9b4353;
-  border-color: rgba(199, 121, 138, 0.2);
-  background: rgba(255, 242, 245, 0.86);
-}
-
-.acceptance-gap-list .gap-actionable,
-.acceptance-gap-list .gap-more {
-  color: #8b6226;
-  border-color: rgba(194, 146, 66, 0.2);
-  background: rgba(255, 248, 230, 0.84);
-}
-
-.acceptance-gap-list .gap-closed {
-  color: #2f746b;
-  border-color: rgba(88, 164, 143, 0.22);
-  background: rgba(238, 253, 247, 0.9);
-}
-
-.acceptance-action {
-  min-width: 132px;
-  min-height: 42px;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 2px;
-  padding: 6px 12px;
-  border: 1px solid rgba(194, 146, 66, 0.24);
-  border-radius: 11px;
-  background:
-    linear-gradient(180deg, rgba(255, 251, 235, 0.92), rgba(242, 253, 247, 0.76)),
-    radial-gradient(circle at top right, rgba(255, 220, 132, 0.18), transparent 60%);
-  color: #315257;
-  font-family: var(--font-game);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.acceptance-action span {
-  max-width: 100%;
-  overflow: hidden;
-  color: #8b6226;
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.acceptance-action strong {
-  color: #315257;
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.loop-readiness-strip > div:first-child {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.loop-readiness-strip span {
-  color: rgba(75, 100, 98, 0.66);
-  font-size: 10px;
-}
-
-.loop-readiness-strip strong {
-  color: #315257;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.loop-readiness-strip small {
-  color: rgba(73, 97, 95, 0.68);
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-.p0-progress-meter {
-  width: min(260px, 100%);
-  height: 7px;
-  display: block;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(103, 149, 144, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(103, 149, 144, 0.1);
-}
-
-.p0-progress-meter b {
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #7ed7bc, #ffd66f);
-  transition: width 0.2s ease;
-}
-
-.next-loop-action {
-  min-width: 0;
-  min-height: 58px;
-  display: grid;
-  gap: 3px;
-  align-content: center;
-  padding: 8px 10px;
-  border: 1px solid rgba(194, 146, 66, 0.2);
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 251, 235, 0.88), rgba(242, 253, 247, 0.72)),
-    radial-gradient(circle at top right, rgba(255, 220, 132, 0.16), transparent 60%);
-  color: #315257;
-  font-family: var(--font-game);
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.next-loop-action span {
-  overflow: hidden;
-  color: #8b6226;
-  font-size: 10px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.next-loop-action strong {
-  overflow: hidden;
-  color: #315257;
-  font-size: 12px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.next-loop-action small {
-  display: -webkit-box;
-  overflow: hidden;
-  color: rgba(53, 81, 83, 0.68);
-  font-size: 9px;
-  line-height: 1.45;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.next-loop-action.kind-unblock {
-  border-color: rgba(199, 121, 138, 0.24);
-  background: rgba(255, 244, 247, 0.86);
-}
-
-.next-loop-action.kind-expand {
-  border-color: rgba(88, 164, 143, 0.2);
-  background: rgba(239, 252, 247, 0.84);
-}
-
-.readiness-counts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.readiness-counts span {
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(103, 149, 144, 0.14);
-  background: rgba(255, 255, 255, 0.66);
-  font-size: 10px;
-}
-
-.readiness-counts .state-ready {
-  color: #497c66;
-}
-
-.readiness-counts .state-warning {
-  color: #8b6226;
-}
-
-.readiness-counts .state-blocked {
-  color: #8a4959;
-}
-
-.readiness-counts .state-closed {
-  color: #2f746b;
-  border-color: rgba(88, 164, 143, 0.2);
-  background: rgba(239, 252, 247, 0.86);
-}
-
-.loop-task-card {
-  min-width: 0;
-  min-height: 96px;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
-  gap: 7px;
-  align-items: stretch;
-  padding: 10px;
-  border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 11px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.9), rgba(241, 249, 244, 0.78)),
-    radial-gradient(circle at top right, rgba(158, 225, 207, 0.16), transparent 58%);
-  color: #315257;
-  font-family: var(--font-game);
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-}
-
-.loop-task-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(87, 126, 121, 0.14);
-}
-
-.loop-task-card.active,
-.loop-task-card.tone-gold {
-  border-color: rgba(194, 146, 66, 0.26);
-  background:
-    linear-gradient(180deg, rgba(255, 252, 238, 0.96), rgba(247, 240, 215, 0.84)),
-    radial-gradient(circle at top right, rgba(255, 212, 112, 0.2), transparent 58%);
-}
-
-.loop-task-card.tone-rose {
-  border-color: rgba(198, 121, 137, 0.22);
-  background:
-    linear-gradient(180deg, rgba(255, 248, 249, 0.96), rgba(248, 235, 236, 0.84)),
-    radial-gradient(circle at top right, rgba(244, 181, 188, 0.18), transparent 58%);
-}
-
-.loop-task-card.tone-mist {
-  border-color: rgba(119, 158, 178, 0.2);
-  background:
-    linear-gradient(180deg, rgba(247, 253, 255, 0.94), rgba(239, 248, 246, 0.82)),
-    radial-gradient(circle at top right, rgba(174, 218, 240, 0.16), transparent 58%);
-}
-
-.loop-task-card.state-blocked {
-  border-color: rgba(198, 121, 137, 0.3);
-}
-
-.loop-task-card.state-warning {
-  border-color: rgba(194, 146, 66, 0.3);
-}
-
-.task-icon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.76);
-  color: #8b6226;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.task-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.task-copy small {
-  color: rgba(75, 100, 98, 0.66);
-  font-size: 10px;
-}
-
-.task-copy strong {
-  overflow: hidden;
-  color: #315257;
-  font-size: 12px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.task-copy em {
-  display: -webkit-box;
-  overflow: hidden;
-  color: rgba(53, 81, 83, 0.76);
-  font-size: 10px;
-  font-style: normal;
-  line-height: 1.55;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-
-.task-copy i {
-  display: none;
-}
-
-.task-copy b {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 20px;
-  display: inline-flex;
-  align-items: center;
-  overflow: hidden;
-  padding: 0 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(103, 149, 144, 0.14);
-  background: rgba(255, 255, 255, 0.62);
-  color: rgba(73, 97, 95, 0.7);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.task-copy .closure-closed {
-  color: #2f746b;
-  border-color: rgba(88, 164, 143, 0.22);
-  background: rgba(238, 253, 247, 0.86);
-}
-
-.task-copy .closure-actionable {
-  color: #8b6226;
-  border-color: rgba(194, 146, 66, 0.22);
-  background: rgba(255, 248, 230, 0.86);
-}
-
-.task-copy .closure-blocked {
-  color: #9b4353;
-  border-color: rgba(199, 121, 138, 0.22);
-  background: rgba(255, 242, 245, 0.86);
-}
-
-.task-meta {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: rgba(75, 100, 98, 0.76);
-  font-size: 10px;
 }
 
 .secondary-home-grid {
@@ -2237,10 +1664,6 @@ function handlePlayerFortune() {
     grid-template-columns: 1fr;
   }
 
-  .loop-task-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .hero-main-card {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -2295,39 +1718,6 @@ function handlePlayerFortune() {
     -webkit-box-orient: vertical;
   }
 
-  .loop-task-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .loop-task-card {
-    min-height: 86px;
-    padding: 9px;
-  }
-
-  .loop-readiness-strip {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 10px;
-  }
-
-  .p0-acceptance-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .acceptance-gap-list {
-    justify-content: flex-start;
-  }
-
-  .acceptance-side {
-    min-width: 0;
-    justify-items: start;
-  }
-
-  .readiness-counts {
-    justify-content: flex-start;
-  }
-
   .offline-banner {
     flex-direction: column;
     align-items: stretch;
@@ -2350,10 +1740,6 @@ function handlePlayerFortune() {
   .quick-command span {
     width: 28px;
     height: 28px;
-  }
-
-  .task-copy b {
-    display: none;
   }
 
   .action-grid {
