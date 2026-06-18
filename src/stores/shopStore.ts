@@ -59,6 +59,36 @@ export const useShopStore = defineStore('shop', () => {
     unlockedSectIds: sectStore.unlockedSects,
     weather: worldStore.weather,
     sectWorldCondition: sectStore.worldCondition,
+    merchantNpcStates: worldStore.npcStates
+      .flatMap(state => {
+        if (!worldStore.unlockedNpcIds.includes(state.id)) return []
+        const definition = worldStore.npcDefinitions.find(item => item.id === state.id)
+        if (!definition) return []
+        const inCurrentRealm = mapStore.currentRealmAreas.some(area => (
+          area.id === state.locationMapId || area.id === definition.homeMapId
+        ))
+        const relatedToSect = Boolean(
+          sectStore.joinedSectId
+          && (
+            definition.sectId === sectStore.joinedSectId
+            || state.locationMapId === sectStore.currentSect?.areaId
+          )
+        )
+        if (!inCurrentRealm && !relatedToSect) return []
+        return [{
+          npcId: state.id,
+          name: definition.name,
+          homeMapId: definition.homeMapId,
+          locationMapId: state.locationMapId,
+          sectId: definition.sectId,
+          title: definition.profile.title,
+          tags: definition.tags,
+          constitution: definition.aptitude.constitution,
+          currentGoal: state.currentGoal,
+          hpState: state.hpState,
+          relationship: worldStore.getRelationshipState(state.id)
+        }]
+      }),
     marketAreaStates: mapStore.currentRealmAreas
       .filter(area => area.isUnlocked || mapStore.conqueredAreas.includes(area.id))
       .flatMap(area => {

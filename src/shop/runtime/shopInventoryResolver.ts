@@ -1,5 +1,5 @@
 import type { Realm } from '@/types/unit'
-import type { WorldWeather } from '@/types/world'
+import type { RelationshipState, WorldWeather } from '@/types/world'
 import type { SectWorldCondition } from '@/types/sect'
 import type { InventoryItem } from '@/stores/playerStore'
 import type { AreaRiskLevel } from '@/map/runtime/mapRuntimeTypes'
@@ -21,6 +21,7 @@ export interface ShopInventoryContext {
   weather: WorldWeather
   sectWorldCondition?: SectWorldCondition | null
   marketAreaStates?: ShopMarketAreaState[]
+  merchantNpcStates?: ShopMerchantNpcState[]
 }
 
 export interface ShopMarketAreaState {
@@ -40,6 +41,28 @@ export interface ShopMarketInfluence {
   contestedCount: number
   unstableCount: number
   averageStability: number
+}
+
+export interface ShopMerchantNpcState {
+  npcId: string
+  name: string
+  homeMapId: string
+  locationMapId: string
+  sectId?: string
+  title: string
+  tags: string[]
+  constitution: string
+  currentGoal: string
+  hpState: string
+  relationship: Pick<RelationshipState, 'favor' | 'debt' | 'bond'>
+}
+
+export interface ShopMerchantInfluence {
+  priceModifier: number
+  stockModifier: number
+  categoryStockModifiers: Partial<Record<Exclude<ShopCategoryId, 'all'>, number>>
+  tags: string[]
+  merchantNames: string[]
 }
 
 export interface ShopInventoryItem {
@@ -116,6 +139,50 @@ function canSeeSectItem(definition: ShopItemDefinition, context: ShopInventoryCo
     context.joinedSectId ?? ''
   ])
   return definition.sectIds.some(sectId => knownSectIds.has(sectId))
+}
+
+function getMerchantCategoryBonuses(merchant: ShopMerchantNpcState): Array<Exclude<ShopCategoryId, 'all'>> {
+  const text = [
+    merchant.title,
+    merchant.constitution,
+    merchant.currentGoal,
+    ...merchant.tags
+  ].join(' ')
+  const categories = new Set<Exclude<ShopCategoryId, 'all'>>()
+
+  if (/炼丹|丹修|药|medicine|medicine_body|采药|seekTreasure/.test(text)) {
+    categories.add('pill')
+    categories.add('breakthrough')
+    categories.add('material')
+  }
+  if (/锻造|铸|剑修|炼器|forge|sword/.test(text)) {
+    categories.add('equipment')
+    categories.add('material')
+  }
+  if (/阵法|符箓|天机|推衍|void|空/.test(text)) {
+    categories.add('sect')
+    categories.add('material')
+  }
+
+  return [...categories]
+}
+
+function getMerchantRelationshipWeight(merchant: ShopMerchantNpcState) {
+  const relationship = merchant.relationship
+  const bondBonus = relationship.bond === 'friend'
+    ? 0.08
+    : relationship.bond === 'companion' || relationship.bond === 'lover'
+      ? 0.16
+      : relationship.bond === 'rival'
+        ? -0.04
+        : relationship.bond === 'enemy'
+          ? -0.1
+          : 0
+  return clamp(
+    1 + Math.max(-0.16, relationship.favor / 500) + Math.min(0.14, relationship.debt / 500) + bondBonus,
+    0.72,
+    1.32
+  )
 }
 
 function getDefinitionAvailability(definition: ShopItemDefinition, context: ShopInventoryContext) {
@@ -215,11 +282,70 @@ export function resolveShopMarketInfluence(context: ShopInventoryContext): ShopM
   }
 }
 
+export function resolveShopMerchantInfluence(context: ShopInventoryContext): ShopMerchantInfluence {
+  const merchants = (context.merchantNpcStates ?? []).filter(merchant => (
+    merchant.hpState !== 'dead'
+    && merchant.hpState !== 'captured'
+  ))
+
+  if (!merchants.length) {
+    return {
+      priceModifier: 1,
+      stockModifier: 1,
+      categoryStockModifiers: {},
+      tags: [],
+      merchantNames: []
+    }
+  }
+
+  const categoryWeights: Partial<Record<Exclude<ShopCategoryId, 'all'>, number>> = {}
+  let relationshipTotal = 0
+  let activeCount = 0
+
+  for (const merchant of merchants) {
+    const categories = getMerchantCategoryBonuses(merchant)
+    if (!categories.length) continue
+    const weight = getMerchantRelationshipWeight(merchant)
+    relationshipTotal += weight
+    activeCount++
+    for (const category of categories) {
+      categoryWeights[category] = (categoryWeights[category] ?? 0) + weight
+    }
+  }
+
+  if (activeCount === 0) {
+    return {
+      priceModifier: 1,
+      stockModifier: 1,
+      categoryStockModifiers: {},
+      tags: [],
+      merchantNames: []
+    }
+  }
+
+  const averageRelationshipWeight = relationshipTotal / activeCount
+  const categoryStockModifiers = Object.fromEntries(
+    Object.entries(categoryWeights).map(([category, weight]) => [
+      category,
+      Number(clamp(1 + (weight / activeCount) * 0.14, 1, 1.32).toFixed(3))
+    ])
+  ) as Partial<Record<Exclude<ShopCategoryId, 'all'>, number>>
+
+  return {
+    priceModifier: Number(clamp(1 - Math.max(0, averageRelationshipWeight - 1) * 0.08, 0.92, 1).toFixed(3)),
+    stockModifier: Number(clamp(1 + Math.max(0, averageRelationshipWeight - 1) * 0.08, 1, 1.12).toFixed(3)),
+    categoryStockModifiers,
+    tags: ['人物商缘'],
+    merchantNames: merchants.slice(0, 2).map(merchant => merchant.name)
+  }
+}
+
 function getStock(
   definition: ShopItemDefinition,
   context: ShopInventoryContext,
   bucket: number,
-  marketInfluence: ShopMarketInfluence
+  marketInfluence: ShopMarketInfluence,
+  merchantInfluence: ShopMerchantInfluence
 ) {
   const [min, max] = definition.stockRange
   if (max <= 0) return 0
@@ -229,7 +355,8 @@ function getStock(
 
   const spread = Math.max(0, max - min)
   const amount = min + Math.floor(roll * (spread + 1))
-  const influencedAmount = Math.round(amount * marketInfluence.stockModifier)
+  const categoryModifier = merchantInfluence.categoryStockModifiers[definition.category] ?? 1
+  const influencedAmount = Math.round(amount * marketInfluence.stockModifier * merchantInfluence.stockModifier * categoryModifier)
   return Math.max(0, Math.min(max, influencedAmount))
 }
 
@@ -237,7 +364,8 @@ function getPrice(
   definition: ShopItemDefinition,
   context: ShopInventoryContext,
   bucket: number,
-  marketInfluence: ShopMarketInfluence
+  marketInfluence: ShopMarketInfluence,
+  merchantInfluence: ShopMerchantInfluence
 ) {
   const weatherModifier = WEATHER_PRICE_MODIFIERS[context.weather] ?? 1
   const sectModifier = definition.sectIds?.includes(context.joinedSectId ?? '') ? 0.9 : 1
@@ -251,38 +379,49 @@ function getPrice(
     * sectModifier
     * crisisModifier
     * marketInfluence.priceModifier
+    * merchantInfluence.priceModifier
     * marketModifier
   ))
 }
 
-function getTags(definition: ShopItemDefinition, context: ShopInventoryContext, marketInfluence: ShopMarketInfluence) {
+function getTags(
+  definition: ShopItemDefinition,
+  context: ShopInventoryContext,
+  marketInfluence: ShopMarketInfluence,
+  merchantInfluence: ShopMerchantInfluence
+) {
   const tags: string[] = []
   if (definition.sectIds?.length) {
     tags.push(definition.sectIds.includes(context.joinedSectId ?? '') ? '本宗折扣' : '宗门限定')
   }
   if (definition.minRealm) tags.push(`${definition.minRealm}起`)
   if (context.weather === 'flood' || context.weather === 'fire' || context.weather === 'storm') tags.push('灾象涨价')
-  return [...tags, ...marketInfluence.tags]
+  const categoryMerchantModifier = merchantInfluence.categoryStockModifiers[definition.category] ?? 1
+  const merchantTags = categoryMerchantModifier > 1
+    ? merchantInfluence.merchantNames.map(name => `${name}供货`)
+    : []
+  return [...tags, ...marketInfluence.tags, ...merchantInfluence.tags, ...merchantTags]
 }
 
 export function createShopInventory(context: ShopInventoryContext): ShopInventoryItem[] {
   const bucket = getRefreshBucket(context.totalTicks) + (context.refreshSeed ?? 0) * 1000
   const marketInfluence = resolveShopMarketInfluence(context)
+  const merchantInfluence = resolveShopMerchantInfluence(context)
 
   return SHOP_CATALOG.flatMap(definition => {
     const availability = getDefinitionAvailability(definition, context)
     if (!availability.available) return []
 
-    const stock = getStock(definition, context, bucket, marketInfluence)
+    const stock = getStock(definition, context, bucket, marketInfluence, merchantInfluence)
     if (stock <= 0) return []
 
     return [{
       stockId: `${definition.id}:${bucket}`,
       definition,
-      price: getPrice(definition, context, bucket, marketInfluence),
+      price: getPrice(definition, context, bucket, marketInfluence, merchantInfluence),
       stock,
       maxStock: definition.stockRange[1],
-      tags: getTags(definition, context, marketInfluence),
+      tags: getTags(definition, context, marketInfluence, merchantInfluence),
       limitedReason: availability.reason
     }]
   }).sort((a, b) => {

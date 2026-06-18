@@ -621,6 +621,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     canInventoryAcceptShopItem,
     createShopInventory,
     resolveShopMarketInfluence,
+    resolveShopMerchantInfluence,
     resolveShopPurchase
   } = await load('/src/shop/runtime/shopInventoryResolver.ts')
   const {
@@ -1062,6 +1063,35 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.ok(stablePill.price < contestedPill.price)
   assert.ok(stablePill.tags.includes('本宗商路'))
   assert.ok(contestedPill.tags.includes('商路受阻'))
+  const merchantMarketContext = {
+    ...stableMarketContext,
+    merchantNpcStates: [
+      {
+        npcId: 'npc_bai_ruoli',
+        name: '白若璃',
+        homeMapId: 'azure_valley',
+        locationMapId: 'azure_valley',
+        sectId: 'medicine_valley',
+        title: '药王谷真传',
+        tags: ['伙伴候选', '炼丹'],
+        constitution: 'medicine_body',
+        currentGoal: 'seekTreasure',
+        hpState: 'healthy',
+        relationship: { favor: 72, debt: 20, bond: 'companion' }
+      }
+    ]
+  }
+  const merchantInfluence = resolveShopMerchantInfluence(merchantMarketContext)
+  assert.ok(merchantInfluence.categoryStockModifiers.pill > 1)
+  assert.ok(merchantInfluence.categoryStockModifiers.breakthrough > 1)
+  assert.ok(merchantInfluence.priceModifier < 1)
+  assert.ok(merchantInfluence.tags.includes('人物商缘'))
+  const merchantInventory = createShopInventory(merchantMarketContext)
+  const merchantPill = merchantInventory.find(item => item.definition.id === 'shop_pill_001')
+  assert.ok(merchantPill, 'merchant shop should include qi gathering pill')
+  assert.ok(merchantPill.stock >= stablePill.stock)
+  assert.ok(merchantPill.price <= stablePill.price)
+  assert.ok(merchantPill.tags.some(tag => tag.includes('白若璃')))
   const sectToken = stableInventory.find(item => item.definition.id === 'shop_sect_001')
   assert.ok(sectToken, 'joined sect should expose sect contribution exchange item')
   assert.equal(sectToken.definition.sectIds?.includes('qingyun_sect'), true)
