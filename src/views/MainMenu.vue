@@ -27,6 +27,13 @@
           <p>这里仅用于建立第一份角色档案。创建后灵根与气质不再从首页反复修改，后续成长交给角色、功法、剧情与机缘系统。</p>
         </div>
 
+        <div class="creation-step-row" aria-label="创建流程">
+          <div v-for="step in creationSteps" :key="step.label" class="creation-step">
+            <span>{{ step.index }}</span>
+            <strong>{{ step.label }}</strong>
+          </div>
+        </div>
+
         <label class="name-field">
           <span>道号</span>
           <input v-model="draftName" maxlength="8" placeholder="云逸" />
@@ -110,6 +117,14 @@
             <span>继续游戏</span>
             <small>主界总览</small>
           </button>
+        </div>
+
+        <div class="locked-profile-grid" aria-label="本命信息">
+          <div v-for="item in lockedProfileItems" :key="item.label" class="locked-profile-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.hint }}</small>
+          </div>
         </div>
 
         <div class="save-stats">
@@ -204,6 +219,12 @@ const avatarOptions = [
   { icon: '灵' }
 ]
 
+const creationSteps = [
+  { index: '一', label: '道号' },
+  { index: '二', label: '灵根' },
+  { index: '三', label: '入世' }
+]
+
 const priorityItems = [
   { icon: '修', title: '挂机', desc: '开始、停止、收益和离线反馈稳定。' },
   { icon: '游', title: '历险', desc: '消耗体力、触发战斗和获得掉落。' },
@@ -266,6 +287,12 @@ function getRedirectPath() {
   if (typeof redirect === 'string' && redirect.startsWith('/game')) return redirect
   return '/game/cultivation'
 }
+
+const lockedProfileItems = [
+  { label: '本命灵根', value: `${playerStore.element}灵根`, hint: '首页不可重选' },
+  { label: '先天气质', value: playerStore.quality, hint: '由机缘继续变化' },
+  { label: '声音状态', value: '默认静音', hint: '进游戏后手动开声' }
+]
 
 function formatAmount(value: number) {
   if (Number.isInteger(value)) return String(value)
@@ -535,6 +562,44 @@ function formatAmount(value: number) {
   gap: 10px;
 }
 
+.locked-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.locked-profile-item {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(111, 157, 149, 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(242, 252, 247, 0.54)),
+    radial-gradient(circle at top right, rgba(255, 224, 151, 0.16), transparent 64%);
+}
+
+.locked-profile-item span {
+  color: rgba(70, 99, 96, 0.68);
+  font-size: 11px;
+}
+
+.locked-profile-item strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #315257;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locked-profile-item small {
+  color: rgba(49, 82, 87, 0.68);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .save-stats div {
   display: grid;
   gap: 5px;
@@ -658,6 +723,51 @@ function formatAmount(value: number) {
 .guide-head strong {
   color: #8e6227;
   font-size: 26px;
+}
+
+.creation-step-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(111, 157, 149, 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(242, 252, 247, 0.54)),
+    radial-gradient(circle at top right, rgba(255, 226, 145, 0.18), transparent 70%);
+}
+
+.creation-step {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.creation-step span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 244, 208, 0.9);
+  color: #8b6226;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.creation-step strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #315257;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .name-field,
@@ -889,8 +999,10 @@ function formatAmount(value: number) {
     grid-template-columns: 1fr;
   }
 
+  .creation-step-row,
   .save-lock-row,
   .save-next-step,
+  .locked-profile-grid,
   .save-stats,
   .save-action-row,
   .priority-grid {

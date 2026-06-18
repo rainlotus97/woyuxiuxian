@@ -7,11 +7,13 @@ import {
   resolveAdventureSweep,
   type AdventureSweepResolution
 } from '@/map/runtime/adventureSweepResolver'
+import { resolveAdventureSweepJourney } from '@/map/runtime/adventureSweepJourneyResolver'
 import type { AreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import type { MapAreaEncounterContext } from '@/map/runtime/mapAreaEncounterResolver'
 import { resolveEncounterDrops } from '@/map/runtime/mapEncounterComposition'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
+import { useWorldStore } from '@/stores/worldStore'
 import { rollReward, type AreaDefinition } from '@/types/adventure'
 
 export interface AdventureSweepFeedback {
@@ -22,6 +24,7 @@ export interface AdventureSweepFeedback {
 export function useAdventureSweep() {
   const playerStore = usePlayerStore()
   const sectStore = useSectStore()
+  const worldStore = useWorldStore()
   const lastSweepFeedback = ref<AdventureSweepFeedback | null>(null)
 
   function applySweep(area: AreaDefinition, access: AreaGameplayAccess, encounter: MapAreaEncounterContext | null) {
@@ -72,6 +75,8 @@ export function useAdventureSweep() {
         sectStore.updateTaskProgress(task.type, task.target)
       }
     }
+    const journey = resolveAdventureSweepJourney({ result })
+    worldStore.recordManualPlayerJourney(journey)
 
     lastSweepFeedback.value = {
       result,

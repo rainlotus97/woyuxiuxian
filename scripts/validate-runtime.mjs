@@ -2664,6 +2664,7 @@ test('npc activity insight summarizes new npc events', async () => {
 
 test('adventure sweep resolver returns structured rewards', async () => {
   const { resolveAdventureSweep } = await load('/src/map/runtime/adventureSweepResolver.ts')
+  const { resolveAdventureSweepJourney } = await load('/src/map/runtime/adventureSweepJourneyResolver.ts')
 
   const area = {
     id: 'test_valley',
@@ -2711,6 +2712,12 @@ test('adventure sweep resolver returns structured rewards', async () => {
     { type: 'battle', target: 'monster', times: 3 },
     { type: 'explore', target: 'test_valley', times: 3 }
   ])
+  const journey = resolveAdventureSweepJourney({ result })
+  assert.equal(journey.title, '试炼谷扫荡')
+  assert.equal(journey.areaId, 'test_valley')
+  assert.ok(journey.text.includes('消耗 9 点体力'))
+  assert.ok(journey.rewards.some(reward => reward.type === 'item' && reward.label === '灵草' && reward.value === 3))
+  assert.ok(journey.tags.includes('sweep'))
 
   const blocked = resolveAdventureSweep({
     area,

@@ -6,7 +6,7 @@
       padding="lg"
       compact
       eyebrow="主循环"
-      title="修仙行动台"
+      title="主界"
       :subtitle="heroSubtitle"
     >
       <div class="home-hero-layout">
@@ -940,18 +940,20 @@ function handlePlayerFortune() {
 
 .main-loop-surface {
   border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(88, 123, 116, 0.12);
 }
 
 .main-loop-surface :deep(.surface-header) {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .main-loop-surface :deep(.surface-copy strong) {
-  font-size: 17px;
+  font-size: 16px;
 }
 
 .main-loop-surface :deep(.surface-copy p) {
   max-width: 780px;
+  font-size: 11px;
 }
 
 .home-hero-layout,
@@ -962,8 +964,9 @@ function handlePlayerFortune() {
 }
 
 .home-hero-layout {
-  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+  grid-template-columns: minmax(0, 0.88fr) minmax(320px, 1.12fr);
   align-items: stretch;
+  gap: 10px;
 }
 
 .hero-main-card,
@@ -982,7 +985,7 @@ function handlePlayerFortune() {
 .hero-main-card {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 14px;
   background:
@@ -991,7 +994,7 @@ function handlePlayerFortune() {
 }
 
 .protagonist-token {
-  width: 82px;
+  width: 70px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -1008,7 +1011,7 @@ function handlePlayerFortune() {
 
 .protagonist-token span {
   color: #8e6227;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -1036,7 +1039,7 @@ function handlePlayerFortune() {
 
 .hero-copy strong {
   color: #315257;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .hero-actions {
@@ -1059,7 +1062,7 @@ function handlePlayerFortune() {
 
 .world-pulse-card {
   align-content: space-between;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(188, 141, 58, 0.2);
   border-radius: 14px;
   background:
@@ -1068,7 +1071,7 @@ function handlePlayerFortune() {
 }
 
 .quick-command-panel {
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(103, 149, 144, 0.16);
   border-radius: 14px;
   background:
@@ -1079,7 +1082,7 @@ function handlePlayerFortune() {
 .loop-hub-panel {
   grid-column: 1 / -1;
   gap: 10px;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid rgba(188, 141, 58, 0.18);
   border-radius: 14px;
   background:
@@ -1112,7 +1115,7 @@ function handlePlayerFortune() {
 
 .quick-command {
   min-width: 0;
-  min-height: 54px;
+  min-height: 50px;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
@@ -1353,13 +1356,13 @@ function handlePlayerFortune() {
 
 .loop-task-card {
   min-width: 0;
-  min-height: 88px;
+  min-height: 82px;
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
   grid-template-rows: 1fr auto;
   gap: 8px 9px;
   align-items: stretch;
-  padding: 10px;
+  padding: 9px;
   border: 1px solid rgba(103, 149, 144, 0.18);
   border-radius: 12px;
   background:

@@ -385,6 +385,7 @@ onUnmounted(() => {
 .top-shell {
   padding: calc(5px + env(safe-area-inset-top, 0px)) 10px 0;
   z-index: 6;
+  pointer-events: none;
 }
 
 .hud-shell,
@@ -399,7 +400,7 @@ onUnmounted(() => {
   grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 6px 10px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 1px solid rgba(101, 152, 145, 0.2);
   border-radius: 14px;
   background:
@@ -407,6 +408,7 @@ onUnmounted(() => {
     linear-gradient(90deg, rgba(255, 238, 184, 0.2), transparent 46%);
   box-shadow: 0 10px 24px rgba(88, 123, 116, 0.09);
   backdrop-filter: blur(16px);
+  pointer-events: auto;
 }
 
 .hud-shell.tone-gold {
@@ -474,8 +476,8 @@ onUnmounted(() => {
 .realm-immortal { color: #a6882d; }
 
 .resource-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
   justify-content: flex-end;
   gap: 6px;
 }
@@ -539,11 +541,12 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 8px 10px calc(74px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 10px calc(68px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  isolation: isolate;
 }
 
 .content-stage {
@@ -558,7 +561,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 28;
+  z-index: 18;
   padding: 0 10px calc(7px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
@@ -574,7 +577,7 @@ onUnmounted(() => {
 
 .nav-scrim {
   position: fixed;
-  inset: 0;
+  inset: 0 0 calc(min(58vh, 500px) + 82px + env(safe-area-inset-bottom, 0px));
   z-index: 34;
   border: 0;
   padding: 0;
@@ -788,6 +791,7 @@ onUnmounted(() => {
   }
 
   .resource-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: flex-start;
   }
 
@@ -890,6 +894,10 @@ onUnmounted(() => {
 
   .nav-drawer {
     max-height: min(60vh, 480px);
+  }
+
+  .nav-scrim {
+    inset: 0 0 calc(min(60vh, 480px) + 80px + env(safe-area-inset-bottom, 0px));
   }
 
   .menu-grid {
