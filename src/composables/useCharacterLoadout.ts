@@ -12,6 +12,7 @@ import {
 } from '@/types/skill'
 import type { Realm, UnitStats } from '@/types/unit'
 import { ELEMENT_COLORS, QUALITY_COLORS, REALM_ORDER } from '@/types/unit'
+import type { CharacterProgressionSource } from '@/character/runtime/characterProgressionResolver'
 
 export type CharacterPanelTab = 'overview' | 'inventory' | 'skills'
 export type InventoryFilter = 'all' | InventoryItem['type']
@@ -84,16 +85,15 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
 
   const statList = computed<CharacterStatItem[]>(() => {
     const base = playerStore.baseStats
-    const bonus = playerStore.equipmentBonuses
 
     return [
-      makeStat('maxHp', '气血', base.maxHp, bonus.maxHp ?? 0),
-      makeStat('maxMp', '灵力', base.maxMp, bonus.maxMp ?? 0),
-      makeStat('attack', '攻击', base.attack, bonus.attack ?? 0),
-      makeStat('defense', '防御', base.defense, bonus.defense ?? 0),
-      makeStat('speed', '身法', base.speed, bonus.speed ?? 0),
-      makeStat('critRate', '会心', base.critRate, bonus.critRate ?? 0),
-      makeStat('critDamage', '会伤', base.critDamage, bonus.critDamage ?? 0)
+      makeStat('maxHp', '气血', base.maxHp, getTotalStatBonus('maxHp')),
+      makeStat('maxMp', '灵力', base.maxMp, getTotalStatBonus('maxMp')),
+      makeStat('attack', '攻击', base.attack, getTotalStatBonus('attack')),
+      makeStat('defense', '防御', base.defense, getTotalStatBonus('defense')),
+      makeStat('speed', '身法', base.speed, getTotalStatBonus('speed')),
+      makeStat('critRate', '会心', base.critRate, getTotalStatBonus('critRate')),
+      makeStat('critDamage', '会伤', base.critDamage, getTotalStatBonus('critDamage'))
     ]
   })
 
@@ -154,6 +154,12 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
       }))
   })
 
+  const cultivationSourceRows = computed<CharacterProgressionSource[]>(() => {
+    return playerStore.characterProgression.sources
+      .filter(source => source.target === 'cultivation')
+      .slice(0, 6)
+  })
+
   const characterSummary = computed(() => ({
     name: playerStore.name,
     icon: playerStore.icon,
@@ -165,8 +171,15 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     cultivationPercent: playerStore.cultivationProgress,
     skillPoints: playerStore.skillPoints,
     inventoryCount: playerStore.inventory.length,
-    maxInventorySlots: playerStore.maxInventorySlots
+    maxInventorySlots: playerStore.maxInventorySlots,
+    cultivationPerSecond: playerStore.cultivationPerSecond,
+    cultivationMultiplier: playerStore.characterProgression.cultivationMultiplier,
+    cultivationFlatBonus: playerStore.characterProgression.cultivationFlatBonus
   }))
+
+  function getTotalStatBonus(stat: keyof UnitStats) {
+    return (playerStore.equipmentBonuses[stat] ?? 0) + (playerStore.skillBonuses[stat] ?? 0)
+  }
 
   function makeStat(key: keyof UnitStats, label: string, base: number, bonus: number): CharacterStatItem {
     const total = base + bonus
@@ -345,6 +358,7 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     if (definition.mpCost > 0) labels.push(`灵力 ${calculateSkillMpCost(definition, playerStore.getLearnedSkill(skillId)?.level ?? 1)}`)
     if (definition.cooldown > 0) labels.push(`冷却 ${definition.cooldown}手`)
     if (definition.passiveBonus) labels.push(`${getStatLabel(definition.passiveBonus.stat)}被动`)
+    if (definition.progressionBonus) labels.push('修炼加速')
 
     for (const effect of definition.effects) {
       if (effect.type === 'damage') labels.push('伤害')
@@ -428,6 +442,7 @@ export function useCharacterLoadout(initialTab: CharacterPanelTab = 'overview') 
     currentSkillNodes,
     learnedSkillCards,
     passiveBonusRows,
+    cultivationSourceRows,
     characterSummary,
     getEquipmentFromItem,
     selectInventoryItem,

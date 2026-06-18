@@ -191,6 +191,10 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     cooldown: 0,
     maxLevel: 10,
     effects: [],
+    progressionBonus: {
+      cultivationMultiplierPerLevel: 0.08,
+      cultivationFlatPerLevel: 0.15
+    },
     unlockRealm: '炼气'
   },
   meditation: {
@@ -208,6 +212,9 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     passiveBonus: {
       stat: 'maxMp',
       valuePerLevel: 15
+    },
+    progressionBonus: {
+      cultivationMultiplierPerLevel: 0.04
     },
     prerequisites: ['gathering_qi'],
     unlockRealm: '筑基'

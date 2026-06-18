@@ -54,6 +54,10 @@ export interface SkillDefinition {
     stat: 'attack' | 'defense' | 'maxHp' | 'maxMp' | 'critRate' | 'critDamage' | 'speed'
     valuePerLevel: number
   }
+  progressionBonus?: {
+    cultivationMultiplierPerLevel?: number
+    cultivationFlatPerLevel?: number
+  }
 }
 
 export interface LearnedSkill {

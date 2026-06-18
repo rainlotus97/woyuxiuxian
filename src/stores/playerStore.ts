@@ -4,6 +4,7 @@ import type { Unit, Realm, Quality, Element, UnitStats, StatusEffect } from '@/t
 import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM_CULTIVATION_PER_SECOND, calculateBaseStats } from '@/types/unit'
 import type { Equipment } from '@/types/equipment'
 import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
+import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import {
   SKILL_DEFINITIONS,
   SKILL_TREE,
@@ -292,6 +293,10 @@ export const usePlayerStore = defineStore('player', () => {
     return equipped
   })
 
+  const characterProgression = computed(() => {
+    return resolveCharacterProgression(allEquipped.value, learnedSkills.value)
+  })
+
   // 总属性 = 基础 + 装备加成 + 技能被动加成
   const totalStats = computed<UnitStats>(() => {
     const base = baseStats.value
@@ -348,7 +353,9 @@ export const usePlayerStore = defineStore('player', () => {
   const cultivationPerSecond = computed(() => {
     const baseValue = REALM_CULTIVATION_PER_SECOND[realm.value]
     const levelBonus = 1 + (realmLevel.value - 1) * 0.1 // 每层增加10%
-    return Math.floor(baseValue * levelBonus)
+    const progression = characterProgression.value
+    const value = baseValue * levelBonus * progression.cultivationMultiplier + progression.cultivationFlatBonus
+    return Number(Math.max(0, value).toFixed(2))
   })
 
   // 获取下一个境界
@@ -589,15 +596,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 重新计算装备加成
   function recalculateEquipmentBonuses() {
-    const bonuses: Partial<UnitStats> = {}
-
-    for (const eq of allEquipped.value) {
-      for (const [key, value] of Object.entries(eq.bonuses)) {
-        bonuses[key as keyof UnitStats] = (bonuses[key as keyof UnitStats] || 0) + (value as number)
-      }
-    }
-
-    equipmentBonuses.value = bonuses
+    equipmentBonuses.value = { ...characterProgression.value.equipmentStatBonuses }
   }
 
   // 添加物品到背包
@@ -879,21 +878,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 重新计算技能被动加成
   function recalculateSkillBonuses() {
-    const bonuses: Partial<UnitStats> = {}
-
-    for (const learnedSkill of learnedSkills.value) {
-      if (!learnedSkill.enabled) continue
-
-      const definition = getSkillDefinition(learnedSkill.id)
-      if (!definition?.passiveBonus) continue
-
-      const bonusValue = definition.passiveBonus.valuePerLevel * learnedSkill.level
-      const stat = definition.passiveBonus.stat
-
-      bonuses[stat] = (bonuses[stat] || 0) + bonusValue
-    }
-
-    skillBonuses.value = bonuses
+    skillBonuses.value = { ...characterProgression.value.skillStatBonuses }
   }
 
   // 切换技能启用状态
@@ -1045,6 +1030,9 @@ export const usePlayerStore = defineStore('player', () => {
     return progress?.unlocked ?? false
   }
 
+  recalculateEquipmentBonuses()
+  recalculateSkillBonuses()
+
   // 监听变化自动保存
   watchEffect(() => {
     saveToStorage()
@@ -1055,11 +1043,12 @@ export const usePlayerStore = defineStore('player', () => {
     id, name, icon, element, quality,
     realm, realmLevel, cultivation, maxCultivation,
     level, gold,
-    baseStats, equipmentBonuses, totalStats,
+    baseStats, equipmentBonuses, skillBonuses, totalStats,
+    characterProgression,
     equippedWeapon, equippedArmor, equippedAccessory1, equippedAccessory2,
     allEquipped,
     inventory, maxInventorySlots, isInventoryFull,
-    learnedSkills, skillPoints, skillBonuses,
+    learnedSkills, skillPoints,
     temporaryBuffs,
     idleStartTime, isIdling,
     captivity,

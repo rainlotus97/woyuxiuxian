@@ -87,12 +87,12 @@
             <strong>{{ summary.skillPoints }}</strong>
           </div>
           <div>
-            <span>已学功法</span>
-            <strong>{{ loadout.learnedSkillCards.value.length }}</strong>
+            <span>修为/秒</span>
+            <strong>{{ formatRate(summary.cultivationPerSecond) }}</strong>
           </div>
           <div>
-            <span>装备加成</span>
-            <strong>{{ loadout.playerStore.allEquipped.length }}</strong>
+            <span>调息增幅</span>
+            <strong>+{{ formatPercent(summary.cultivationMultiplier - 1) }}</strong>
           </div>
         </div>
 
@@ -113,6 +113,14 @@
           <div v-for="bonus in loadout.passiveBonusRows.value" :key="bonus.stat">
             <span>{{ bonus.label }}</span>
             <strong>+{{ bonus.value }}</strong>
+          </div>
+        </div>
+
+        <div v-if="loadout.cultivationSourceRows.value.length" class="progression-list">
+          <div v-for="source in loadout.cultivationSourceRows.value" :key="source.id">
+            <span>{{ source.label }}</span>
+            <strong>{{ source.valueLabel }}</strong>
+            <em>{{ source.description }}</em>
           </div>
         </div>
       </GameSurface>
@@ -371,6 +379,14 @@ function skillNodeClass(skillId: string) {
 function getDetailStatLabel(key: string | number) {
   return loadout.getStatLabel(String(key) as keyof UnitStats)
 }
+
+function formatRate(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`
+}
 </script>
 
 <style scoped>
@@ -568,7 +584,8 @@ function getDetailStatLabel(key: string | number) {
 }
 
 .summary-grid div,
-.passive-list div {
+.passive-list div,
+.progression-list div {
   display: grid;
   gap: 5px;
   padding: 12px;
@@ -578,13 +595,15 @@ function getDetailStatLabel(key: string | number) {
 }
 
 .summary-grid span,
-.passive-list span {
+.passive-list span,
+.progression-list span {
   color: rgba(73, 97, 95, 0.68);
   font-size: 11px;
 }
 
 .summary-grid strong,
-.passive-list strong {
+.passive-list strong,
+.progression-list strong {
   color: #8b6326;
   font-size: 18px;
 }
@@ -595,6 +614,24 @@ function getDetailStatLabel(key: string | number) {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
+}
+
+.progression-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.progression-list div {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.progression-list em {
+  grid-column: 1 / -1;
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+  font-style: normal;
 }
 
 .learned-pill {
