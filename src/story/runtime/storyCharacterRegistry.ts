@@ -6,6 +6,7 @@ export interface StoryCharacterBinding {
   storyCharacterName: string
   worldNpcId?: string
   companionDefinitionId?: string
+  storyOnlyReason?: string
   aliases?: string[]
 }
 
@@ -13,6 +14,7 @@ export const STORY_CHARACTER_BINDINGS: StoryCharacterBinding[] = [
   {
     storyCharacterId: 'C000',
     storyCharacterName: '凌辰',
+    storyOnlyReason: '主角/性别线核心角色，由 playerStore 承载，不映射为 world npc 或 companion',
     aliases: ['主角', '男主', '女主']
   },
   {
@@ -30,6 +32,7 @@ export const STORY_CHARACTER_BINDINGS: StoryCharacterBinding[] = [
   {
     storyCharacterId: 'C003',
     storyCharacterName: '阿翠',
+    storyOnlyReason: '凡人支线角色，待后续青阳城凡人关系系统接入',
     aliases: ['阿翠']
   },
   {
@@ -41,6 +44,7 @@ export const STORY_CHARACTER_BINDINGS: StoryCharacterBinding[] = [
   {
     storyCharacterId: 'C005',
     storyCharacterName: '小豆子',
+    storyOnlyReason: '情报支线角色，待后续青阳城情报/坊市 NPC 系统接入',
     aliases: ['小豆子']
   }
 ]

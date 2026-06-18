@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STORY_DIR = path.join(ROOT_DIR, 'src/assets/story')
+const STORY_CHARACTER_REGISTRY_PATH = path.join(ROOT_DIR, 'src/story/runtime/storyCharacterRegistry.ts')
+const WORLD_NPC_ROSTER_PATH = path.join(ROOT_DIR, 'src/world/runtime/npcRoster.ts')
+const COMPANION_DEFINITIONS_PATH = path.join(ROOT_DIR, 'src/types/companion.ts')
 const REQUIRED_LINK_COLUMNS = [
   '主线节点ID',
   '角色ID',
@@ -116,6 +119,27 @@ function parseGameplayTargetIds(block) {
   return targetIds
 }
 
+function parseCharacterEffectTargets(block) {
+  const targets = []
+  for (const line of block.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    const effectText = trimmed.replace(/^\d+\.\s*.*?效果[：:]\s*/, '').replace(/^效果[：:]\s*/, '')
+    const relationshipMatch = effectText.match(/^(.+?)(?:好感|仇恨|恩情|畏惧)\s*[+\-]\s*\d+/)
+    if (relationshipMatch?.[1]) {
+      targets.push(relationshipMatch[1].trim())
+      continue
+    }
+
+    const unlockMatch = effectText.match(/^解锁(?:角色|NPC|伙伴)[：:]\s*(.+)$/)
+    if (unlockMatch?.[1]) {
+      targets.push(unlockMatch[1].trim())
+    }
+  }
+  return targets
+}
+
 function parseTableRows(content) {
   const rows = []
   for (const line of content.split('\n')) {
@@ -223,6 +247,7 @@ function parseStoryFile(filePath, kind, content) {
       filePath,
       choices: parseChoices(body),
       gameplayTargetIds: parseGameplayTargetIds(body),
+      characterEffectTargets: parseCharacterEffectTargets(body),
       fallbackNode: normalizeNullable(metadata.补触发 || metadata.fallbackNode),
     })
   })
@@ -271,6 +296,131 @@ function collectDuplicates(records, key) {
     seen.add(value)
   }
   return Array.from(duplicates)
+}
+
+function normalizeCharacterKey(value) {
+  return value.trim().toLowerCase()
+}
+
+function parseQuotedField(block, field) {
+  const match = block.match(new RegExp(`${field}:\\s*'([^']+)'`))
+  return match?.[1]?.trim() ?? null
+}
+
+function parseArrayField(block, field) {
+  const match = block.match(new RegExp(`${field}:\\s*\\[([^\\]]*)\\]`))
+  if (!match?.[1]) return []
+  return Array.from(match[1].matchAll(/'([^']+)'/g)).map(item => item[1].trim()).filter(Boolean)
+}
+
+async function parseStoryCharacterRegistry() {
+  const content = await readFile(STORY_CHARACTER_REGISTRY_PATH, 'utf8')
+  const startIndex = content.indexOf('STORY_CHARACTER_BINDINGS')
+  const assignIndex = content.indexOf('=', startIndex)
+  const arrayStart = content.indexOf('[', assignIndex)
+  const arrayEnd = content.indexOf('\n]', arrayStart)
+  const body = arrayStart >= 0 && arrayEnd >= 0 ? content.slice(arrayStart + 1, arrayEnd) : ''
+  const blocks = Array.from(body.matchAll(/\{\s*storyCharacterId:[\s\S]*?\n\s*\}/g)).map(match => match[0])
+  return blocks.map(block => ({
+    storyCharacterId: parseQuotedField(block, 'storyCharacterId'),
+    storyCharacterName: parseQuotedField(block, 'storyCharacterName'),
+    worldNpcId: parseQuotedField(block, 'worldNpcId'),
+    companionDefinitionId: parseQuotedField(block, 'companionDefinitionId'),
+    storyOnlyReason: parseQuotedField(block, 'storyOnlyReason'),
+    aliases: parseArrayField(block, 'aliases')
+  }))
+}
+
+async function parseDefinitionIds(filePath, prefix) {
+  const content = await readFile(filePath, 'utf8')
+  return new Set(
+    Array.from(content.matchAll(/id:\s*'([^']+)'/g))
+      .map(match => match[1])
+      .filter(id => id.startsWith(prefix))
+  )
+}
+
+function buildStoryCharacterLookup(bindings) {
+  const lookup = new Map()
+  for (const binding of bindings) {
+    const keys = [
+      binding.storyCharacterId,
+      binding.storyCharacterName,
+      ...(binding.aliases ?? [])
+    ].filter(Boolean)
+    for (const key of keys) {
+      lookup.set(normalizeCharacterKey(key), binding)
+    }
+  }
+  return lookup
+}
+
+function validateStoryCharacterRegistry({
+  bindings,
+  characterInfos,
+  worldNpcIds,
+  companionIds,
+  storyRecords,
+  diagnostics
+}) {
+  const characterById = new Map(characterInfos.map(info => [info.id, info]))
+  const bindingIds = new Set()
+  const lookupKeys = new Map()
+  const lookup = buildStoryCharacterLookup(bindings)
+
+  for (const binding of bindings) {
+    const bindingPath = STORY_CHARACTER_REGISTRY_PATH
+    if (!binding.storyCharacterId || !binding.storyCharacterName) {
+      diagnostics.push(diagnostic('error', 'invalid-character-binding', bindingPath, 'storyCharacterRegistry 存在缺少角色ID或角色名的绑定'))
+      continue
+    }
+
+    if (bindingIds.has(binding.storyCharacterId)) {
+      diagnostics.push(diagnostic('error', 'duplicate-character-binding', bindingPath, `重复的故事角色绑定: ${binding.storyCharacterId}`, { characterId: binding.storyCharacterId }))
+    }
+    bindingIds.add(binding.storyCharacterId)
+
+    const characterInfo = characterById.get(binding.storyCharacterId)
+    if (!characterInfo) {
+      diagnostics.push(diagnostic('error', 'binding-character-missing', bindingPath, `角色绑定 ${binding.storyCharacterId} 没有对应角色文件`, { characterId: binding.storyCharacterId }))
+    } else if (characterInfo.name !== binding.storyCharacterName) {
+      diagnostics.push(diagnostic('warning', 'binding-name-mismatch', characterInfo.filePath, `角色文件名 ${characterInfo.name} 与 registry 名称 ${binding.storyCharacterName} 不一致`, { characterId: binding.storyCharacterId }))
+    }
+
+    if (binding.worldNpcId && !worldNpcIds.has(binding.worldNpcId)) {
+      diagnostics.push(diagnostic('error', 'missing-world-npc-binding', bindingPath, `${binding.storyCharacterId} 映射的 world npc 不存在: ${binding.worldNpcId}`, { characterId: binding.storyCharacterId }))
+    }
+    if (binding.companionDefinitionId && !companionIds.has(binding.companionDefinitionId)) {
+      diagnostics.push(diagnostic('error', 'missing-companion-binding', bindingPath, `${binding.storyCharacterId} 映射的 companion 不存在: ${binding.companionDefinitionId}`, { characterId: binding.storyCharacterId }))
+    }
+    if (!binding.worldNpcId && !binding.companionDefinitionId && !binding.storyOnlyReason) {
+      diagnostics.push(diagnostic('warning', 'unmapped-story-character', bindingPath, `${binding.storyCharacterId} 未映射 world npc / companion，也未声明 storyOnlyReason`, { characterId: binding.storyCharacterId }))
+    }
+
+    const keys = [binding.storyCharacterId, binding.storyCharacterName, ...(binding.aliases ?? [])].filter(Boolean)
+    for (const key of keys) {
+      const normalized = normalizeCharacterKey(key)
+      const existing = lookupKeys.get(normalized)
+      if (existing && existing !== binding.storyCharacterId) {
+        diagnostics.push(diagnostic('error', 'duplicate-character-alias', bindingPath, `角色别名冲突: ${key} 同时指向 ${existing} 与 ${binding.storyCharacterId}`, { characterId: binding.storyCharacterId }))
+      }
+      lookupKeys.set(normalized, binding.storyCharacterId)
+    }
+  }
+
+  for (const info of characterInfos) {
+    if (!bindingIds.has(info.id)) {
+      diagnostics.push(diagnostic('warning', 'missing-character-binding', info.filePath, `角色 ${info.id} 未登记到 storyCharacterRegistry`, { characterId: info.id }))
+    }
+  }
+
+  for (const record of storyRecords) {
+    for (const target of record.characterEffectTargets) {
+      if (!lookup.has(normalizeCharacterKey(target))) {
+        diagnostics.push(diagnostic('warning', 'missing-character-effect-binding', record.filePath, `${record.id} 的角色效果目标未登记到 storyCharacterRegistry: ${target}`, { id: record.id, target }))
+      }
+    }
+  }
 }
 
 function validateTargets(records, diagnostics, allIds) {
@@ -360,6 +510,9 @@ async function validateVolume(volume) {
   const eventRecords = storyRecords.filter(record => record.isEvent)
   const allIds = new Set(storyRecords.map(record => record.id))
   const characterIds = new Set(characterInfos.map(info => info.id))
+  const storyCharacterBindings = await parseStoryCharacterRegistry()
+  const worldNpcIds = await parseDefinitionIds(WORLD_NPC_ROSTER_PATH, 'npc_')
+  const companionIds = await parseDefinitionIds(COMPANION_DEFINITIONS_PATH, 'companion_')
 
   for (const nodeId of collectDuplicates(nodeRecords, 'id')) {
     diagnostics.push(diagnostic('error', 'duplicate-node-id', volumeDir, `重复的节点ID: ${nodeId}`, { id: nodeId }))
@@ -369,6 +522,14 @@ async function validateVolume(volume) {
   }
 
   validateTargets(storyRecords, diagnostics, allIds)
+  validateStoryCharacterRegistry({
+    bindings: storyCharacterBindings,
+    characterInfos,
+    worldNpcIds,
+    companionIds,
+    storyRecords,
+    diagnostics
+  })
 
   for (const info of characterInfos) {
     for (const nodeId of info.relatedNodes) {

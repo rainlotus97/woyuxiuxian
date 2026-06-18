@@ -121,7 +121,8 @@
   - 已让 `unlock_npc / unlock_companion` 优先消费 story 角色标识，而不是直接依赖底层 gameplay id
   - 已让 `favor_up / favor_down` 同步写入 world NPC relationship state，并产生日志
   - 已扩展 `hatred / debt / fear` 关系效果，并同步进入 world relationship state
-  - 待补：更多角色映射与自动校验，关系值对世界自主行动的真实影响
+  - 已让 `story:validate` 静态校验 `storyCharacterRegistry`、角色文件、world NPC、companion 定义与剧情角色效果目标的一致性
+  - 待补：更多角色映射，关系值对世界自主行动的真实影响
 - [~] 让 `GameplayEmbed` 和主游戏运行时共享统一玩法触发协议
   - 已在 `StoryPlayer` 挂载默认 gameplay handlers，并统一注册/反注册生命周期
   - 已建立 `storyBattleCatalog -> registerDefaultGameplayHandlers -> router.push('/game/battle')` 的剧情战模板链路
@@ -266,6 +267,7 @@
   - 已新增 `scripts/validate-story.mjs`
   - 已新增 `npm run story:validate`
   - 当前校验覆盖卷节点、角色事件、角色头信息、link 表列、重复 ID、选项/补触发/剧情战跳转断链与角色关联主线断链
+  - 已补充故事角色 registry 校验，覆盖角色文件、别名冲突、world npc / companion 映射与剧情角色效果目标
 - [x] 为资源包建立 manifest 校验
   - 已新增 `scripts/validate-assets.mjs`
   - 已新增 `npm run assets:validate`
