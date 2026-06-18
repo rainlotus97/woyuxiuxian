@@ -297,6 +297,7 @@ import { useToast } from '@/composables/useToast'
 import { sfxBreakthrough, sfxMeditate } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
+import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -312,9 +313,6 @@ import {
   getNpcGoalLabel,
   getNpcHealthLabel
 } from '@/components/world/worldUi'
-import {
-  resolveWorldBriefings
-} from '@/world/runtime/worldBriefingResolver'
 
 const playerStore = usePlayerStore()
 const mapStore = useMapStore()
@@ -462,7 +460,6 @@ const recentLogs = computed(() => worldStore.visibleLogViews.slice(0, 4))
 const recentJourneys = computed(() => worldStore.recentPlayerJourneys.slice(0, 4))
 const npcStories = computed(() => worldStore.importantNpcStoryViews.slice(0, 4))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 4))
-const captivityForecast = computed(() => worldStore.getCaptivityForecast())
 
 const hotspotArea = computed(() => {
   const ranked = Object.values(mapStore.areaStates)
@@ -487,77 +484,42 @@ const hotspotArea = computed(() => {
   }
 })
 
-const capturedNpcBriefing = computed(() => {
-  const captured = worldStore.importantNpcStates
-    .filter(item => item.state.hpState === 'captured')
-    .sort((a, b) => b.spotlightScore - a.spotlightScore)[0]
+const briefingSpotlightNpc = computed(() => spotlightNpcs.value[0]
+  ? {
+      name: spotlightNpcs.value[0].name,
+      goalLabel: spotlightNpcs.value[0].goalLabel,
+      bondLabel: spotlightNpcs.value[0].bondLabel,
+      hpLabel: spotlightNpcs.value[0].hpLabel,
+      destinyRankLabel: spotlightNpcs.value[0].destinyRankLabel,
+      notorietyLabel: spotlightNpcs.value[0].notorietyLabel,
+      bondTone: spotlightNpcs.value[0].bondTone
+    }
+  : null
+)
 
-  if (!captured) return null
+const latestNpcStoryBriefing = computed(() => npcStories.value[0]
+  ? {
+      title: npcStories.value[0].entry.title,
+      severity: npcStories.value[0].entry.severity,
+      timeLabel: npcStories.value[0].entry.timeLabel
+    }
+  : null
+)
 
-  const profile = worldStore.getNpcDisplayProfile(captured.state.id)
-  const captorFlag = captured.state.flags.find(flag => flag.startsWith('captured_by:'))
-  const captorId = captorFlag?.split(':')[1]
-  const captorProfile = captorId ? worldStore.getNpcDisplayProfile(captorId) : null
-  const sectName = captured.definition.sectId
-    ? getSectById(captured.definition.sectId)?.name ?? captured.definition.sectId
-    : '散修'
+const latestLogBriefing = computed(() => recentLogs.value[0]
+  ? {
+      title: recentLogs.value[0].entry.title,
+      severity: recentLogs.value[0].entry.severity,
+      timeLabel: recentLogs.value[0].entry.timeLabel
+    }
+  : null
+)
 
-  return {
-    name: captured.definition.name,
-    title: profile?.title ?? '无名修士',
-    sectName,
-    captorName: captorProfile?.name ?? captorId ?? null,
-    locationName: profile?.locationName ?? '未知地带',
-    severity: captured.definition.role === 'main' || captured.definition.profile.destinyRank === 'legendary'
-      ? 'legendary' as const
-      : 'major' as const
-  }
-})
-
-const worldBriefings = computed(() => {
-  return resolveWorldBriefings({
-    captivity: {
-      isCaptured: playerStore.captivity.isCaptured,
-      captorName: playerStore.captivity.captorSectId
-        ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
-        : null,
-      forecastLabel: captivityForecast.value?.label,
-      forecastHint: captivityForecast.value?.hint,
-      canAttemptEscape: worldStore.canAttemptCaptivityEscape()
-    },
-    sect: {
-      name: sectStore.currentSect?.name ?? null,
-      status: sectStore.currentSect ? sectStore.worldCondition.status : null,
-      activeWar: Boolean(sectStore.activeWar)
-    },
-    capturedNpc: capturedNpcBriefing.value,
-    hotspotArea: hotspotArea.value,
-    spotlightNpc: spotlightNpcs.value[0]
-      ? {
-          name: spotlightNpcs.value[0].name,
-          goalLabel: spotlightNpcs.value[0].goalLabel,
-          bondLabel: spotlightNpcs.value[0].bondLabel,
-          hpLabel: spotlightNpcs.value[0].hpLabel,
-          destinyRankLabel: spotlightNpcs.value[0].destinyRankLabel,
-          notorietyLabel: spotlightNpcs.value[0].notorietyLabel,
-          bondTone: spotlightNpcs.value[0].bondTone
-        }
-      : null,
-    latestNpcStory: npcStories.value[0]
-      ? {
-          title: npcStories.value[0].entry.title,
-          severity: npcStories.value[0].entry.severity,
-          timeLabel: npcStories.value[0].entry.timeLabel
-        }
-      : null,
-    latestLog: recentLogs.value[0]
-      ? {
-          title: recentLogs.value[0].entry.title,
-          severity: recentLogs.value[0].entry.severity,
-          timeLabel: recentLogs.value[0].entry.timeLabel
-        }
-      : null
-  })
+const { worldBriefings } = useWorldBriefings({
+  hotspotArea,
+  spotlightNpc: briefingSpotlightNpc,
+  latestNpcStory: latestNpcStoryBriefing,
+  latestLog: latestLogBriefing
 })
 
 const mainLoopTasks = computed<MainLoopTask[]>(() => {

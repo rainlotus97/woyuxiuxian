@@ -280,6 +280,7 @@ import GameSurface from '@/components/game-ui/GameSurface.vue'
 import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
+import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
 import { useMapStore } from '@/stores/mapStore'
@@ -290,7 +291,6 @@ import { getAreaById as getAdventureAreaById } from '@/types/adventure'
 import { WORLD_REALMS, WORLD_REALM_CONFIGS, type MapArea } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import { getAnomalyIcon } from '@/components/world/worldUi'
-import { resolveWorldBriefings } from '@/world/runtime/worldBriefingResolver'
 
 const router = useRouter()
 const mapStore = useMapStore()
@@ -304,7 +304,6 @@ const selectedArea = ref<MapArea | null>(null)
 
 const recentWorldLogs = computed(() => worldStore.visibleLogViews.slice(0, 3))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 3))
-const captivityForecast = computed(() => worldStore.getCaptivityForecast())
 const areaRiskWeight = {
   safe: 0,
   watch: 1,
@@ -332,43 +331,18 @@ const hotspotAreaBriefing = computed(() => {
     anomalyTitle: area.encounter.anomalyTitle
   }
 })
-const capturedNpcBriefing = computed(() => {
-  const target = worldStore.getCapturedNpcRescueTarget(sectStore.joinedSectId)
-  if (!target) return null
-  return {
-    name: target.name,
-    title: target.title,
-    sectName: sectStore.currentSect?.name ?? '相关宗门',
-    captorName: target.captorName,
-    locationName: target.locationName,
-    severity: target.severity
-  }
+const latestMapLogBriefing = computed(() => recentWorldLogs.value[0]
+  ? {
+      title: recentWorldLogs.value[0].entry.title,
+      severity: recentWorldLogs.value[0].entry.severity,
+      timeLabel: recentWorldLogs.value[0].entry.timeLabel
+    }
+  : null
+)
+const { worldBriefings } = useWorldBriefings({
+  hotspotArea: hotspotAreaBriefing,
+  latestLog: latestMapLogBriefing
 })
-const worldBriefings = computed(() => resolveWorldBriefings({
-  captivity: {
-    isCaptured: playerStore.captivity.isCaptured,
-    captorName: playerStore.captivity.captorSectId
-      ? getSectById(playerStore.captivity.captorSectId)?.name ?? playerStore.captivity.captorSectId
-      : null,
-    forecastLabel: captivityForecast.value?.label,
-    forecastHint: captivityForecast.value?.hint,
-    canAttemptEscape: worldStore.canAttemptCaptivityEscape()
-  },
-  sect: {
-    name: sectStore.currentSect?.name ?? null,
-    status: sectStore.currentSect ? sectStore.worldCondition.status : null,
-    activeWar: Boolean(sectStore.activeWar)
-  },
-  capturedNpc: capturedNpcBriefing.value,
-  hotspotArea: hotspotAreaBriefing.value,
-  latestLog: recentWorldLogs.value[0]
-    ? {
-        title: recentWorldLogs.value[0].entry.title,
-        severity: recentWorldLogs.value[0].entry.severity,
-        timeLabel: recentWorldLogs.value[0].entry.timeLabel
-      }
-    : null
-}))
 const worldSeason = computed(() => {
   const month = worldStore.clock.month
   if (month <= 3) return '春'
