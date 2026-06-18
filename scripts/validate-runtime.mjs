@@ -2712,6 +2712,55 @@ test('player fortune resolver creates deterministic fortune rewards', async () =
   assert.equal(fortune.tags.includes('fortune'), true)
 })
 
+test('story run report summarizes effect writebacks', async () => {
+  const { resolveStoryRunReport } = await load('/src/story/runtime/storyRunReportResolver.ts')
+
+  const report = resolveStoryRunReport({
+    notifications: [
+      { id: 'n1', message: '结识人物: 苏清鸢', type: 'success' },
+      { id: 'n2', message: '剧情战已准备: 山门试炼', type: 'warning' }
+    ],
+    storyItems: [['归忆录', 1]],
+    favorability: [['char_001', 12]],
+    unlockedClues: ['世界在循环'],
+    availableSideQuests: [
+      {
+        id: 'sq_001',
+        name: '清鸢邀约',
+        characterId: 'char_001',
+        characterName: '苏清鸢',
+        triggerType: 'manual',
+        priority: 1,
+        prerequisites: [],
+        isAvailable: true,
+        isCompleted: false
+      }
+    ],
+    completedCount: 2,
+    currentNodeId: 'V1M02'
+  })
+
+  assert.match(report.headline, /影响世界/)
+  assert.match(report.summary, /故事道具/)
+  assert.equal(report.metrics.length, 4)
+  assert.equal(report.metrics[0].value, 1)
+  assert.equal(report.metrics[3].value, 1)
+  assert.equal(report.entries[0].title, '剧情警讯')
+  assert.equal(report.entries[1].title, '效果写回')
+
+  const persistentReport = resolveStoryRunReport({
+    notifications: [],
+    storyItems: [],
+    favorability: [],
+    unlockedClues: ['世界在循环'],
+    availableSideQuests: [],
+    completedCount: 0,
+    currentNodeId: 'V1M01'
+  })
+  assert.equal(persistentReport.entries[0].title, '线索已记录')
+  assert.match(persistentReport.entries[0].text, /世界在循环/)
+})
+
 const results = await Promise.all(diagnostics)
 await server.close()
 

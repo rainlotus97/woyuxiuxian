@@ -56,6 +56,8 @@
           :latest-replay="latestBattleReplay"
         />
 
+        <StoryRuntimeReport class="story-runtime-report" :report="storyRunReport" />
+
         <StoryBattleReplayPanel :records="battleReplayRecords" />
       </div>
 
@@ -105,7 +107,9 @@ import StoryPerspectiveCard from '@/components/story/StoryPerspectiveCard.vue'
 import StoryPlayer from '@/components/story/StoryPlayer.vue'
 import StoryProgressPanel from '@/components/story/StoryProgressPanel.vue'
 import StoryRunSummary from '@/components/story/StoryRunSummary.vue'
+import StoryRuntimeReport from '@/components/story/StoryRuntimeReport.vue'
 import { getStoryBattleReplaySummaries } from '@/story/runtime/storyBattleReplayArchive'
+import { resolveStoryRunReport } from '@/story/runtime/storyRunReportResolver'
 import type { Perspective } from '@/story/types'
 
 const storyStore = useStoryStore()
@@ -137,10 +141,20 @@ const currentNodeLabel = computed(() => {
 })
 
 const latestBattleReplay = computed(() => battleReplayRecords.value[0] ?? null)
+const storyRunReport = computed(() => resolveStoryRunReport({
+  notifications: storyStore.notifications,
+  storyItems: Array.from(storyStore.storyItems.entries()),
+  favorability: Array.from(storyStore.favorability.entries()).map(([id, value]) => [id, Number(value)]),
+  unlockedClues: Array.from(storyStore.unlockedClues),
+  availableSideQuests: storyStore.availableSideQuests,
+  completedCount: storyStore.completedNodes.size,
+  currentNodeId: storyStore.currentNodeId
+}))
 
 async function startStory() {
   try {
     await storyStore.initStory(selectedPerspective.value, 1)
+    storyStore.checkAvailableSideQuests()
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start story:', error)
@@ -150,6 +164,7 @@ async function startStory() {
 async function continueSavedStory() {
   try {
     await storyStore.continueStory()
+    storyStore.checkAvailableSideQuests()
     battleReplayRecords.value = getStoryBattleReplaySummaries()
     isPlaying.value = true
   } catch (error) {
@@ -166,6 +181,7 @@ async function startNewPerspective() {
   try {
     storyStore.resetStory()
     await storyStore.initStory(selectedPerspective.value, 1)
+    storyStore.checkAvailableSideQuests()
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to start new perspective:', error)
@@ -177,6 +193,7 @@ async function restartStory() {
     const perspective = storyStore.currentPerspective as Perspective
     storyStore.resetStory()
     await storyStore.initStory(perspective, 1)
+    storyStore.checkAvailableSideQuests()
     isPlaying.value = true
   } catch (error) {
     console.error('Failed to restart story:', error)
@@ -283,7 +300,8 @@ async function restartStory() {
   justify-content: flex-end;
 }
 
-.story-run-summary {
+.story-run-summary,
+.story-runtime-report {
   grid-column: 1 / -1;
 }
 

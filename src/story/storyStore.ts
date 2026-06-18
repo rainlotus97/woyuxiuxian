@@ -128,9 +128,13 @@ export const useStoryStore = defineStore('story', () => {
       const startNode = nodes.find(n => n.id.startsWith(prefix) && n.id.endsWith('01'))
 
       if (startNode) {
-        currentNodeId.value = startNode.id
+        currentNodeId.value = null
+        await goToNode(startNode.id)
       } else {
         createDefaultNode()
+        const fallbackNodeId = currentNodeId.value || 'V1M01'
+        currentNodeId.value = null
+        await goToNode(fallbackNodeId)
       }
 
       isInitialized.value = true
