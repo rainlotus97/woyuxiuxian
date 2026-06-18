@@ -245,7 +245,10 @@
   - story parser
   - world tick
   - map/sect unlock rules
-- [ ] 为剧情包建立 lint/validate 命令
+- [x] 为剧情包建立 lint/validate 命令
+  - 已新增 `scripts/validate-story.mjs`
+  - 已新增 `npm run story:validate`
+  - 当前校验覆盖卷节点、角色事件、角色头信息、link 表列、重复 ID、选项/补触发/剧情战跳转断链与角色关联主线断链
 - [ ] 为资源包建立 manifest 校验
 - [ ] 更新 README 的项目结构说明，反映 `src/game`、`src/story`、`plans/`
 
