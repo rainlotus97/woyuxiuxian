@@ -109,6 +109,8 @@
   - 本轮补充地图定点推荐校验：P0 地图入口可携带热点区域 ID，地图页按境界/界域权限自动聚焦可进入区域
   - 本轮补充 P0 验收闸门校验：新档为 verifying、被俘为 blocked、六项闭环为 accepted/readyForP1，避免只靠 UI 目测判断能否进入 P1
   - 本轮补充验收缺口优先级校验：新档缺口跟随宗门推荐，宗门闭环后转向故事，被俘状态仍优先显示脱困相关缺口
+  - 本轮新增 `p0LoopVerificationResolver`：把 readiness / closure / nextAction / audit / acceptance / report 串成纯 runtime 组合器，首页、主界、设置页和验证脚本共享同一条 P0 验收链路
+  - 本轮补充 P0 整体验收链路校验：覆盖 0/6、部分闭环、6/6 readyForP1 三个状态，避免主界和设置页各自拼装导致门禁判断漂移
 
 ## P1 / P2 边界
 

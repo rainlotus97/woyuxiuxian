@@ -3350,6 +3350,150 @@ test('p0 loop next action ranks unblock verify and expansion steps', async () =>
   assert.equal(richAcceptance.primaryGap, null)
 })
 
+test('p0 loop verification composes the full p0 acceptance gate', async () => {
+  const { resolveP0LoopVerification } = await load('/src/world/runtime/p0LoopVerificationResolver.ts')
+
+  const baseReadiness = {
+    player: {
+      isCaptured: false,
+      isIdling: false,
+      stamina: 100,
+      maxStamina: 100,
+      canBreakthrough: false
+    },
+    world: {
+      unlockedNpcCount: 5,
+      worldBriefingCount: 1,
+      hasRecentJourney: false
+    },
+    story: {
+      currentNodeId: null,
+      completedCount: 0,
+      isInitialized: true
+    },
+    map: {
+      conqueredCount: 0,
+      totalAreaCount: 6,
+      hasHotspot: false
+    },
+    sect: {
+      joined: false,
+      joinableCount: 1,
+      activeWar: false,
+      completedTaskCount: 0,
+      availableTaskCount: 0,
+      canClaimSalary: false
+    }
+  }
+
+  const createEvidence = overrides => ({
+    playerJourneyTags: [],
+    storyCurrentNodeId: null,
+    storyCompletedCount: 0,
+    unlockedNpcCount: 5,
+    npcStoryCount: 0,
+    worldBriefingCount: 1,
+    mapTotalAreaCount: 6,
+    mapConqueredCount: 0,
+    mapHistoryCount: 0,
+    areaAnomalyCount: 0,
+    sectJoined: false,
+    sectJoinableCount: 1,
+    ...overrides
+  })
+
+  const fresh = resolveP0LoopVerification({
+    readiness: baseReadiness,
+    evidence: createEvidence()
+  })
+
+  assert.equal(fresh.loopReadiness.items.length, 6)
+  assert.equal(fresh.p0LoopClosure.closedCount, 0)
+  assert.equal(fresh.p0Audit.progressText, 'P0 0/6')
+  assert.equal(fresh.p0Acceptance.state, 'verifying')
+  assert.equal(fresh.p0Acceptance.readyForP1, false)
+  assert.equal(fresh.p0Report.remainingCount, 6)
+  assert.equal(fresh.p0Report.nextActionId, 'sect')
+
+  const partial = resolveP0LoopVerification({
+    readiness: {
+      ...baseReadiness,
+      story: {
+        currentNodeId: 'V1M01',
+        completedCount: 1,
+        isInitialized: true
+      },
+      sect: {
+        ...baseReadiness.sect,
+        joined: true,
+        availableTaskCount: 2
+      }
+    },
+    evidence: createEvidence({
+      playerJourneyTags: [
+        ['story', 'story-start'],
+        ['sect', 'membership']
+      ],
+      storyCurrentNodeId: 'V1M01',
+      storyCompletedCount: 1,
+      sectJoined: true
+    })
+  })
+
+  assert.equal(partial.p0LoopClosure.closedCount, 2)
+  assert.equal(partial.p0Audit.stage, 'verifying')
+  assert.equal(partial.p0Acceptance.acceptedCount, 2)
+  assert.equal(partial.p0Acceptance.remainingCount, 4)
+  assert.equal(partial.p0Report.readyForP1, false)
+  assert.deepEqual(partial.p0Acceptance.acceptedItems.map(item => item.id), ['story', 'sect'])
+
+  const complete = resolveP0LoopVerification({
+    readiness: {
+      ...baseReadiness,
+      story: {
+        currentNodeId: 'V1M01',
+        completedCount: 2,
+        isInitialized: true
+      },
+      map: {
+        conqueredCount: 1,
+        totalAreaCount: 6,
+        hasHotspot: true
+      },
+      sect: {
+        ...baseReadiness.sect,
+        joined: true,
+        availableTaskCount: 2
+      }
+    },
+    evidence: createEvidence({
+      playerJourneyTags: [
+        ['idle', 'cultivation'],
+        ['adventure', 'battle'],
+        ['story', 'story-start'],
+        ['npc', 'relationship'],
+        ['map', 'exploration'],
+        ['sect', 'membership']
+      ],
+      storyCurrentNodeId: 'V1M01',
+      storyCompletedCount: 2,
+      npcStoryCount: 1,
+      mapConqueredCount: 1,
+      mapHistoryCount: 1,
+      areaAnomalyCount: 1,
+      sectJoined: true
+    })
+  })
+
+  assert.equal(complete.p0LoopClosure.closedCount, 6)
+  assert.equal(complete.p0Audit.stage, 'ready_for_p1')
+  assert.equal(complete.p0Acceptance.state, 'accepted')
+  assert.equal(complete.p0Acceptance.remainingCount, 0)
+  assert.equal(complete.p0Report.readyForP1, true)
+  assert.equal(complete.p0Report.gateLabel, '可以进入 P1')
+  assert.equal(complete.p0NextAction.allClosed, true)
+})
+
 test('map area unlock resolver gates route focus by realm requirement', async () => {
   const { isMapAreaUnlocked } = await load('/src/map/runtime/mapAreaUnlockResolver.ts')
 

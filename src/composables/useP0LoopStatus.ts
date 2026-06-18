@@ -6,12 +6,7 @@ import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import { isMapAreaUnlocked } from '@/map/runtime/mapAreaUnlockResolver'
 import { useWorldBriefings, type WorldBriefingHotspotInput } from '@/composables/useWorldBriefings'
-import { resolveMainLoopReadiness } from '@/world/runtime/mainLoopReadinessResolver'
-import { resolveP0LoopClosure } from '@/world/runtime/p0LoopClosureResolver'
-import { resolveP0LoopNextAction } from '@/world/runtime/p0LoopNextActionResolver'
-import { resolveP0LoopAudit } from '@/world/runtime/p0LoopAuditResolver'
-import { resolveP0LoopAcceptance } from '@/world/runtime/p0LoopAcceptanceResolver'
-import { resolveP0LoopReport } from '@/world/runtime/p0LoopReportResolver'
+import { resolveP0LoopVerification } from '@/world/runtime/p0LoopVerificationResolver'
 
 export interface P0LoopHotspotArea extends WorldBriefingHotspotInput {
   id: string
@@ -73,41 +68,39 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
     return toValue(options.hasRecentJourney) ?? worldStore.recentPlayerJourneys.length > 0
   })
 
-  const loopReadiness = computed(() => resolveMainLoopReadiness({
-    player: {
-      isCaptured: playerStore.captivity.isCaptured,
-      isIdling: playerStore.isIdling,
-      stamina: playerStore.stamina,
-      maxStamina: playerStore.maxStamina,
-      canBreakthrough: playerStore.canBreakthrough
+  const p0Verification = computed(() => resolveP0LoopVerification({
+    readiness: {
+      player: {
+        isCaptured: playerStore.captivity.isCaptured,
+        isIdling: playerStore.isIdling,
+        stamina: playerStore.stamina,
+        maxStamina: playerStore.maxStamina,
+        canBreakthrough: playerStore.canBreakthrough
+      },
+      world: {
+        unlockedNpcCount: worldStore.unlockedNpcDefinitions.length,
+        worldBriefingCount: resolvedWorldBriefingCount.value,
+        hasRecentJourney: resolvedHasRecentJourney.value
+      },
+      story: {
+        currentNodeId: storyStore.currentNodeId,
+        completedCount: storyStore.completedCount,
+        isInitialized: storyStore.isInitialized
+      },
+      map: {
+        conqueredCount: mapStore.conqueredCountInCurrentRealm,
+        totalAreaCount: mapStore.currentRealmAreas.length,
+        hasHotspot: Boolean(hotspotArea.value)
+      },
+      sect: {
+        joined: Boolean(sectStore.currentSect),
+        joinableCount: sectStore.joinCandidates.filter(candidate => candidate.canJoin).length,
+        activeWar: Boolean(sectStore.activeWar),
+        completedTaskCount: sectStore.completedTasks.length,
+        availableTaskCount: sectStore.dailyTasks.length + sectStore.weeklyTasks.length,
+        canClaimSalary: sectStore.canClaimSalary
+      }
     },
-    world: {
-      unlockedNpcCount: worldStore.unlockedNpcDefinitions.length,
-      worldBriefingCount: resolvedWorldBriefingCount.value,
-      hasRecentJourney: resolvedHasRecentJourney.value
-    },
-    story: {
-      currentNodeId: storyStore.currentNodeId,
-      completedCount: storyStore.completedCount,
-      isInitialized: storyStore.isInitialized
-    },
-    map: {
-      conqueredCount: mapStore.conqueredCountInCurrentRealm,
-      totalAreaCount: mapStore.currentRealmAreas.length,
-      hasHotspot: Boolean(hotspotArea.value)
-    },
-    sect: {
-      joined: Boolean(sectStore.currentSect),
-      joinableCount: sectStore.joinCandidates.filter(candidate => candidate.canJoin).length,
-      activeWar: Boolean(sectStore.activeWar),
-      completedTaskCount: sectStore.completedTasks.length,
-      availableTaskCount: sectStore.dailyTasks.length + sectStore.weeklyTasks.length,
-      canClaimSalary: sectStore.canClaimSalary
-    }
-  }))
-
-  const p0LoopClosure = computed(() => resolveP0LoopClosure({
-    readiness: loopReadiness.value.byId,
     evidence: {
       playerJourneyTags: worldStore.playerJourneys.map(journey => journey.tags),
       storyCurrentNodeId: storyStore.currentNodeId,
@@ -124,22 +117,12 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
     }
   }))
 
-  const p0NextAction = computed(() => resolveP0LoopNextAction({
-    readinessItems: loopReadiness.value.items,
-    closureItems: p0LoopClosure.value.items
-  }))
-
-  const p0Audit = computed(() => resolveP0LoopAudit({
-    closure: p0LoopClosure.value,
-    nextAction: p0NextAction.value
-  }))
-
-  const p0Acceptance = computed(() => resolveP0LoopAcceptance(p0Audit.value))
-  const p0Report = computed(() => resolveP0LoopReport({
-    audit: p0Audit.value,
-    acceptance: p0Acceptance.value,
-    nextAction: p0NextAction.value
-  }))
+  const loopReadiness = computed(() => p0Verification.value.loopReadiness)
+  const p0LoopClosure = computed(() => p0Verification.value.p0LoopClosure)
+  const p0NextAction = computed(() => p0Verification.value.p0NextAction)
+  const p0Audit = computed(() => p0Verification.value.p0Audit)
+  const p0Acceptance = computed(() => p0Verification.value.p0Acceptance)
+  const p0Report = computed(() => p0Verification.value.p0Report)
 
   return {
     hotspotArea,
