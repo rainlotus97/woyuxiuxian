@@ -615,6 +615,8 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const {
     applyShopPurchases,
     canInventoryAcceptShopItem,
+    createShopInventory,
+    resolveShopMarketInfluence,
     resolveShopPurchase
   } = await load('/src/shop/runtime/shopInventoryResolver.ts')
   const {
@@ -941,6 +943,55 @@ test('map and sect rules block invalid gameplay paths', async () => {
   })
   assert.equal(purchaseInventoryBlocked.success, false)
   assert.equal(purchaseInventoryBlocked.reason, 'inventory_full')
+  const stableMarketContext = {
+    totalTicks: 0,
+    refreshSeed: 0,
+    playerRealm: '炼气',
+    joinedSectId: 'qingyun_sect',
+    unlockedSectIds: ['qingyun_sect'],
+    weather: 'clear',
+    sectWorldCondition: { status: 'stable', occupiedBySectId: null, lastUpdatedTick: null },
+    marketAreaStates: [
+      {
+        areaId: 'qingyun_mountain',
+        controllingSectId: 'qingyun_sect',
+        riskLevel: 'safe',
+        stability: 82,
+        pressure: 10,
+        contested: false
+      }
+    ]
+  }
+  const contestedMarketContext = {
+    ...stableMarketContext,
+    marketAreaStates: [
+      {
+        areaId: 'qingyun_mountain',
+        controllingSectId: 'demon_sect',
+        riskLevel: 'chaos',
+        stability: 24,
+        pressure: 86,
+        contested: true
+      }
+    ]
+  }
+  const stableMarket = resolveShopMarketInfluence(stableMarketContext)
+  const contestedMarket = resolveShopMarketInfluence(contestedMarketContext)
+  assert.ok(stableMarket.priceModifier < 1)
+  assert.ok(stableMarket.stockModifier > 1)
+  assert.ok(stableMarket.tags.includes('本宗商路'))
+  assert.ok(contestedMarket.priceModifier > stableMarket.priceModifier)
+  assert.ok(contestedMarket.stockModifier < stableMarket.stockModifier)
+  assert.ok(contestedMarket.tags.includes('战线涨价'))
+  const stableInventory = createShopInventory(stableMarketContext)
+  const contestedInventory = createShopInventory(contestedMarketContext)
+  const stablePill = stableInventory.find(item => item.definition.id === 'shop_pill_001')
+  const contestedPill = contestedInventory.find(item => item.definition.id === 'shop_pill_001')
+  assert.ok(stablePill, 'stable shop should include qi gathering pill')
+  assert.ok(contestedPill, 'contested shop should include qi gathering pill')
+  assert.ok(stablePill.price < contestedPill.price)
+  assert.ok(stablePill.tags.includes('本宗商路'))
+  assert.ok(contestedPill.tags.includes('商路受阻'))
 
   const authority = resolveSectAuthority({ positionLevel: 5, contribution: 10000 })
   assert.equal(authority.canDeclareWar, true)

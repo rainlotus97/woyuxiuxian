@@ -2,6 +2,7 @@ import type { Realm } from '@/types/unit'
 import type { WorldWeather } from '@/types/world'
 import type { SectWorldCondition } from '@/types/sect'
 import type { InventoryItem } from '@/stores/playerStore'
+import type { AreaRiskLevel } from '@/map/runtime/mapRuntimeTypes'
 import { REALM_ORDER } from '@/types/unit'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
 import {
@@ -19,6 +20,26 @@ export interface ShopInventoryContext {
   unlockedSectIds: string[]
   weather: WorldWeather
   sectWorldCondition?: SectWorldCondition | null
+  marketAreaStates?: ShopMarketAreaState[]
+}
+
+export interface ShopMarketAreaState {
+  areaId: string
+  controllingSectId: string | null
+  riskLevel: AreaRiskLevel
+  stability: number
+  pressure: number
+  contested: boolean
+}
+
+export interface ShopMarketInfluence {
+  priceModifier: number
+  stockModifier: number
+  tags: string[]
+  controlledByJoinedSectCount: number
+  contestedCount: number
+  unstableCount: number
+  averageStability: number
 }
 
 export interface ShopInventoryItem {
@@ -56,6 +77,23 @@ const WEATHER_PRICE_MODIFIERS: Partial<Record<WorldWeather, number>> = {
 }
 
 const REFRESH_TICK_SPAN = 12
+const RISK_MARKET_PRICE_MODIFIERS: Record<AreaRiskLevel, number> = {
+  safe: 0.97,
+  watch: 1,
+  danger: 1.06,
+  chaos: 1.14
+}
+
+const RISK_MARKET_STOCK_MODIFIERS: Record<AreaRiskLevel, number> = {
+  safe: 1.08,
+  watch: 1,
+  danger: 0.88,
+  chaos: 0.72
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
 
 function getRefreshBucket(totalTicks: number) {
   return Math.floor(Math.max(0, totalTicks) / REFRESH_TICK_SPAN)
@@ -99,7 +137,89 @@ function getDefinitionAvailability(definition: ShopItemDefinition, context: Shop
   return { available: true, reason: undefined }
 }
 
-function getStock(definition: ShopItemDefinition, context: ShopInventoryContext, bucket: number) {
+export function resolveShopMarketInfluence(context: ShopInventoryContext): ShopMarketInfluence {
+  const marketAreas = (context.marketAreaStates ?? []).filter(area => area.areaId)
+
+  if (!marketAreas.length) {
+    return {
+      priceModifier: 1,
+      stockModifier: 1,
+      tags: [],
+      controlledByJoinedSectCount: 0,
+      contestedCount: 0,
+      unstableCount: 0,
+      averageStability: 0
+    }
+  }
+
+  const controlledByJoinedSectCount = marketAreas.filter(area => (
+    context.joinedSectId
+    && area.controllingSectId === context.joinedSectId
+    && !area.contested
+    && area.stability >= 55
+  )).length
+  const contestedCount = marketAreas.filter(area => area.contested).length
+  const unstableCount = marketAreas.filter(area => (
+    area.riskLevel === 'chaos'
+    || area.stability < 38
+    || area.pressure >= 72
+  )).length
+  const averageStability = marketAreas.reduce((sum, area) => sum + area.stability, 0) / marketAreas.length
+
+  const averageRiskPrice = marketAreas.reduce((sum, area) => (
+    sum + RISK_MARKET_PRICE_MODIFIERS[area.riskLevel]
+  ), 0) / marketAreas.length
+  const averageRiskStock = marketAreas.reduce((sum, area) => (
+    sum + RISK_MARKET_STOCK_MODIFIERS[area.riskLevel]
+  ), 0) / marketAreas.length
+
+  const controlledRatio = controlledByJoinedSectCount / marketAreas.length
+  const contestedRatio = contestedCount / marketAreas.length
+  const unstableRatio = unstableCount / marketAreas.length
+  const stabilityRelief = averageStability >= 70 ? 0.03 : averageStability <= 35 ? -0.04 : 0
+
+  const priceModifier = clamp(
+    averageRiskPrice
+      - controlledRatio * 0.12
+      + contestedRatio * 0.08
+      + unstableRatio * 0.06
+      - Math.max(0, stabilityRelief),
+    0.84,
+    1.32
+  )
+  const stockModifier = clamp(
+    averageRiskStock
+      + controlledRatio * 0.18
+      - contestedRatio * 0.18
+      - unstableRatio * 0.16
+      + stabilityRelief,
+    0.5,
+    1.38
+  )
+
+  const tags: string[] = []
+  if (controlledByJoinedSectCount > 0) tags.push('本宗商路')
+  if (contestedCount > 0) tags.push('战线涨价')
+  if (unstableCount > 0) tags.push('商路受阻')
+  if (averageStability >= 70 && contestedCount === 0) tags.push('商路安定')
+
+  return {
+    priceModifier: Number(priceModifier.toFixed(3)),
+    stockModifier: Number(stockModifier.toFixed(3)),
+    tags,
+    controlledByJoinedSectCount,
+    contestedCount,
+    unstableCount,
+    averageStability: Number(averageStability.toFixed(1))
+  }
+}
+
+function getStock(
+  definition: ShopItemDefinition,
+  context: ShopInventoryContext,
+  bucket: number,
+  marketInfluence: ShopMarketInfluence
+) {
   const [min, max] = definition.stockRange
   if (max <= 0) return 0
 
@@ -108,46 +228,60 @@ function getStock(definition: ShopItemDefinition, context: ShopInventoryContext,
 
   const spread = Math.max(0, max - min)
   const amount = min + Math.floor(roll * (spread + 1))
-  return Math.max(0, Math.min(max, amount))
+  const influencedAmount = Math.round(amount * marketInfluence.stockModifier)
+  return Math.max(0, Math.min(max, influencedAmount))
 }
 
-function getPrice(definition: ShopItemDefinition, context: ShopInventoryContext, bucket: number) {
+function getPrice(
+  definition: ShopItemDefinition,
+  context: ShopInventoryContext,
+  bucket: number,
+  marketInfluence: ShopMarketInfluence
+) {
   const weatherModifier = WEATHER_PRICE_MODIFIERS[context.weather] ?? 1
   const sectModifier = definition.sectIds?.includes(context.joinedSectId ?? '') ? 0.9 : 1
   const crisisModifier = context.sectWorldCondition?.status === 'rebuilding' ? 1.07 : 1
   const marketRoll = seededWorldRoll('shop-price', bucket, definition.id)
   const marketModifier = 0.94 + marketRoll * 0.14
 
-  return Math.max(1, Math.round(definition.basePrice * weatherModifier * sectModifier * crisisModifier * marketModifier))
+  return Math.max(1, Math.round(
+    definition.basePrice
+    * weatherModifier
+    * sectModifier
+    * crisisModifier
+    * marketInfluence.priceModifier
+    * marketModifier
+  ))
 }
 
-function getTags(definition: ShopItemDefinition, context: ShopInventoryContext) {
+function getTags(definition: ShopItemDefinition, context: ShopInventoryContext, marketInfluence: ShopMarketInfluence) {
   const tags: string[] = []
   if (definition.sectIds?.length) {
     tags.push(definition.sectIds.includes(context.joinedSectId ?? '') ? '本宗折扣' : '宗门限定')
   }
   if (definition.minRealm) tags.push(`${definition.minRealm}起`)
   if (context.weather === 'flood' || context.weather === 'fire' || context.weather === 'storm') tags.push('灾象涨价')
-  return tags
+  return [...tags, ...marketInfluence.tags]
 }
 
 export function createShopInventory(context: ShopInventoryContext): ShopInventoryItem[] {
   const bucket = getRefreshBucket(context.totalTicks) + (context.refreshSeed ?? 0) * 1000
+  const marketInfluence = resolveShopMarketInfluence(context)
 
   return SHOP_CATALOG.flatMap(definition => {
     const availability = getDefinitionAvailability(definition, context)
     if (!availability.available) return []
 
-    const stock = getStock(definition, context, bucket)
+    const stock = getStock(definition, context, bucket, marketInfluence)
     if (stock <= 0) return []
 
     return [{
       stockId: `${definition.id}:${bucket}`,
       definition,
-      price: getPrice(definition, context, bucket),
+      price: getPrice(definition, context, bucket, marketInfluence),
       stock,
       maxStock: definition.stockRange[1],
-      tags: getTags(definition, context),
+      tags: getTags(definition, context, marketInfluence),
       limitedReason: availability.reason
     }]
   }).sort((a, b) => {

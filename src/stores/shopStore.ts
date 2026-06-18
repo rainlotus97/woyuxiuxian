@@ -3,6 +3,7 @@ import { computed, ref, toRaw, watchEffect } from 'vue'
 import { usePlayerStore } from './playerStore'
 import { useSectStore } from './sectStore'
 import { useWorldStore } from './worldStore'
+import { useMapStore } from './mapStore'
 import {
   applyShopPurchases,
   createShopInventory,
@@ -42,6 +43,7 @@ export const useShopStore = defineStore('shop', () => {
   const playerStore = usePlayerStore()
   const sectStore = useSectStore()
   const worldStore = useWorldStore()
+  const mapStore = useMapStore()
 
   const purchasedByStockId = ref<Record<string, number>>({ ...initialData.purchasedByStockId })
   const refreshSeed = ref(initialData.refreshSeed ?? 0)
@@ -56,7 +58,21 @@ export const useShopStore = defineStore('shop', () => {
     joinedSectId: sectStore.joinedSectId,
     unlockedSectIds: sectStore.unlockedSects,
     weather: worldStore.weather,
-    sectWorldCondition: sectStore.worldCondition
+    sectWorldCondition: sectStore.worldCondition,
+    marketAreaStates: mapStore.currentRealmAreas
+      .filter(area => area.isUnlocked || mapStore.conqueredAreas.includes(area.id))
+      .flatMap(area => {
+        const state = mapStore.areaStates[area.id]
+        if (!state) return []
+        return [{
+          areaId: state.areaId,
+          controllingSectId: state.controllingSectId,
+          riskLevel: state.riskLevel,
+          stability: state.stability,
+          pressure: state.pressure,
+          contested: state.contested
+        }]
+      })
   }))
 
   const baseInventory = computed(() => createShopInventory(context.value))
