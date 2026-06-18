@@ -601,6 +601,11 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveInventoryMaterialQuantity
   } = await load('/src/character/runtime/inventoryMaterialResolver.ts')
   const {
+    normalizeInventoryItemSchema,
+    normalizeInventoryItemsSchema,
+    resolveInventoryDefinitionId
+  } = await load('/src/character/runtime/inventoryItemSchemaResolver.ts')
+  const {
     resolveConsumableEffectDelta,
     resolveConsumableUse
   } = await load('/src/character/runtime/consumableEffectResolver.ts')
@@ -694,6 +699,42 @@ test('map and sect rules block invalid gameplay paths', async () => {
   const blockedMaterialConsumption = resolveInventoryMaterialConsumption(inventoryFixture, 'herb_spirit_grass', 9)
   assert.equal(blockedMaterialConsumption.success, false)
   assert.equal(blockedMaterialConsumption.remainingQuantity, 4)
+
+  const normalizedLegacyEquipment = normalizeInventoryItemSchema({
+    id: 'legacy_weapon',
+    name: '玄铁剑',
+    icon: '剑',
+    type: 'equipment',
+    quality: 'fine',
+    quantity: 1
+  })
+  assert.equal(normalizedLegacyEquipment.definitionId, 'weapon_002')
+  assert.equal(normalizedLegacyEquipment.equipmentId, 'weapon_002')
+  const normalizedShopHerb = normalizeInventoryItemSchema({
+    id: 'shop_herb',
+    definitionId: 'material_spirit_grass',
+    name: '灵草',
+    icon: '草',
+    type: 'material',
+    quality: 'common',
+    quantity: 0
+  })
+  assert.equal(normalizedShopHerb.definitionId, 'herb_spirit_grass')
+  assert.equal(normalizedShopHerb.quantity, 1)
+  assert.equal(resolveInventoryDefinitionId({
+    id: 'drop_wood',
+    definitionId: 'wooden_sword',
+    name: '新手木剑',
+    icon: '木',
+    type: 'equipment',
+    quality: 'common',
+    quantity: 1
+  }), 'weapon_001')
+  const normalizedInventory = normalizeInventoryItemsSchema([
+    normalizedShopHerb,
+    { id: 'garden_herb', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 }
+  ])
+  assert.equal(resolveInventoryMaterialQuantity(normalizedInventory, 'herb_spirit_grass'), 3)
 
   const consumableFixture = {
     id: 'pill_fixture',

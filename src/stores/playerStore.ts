@@ -7,6 +7,7 @@ import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
 import { resolveCharacterBattleUnit } from '@/character/runtime/characterBattleLoadoutResolver'
 import { resolveCharacterProgression } from '@/character/runtime/characterProgressionResolver'
 import { resolveConsumableUse } from '@/character/runtime/consumableEffectResolver'
+import { normalizeInventoryItemSchema, normalizeInventoryItemsSchema } from '@/character/runtime/inventoryItemSchemaResolver'
 import {
   SKILL_DEFINITIONS,
   SKILL_TREE,
@@ -230,7 +231,7 @@ export const usePlayerStore = defineStore('player', () => {
   const equippedAccessory2 = ref<Equipment | undefined>(initialData.equippedAccessory2)
 
   // 背包
-  const inventory = ref<InventoryItem[]>([...initialData.inventory])
+  const inventory = ref<InventoryItem[]>(normalizeInventoryItemsSchema(initialData.inventory))
   const maxInventorySlots = ref(initialData.maxInventorySlots)
 
   // 技能系统（兼容旧数据）
@@ -603,31 +604,32 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 添加物品到背包
   function addToInventory(item: InventoryItem): boolean {
+    const normalizedItem = normalizeInventoryItemSchema(item)
     // 如果是可堆叠物品，检查是否已存在
-    if (item.type !== 'equipment') {
+    if (normalizedItem.type !== 'equipment') {
       const existing = inventory.value.find(i => {
-        if (i.type !== item.type) return false
-        if (item.definitionId && i.definitionId) {
-          return i.definitionId === item.definitionId
+        if (i.type !== normalizedItem.type) return false
+        if (normalizedItem.definitionId && i.definitionId) {
+          return i.definitionId === normalizedItem.definitionId
         }
-        return i.name === item.name
+        return i.name === normalizedItem.name
       })
       if (existing) {
-        existing.quantity += item.quantity
-        if (!existing.definitionId && item.definitionId) {
-          existing.definitionId = item.definitionId
+        existing.quantity += normalizedItem.quantity
+        if (!existing.definitionId && normalizedItem.definitionId) {
+          existing.definitionId = normalizedItem.definitionId
         }
         // 更新宗门采集任务进度
-        updateCollectTaskProgress(item)
+        updateCollectTaskProgress(normalizedItem)
         return true
       }
     }
 
     if (isInventoryFull.value) return false
 
-    inventory.value.push(item)
+    inventory.value.push(normalizedItem)
     // 更新宗门采集任务进度
-    updateCollectTaskProgress(item)
+    updateCollectTaskProgress(normalizedItem)
     return true
   }
 
