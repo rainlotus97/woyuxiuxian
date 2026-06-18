@@ -3,7 +3,8 @@ import type {
   SectRelationShift,
   SectRuntimeLogEffect,
   SectRuntimeStateSnapshot,
-  SectRuntimeWarProgress
+  SectRuntimeWarProgress,
+  SectWorldTickResolution
 } from './sectWorldTypes'
 import { seededWorldRoll } from '@/world/runtime/worldSeed'
 
@@ -64,5 +65,50 @@ export function resolveSectRelationDrift(
         ? `${currentSect.name}与${targetSectId}之间摩擦渐起，双方气氛转为敌对。`
         : `${currentSect.name}与${targetSectId}开始互通往来，关系有所缓和。`
     } satisfies SectRuntimeLogEffect
+  }
+}
+
+export function resolveSectWorldTick(input: {
+  totalTicks: number
+  now: number
+  state: SectRuntimeStateSnapshot
+  currentSect: SectDefinition | null
+  defenderSect: SectDefinition | null
+  unlockedSectIds: string[]
+}): SectWorldTickResolution {
+  const warProgress = resolveSectWarProgress(
+    input.totalTicks,
+    input.state,
+    input.currentSect,
+    input.defenderSect
+  )
+  const relationDrift = resolveSectRelationDrift(
+    input.totalTicks,
+    input.state,
+    input.currentSect,
+    input.unlockedSectIds
+  )
+
+  return {
+    warProgress,
+    relationDrift,
+    events: [
+      ...(warProgress?.log
+        ? [{
+            id: `sect_world_war_${input.now}`,
+            type: 'sect_conflict' as const,
+            title: warProgress.log.title,
+            description: warProgress.log.description
+          }]
+        : []),
+      ...(relationDrift
+        ? [{
+            id: `sect_relation_${input.now}`,
+            type: relationDrift.shift.relation === 'hostile' ? 'sect_conflict' as const : 'alliance_offer' as const,
+            title: relationDrift.log.title,
+            description: relationDrift.log.description
+          }]
+        : [])
+    ]
   }
 }

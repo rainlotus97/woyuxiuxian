@@ -48,7 +48,7 @@ import {
   resolveSectRecoveryState,
   type SectRecoveryActionId
 } from '@/sect/runtime/sectRecoveryResolver'
-import { resolveSectRelationDrift, resolveSectWarProgress } from '@/sect/runtime/sectWorldResolver'
+import { resolveSectWorldTick } from '@/sect/runtime/sectWorldResolver'
 import type { SectWarResolution } from '@/sect/runtime/sectWorldTypes'
 import {
   resolveSectWarConclusion,
@@ -713,33 +713,12 @@ export const useSectStore = defineStore('sect', () => {
     const war = activeWar.value
     const defender = war ? getSectById(war.defenderSectId) ?? null : null
     let warResolution: SectWarResolution | null = null
+    const now = Date.now()
 
-    const warProgress = resolveSectWarProgress(totalTicks, {
-      joinedSectId: joinedSectId.value,
-      reputation: reputation.value,
-      sectHp: sectHp.value,
-      sectMaxHp: sectMaxHp.value,
-      relations: relations.value,
-      activeWar: activeWar.value
-    }, current, defender)
-
-    if (warProgress) {
-      warResolution = advanceWar(warProgress.attackerWon)
-      if (warProgress.log) {
-        activeEvent.value = {
-          id: `sect_world_war_${Date.now()}`,
-          type: 'sect_conflict',
-          title: warProgress.log.title,
-          description: warProgress.log.description,
-          choices: [],
-          handled: true
-        }
-      }
-    }
-
-    const relationDrift = resolveSectRelationDrift(
+    const worldTick = resolveSectWorldTick({
       totalTicks,
-      {
+      now,
+      state: {
         joinedSectId: joinedSectId.value,
         reputation: reputation.value,
         sectHp: sectHp.value,
@@ -747,17 +726,23 @@ export const useSectStore = defineStore('sect', () => {
         relations: relations.value,
         activeWar: activeWar.value
       },
-      current,
-      unlockedSects.value
-    )
+      currentSect: current,
+      defenderSect: defender,
+      unlockedSectIds: unlockedSects.value
+    })
 
-    if (relationDrift) {
-      relations.value[relationDrift.shift.targetSectId] = relationDrift.shift.relation
+    if (worldTick.warProgress) {
+      warResolution = advanceWar(worldTick.warProgress.attackerWon)
+    }
+
+    if (worldTick.relationDrift) {
+      relations.value[worldTick.relationDrift.shift.targetSectId] = worldTick.relationDrift.shift.relation
+    }
+
+    const latestEvent = worldTick.events[worldTick.events.length - 1]
+    if (latestEvent) {
       activeEvent.value = {
-        id: `sect_relation_${Date.now()}`,
-        type: relationDrift.shift.relation === 'hostile' ? 'sect_conflict' : 'alliance_offer',
-        title: relationDrift.log.title,
-        description: relationDrift.log.description,
+        ...latestEvent,
         choices: [],
         handled: true
       }

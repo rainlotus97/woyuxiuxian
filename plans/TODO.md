@@ -196,6 +196,7 @@
 - [~] 打通 `mapStore` 与 `sectStore` 的世界 tick 联动
   - 已让 `worldStore.advanceTick()` 统一驱动 `sectStore.updateWorldState()` 与 `mapStore.updateAreaWorldState()`
   - 已建立 `src/map/runtime/*` 与 `src/sect/runtime/*` 的世界态势解析层，避免 store 内继续堆条件分支
+  - 已扩展 `sectWorldResolver`，统一宗门世界 tick 中的战局推进、关系漂移与前端事件摘要生成
   - 已让 `sectStore.updateWorldState()` 返回结构化战争结算结果，由 `worldStore` 协调传给地图层处理
   - 已让 `mapStore` 日历与 `worldStore` 时钟同步，避免主循环和地图页出现两套时间线
   - 待补：更细粒度事件分发、世界系统之间的反馈闭环、重要结果回流到主界面提示
@@ -279,7 +280,7 @@
 - [x] 为核心 runtime 增加最小测试：
   - 已新增 `scripts/validate-runtime.mjs`
   - 已新增 `npm run runtime:validate`
-  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / event / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
+  - 当前覆盖 battle runtime、story parser、world tick / world log resolver、player journey resolver、map / sect unlock rules、sect membership / event / world tick / stipend / garden / alchemy / task / facility / war lifecycle / war reward rules
   - 后续每新增关键 runtime 时，应补入该脚本或拆分专用校验脚本
 - [x] 为剧情包建立 lint/validate 命令
   - 已新增 `scripts/validate-story.mjs`

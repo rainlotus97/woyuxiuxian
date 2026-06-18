@@ -1,4 +1,4 @@
-import type { SectRelation, SectWar } from '@/types/sect'
+import type { SectEventType, SectRelation, SectWar } from '@/types/sect'
 
 export interface SectRuntimeStateSnapshot {
   joinedSectId: string | null
@@ -22,6 +22,22 @@ export interface SectRuntimeWarProgress {
 export interface SectRelationShift {
   targetSectId: string
   relation: SectRelation
+}
+
+export interface SectWorldTickEvent {
+  id: string
+  type: SectEventType
+  title: string
+  description: string
+}
+
+export interface SectWorldTickResolution {
+  warProgress: SectRuntimeWarProgress | null
+  relationDrift: {
+    shift: SectRelationShift
+    log: SectRuntimeLogEffect
+  } | null
+  events: SectWorldTickEvent[]
 }
 
 export interface SectWarResolution {

@@ -531,6 +531,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
     resolveSectPromotion
   } = await load('/src/sect/runtime/sectPositionResolver.ts')
   const { resolveSectStipend } = await load('/src/sect/runtime/sectStipendResolver.ts')
+  const { resolveSectWorldTick } = await load('/src/sect/runtime/sectWorldResolver.ts')
   const {
     resolveGardenAccelerateCost,
     resolveGardenAcceleration,
@@ -1020,6 +1021,43 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(advancedWar.attackerWon, true)
   assert.equal(advancedWar.war.attackerScore, 103)
   assert.equal(advancedWar.war.status, 'victory')
+
+  const worldTickWar = resolveSectWorldTick({
+    totalTicks: 2,
+    now: 1000,
+    state: {
+      joinedSectId: 'qingyun_sect',
+      reputation: 1000,
+      sectHp: 1000,
+      sectMaxHp: 1000,
+      relations: {},
+      activeWar: warFixture
+    },
+    currentSect: qingyunSect,
+    defenderSect: getSectById('medicine_valley'),
+    unlockedSectIds: ['qingyun_sect', 'medicine_valley']
+  })
+  assert.equal(Boolean(worldTickWar.warProgress), true)
+  assert.equal(worldTickWar.events[0]?.id, 'sect_world_war_1000')
+  assert.equal(worldTickWar.events[0]?.type, 'sect_conflict')
+  const quietWorldTick = resolveSectWorldTick({
+    totalTicks: 2,
+    now: 1000,
+    state: {
+      joinedSectId: 'qingyun_sect',
+      reputation: 1000,
+      sectHp: 1000,
+      sectMaxHp: 1000,
+      relations: {},
+      activeWar: null
+    },
+    currentSect: qingyunSect,
+    defenderSect: null,
+    unlockedSectIds: ['qingyun_sect']
+  })
+  assert.equal(quietWorldTick.warProgress, null)
+  assert.equal(quietWorldTick.relationDrift, null)
+  assert.deepEqual(quietWorldTick.events, [])
 })
 
 const results = await Promise.all(diagnostics)
