@@ -74,6 +74,7 @@ body.no-select {
 /* iOS PWA 全屏模式适配 */
 html {
   height: 100%;
+  min-width: 320px;
   /* 禁止双击放大 */
   touch-action: manipulation;
   /* 禁止页面滚动反弹 */
@@ -91,6 +92,7 @@ body {
     radial-gradient(ellipse at bottom, rgba(200, 164, 92, 0.03) 0%, transparent 50%);
   color: rgb(var(--color-text));
   font-family: var(--font-game);
+  min-width: 320px;
   height: 100%;
   /* 字体平滑渲染 */
   -webkit-font-smoothing: antialiased;
@@ -98,7 +100,6 @@ body {
   /* 禁止页面滚动 */
   overflow: hidden;
   overscroll-behavior: none;
-  position: fixed;
   width: 100%;
   /* iOS 安全区域 - 只设置顶部和左右，底部由导航栏处理 */
   padding: 0;
@@ -115,6 +116,7 @@ img, .pixelated {
 
 #app {
   height: 100%;
+  width: 100%;
   overflow: hidden;
   overscroll-behavior: none;
   /* 移除padding，由各组件自行控制边距 */

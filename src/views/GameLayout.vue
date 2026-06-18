@@ -36,43 +36,53 @@
       </div>
     </header>
 
-    <main class="main-shell" :class="{ locked: isMenuExpanded }" @click="handleMainClick">
+    <main class="main-shell">
       <div class="content-stage">
         <RouterView />
       </div>
     </main>
 
-    <div v-if="isMenuExpanded" class="nav-scrim" aria-hidden="true" @click="closeMenu"></div>
+    <Transition name="scrim-fade">
+      <button
+        v-if="isMenuExpanded"
+        class="nav-scrim"
+        type="button"
+        aria-label="关闭功能菜单"
+        @click="closeMenu"
+      ></button>
+    </Transition>
 
     <footer class="nav-shell" :class="{ expanded: isMenuExpanded }">
-      <GameSurface v-if="isMenuExpanded" class="nav-drawer" tone="jade" padding="md">
-        <div class="nav-header">
-          <div class="nav-copy">
-            <span class="nav-eyebrow">功能总览</span>
-            <strong>前往修仙界面</strong>
-          </div>
-          <button class="drawer-close" aria-label="收起菜单" @click="closeMenu">
-            <X :size="18" />
-          </button>
-        </div>
-
-        <div class="menu-grid" @click.stop>
-          <RouterLink
-            v-for="item in menuItems"
-            :key="item.path"
-            :to="item.path"
-            class="menu-card"
-            :class="{ active: isActive(item.path) }"
-            @click="handleMenuClick"
-          >
-            <span class="menu-icon"><component :is="item.icon" :size="20" /></span>
-            <div class="menu-copy">
-              <strong>{{ item.name }}</strong>
-              <small>{{ item.desc }}</small>
+      <Transition name="drawer-rise">
+        <GameSurface v-if="isMenuExpanded" class="nav-drawer" tone="jade" padding="md">
+          <div class="nav-header">
+            <div class="nav-copy">
+              <span class="nav-eyebrow">功能总览</span>
+              <strong>前往修仙界面</strong>
             </div>
-          </RouterLink>
-        </div>
-      </GameSurface>
+            <button class="drawer-close" aria-label="收起菜单" @click="closeMenu">
+              <X :size="18" />
+            </button>
+          </div>
+
+          <div class="menu-grid" @click.stop>
+            <RouterLink
+              v-for="item in menuItems"
+              :key="item.path"
+              :to="item.path"
+              class="menu-card"
+              :class="{ active: isActive(item.path) }"
+              @click="handleMenuClick"
+            >
+              <span class="menu-icon"><component :is="item.icon" :size="20" /></span>
+              <div class="menu-copy">
+                <strong>{{ item.name }}</strong>
+                <small>{{ item.desc }}</small>
+              </div>
+            </RouterLink>
+          </div>
+        </GameSurface>
+      </Transition>
 
       <nav class="tab-bar" aria-label="主循环导航">
         <RouterLink
@@ -274,10 +284,6 @@ function handleMenuClick() {
 
 function closeMenu() {
   isMenuExpanded.value = false
-}
-
-function handleMainClick() {
-  if (isMenuExpanded.value) closeMenu()
 }
 
 function handleToggleBgm() {
@@ -514,14 +520,10 @@ onUnmounted(() => {
 .main-shell {
   min-height: 0;
   overflow: auto;
-  padding: 10px 12px calc(92px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 12px calc(86px + env(safe-area-inset-bottom, 0px));
   position: relative;
   z-index: 3;
   -webkit-overflow-scrolling: touch;
-}
-
-.main-shell.locked {
-  overflow: hidden;
 }
 
 .content-stage {
@@ -536,17 +538,13 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 18;
+  z-index: 28;
   padding: 0 12px calc(9px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
 .nav-shell.expanded {
-  z-index: 32;
-}
-
-.nav-shell:not(.expanded) {
-  transform: translateZ(0);
+  z-index: 42;
 }
 
 .nav-shell > * {
@@ -556,18 +554,42 @@ onUnmounted(() => {
 .nav-scrim {
   position: fixed;
   inset: 0;
-  z-index: 24;
-  background: rgba(48, 78, 74, 0.12);
+  z-index: 34;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: rgba(48, 78, 74, 0.16);
   backdrop-filter: blur(2px);
   cursor: pointer;
 }
 
 .nav-drawer {
   margin-bottom: 10px;
-  max-height: min(62vh, 520px);
+  max-height: min(58vh, 500px);
   overflow: auto;
   border-radius: 16px;
   box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
+}
+
+.scrim-fade-enter-active,
+.scrim-fade-leave-active {
+  transition: opacity 0.16s ease;
+}
+
+.scrim-fade-enter-from,
+.scrim-fade-leave-to {
+  opacity: 0;
+}
+
+.drawer-rise-enter-active,
+.drawer-rise-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.drawer-rise-enter-from,
+.drawer-rise-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .nav-header {
@@ -742,7 +764,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .main-shell {
-    padding: 8px 8px calc(84px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 8px calc(80px + env(safe-area-inset-bottom, 0px));
   }
 
   .top-shell {
@@ -830,7 +852,7 @@ onUnmounted(() => {
   }
 
   .nav-drawer {
-    max-height: min(66vh, 500px);
+    max-height: min(60vh, 480px);
   }
 
   .menu-grid {

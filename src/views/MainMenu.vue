@@ -2,21 +2,29 @@
   <main class="main-menu">
     <section class="start-shell">
       <div class="brand-panel">
-        <div class="seal-stack">
-          <span class="seal">修</span>
-          <small>云海初开</small>
+        <div class="brand-art" aria-hidden="true">
+          <div class="moon-ring">
+            <span class="seal">修</span>
+          </div>
+          <div class="mountain-line"></div>
         </div>
         <div class="brand-copy">
-          <p>2D 文字修仙 · 世界自演</p>
+          <p>2D 挂机文字修仙 · 世界自演</p>
           <h1>我欲修仙</h1>
           <strong>挂机修炼、奇遇历险、宗门势力与 NPC 命运会在同一个世界时钟里推进。</strong>
+          <div class="brand-tags" aria-label="当前版本重点">
+            <span>P0 主循环</span>
+            <span>NPC 命运</span>
+            <span>宗门势力</span>
+          </div>
         </div>
       </div>
 
       <div v-if="!playerStore.created" class="guide-panel">
         <div class="guide-head">
-          <span>创建引导</span>
+          <span>首次创建</span>
           <strong>定下本命</strong>
+          <p>这里仅用于建立第一份角色档案。创建后灵根与气质不再从首页反复修改，后续成长交给角色、功法、剧情与机缘系统。</p>
         </div>
 
         <label class="name-field">
@@ -58,9 +66,6 @@
             <span>开始修仙</span>
             <small>进入主循环</small>
           </button>
-          <button class="secondary-action" @click="handleContinue">
-            继续修炼
-          </button>
         </div>
       </div>
 
@@ -68,6 +73,7 @@
         <div class="guide-head">
           <span>当前存档</span>
           <strong>继续修途</strong>
+          <p>已有角色只保留继续入口。首页不再提供灵根、头像、气质重选，避免破坏长期养成和剧情分支。</p>
         </div>
 
         <div class="save-profile">
@@ -112,6 +118,20 @@
           </div>
         </div>
 
+        <div class="priority-board">
+          <div class="priority-title">
+            <span>P0 当前目标</span>
+            <strong>先让主循环真的可玩</strong>
+          </div>
+          <div class="priority-grid">
+            <div v-for="item in priorityItems" :key="item.title" class="priority-item">
+              <span>{{ item.icon }}</span>
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.desc }}</small>
+            </div>
+          </div>
+        </div>
+
         <div class="start-actions">
           <button class="primary-action" @click="handleContinue">
             <span>进入主循环</span>
@@ -129,20 +149,15 @@
       </div>
 
       <aside class="world-preview">
-        <div class="preview-card active">
-          <span>P0 主循环</span>
-          <strong>修炼 / 历险 / 故事</strong>
-          <p>先保证进入、行动、反馈、返回这些基础链路稳定可玩。</p>
-        </div>
-        <div class="preview-card">
-          <span>P0 世界</span>
-          <strong>NPC / 奇遇 / 日志</strong>
-          <p>挂机时世界继续推进，人物关系与异闻会写入主界面。</p>
-        </div>
-        <div class="preview-card">
-          <span>P1 扩展</span>
-          <strong>地图 / 宗门 / 战斗深化</strong>
-          <p>可玩闭环稳定后，再继续扩展大世界、势力吞并和表现层。</p>
+        <div
+          v-for="card in roadmapCards"
+          :key="card.title"
+          class="preview-card"
+          :class="{ active: card.active }"
+        >
+          <span>{{ card.label }}</span>
+          <strong>{{ card.title }}</strong>
+          <p>{{ card.desc }}</p>
         </div>
       </aside>
     </section>
@@ -180,6 +195,36 @@ const avatarOptions = [
   { icon: '灵' }
 ]
 
+const priorityItems = [
+  { icon: '修', title: '挂机', desc: '开始、停止、收益和离线反馈稳定。' },
+  { icon: '游', title: '历险', desc: '消耗体力、触发战斗和获得掉落。' },
+  { icon: '卷', title: '故事', desc: '主线解锁人物、地图、宗门与剧情战。' },
+  { icon: '人', title: 'NPC', desc: '人物关系和世界日志持续变化。' },
+  { icon: '图', title: '地图', desc: '区域风险、处置和宗门位置可见。' },
+  { icon: '门', title: '宗门', desc: '拜山、任务、俸禄和战事入口可用。' }
+]
+
+const roadmapCards = [
+  {
+    label: 'P0 主循环',
+    title: '修炼 / 历险 / 故事',
+    desc: '先保证进入、行动、反馈、返回这些基础链路稳定可玩。',
+    active: true
+  },
+  {
+    label: 'P0 世界',
+    title: 'NPC / 奇遇 / 日志',
+    desc: '挂机时世界继续推进，人物关系与异闻会写入主界面。',
+    active: false
+  },
+  {
+    label: 'P1 扩展',
+    title: '地图 / 宗门 / 战斗深化',
+    desc: '可玩闭环稳定后，再扩展大世界、势力吞并和表现层。',
+    active: false
+  }
+]
+
 function applyProfile() {
   playerStore.applyCreationProfile({
     name: draftName.value || '云逸',
@@ -210,21 +255,20 @@ function handleStory() {
 
 <style scoped>
 .main-menu {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   overflow: auto;
-  padding: 24px;
+  padding: 18px;
   color: #315257;
   background:
+    linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.3) 34% 35%, transparent 35% 100%),
     radial-gradient(circle at 16% 8%, rgba(255, 223, 142, 0.34), transparent 26%),
     radial-gradient(circle at 88% 10%, rgba(106, 208, 184, 0.22), transparent 34%),
-    linear-gradient(135deg, rgba(247, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%),
-    repeating-linear-gradient(90deg, rgba(82, 139, 127, 0.05) 0 1px, transparent 1px 76px),
-    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.045) 0 1px, transparent 1px 76px);
+    linear-gradient(135deg, rgba(247, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 42%, rgba(255, 247, 222, 0.94) 100%);
 }
 
 .start-shell {
-  min-height: calc(100dvh - 56px);
+  min-height: calc(100dvh - 36px);
   max-width: 1180px;
   margin: 0 auto;
   display: grid;
@@ -252,36 +296,59 @@ function handleStory() {
   grid-area: brand;
   min-height: 310px;
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
+  grid-template-columns: 144px minmax(0, 1fr);
   gap: 22px;
   align-items: center;
   padding: 34px;
 }
 
-.seal-stack {
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-}
-
-.seal {
-  width: 108px;
-  height: 108px;
+.brand-art {
+  position: relative;
+  min-height: 188px;
   display: grid;
   place-items: center;
-  border-radius: 18px;
-  border: 1px solid rgba(151, 99, 38, 0.22);
+}
+
+.moon-ring {
+  width: 136px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(151, 99, 38, 0.18);
   background:
-    linear-gradient(145deg, #fff3c0, #bfead6),
-    repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
-  color: #9a6827;
-  font-size: 48px;
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.86), transparent 24%),
+    linear-gradient(145deg, #fff3c0, #bfead6);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 18px 34px rgba(91, 151, 132, 0.24);
 }
 
-.seal-stack small {
-  color: rgba(93, 112, 105, 0.72);
-  font-size: 11px;
+.mountain-line {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 18px;
+  height: 64px;
+  border-radius: 999px 999px 14px 14px;
+  background:
+    linear-gradient(135deg, transparent 0 28%, rgba(96, 143, 126, 0.34) 28% 42%, transparent 42%),
+    linear-gradient(45deg, transparent 0 34%, rgba(139, 98, 38, 0.18) 34% 50%, transparent 50%),
+    linear-gradient(180deg, transparent, rgba(115, 196, 177, 0.16));
+  opacity: 0.8;
+}
+
+.seal {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  border: 1px solid rgba(151, 99, 38, 0.22);
+  background:
+    linear-gradient(145deg, rgba(255, 248, 221, 0.88), rgba(235, 252, 244, 0.8)),
+    repeating-linear-gradient(45deg, rgba(142, 98, 39, 0.08) 0 1px, transparent 1px 8px);
+  color: #9a6827;
+  font-size: 44px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
 }
 
 .brand-copy {
@@ -293,10 +360,18 @@ function handleStory() {
 .guide-head span,
 .choice-group > span,
 .name-field span,
-.preview-card span {
+.preview-card span,
+.priority-title span {
   margin: 0;
   color: rgba(70, 99, 96, 0.68);
   font-size: 12px;
+}
+
+.guide-head p {
+  margin: 0;
+  color: rgba(49, 82, 87, 0.72);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .save-panel {
@@ -415,6 +490,66 @@ function handleStory() {
   line-height: 1.6;
 }
 
+.priority-board {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(111, 157, 149, 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(244, 252, 248, 0.56)),
+    radial-gradient(circle at top right, rgba(255, 224, 151, 0.18), transparent 64%);
+}
+
+.priority-title {
+  display: grid;
+  gap: 4px;
+}
+
+.priority-title strong {
+  color: #315257;
+  font-size: 15px;
+}
+
+.priority-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.priority-item {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid rgba(111, 157, 149, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.priority-item span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(255, 246, 218, 0.84);
+  color: #8b6226;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.priority-item strong {
+  color: #315257;
+  font-size: 12px;
+}
+
+.priority-item small {
+  color: rgba(49, 82, 87, 0.68);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
 .brand-copy h1 {
   margin: 0;
   color: #8e6227;
@@ -428,6 +563,24 @@ function handleStory() {
   color: #315257;
   font-size: 18px;
   line-height: 1.7;
+}
+
+.brand-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.brand-tags span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(188, 141, 58, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 249, 231, 0.76);
+  color: #8b6226;
+  font-size: 11px;
 }
 
 .guide-panel {
@@ -601,7 +754,7 @@ function handleStory() {
 
 @media (max-width: 900px) {
   .main-menu {
-    padding: 14px;
+    padding: 10px;
   }
 
   .start-shell {
@@ -614,14 +767,27 @@ function handleStory() {
 
   .brand-panel {
     min-height: auto;
-    grid-template-columns: 74px minmax(0, 1fr);
-    padding: 20px;
+    grid-template-columns: 92px minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .brand-art {
+    min-height: 116px;
+  }
+
+  .moon-ring {
+    width: 88px;
+  }
+
+  .mountain-line {
+    bottom: 8px;
+    height: 42px;
   }
 
   .seal {
-    width: 74px;
-    height: 74px;
-    font-size: 34px;
+    width: 62px;
+    height: 62px;
+    font-size: 30px;
   }
 
   .choice-grid,
@@ -635,7 +801,8 @@ function handleStory() {
 
   .resume-brief,
   .save-stats,
-  .save-action-row {
+  .save-action-row,
+  .priority-grid {
     grid-template-columns: 1fr;
   }
 }
