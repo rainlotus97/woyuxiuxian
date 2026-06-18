@@ -81,9 +81,12 @@
       />
 
       <SectRecoveryPanel
-        v-if="sectStore.recoveryState.active"
+        v-if="sectStore.recoveryState.active || capturedNpcRescueTarget"
         :state="sectStore.recoveryState"
+        :captured-npc="capturedNpcRescueTarget"
+        :npc-rescue-cost="NPC_RESCUE_COST"
         @act="handleRecoveryAction"
+        @rescue-npc="handleRescueNpc"
       />
 
       <SectTasksPanel
@@ -179,11 +182,18 @@ import {
 import type { SectRecoveryActionId } from '@/sect/runtime/sectRecoveryResolver'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
+import { useWorldStore } from '@/stores/worldStore'
 import { getSectRelationDescription, getSectSurfaceTone, getSectWorldStatusLabel, type SectDiplomacyRow } from '@/components/sect/sectUi'
 
 const sectStore = useSectStore()
 const playerStore = usePlayerStore()
+const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
+
+const NPC_RESCUE_COST = {
+  contribution: 38,
+  gold: 180
+}
 
 const activeTab = ref<'tasks' | 'facilities' | 'diplomacy'>('tasks')
 const showFacilityModal = ref(false)
@@ -223,6 +233,19 @@ const overviewSubtitle = computed(() => {
 const captivityHint = computed(() => {
   if (!playerStore.captivity.isCaptured) return '宗门完整度影响战后后果与后续事件。'
   return '主角被俘期间，宗门后果与世界事件仍会继续推进。'
+})
+
+const capturedNpcRescueTarget = computed(() => {
+  const target = worldStore.getCapturedNpcRescueTarget(sectStore.joinedSectId)
+  if (!target) return null
+  return {
+    id: target.id,
+    name: target.name,
+    title: target.title,
+    captorName: target.captorName,
+    locationName: target.locationName,
+    severity: target.severity === 'legendary' ? 'legendary' as const : 'major' as const
+  }
 })
 
 const promotionProgress = computed(() => {
@@ -415,6 +438,33 @@ function handleRecoveryAction(actionId: SectRecoveryActionId) {
 
   success(result.title ?? '恢复行动已执行')
   info(result.message)
+}
+
+function handleRescueNpc(npcId: string) {
+  const target = capturedNpcRescueTarget.value
+  if (!target || target.id !== npcId) {
+    warning('当前没有可营救的宗门人物')
+    return
+  }
+  if (sectStore.contribution < NPC_RESCUE_COST.contribution) {
+    warning(`贡献不足，需要 ${NPC_RESCUE_COST.contribution}`)
+    return
+  }
+  if (playerStore.gold < NPC_RESCUE_COST.gold) {
+    warning(`灵石不足，需要 ${NPC_RESCUE_COST.gold}`)
+    return
+  }
+
+  if (!worldStore.rescueCapturedNpc(npcId, sectStore.joinedSectId)) {
+    warning('营救失败，目标状态已变化')
+    return
+  }
+
+  sectStore.addContribution(-NPC_RESCUE_COST.contribution)
+  playerStore.addGold(-NPC_RESCUE_COST.gold)
+
+  success(`${target.name}已被救回`)
+  info('对方仍需疗伤，但已脱离囚局')
 }
 
 function handleLeaveSect() {

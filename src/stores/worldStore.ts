@@ -856,6 +856,72 @@ export const useWorldStore = defineStore('world', () => {
     return result
   }
 
+  function getCapturedNpcRescueTarget(sectId?: string | null) {
+    const target = importantNpcStates.value
+      .filter(item => item.state.hpState === 'captured')
+      .filter(item => !sectId || item.definition.sectId === sectId)
+      .sort((a, b) => b.spotlightScore - a.spotlightScore)[0]
+
+    if (!target) return null
+
+    const profile = getNpcDisplayProfile(target.state.id)
+    const captorFlag = target.state.flags.find(flag => flag.startsWith('captured_by:'))
+    const captorId = captorFlag?.split(':')[1]
+    const captor = captorId ? getNpcDisplayProfile(captorId) : null
+
+    return {
+      id: target.state.id,
+      name: target.definition.name,
+      title: profile?.title ?? '无名修士',
+      sectId: target.definition.sectId ?? null,
+      captorId: captorId ?? null,
+      captorName: captor?.name ?? captorId ?? null,
+      locationName: profile?.locationName ?? '未知地带',
+      severity: target.definition.role === 'main' || target.definition.profile.destinyRank === 'legendary'
+        ? 'legendary' as const
+        : 'major' as const
+    }
+  }
+
+  function rescueCapturedNpc(npcId: string, rescuerSectId?: string | null) {
+    const npc = npcStates.value.find(item => item.id === npcId)
+    const definition = npcDefinitions.value.find(item => item.id === npcId)
+    if (!npc || !definition || npc.hpState !== 'captured') return false
+
+    const captorFlag = npc.flags.find(flag => flag.startsWith('captured_by:'))
+    const captorId = captorFlag?.split(':')[1]
+    const captorDefinition = captorId ? npcDefinitions.value.find(item => item.id === captorId) : null
+    const rescuerName = rescuerSectId ? getSectById(rescuerSectId)?.name ?? rescuerSectId : '宗门'
+
+    npc.hpState = 'injured'
+    npc.currentGoal = 'recover'
+    npc.locationMapId = definition.homeMapId
+    npc.flags = npc.flags.filter(flag => !flag.startsWith('captured_by:'))
+    if (!npc.flags.includes('rescued_from_captivity')) {
+      npc.flags.push('rescued_from_captivity')
+    }
+    npc.notoriety = Math.max(0, Math.min(100, npc.notoriety + 4))
+
+    addLog(
+      'sect',
+      definition.profile.destinyRank === 'legendary' ? 'legendary' : 'major',
+      `${definition.name}获救`,
+      `${rescuerName}派人接应，将${definition.name}从${captorDefinition?.name ?? captorId ?? '敌手'}控制中救出。此人仍需疗伤，但已重新回到自身势力范围。`,
+      [npcId],
+      ['npc', 'captivity', 'rescued'],
+      definition.homeMapId
+    )
+    appendNpcStory(
+      npcId,
+      `${definition.name}脱离囚局`,
+      `${definition.name}被${rescuerName}救回，短期内会以恢复为主。`,
+      definition.profile.destinyRank === 'legendary' ? 'legendary' : 'major',
+      definition.homeMapId,
+      ['npc', 'captivity', 'rescued']
+    )
+    return true
+  }
+
   function unlockNpc(npcId: string, reason?: string) {
     const definition = npcDefinitions.value.find(item => item.id === npcId)
     if (!definition) return false
@@ -970,6 +1036,8 @@ export const useWorldStore = defineStore('world', () => {
     getCaptivityForecast,
     canAttemptCaptivityEscape,
     attemptCaptivityEscape,
+    getCapturedNpcRescueTarget,
+    rescueCapturedNpc,
     applyStoryRelationshipChange,
     addWorldFlag,
     hasWorldFlag

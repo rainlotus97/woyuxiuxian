@@ -1,14 +1,14 @@
 <template>
   <GameSurface
-    v-if="state.active"
+    v-if="state.active || capturedNpc"
     :tone="state.tone"
     padding="md"
-    eyebrow="宗门恢复"
-    title="山门复原"
-    :subtitle="state.summary"
+    :eyebrow="state.active ? '宗门恢复' : '宗门救援'"
+    :title="state.active ? '山门复原' : '营救同门'"
+    :subtitle="state.active ? state.summary : '重要人物被俘后会牵动宗门关系与世界态势，可派人接应救回。'"
   >
     <div class="recovery-grid">
-      <div class="recovery-summary">
+      <div v-if="state.active" class="recovery-summary">
         <GameProgressBar
           label="恢复进度"
           :current="state.progressCurrent"
@@ -23,6 +23,21 @@
       </div>
 
       <div class="action-list">
+        <button
+          v-if="capturedNpc"
+          class="action-card tone-mist"
+          @click="$emit('rescue-npc', capturedNpc.id)"
+        >
+          <div class="action-head">
+            <strong>营救{{ capturedNpc.name }}</strong>
+            <span>{{ capturedNpc.severity === 'legendary' ? '高危' : '要事' }}</span>
+          </div>
+          <p>{{ capturedNpc.title }}被{{ capturedNpc.captorName || '敌手' }}控制，现踪{{ capturedNpc.locationName }}。派出同门接应，可将其救回宗门范围。</p>
+          <small>
+            消耗 {{ npcRescueCost.contribution }} 贡献 · {{ npcRescueCost.gold }} 灵石 · 救回后转入疗伤
+          </small>
+        </button>
+
         <button
           v-for="option in state.options"
           :key="option.id"
@@ -52,10 +67,23 @@ import type { SectRecoveryActionId, SectRecoveryState } from '@/sect/runtime/sec
 
 defineProps<{
   state: SectRecoveryState
+  capturedNpc?: {
+    id: string
+    name: string
+    title: string
+    captorName: string | null
+    locationName: string
+    severity: 'major' | 'legendary'
+  } | null
+  npcRescueCost: {
+    contribution: number
+    gold: number
+  }
 }>()
 
 defineEmits<{
   act: [actionId: SectRecoveryActionId]
+  'rescue-npc': [npcId: string]
 }>()
 </script>
 

@@ -152,7 +152,8 @@
   - 已新增 `npcSchemeActionResolver`，支持 NPC 对 NPC 的设伏、反制、负伤与俘获
   - 已让设伏/俘获消息向同地图、同宗门相关 NPC 传播，推动第三方关系波动
   - 已让重要 NPC 被俘进入 `WorldBriefingPanel`，作为宗门追责/救援玩法入口
-  - 待补：更复杂的行动分发、宗门层级追责/营救动作、跨区域长期追踪链
+  - 已在宗门页接入“营救同门”动作，可消耗贡献/灵石救回本宗被俘 NPC，并写回世界日志与人物纪闻
+  - 待补：更复杂的行动分发、宗门层级追责、跨区域长期追踪链
 - [~] 实现 NPC 自主行动结果写回世界日志
   - 已让 world runtime action 统一返回 log effects，由 `worldStore` 写入日志
   - 已让 NPC 社交事件统一写入世界日志，并带 actorIds / mapId / tags
