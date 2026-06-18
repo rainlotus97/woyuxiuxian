@@ -176,6 +176,7 @@ import { SECT_FACILITIES, getSectById } from '@/types/sect'
 import { useToast } from '@/composables/useToast'
 import { useSectDuty } from '@/composables/useSectDuty'
 import { useSectMembership } from '@/composables/useSectMembership'
+import { useSectProgression } from '@/composables/useSectProgression'
 import { useSectRewards } from '@/composables/useSectRewards'
 import { NPC_RESCUE_COST, useSectViewState } from '@/composables/useSectViewState'
 import {
@@ -216,6 +217,11 @@ const {
 const { lastDuty, handleSectDuty: resolveSectDuty } = useSectDuty()
 const { joinSect: joinSectWithJourney, leaveSect: leaveSectWithJourney } = useSectMembership()
 const {
+  promotePosition: promotePositionWithJourney,
+  upgradeFacility: upgradeFacilityWithJourney,
+  harvestAllReadyCrops: harvestAllReadyCropsWithJourney
+} = useSectProgression()
+const {
   claimDailySalary: claimDailySalaryWithJourney,
   claimTaskReward: claimTaskRewardWithJourney,
   claimAllCompletedTaskRewards: claimAllCompletedTaskRewardsWithJourney
@@ -242,8 +248,9 @@ function handleJoinSect(sectId: string) {
 }
 
 function handlePromote() {
-  if (sectStore.promotePosition()) {
-    success(`晋升成功，现为${sectStore.positionName}`)
+  const result = promotePositionWithJourney()
+  if (result.success) {
+    success(`晋升成功，现为${result.positionName}`)
   }
 }
 
@@ -291,8 +298,9 @@ function handleDirectiveChange(directive: SectDirectiveId) {
 }
 
 function handleUpgradeFacility(facilityId: string) {
-  if (sectStore.upgradeFacility(facilityId)) {
-    success('设施升级成功')
+  const result = upgradeFacilityWithJourney(facilityId)
+  if (result.success) {
+    success(`${result.facilityName ?? '设施'}升级成功`)
   } else {
     warning('升级失败，资源不足或职位不够')
   }
@@ -308,7 +316,7 @@ function handleClaimSalary() {
 }
 
 function handleHarvestReady() {
-  const result = sectStore.harvestAllReadyCrops()
+  const result = harvestAllReadyCropsWithJourney()
   if (result.harvestedCount <= 0) {
     warning('当前没有可收取的成熟作物')
     return

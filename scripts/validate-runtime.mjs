@@ -1118,6 +1118,7 @@ test('map and sect rules block invalid gameplay paths', async () => {
   } = await load('/src/sect/runtime/sectMembershipResolver.ts')
   const { resolveSectMembershipJourney } = await load('/src/sect/runtime/sectMembershipJourneyResolver.ts')
   const { resolveSectRewardJourney } = await load('/src/sect/runtime/sectRewardJourneyResolver.ts')
+  const { resolveSectProgressionJourney } = await load('/src/sect/runtime/sectProgressionJourneyResolver.ts')
   const { resolveSectEventChoice } = await load('/src/sect/runtime/sectEventResolver.ts')
   const { resolveSectWarConclusion } = await load('/src/sect/runtime/sectWarRewardResolver.ts')
   const {
@@ -1278,6 +1279,49 @@ test('map and sect rules block invalid gameplay paths', async () => {
   assert.equal(taskRewardJourney.severity, 'major')
   assert.ok(taskRewardJourney.text.includes('3项宗门任务'))
   assert.ok(taskRewardJourney.tags.includes('task'))
+
+  const promotionJourney = resolveSectProgressionJourney({
+    action: 'promotion',
+    sectName: '青云宗',
+    previousPositionName: '外门弟子',
+    nextPositionName: '内门弟子'
+  })
+  assert.equal(promotionJourney.severity, 'major')
+  assert.equal(promotionJourney.rewards[0]?.label, '职位')
+  assert.ok(promotionJourney.tags.includes('promotion'))
+
+  const facilityJourney = resolveSectProgressionJourney({
+    action: 'facility_upgrade',
+    sectName: '青云宗',
+    facilityName: '炼丹炉',
+    previousLevel: 1,
+    nextLevel: 2
+  })
+  assert.equal(facilityJourney.title, '炼丹炉升级')
+  assert.ok(facilityJourney.text.includes('Lv.1'))
+  assert.ok(facilityJourney.tags.includes('facility'))
+
+  const harvestJourney = resolveSectProgressionJourney({
+    action: 'garden_harvest',
+    sectName: '青云宗',
+    itemName: '灵草',
+    quantity: 6,
+    rewards: [{ type: 'item', label: '灵草', value: 6 }]
+  })
+  assert.equal(harvestJourney.severity, 'normal')
+  assert.ok(harvestJourney.rewards.some(reward => reward.type === 'item' && reward.value === 6))
+  assert.ok(harvestJourney.tags.includes('harvest'))
+
+  const alchemyJourney = resolveSectProgressionJourney({
+    action: 'alchemy_craft',
+    sectName: '青云宗',
+    facilityName: '炼丹炉',
+    itemName: '聚气丹',
+    rewards: [{ type: 'item', label: '聚气丹', value: 1 }]
+  })
+  assert.equal(alchemyJourney.title, '青云宗炼丹成品')
+  assert.ok(alchemyJourney.text.includes('聚气丹'))
+  assert.ok(alchemyJourney.tags.includes('alchemy'))
 
   const inventoryFixture = [
     { id: 'item_a', definitionId: 'herb_spirit_grass', name: '灵草', icon: '草', type: 'material', quality: 'common', quantity: 2 },

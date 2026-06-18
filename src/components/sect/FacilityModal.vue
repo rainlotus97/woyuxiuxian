@@ -183,6 +183,7 @@ import { SECT_FACILITIES } from '@/types/sect'
 import { ALCHEMY_RECIPES, type AlchemyRecipe } from '@/types/alchemy'
 import { SEEDS, type PlantedCrop, type SeedDefinition } from '@/types/garden'
 import { useToast } from '@/composables/useToast'
+import { useSectProgression } from '@/composables/useSectProgression'
 
 const props = defineProps<{
   visible: boolean
@@ -196,6 +197,13 @@ const emit = defineEmits<{
 const sectStore = useSectStore()
 const playerStore = usePlayerStore()
 const { success, warning } = useToast()
+const {
+  upgradeFacility,
+  craftAlchemy,
+  plantSeed,
+  harvestCrop,
+  accelerateCrop
+} = useSectProgression()
 const selectingSlot = ref<number | null>(null)
 
 const facility = computed(() => SECT_FACILITIES.find(item => item.id === props.facilityId) ?? null)
@@ -273,7 +281,7 @@ function handleCraft(recipe: AlchemyRecipe) {
     warning('材料不足')
     return
   }
-  const result = sectStore.craftAlchemy(recipe.id)
+  const result = craftAlchemy(recipe.id)
   if (result.success) success(result.message)
   else warning(result.message)
 }
@@ -321,7 +329,7 @@ function canPlant(seed: SeedDefinition) {
 
 function handlePlant(seed: SeedDefinition) {
   if (selectingSlot.value === null) return
-  const result = sectStore.plantSeed(seed.id, selectingSlot.value)
+  const result = plantSeed(seed.id, selectingSlot.value)
   if (result.success) {
     success(result.message)
     selectingSlot.value = null
@@ -331,19 +339,19 @@ function handlePlant(seed: SeedDefinition) {
 }
 
 function handleHarvest(slotIndex: number) {
-  const result = sectStore.harvestCrop(slotIndex)
+  const result = harvestCrop(slotIndex)
   if (result.success) success(result.message)
   else warning(result.message)
 }
 
 function handleAccelerate(slotIndex: number) {
-  const result = sectStore.accelerateCrop(slotIndex)
+  const result = accelerateCrop(slotIndex)
   if (result.success) success(result.message)
   else warning(result.message)
 }
 
 function handleUpgrade() {
-  if (sectStore.upgradeFacility(props.facilityId)) success('升级成功')
+  if (upgradeFacility(props.facilityId).success) success('升级成功')
   else warning('升级失败，资源不足')
 }
 
