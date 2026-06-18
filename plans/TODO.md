@@ -11,7 +11,7 @@
   - 已完成首进战斗与首回合出手回归验证，确认 `showDamage()` / `updateSnapshot()` 不再触发空引用
   - 已加固 `PhaserHost / PreloadScene / BattleScene` 生命周期，避免重复挂载、重复资源注册和销毁后 tween/计时器继续触发
   - 已用 Playwright 验证首进战斗 DOM 不再重复、手动普攻可推进回合、控制台无空引用错误
-  - 待补回归验证：路由往返、自动战斗连续结算、胜利弹层后退出
+  - 已用 Playwright 补充验证路由往返、自动战斗连续结算、胜利弹层后退出，确认 DOM / canvas 不残留
 - [~] 新战斗链路落地
   - 已建立 `src/game/battle/battleRuntime.ts`
   - 已建立 `src/game/scenes/BattleScene.ts`
@@ -271,7 +271,8 @@
 - [x] 为资源包建立 manifest 校验
   - 已新增 `scripts/validate-assets.mjs`
   - 已新增 `npm run assets:validate`
-- [ ] 更新 README 的项目结构说明，反映 `src/game`、`src/story`、`plans/`
+- [x] 更新 README 的项目结构说明，反映 `src/game`、`src/story`、`plans/`
+  - 已补充当前项目结构、模块边界与 `story:validate` / `assets:validate` 校验命令
 
 ## 本次提交覆盖
 
