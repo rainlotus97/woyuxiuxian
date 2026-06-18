@@ -134,20 +134,33 @@
             <small>{{ p0Acceptance.headline }}</small>
           </div>
           <div class="priority-grid">
-            <div
+            <button
               v-for="item in priorityItems"
-              :key="item.title"
+              :key="item.id"
+              type="button"
               class="priority-item"
               :class="`state-${item.state}`"
+              @click="handlePriorityItem(item.id)"
             >
               <span>{{ item.icon }}</span>
               <strong>{{ item.title }}</strong>
               <small>{{ item.desc }}</small>
-            </div>
+              <em>{{ item.actionLabel }}</em>
+            </button>
           </div>
         </div>
 
         <div class="start-actions">
+          <button
+            v-if="p0Acceptance.primaryGap"
+            class="primary-action compact"
+            type="button"
+            @click="handlePrimaryGap"
+          >
+            <Play :size="18" />
+            <span>处理当前缺口</span>
+            <small>{{ p0Acceptance.primaryGap.nextAction }}</small>
+          </button>
           <div class="save-action-row">
             <button class="secondary-action" @click="handleSettings">
               <Settings :size="16" />
@@ -181,16 +194,19 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { LockKeyhole, Play, ScrollText, Settings, Sparkles, VolumeX } from 'lucide-vue-next'
+import { useP0LoopActions } from '@/composables/useP0LoopActions'
 import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import { useToast } from '@/composables/useToast'
 import { usePlayerStore } from '@/stores/playerStore'
 import type { Element } from '@/types/unit'
+import type { MainLoopReadinessKey } from '@/world/runtime/mainLoopReadinessResolver'
 
 const router = useRouter()
 const route = useRoute()
 const playerStore = usePlayerStore()
 const { info } = useToast()
 const { p0Audit, p0Acceptance } = useP0LoopStatus()
+const { handleP0LoopAction } = useP0LoopActions()
 
 const draftName = ref(playerStore.name || '云逸')
 const draftElement = ref<Element>(playerStore.element)
@@ -228,10 +244,12 @@ const priorityIcons = {
 } as const
 
 const priorityItems = computed(() => p0Audit.value.checklist.map(item => ({
+  id: item.id,
   icon: priorityIcons[item.id],
   title: item.label,
   desc: `${item.stateLabel} · ${item.detail}`,
-  state: item.state
+  state: item.state,
+  actionLabel: item.state === 'closed' ? '查看' : item.nextAction
 })))
 
 const roadmapCards = [
@@ -280,6 +298,16 @@ function handleSettings() {
 
 function handleStory() {
   void router.push('/game/story')
+}
+
+function handlePrimaryGap() {
+  const gap = p0Acceptance.value.primaryGap
+  if (!gap) return
+  handleP0LoopAction(gap.id)
+}
+
+function handlePriorityItem(id: MainLoopReadinessKey) {
+  handleP0LoopAction(id)
 }
 
 function getRedirectPath() {
@@ -629,6 +657,16 @@ function formatAmount(value: number) {
   border: 1px solid rgba(111, 157, 149, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
+  color: #315257;
+  font-family: var(--font-game);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.priority-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(88, 123, 116, 0.12);
 }
 
 .priority-item.state-closed {
@@ -667,6 +705,16 @@ function formatAmount(value: number) {
   color: rgba(49, 82, 87, 0.68);
   font-size: 10px;
   line-height: 1.55;
+}
+
+.priority-item em {
+  overflow: hidden;
+  color: #8b6226;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand-copy h1 {
@@ -881,6 +929,13 @@ function formatAmount(value: number) {
   min-height: 66px;
 }
 
+.primary-action.compact small {
+  overflow: hidden;
+  max-width: min(360px, 80vw);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .primary-action.docket-action {
   position: relative;
   z-index: 1;
@@ -1011,6 +1066,53 @@ function formatAmount(value: number) {
 
   .priority-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .start-shell {
+    min-height: auto;
+  }
+
+  .brand-panel {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .brand-art {
+    min-height: 88px;
+  }
+
+  .brand-copy {
+    gap: 8px;
+  }
+
+  .brand-copy h1 {
+    font-size: 34px;
+  }
+
+  .guide-head strong {
+    font-size: 22px;
+  }
+
+  .choice-grid,
+  .avatar-row,
+  .priority-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .save-profile {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+
+  .save-avatar {
+    width: 60px;
+    border-radius: 14px;
+    font-size: 26px;
+  }
+
+  .save-profile strong {
+    font-size: 20px;
   }
 }
 </style>

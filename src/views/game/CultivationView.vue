@@ -413,6 +413,7 @@ import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
 import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import { useWorldAdvanceSummary } from '@/composables/useWorldAdvanceSummary'
 import { usePlayerFortune } from '@/composables/usePlayerFortune'
+import { useP0LoopActions } from '@/composables/useP0LoopActions'
 import { useP0LoopStatus } from '@/composables/useP0LoopStatus'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -426,10 +427,6 @@ import type {
   MainLoopReadinessKey
 } from '@/world/runtime/mainLoopReadinessResolver'
 import type { P0LoopClosureItem } from '@/world/runtime/p0LoopClosureResolver'
-import {
-  resolveP0LoopRouteTarget,
-  type P0LoopRouteTarget
-} from '@/world/runtime/p0LoopRouteResolver'
 import {
   formatJourneyRewards,
   getAnomalyIcon,
@@ -470,8 +467,6 @@ interface MainLoopTask {
   readiness: MainLoopReadinessItem
   closure: P0LoopClosureItem
   active?: boolean
-  route?: P0LoopRouteTarget
-  action?: 'toggleIdle'
 }
 
 interface ActionFeedbackItem {
@@ -680,6 +675,10 @@ const {
   worldBriefingCount: computed(() => worldBriefings.value.length),
   hasRecentJourney: computed(() => recentJourneys.value.length > 0)
 })
+const { handleP0LoopAction } = useP0LoopActions({
+  hotspotAreaId: computed(() => hotspotArea.value?.id),
+  onIdle: toggleIdle
+})
 
 const briefingSpotlightNpc = computed(() => spotlightNpcs.value[0]
   ? {
@@ -742,8 +741,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       tone: loopReadiness.value.byId.idle.tone,
       readiness: loopReadiness.value.byId.idle,
       closure: p0LoopClosure.value.byId.idle,
-      active: playerStore.isIdling,
-      action: 'toggleIdle'
+      active: playerStore.isIdling
     },
     {
       id: 'adventure',
@@ -754,8 +752,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `体力 ${playerStore.stamina}/${playerStore.maxStamina}`,
       tone: loopReadiness.value.byId.adventure.tone,
       readiness: loopReadiness.value.byId.adventure,
-      closure: p0LoopClosure.value.byId.adventure,
-      route: resolveP0LoopRouteTarget({ id: 'adventure' })
+      closure: p0LoopClosure.value.byId.adventure
     },
     {
       id: 'story',
@@ -766,8 +763,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `${latestStoryLabel}`,
       tone: loopReadiness.value.byId.story.tone,
       readiness: loopReadiness.value.byId.story,
-      closure: p0LoopClosure.value.byId.story,
-      route: resolveP0LoopRouteTarget({ id: 'story' })
+      closure: p0LoopClosure.value.byId.story
     },
     {
       id: 'npc',
@@ -780,8 +776,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
         : `${worldStore.unlockedNpcDefinitions.length} 人`,
       tone: loopReadiness.value.byId.npc.tone,
       readiness: loopReadiness.value.byId.npc,
-      closure: p0LoopClosure.value.byId.npc,
-      route: resolveP0LoopRouteTarget({ id: 'npc' })
+      closure: p0LoopClosure.value.byId.npc
     },
     {
       id: 'map',
@@ -792,8 +787,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: `${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`,
       tone: loopReadiness.value.byId.map.tone,
       readiness: loopReadiness.value.byId.map,
-      closure: p0LoopClosure.value.byId.map,
-      route: resolveP0LoopRouteTarget({ id: 'map', hotspotAreaId: hotspotArea.value?.id })
+      closure: p0LoopClosure.value.byId.map
     },
     {
       id: 'sect',
@@ -804,8 +798,7 @@ const mainLoopTasks = computed<MainLoopTask[]>(() => {
       meta: sectMeta,
       tone: loopReadiness.value.byId.sect.tone,
       readiness: loopReadiness.value.byId.sect,
-      closure: p0LoopClosure.value.byId.sect,
-      route: resolveP0LoopRouteTarget({ id: 'sect' })
+      closure: p0LoopClosure.value.byId.sect
     }
   ]
 })
@@ -933,14 +926,7 @@ function handleIdleModeChange(mode: IdleMode) {
 }
 
 function handleTaskAction(task: MainLoopTask) {
-  if (task.action === 'toggleIdle') {
-    toggleIdle()
-    return
-  }
-
-  if (task.route) {
-    void router.push(task.route)
-  }
+  handleP0LoopAction(task.id)
 }
 
 function handleNextP0Action() {
