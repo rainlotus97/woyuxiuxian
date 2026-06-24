@@ -1,0 +1,37 @@
+{
+  "name": "woyu-xiuxian",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "story:validate": "node scripts/validate-story.mjs",
+    "assets:validate": "node scripts/validate-assets.mjs",
+    "runtime:validate": "node scripts/validate-runtime.mjs",
+    "theme:image2": "node scripts/generate-theme-ui-image2.mjs",
+    "theme:matte": "python3 scripts/remove-image-matte.py"
+  },
+  "dependencies": {
+    "vue": "^3.5.25",
+    "vue-router": "^5.0.3",
+    "pinia": "^3.0.4",
+    "phaser": "^4.1.0",
+    "tone": "^15.1.22",
+    "crypto-js": "^4.2.0",
+    "lucide-vue-next": "^0.576.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/crypto-js": "^4.2.2",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/tsconfig": "^0.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vue-tsc": "^3.1.5",
+    "tailwindcss": "3.4.19",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8"
+  }
+}

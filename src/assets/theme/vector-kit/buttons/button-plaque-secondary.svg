@@ -1,0 +1,42 @@
+<svg width="1536" height="512" viewBox="0 0 1536 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldStroke" x1="104" y1="80" x2="1432" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EBDAB0"/>
+      <stop offset="0.34" stop-color="#B88C43"/>
+      <stop offset="0.7" stop-color="#F6E8C1"/>
+      <stop offset="1" stop-color="#C59A55"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="768" y1="70" x2="768" y2="442" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFB"/>
+      <stop offset="0.58" stop-color="#F8FAF6"/>
+      <stop offset="1" stop-color="#EDF4F1"/>
+    </linearGradient>
+    <radialGradient id="mistLeft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(286 272) rotate(-8) scale(260 150)">
+      <stop stop-color="#E3F0ED"/>
+      <stop offset="1" stop-color="#E3F0ED" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mistRight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1250 272) rotate(188) scale(260 150)">
+      <stop stop-color="#E3F0ED"/>
+      <stop offset="1" stop-color="#E3F0ED" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="94" y="72" width="1348" height="368" rx="184" fill="url(#fill)" stroke="url(#goldStroke)" stroke-width="14"/>
+  <rect x="114" y="92" width="1308" height="328" rx="164" stroke="#FBF5E4" stroke-width="5"/>
+  <rect x="128" y="108" width="1280" height="296" rx="148" fill="url(#mistLeft)"/>
+  <rect x="128" y="108" width="1280" height="296" rx="148" fill="url(#mistRight)"/>
+
+  <g opacity="0.92">
+    <path d="M168 258C180 214 208 184 248 172C226 198 228 224 246 246C262 264 258 288 230 314C236 286 222 270 188 264C180 262 174 260 168 258Z" fill="#F0F6F0" stroke="#D6AE65" stroke-width="6"/>
+    <circle cx="196" cy="242" r="24" fill="#FBFEFA" stroke="#D6AE65" stroke-width="6"/>
+    <path d="M1368 258C1356 214 1328 184 1288 172C1310 198 1308 224 1290 246C1274 264 1278 288 1306 314C1300 286 1314 270 1348 264C1356 262 1362 260 1368 258Z" fill="#F0F6F0" stroke="#D6AE65" stroke-width="6"/>
+    <circle cx="1340" cy="242" r="24" fill="#FBFEFA" stroke="#D6AE65" stroke-width="6"/>
+  </g>
+
+  <path d="M726 80L744 96H792L810 80L796 114H740L726 80Z" fill="#F0F5EB" stroke="#D9B267" stroke-width="5"/>
+  <path d="M726 432L744 416H792L810 432L796 398H740L726 432Z" fill="#F0F5EB" stroke="#D9B267" stroke-width="5"/>
+  <path d="M622 104C650 108 672 116 694 132" stroke="#E1C279" stroke-width="5" stroke-linecap="round"/>
+  <path d="M914 104C886 108 864 116 842 132" stroke="#E1C279" stroke-width="5" stroke-linecap="round"/>
+  <path d="M622 408C650 404 672 396 694 380" stroke="#E1C279" stroke-width="5" stroke-linecap="round"/>
+  <path d="M914 408C886 404 864 396 842 380" stroke="#E1C279" stroke-width="5" stroke-linecap="round"/>
+</svg>

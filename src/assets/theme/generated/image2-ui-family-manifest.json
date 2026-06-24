@@ -1,0 +1,73 @@
+{
+  "model": "gpt-image-2",
+  "quality": "high",
+  "matteColor": "#00FF00",
+  "board": {
+    "id": "ui-family-board-v1",
+    "size": "1536x1024",
+    "output": "src/assets/theme/generated/styleboards/ui-family-board-v1.png",
+    "prompt": "Use case: ui-mockup board. Create a focused style family board for a Chinese xianxia game UI. This is not a full game screen. Show only a curated family of reusable interface shells arranged on one clean presentation board: one primary button, one secondary button, one story card, one encounter card, one prompt panel, one horizontal notice panel, one small icon frame. Visual direction: calm xianxia interface, muted teal lacquer, ivory parchment centers, aged gold trim, restrained cloud ornaments, slightly weathered painted texture, elegant but not luxury jade, not glossy, not cartoonish, not gemstone fantasy, not bright mobile gacha style. Structure rule: every sample must keep its center clean for dynamic text, ornament only near edges and corners, no text on the assets themselves. Board background may be neutral parchment presentation space, but keep it quiet and flat. No characters, no scenery illustration, no full page screenshot, no UI labels, no watermark."
+  },
+  "assets": [
+    {
+      "id": "button-primary-master-v1",
+      "size": "1536x512",
+      "output": "src/assets/theme/generated/matte/button-primary-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/button-primary-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone primary action button shell for a xianxia game UI. Single object only. Front view. Symmetrical left and right ends. Muted teal lacquer center, ivory undertone, aged gold trim, restrained ornamental flourishes near the ends only. Clean central text safe area. No icon. No text. No extra badge. No panel. No card. No scenery. Background must be one perfectly flat solid chroma green matte only, with no gradient, no texture, no shadow touching the background, so the background can be removed cleanly later. Keep the silhouette tightly framed."
+    },
+    {
+      "id": "button-secondary-master-v1",
+      "size": "1536x448",
+      "output": "src/assets/theme/generated/matte/button-secondary-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/button-secondary-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone secondary action button shell for a xianxia game UI. Single object only. Front view. Slightly lighter and quieter than the primary button. Muted stone-paper center with soft teal undertone, aged gold trim, very restrained end ornament, clean flat center for text. No icon. No text. No extra badge. Background must be one perfectly flat solid chroma green matte only, with no gradient, no texture, no cast shadow, no other object."
+    },
+    {
+      "id": "card-story-master-v1",
+      "size": "1024x1280",
+      "output": "src/assets/theme/generated/matte/card-story-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/card-story-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone vertical story card shell for a xianxia game UI. Elegant parchment center, aged gold border, pale mist-teal framing, quiet mountain-cloud ornament concentrated in corners and lower edge only, large calm center area for dynamic title and text, no central divider, no text, no icon, no badge. Single object only. Background must be one perfectly flat solid chroma green matte only, no gradient, no ambient scene."
+    },
+    {
+      "id": "card-encounter-master-v1",
+      "size": "1024x1280",
+      "output": "src/assets/theme/generated/matte/card-encounter-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/card-encounter-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone vertical encounter card shell for a xianxia game UI. Slightly more tension than the story card, but still restrained. Aged gold and muted jade framing, subtle corner emphasis, clean center for dynamic content, no text, no icon, no scenic backdrop, no heavy central ornament. Single object only. Background must be one perfectly flat solid chroma green matte only, no gradient, no cast shadow."
+    },
+    {
+      "id": "panel-prompt-master-v1",
+      "size": "1536x1024",
+      "output": "src/assets/theme/generated/matte/panel-prompt-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/panel-prompt-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone prompt panel shell for a xianxia game UI. Horizontal confirmation or reward panel. Ornamental focus only on corners and border edges, clean parchment center for dynamic title and copy, muted teal inner glow, aged gold linework, no central illustration, no text, no badge. Single object only. Background must be one perfectly flat solid chroma green matte only, no gradient, no texture, no environment."
+    },
+    {
+      "id": "panel-notice-master-v1",
+      "size": "1536x512",
+      "output": "src/assets/theme/generated/matte/panel-notice-master-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/transparent/panel-notice-master-v1.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/ui-family-board-v1.png"
+      ],
+      "prompt": "Using the exact same visual language as the reference UI family board, create one standalone horizontal notice strip shell for a xianxia game UI. Long elegant strip, clean center for one line or two lines of dynamic text, aged gold border, subdued teal-gray body, minimal edge ornament only, no text, no icon, no sticker, no scenery. Background must be one perfectly flat solid chroma green matte only, with no gradient, no texture, no cast shadow."
+    }
+  ]
+}

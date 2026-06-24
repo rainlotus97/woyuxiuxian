@@ -1,0 +1,1180 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "battle.bg.cloud_base",
+      "path": "src/assets/battle/backgrounds/Background02.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_base"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.cloud_glow",
+      "path": "src/assets/battle/backgrounds/Background01.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_glow"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.mountain_far",
+      "path": "src/assets/battle/backgrounds/BackgroundMountain_01.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_mountain_far"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.mountain_near",
+      "path": "src/assets/battle/backgrounds/BackgroundMuntain02.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_mountain_near"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.cloud_1",
+      "path": "src/assets/battle/backgrounds/Cloud01.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_1"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.cloud_2",
+      "path": "src/assets/battle/backgrounds/Cloud02.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_2"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.cloud_3",
+      "path": "src/assets/battle/backgrounds/Cloud03.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_3"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.bg.cloud_4",
+      "path": "src/assets/battle/backgrounds/Clouds04.png",
+      "type": "image",
+      "runtimeKeys": [
+        "bg_cloud_4"
+      ],
+      "usage": "battle-background",
+      "source": "Background Clouds And Mountains Parallax by FabinhoSC, OpenGameArt",
+      "license": "CC0/public domain",
+      "expected": {
+        "format": "png",
+        "width": 270,
+        "height": 170
+      }
+    },
+    {
+      "id": "battle.actor.character.original",
+      "path": "src/assets/battle/actors/RPGCharacterSprites32x32.png",
+      "type": "spritesheet",
+      "usage": "battle-source",
+      "source": "32x32 RPG Character Sprites by Eldiran, OpenGameArt",
+      "license": "CC0",
+      "expected": {
+        "format": "png",
+        "width": 384,
+        "height": 672,
+        "frameWidth": 32,
+        "frameHeight": 32
+      }
+    },
+    {
+      "id": "battle.actor.character.transparent",
+      "path": "src/assets/battle/actors/RPGCharacterSprites32x32-transparent.png",
+      "type": "spritesheet",
+      "runtimeKeys": [
+        "actor_ally",
+        "actor_enemy"
+      ],
+      "usage": "battle-actor",
+      "source": "Local chroma-key cleaned derivative of 32x32 RPG Character Sprites by Eldiran",
+      "license": "CC0",
+      "expected": {
+        "format": "png",
+        "width": 384,
+        "height": 672,
+        "frameWidth": 32,
+        "frameHeight": 32
+      }
+    },
+    {
+      "id": "battle.actor.soldier.original",
+      "path": "src/assets/battle/actors/RPGSoldier32x32.png",
+      "type": "spritesheet",
+      "usage": "battle-source",
+      "source": "32x32 RPG Character Sprites by Eldiran, OpenGameArt",
+      "license": "CC0",
+      "expected": {
+        "format": "png",
+        "width": 288,
+        "height": 175
+      }
+    },
+    {
+      "id": "battle.actor.soldier.transparent",
+      "path": "src/assets/battle/actors/RPGSoldier32x32-transparent.png",
+      "type": "spritesheet",
+      "runtimeKeys": [
+        "actor_boss"
+      ],
+      "usage": "battle-actor",
+      "source": "Local chroma-key cleaned derivative of 32x32 RPG Character Sprites by Eldiran",
+      "license": "CC0",
+      "expected": {
+        "format": "png",
+        "width": 288,
+        "height": 175
+      }
+    },
+    {
+      "id": "font.zpix",
+      "path": "src/assets/fonts/zpix.woff2",
+      "type": "font",
+      "usage": "ui-font",
+      "source": "Zpix pixel font project",
+      "license": "OFL-compatible open font",
+      "expected": {
+        "format": "woff2"
+      }
+    },
+    {
+      "id": "story.character.luo_yanzhi.portrait.v1",
+      "path": "src/assets/story/characters/portraits/luo-yanzhi-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.luo_yanzhi.avatar.v1",
+      "path": "src/assets/story/characters/avatars/luo-yanzhi-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.portrait.v1",
+      "path": "src/assets/story/characters/portraits/gu-changxi-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.avatar.v1",
+      "path": "src/assets/story/characters/avatars/gu-changxi-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "Project-copied derivative of the current Gu Changxi portrait baseline",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.maiden.portrait.v1",
+      "path": "src/assets/story/characters/portraits/gu-changxi-maiden-v1.png",
+      "type": "image",
+      "usage": "story-character-period-portrait",
+      "source": "OpenAI image generation based on revised in-project protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.adolescent.portrait.v1",
+      "path": "src/assets/story/characters/portraits/gu-changxi-adolescent-v1.png",
+      "type": "image",
+      "usage": "story-character-period-portrait",
+      "source": "OpenAI image generation based on revised in-project protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.young_main.portrait.v1",
+      "path": "src/assets/story/characters/portraits/gu-changxi-v1.png",
+      "type": "image",
+      "usage": "story-character-period-portrait",
+      "source": "OpenAI image generation based on revised in-project protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.pei_wangyuan.portrait.v1",
+      "path": "src/assets/story/characters/portraits/pei-wangyuan-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.pei_wangyuan.avatar.v1",
+      "path": "src/assets/story/characters/avatars/pei-wangyuan-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.yun_feiran.portrait.v1",
+      "path": "src/assets/story/characters/portraits/yun-feiran-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.yun_feiran.avatar.v1",
+      "path": "src/assets/story/characters/avatars/yun-feiran-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.liu_qingshuang.portrait.v1",
+      "path": "src/assets/story/characters/portraits/liu-qingshuang-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.liu_qingshuang.avatar.v1",
+      "path": "src/assets/story/characters/avatars/liu-qingshuang-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.wumian_zunzhe.portrait.v1",
+      "path": "src/assets/story/characters/portraits/wumian-zunzhe-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.wumian_zunzhe.avatar.v1",
+      "path": "src/assets/story/characters/avatars/wumian-zunzhe-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.jiang_su.portrait.v1",
+      "path": "src/assets/story/characters/portraits/jiang-su-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.jiang_su.avatar.v1",
+      "path": "src/assets/story/characters/avatars/jiang-su-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.si_tianming.portrait.v1",
+      "path": "src/assets/story/characters/portraits/si-tianming-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.si_tianming.avatar.v1",
+      "path": "src/assets/story/characters/avatars/si-tianming-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.su_wantang.portrait.v1",
+      "path": "src/assets/story/characters/portraits/su-wantang-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.su_wantang.avatar.v1",
+      "path": "src/assets/story/characters/avatars/su-wantang-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.jiuyouzi.portrait.v1",
+      "path": "src/assets/story/characters/portraits/jiuyouzi-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.jiuyouzi.avatar.v1",
+      "path": "src/assets/story/characters/avatars/jiuyouzi-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.shen_jingming.portrait.v1",
+      "path": "src/assets/story/characters/portraits/shen-jingming-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.shen_jingming.avatar.v1",
+      "path": "src/assets/story/characters/avatars/shen-jingming-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.wen_ruxu.portrait.v1",
+      "path": "src/assets/story/characters/portraits/wen-ruxu-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.wen_ruxu.avatar.v1",
+      "path": "src/assets/story/characters/avatars/wen-ruxu-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.xie_buyu.portrait.v1",
+      "path": "src/assets/story/characters/portraits/xie-buyu-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.xie_buyu.avatar.v1",
+      "path": "src/assets/story/characters/avatars/xie-buyu-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.bailu_xiansheng.portrait.v1",
+      "path": "src/assets/story/characters/portraits/bailu-xiansheng-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.bailu_xiansheng.avatar.v1",
+      "path": "src/assets/story/characters/avatars/bailu-xiansheng-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.zhongli_yue.portrait.v1",
+      "path": "src/assets/story/characters/portraits/zhongli-yue-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.zhongli_yue.avatar.v1",
+      "path": "src/assets/story/characters/avatars/zhongli-yue-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.xue_qingya.portrait.v1",
+      "path": "src/assets/story/characters/portraits/xue-qingya-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.xue_qingya.avatar.v1",
+      "path": "src/assets/story/characters/avatars/xue-qingya-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.yin_bofu.portrait.v1",
+      "path": "src/assets/story/characters/portraits/yin-bofu-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.yin_bofu.avatar.v1",
+      "path": "src/assets/story/characters/avatars/yin-bofu-avatar-v1.png",
+      "type": "image",
+      "usage": "story-character-avatar",
+      "source": "OpenAI image generation based on in-project story character profile",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "id": "story.character.luo_yanzhi.teen.portrait.v1",
+      "path": "src/assets/story/characters/portraits/luo-yanzhi-teen-v1.png",
+      "type": "image",
+      "usage": "story-character-period-portrait",
+      "source": "OpenAI image generation based on in-project story protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "story.character.luo_yanzhi.young_war.portrait.v1",
+      "path": "src/assets/story/characters/portraits/luo-yanzhi-war-v1.png",
+      "type": "image",
+      "usage": "story-character-period-portrait",
+      "source": "OpenAI image generation based on in-project story protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "id": "legacy.vue-logo",
+      "path": "src/assets/vue.svg",
+      "type": "image",
+      "usage": "legacy-template",
+      "source": "Vue starter template logo",
+      "license": "MIT",
+      "expected": {
+        "format": "svg"
+      }
+    },
+    {
+      "id": "story.faction.xuantian_sword_sect.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/xuantian-sword-sect-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.faction.biluo_palace.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/biluo-palace-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.faction.biluo_palace.final.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/biluo-palace-final-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "Project-copied alias for existing Biluo Palace wide background to match runtime filename resolution",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.faction.tianji_pavilion.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/tianji-pavilion-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.faction.changqing_valley.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/changqing-valley-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.faction.red_flame_domain.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/red-flame-domain-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.wangshi_town_forge.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/wangshi-town-forge-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.third_peak_training_ground.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/third-peak-training-ground-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.tianji_observatory_hall.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/tianji-observatory-hall-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.red_crystal_mine_warfront.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/red-crystal-mine-warfront-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.character.luo_yanzhi.main.portrait_9x16.v1",
+      "path": "src/assets/story/characters/portraits-9x16/luo-yanzhi-main-9x16-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait-mobile",
+      "source": "OpenAI image generation based on approved Luo Yanzhi portrait baseline and protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 941,
+        "height": 1672
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.adult.portrait_9x16.v1",
+      "path": "src/assets/story/characters/portraits-9x16/gu-changxi-adult-9x16-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait-mobile",
+      "source": "OpenAI image generation based on approved Gu Changxi references and protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 941,
+        "height": 1672
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.maiden.portrait_9x16.v1",
+      "path": "src/assets/story/characters/portraits-9x16/gu-changxi-maiden-9x16-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait-mobile",
+      "source": "OpenAI image generation based on approved Gu Changxi reference chain and protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 941,
+        "height": 1672
+      }
+    },
+    {
+      "id": "story.character.gu_changxi.adolescent.portrait_9x16.v1",
+      "path": "src/assets/story/characters/portraits-9x16/gu-changxi-adolescent-9x16-v1.png",
+      "type": "image",
+      "usage": "story-character-portrait-mobile",
+      "source": "OpenAI image generation based on approved Gu Changxi reference chain and protagonist continuity spec",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 941,
+        "height": 1672
+      }
+    },
+    {
+      "id": "story.faction.white_deer_realm.wide.v1",
+      "path": "src/assets/story/concepts/factions-16x9/white-deer-realm-16x9-v1.png",
+      "type": "image",
+      "usage": "story-faction-background-wide",
+      "source": "OpenAI image generation based on in-project story faction visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.postwar_sunset_sea_cliff.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/postwar-sunset-sea-cliff-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.xuanjian_peak_array_core.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/xuanjian-peak-array-core-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.jianhun_abyss.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/jianhun-abyss-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.biluo_palace_seaside_corridor.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/biluo-palace-seaside-corridor-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.scene.wangshi_town_ruins_dawn.wide.v1",
+      "path": "src/assets/story/concepts/scenes-16x9/wangshi-town-ruins-dawn-16x9-v1.png",
+      "type": "image",
+      "usage": "story-scene-background-wide",
+      "source": "OpenAI image generation based on in-project story scene visual brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_yanzhi.forge_broken_sword.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-yanzhi-forge-broken-sword-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Luo Yanzhi portrait baseline and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_yanzhi.after_jiangsu.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-yanzhi-alone-after-jiangsu-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Luo Yanzhi portrait baseline and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.gu_changxi.disciplined_memory.v1",
+      "path": "src/assets/story/illustrations-16x9/gu-changxi-disciplined-memory-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Gu Changxi portrait chain and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.gu_changxi.guardian_after_war.v1",
+      "path": "src/assets/story/illustrations-16x9/gu-changxi-guardian-after-war-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Gu Changxi portrait chain and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_gu.first_meeting.v2",
+      "path": "src/assets/story/illustrations-16x9/luo-gu-first-meeting-16x9-v2.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved protagonist portrait baselines and revised anti-template story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_gu.secret_night_meeting.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-gu-secret-night-meeting-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved protagonist portrait baselines and revised anti-template story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_gu.fight_together.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-gu-fight-together-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved protagonist portrait baselines and revised anti-template story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_gu.border_reunion.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-gu-border-reunion-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved protagonist portrait baselines and revised anti-template story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.luo_gu.opposing_battlefield.v1",
+      "path": "src/assets/story/illustrations-16x9/luo-gu-opposing-battlefield-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved protagonist portrait baselines and revised anti-template story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.jiang_su.drunken_disciple.v1",
+      "path": "src/assets/story/illustrations-16x9/jiang-su-drunken-disciple-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Jiang Su reference and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.jiang_su.before_array_sacrifice.v1",
+      "path": "src/assets/story/illustrations-16x9/jiang-su-before-array-sacrifice-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Jiang Su reference and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.si_tianming.gentle_control.v1",
+      "path": "src/assets/story/illustrations-16x9/si-tianming-gentle-control-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Si Tianming and Gu Changxi references and in-project story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.liu_qingshuang.last_look.v1",
+      "path": "src/assets/story/illustrations-16x9/liu-qingshuang-last-look-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Liu Qingshuang reference and brighter-stage story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.yun_feiran.wounded_charge.v1",
+      "path": "src/assets/story/illustrations-16x9/yun-feiran-wounded-charge-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Yun Feiran reference and brighter-stage story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "id": "story.illustration.shen_jingming.gentle_presence.v1",
+      "path": "src/assets/story/illustrations-16x9/shen-jingming-gentle-presence-16x9-v1.png",
+      "type": "image",
+      "usage": "story-illustration-wide",
+      "source": "OpenAI image generation based on approved Shen Jingming reference and brighter-stage story illustration brief",
+      "license": "Project-generated",
+      "expected": {
+        "format": "png",
+        "width": 1672,
+        "height": 941
+      }
+    }
+  ]
+}

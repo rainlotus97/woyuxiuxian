@@ -1,0 +1,41 @@
+<svg width="1280" height="880" viewBox="0 0 1280 880" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="frameStroke" x1="86" y1="70" x2="1194" y2="810" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0DDAF"/>
+      <stop offset="0.35" stop-color="#C79949"/>
+      <stop offset="0.68" stop-color="#FFF1CC"/>
+      <stop offset="1" stop-color="#C38C37"/>
+    </linearGradient>
+    <linearGradient id="panelFill" x1="640" y1="58" x2="640" y2="822" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7"/>
+      <stop offset="0.56" stop-color="#F7F8F2"/>
+      <stop offset="1" stop-color="#EDF5EC"/>
+    </linearGradient>
+    <radialGradient id="leftBloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(224 204) rotate(38) scale(220 180)">
+      <stop stop-color="#E3F0E4"/>
+      <stop offset="1" stop-color="#E3F0E4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rightBloom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1054 212) rotate(148) scale(220 180)">
+      <stop stop-color="#E3F0E4"/>
+      <stop offset="1" stop-color="#E3F0E4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="54" y="44" width="1172" height="792" rx="52" fill="url(#panelFill)" stroke="url(#frameStroke)" stroke-width="14"/>
+  <rect x="78" y="68" width="1124" height="744" rx="36" stroke="#FBF6E7" stroke-width="5"/>
+  <path d="M78 202H1202" stroke="#E8D3A2" stroke-opacity="0.38" stroke-width="3"/>
+  <path d="M94 86H1186V794H94V86Z" fill="url(#leftBloom)"/>
+  <path d="M94 86H1186V794H94V86Z" fill="url(#rightBloom)"/>
+
+  <g opacity="0.96">
+    <path d="M98 94C152 98 190 120 214 158C188 148 164 148 142 160C122 170 108 192 98 224V94Z" fill="#EEF5ED" stroke="#D8B064" stroke-width="6"/>
+    <path d="M1182 94C1128 98 1090 120 1066 158C1092 148 1116 148 1138 160C1158 170 1172 192 1182 224V94Z" fill="#EEF5ED" stroke="#D8B064" stroke-width="6"/>
+    <path d="M98 786C152 782 190 760 214 722C188 732 164 732 142 720C122 710 108 688 98 656V786Z" fill="#EEF5ED" stroke="#D8B064" stroke-width="6"/>
+    <path d="M1182 786C1128 782 1090 760 1066 722C1092 732 1116 732 1138 720C1158 710 1172 688 1182 656V786Z" fill="#EEF5ED" stroke="#D8B064" stroke-width="6"/>
+  </g>
+
+  <path d="M560 46L600 82H680L720 46L694 122H586L560 46Z" fill="#EEF4E9" stroke="#D8AF62" stroke-width="6"/>
+  <path d="M560 834L600 798H680L720 834L694 758H586L560 834Z" fill="#EEF4E9" stroke="#D8AF62" stroke-width="6"/>
+  <path d="M432 96C482 96 530 112 570 144" stroke="#E4C57E" stroke-width="6" stroke-linecap="round"/>
+  <path d="M848 96C798 96 750 112 710 144" stroke="#E4C57E" stroke-width="6" stroke-linecap="round"/>
+</svg>

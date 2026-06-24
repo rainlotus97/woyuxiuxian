@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>我欲修仙</title>
+  <script>
+    // GitHub Pages SPA hack: 将当前路径保存到 sessionStorage
+    // 然后重定向到 404.html 所在目录的 index.html
+    sessionStorage.redirect = location.pathname + location.search + location.hash;
+    location.replace(location.origin + '/');
+  </script>
+</head>
+<body>
+  <p>正在跳转...</p>
+</body>
+</html>
