@@ -1,167 +1,194 @@
 <template>
-  <div class="cultivation-v3-page">
-    <div class="home-side-actions">
-      <button type="button" class="side-action" @click="router.push('/game/settings')">
-        <ThemeHomeIconBadge size="sm" alert>
+  <div class="cultivation-home">
+    <section class="quick-actions" aria-label="快捷入口">
+      <button type="button" class="quick-action" @click="router.push('/game/settings')">
+        <span class="quick-action-icon">
           <Settings :size="17" />
-        </ThemeHomeIconBadge>
+        </span>
         <span>活动</span>
       </button>
-      <button type="button" class="side-action" @click="router.push('/game/inventory')">
-        <ThemeHomeIconBadge size="sm" alert>
+      <button type="button" class="quick-action" @click="router.push('/game/inventory')">
+        <span class="quick-action-icon">
           <Backpack :size="17" />
-        </ThemeHomeIconBadge>
+        </span>
         <span>福利</span>
       </button>
-      <button type="button" class="side-action" @click="openStoryOverlay">
-        <ThemeHomeIconBadge size="sm">
+      <button type="button" class="quick-action" @click="openStoryOverlay">
+        <span class="quick-action-icon">
           <Mail :size="17" />
-        </ThemeHomeIconBadge>
+        </span>
         <span>传书</span>
       </button>
-    </div>
+    </section>
 
-    <ThemeHomePanelShell class="home-main-panel">
-      <div class="main-panel-stage">
-        <div class="panel-copy">
-          <div class="panel-copy-head">
-            <strong>修炼</strong>
-            <span>!</span>
+    <GameSurface
+      tone="gold"
+      padding="lg"
+      eyebrow="修炼主位"
+      title="今日修行"
+      :subtitle="`当前节奏：${worldStore.getIdleModeLabel(worldStore.idleMode)}`"
+      class="cultivation-hero"
+    >
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="progress-orb" :style="{ '--progress-angle': `${cultivationProgressPercent * 3.6}deg` }">
+            <div class="progress-orb-inner">
+              <span>{{ playerStore.realmInfo.fullName }}</span>
+              <strong>{{ cultivationProgressPercent }}%</strong>
+              <small>{{ worldStore.currentTimeLabel }}</small>
+            </div>
           </div>
-          <div class="panel-stat">
-            <span>当前修为</span>
-            <strong>{{ playerStore.cultivation }}/{{ playerStore.maxCultivation }}</strong>
-          </div>
-          <div class="panel-substats">
-            <p>修炼效率：{{ cultivationRateLabel }}</p>
-            <p>下次突破：{{ playerStore.nextRealm ?? '暂无下一境界' }}</p>
+
+          <div class="hero-main-copy">
+            <div class="hero-value-row">
+              <div>
+                <span>当前修为</span>
+                <strong>{{ playerStore.cultivation }}/{{ playerStore.maxCultivation }}</strong>
+              </div>
+              <div>
+                <span>修炼效率</span>
+                <strong>{{ cultivationRateLabel }}</strong>
+              </div>
+            </div>
+            <div class="hero-note-list">
+              <p>下次突破：{{ playerStore.nextRealm ?? '暂无下一境界' }}</p>
+              <p>修炼增益：{{ panelBenefitHint }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="panel-center">
-          <ThemeHomeProgressRing
-            class="cultivation-ring"
-            :progress="cultivationProgressPercent"
-            :title="playerStore.realmInfo.fullName"
-            :value="`${cultivationProgressPercent}%`"
-            :subtitle="worldStore.currentTimeLabel"
-          />
-          <ThemeHomeButton size="lg" :disabled="playerStore.captivity.isCaptured" @click="handlePrimaryCultivationAction">
+        <div class="hero-side">
+          <div class="hero-side-card">
+            <span>离线积累</span>
+            <strong>{{ offlineGains > 0 ? `+${offlineGains}` : '暂无' }}</strong>
+            <small>{{ offlineGains > 0 ? '可立即领取修为' : '离线收益已结算' }}</small>
+          </div>
+          <div class="hero-side-card">
+            <span>辅助修行</span>
+            <strong>丹药 / 机缘</strong>
+            <small>服药、机缘和推演都在这里调度</small>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="hero-footer">
+          <GameActionButton
+            tone="jade"
+            block
+            :disabled="playerStore.captivity.isCaptured"
+            @click="handlePrimaryCultivationAction"
+          >
             {{ heroPrimaryActionLabel }}
-          </ThemeHomeButton>
+          </GameActionButton>
+          <GameActionButton
+            tone="gold"
+            block
+            :disabled="offlineGains <= 0"
+            @click="claimOfflineGains"
+          >
+            领取离线修为
+          </GameActionButton>
+          <GameActionButton tone="stone" block @click="router.push('/game/inventory')">
+            服药调息
+          </GameActionButton>
         </div>
+      </template>
+    </GameSurface>
 
-        <div class="panel-side">
-          <div class="panel-side-tag">
-            <span>修炼增益</span>
-            <small>{{ panelBenefitHint }}</small>
+    <section class="entry-grid" aria-label="首页功能分区">
+      <GameSurface tone="jade" padding="md" compact clickable @click="router.push('/game/adventure')">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><Compass :size="18" /></span>
+            <strong>历练</strong>
           </div>
-          <button type="button" class="panel-side-action" @click="router.push('/game/inventory')">
-            <ThemeHomeIconBadge size="lg">
-              <Pill :size="22" />
-            </ThemeHomeIconBadge>
-            <span>服药</span>
-          </button>
+          <p>游历四方，获取资源</p>
+          <small>适合补充基础资源与挂机收益。</small>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="gold" padding="md" compact clickable @click="router.push('/game/map')">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><Orbit :size="18" /></span>
+            <strong>秘境</strong>
+          </div>
+          <p>秘境探索，挑战机缘</p>
+          <small>{{ mapCardDescription }}</small>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="mist" padding="md" compact clickable @click="router.push('/game/sect')">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><Swords :size="18" /></span>
+            <strong>斗法</strong>
+          </div>
+          <p>仙友切磋，争夺排名</p>
+          <small>{{ sectCardDescription }}</small>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="realm" padding="md" compact clickable @click="router.push('/game/map')">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><Map :size="18" /></span>
+            <strong>世界地图</strong>
+          </div>
+          <p>查看领域推进与区域探索进度</p>
+          <small>{{ mapCardDescription }}</small>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="jade" padding="md" compact clickable @click="router.push('/game/sect')">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><Landmark :size="18" /></span>
+            <strong>宗门</strong>
+          </div>
+          <p>山门发展、人事与战局调度</p>
+          <small>{{ sectCardDescription }}</small>
+        </div>
+      </GameSurface>
+
+      <GameSurface tone="gold" padding="md" compact clickable @click="openStoryOverlay">
+        <div class="entry-card">
+          <div class="entry-head">
+            <span class="entry-icon"><BookOpen :size="18" /></span>
+            <strong>修行之路</strong>
+          </div>
+          <p>顺着当前事件继续推进命线</p>
+          <small>{{ storyCardDescription }}</small>
+        </div>
+      </GameSurface>
+    </section>
+
+    <GameSurface
+      tone="mist"
+      padding="md"
+      eyebrow="当前节奏"
+      title="世界脉动"
+      :subtitle="eventBannerDescription"
+    >
+      <div class="pulse-panel">
+        <p class="pulse-text">{{ latestPulseText }}</p>
+        <div class="pulse-actions">
+          <button type="button" class="pulse-chip" :disabled="!canAdvanceWorld" @click="handleAdvanceWorld">推演一时辰</button>
+          <button type="button" class="pulse-chip" :disabled="playerStore.captivity.isCaptured" @click="handlePlayerFortune">处理机缘</button>
+          <button type="button" class="pulse-chip" @click="router.push('/game/profile')">查看角色</button>
         </div>
       </div>
-    </ThemeHomePanelShell>
-
-    <div v-if="offlineGains > 0" class="offline-strip">
-      <div class="offline-copy">
-        <span>离线积累</span>
-        <strong>+{{ offlineGains }} 修为</strong>
-      </div>
-      <ThemeHomeButton size="sm" @click="claimOfflineGains">立即领取</ThemeHomeButton>
-    </div>
-
-    <section class="feature-grid primary-feature-grid">
-      <ThemeHomeFeatureCard title="历练" description="游历四方，获取资源" @click="router.push('/game/adventure')">
-        <template #icon>
-          <Compass :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-      <ThemeHomeFeatureCard title="秘境" description="秘境探索，挑战机缘" @click="router.push('/game/map')">
-        <template #icon>
-          <Orbit :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-      <ThemeHomeFeatureCard title="斗法" description="仙友切磋，争夺排名" @click="router.push('/game/sect')">
-        <template #icon>
-          <Swords :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-    </section>
-
-    <ThemeHomeEventBanner
-      class="event-banner"
-      eyebrow="限时活动"
-      title="问鼎仙途"
-      :description="eventBannerDescription"
-      cta="前往"
-      @click="openStoryOverlay"
-    />
-
-    <div class="banner-dots" aria-hidden="true">
-      <span class="active"></span>
-      <span></span>
-      <span></span>
-    </div>
-
-    <section class="feature-grid secondary-feature-grid">
-      <ThemeHomeFeatureCard
-        title="宗门"
-        :description="sectCardDescription"
-        @click="router.push('/game/sect')"
-      >
-        <template #icon>
-          <Landmark :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-      <ThemeHomeFeatureCard
-        title="世界地图"
-        :description="mapCardDescription"
-        @click="router.push('/game/map')"
-      >
-        <template #icon>
-          <Map :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-      <ThemeHomeFeatureCard
-        title="修行之路"
-        :description="storyCardDescription"
-        @click="openStoryOverlay"
-      >
-        <template #icon>
-          <BookOpen :size="16" />
-        </template>
-      </ThemeHomeFeatureCard>
-    </section>
-
-    <section class="home-pulse-panel" :data-mode="worldStore.getIdleModeLabel(worldStore.idleMode)">
-      <div class="pulse-heading">
-        <span>当前节奏</span>
-        <strong>{{ worldStore.getIdleModeLabel(worldStore.idleMode) }}</strong>
-      </div>
-      <p>{{ latestPulseText }}</p>
-      <div class="pulse-chips">
-        <button type="button" class="pulse-chip" :disabled="!canAdvanceWorld" @click="handleAdvanceWorld">推演一时辰</button>
-        <button type="button" class="pulse-chip" :disabled="playerStore.captivity.isCaptured" @click="handlePlayerFortune">处理机缘</button>
-        <button type="button" class="pulse-chip" @click="router.push('/game/profile')">查看角色</button>
-      </div>
-    </section>
+    </GameSurface>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Backpack, BookOpen, Compass, Landmark, Mail, Map, Orbit, Pill, Settings, Swords } from 'lucide-vue-next'
-import ThemeHomeButton from '@/components/theme/homepage/ThemeHomeButton.vue'
-import ThemeHomeEventBanner from '@/components/theme/homepage/ThemeHomeEventBanner.vue'
-import ThemeHomeFeatureCard from '@/components/theme/homepage/ThemeHomeFeatureCard.vue'
-import ThemeHomeIconBadge from '@/components/theme/homepage/ThemeHomeIconBadge.vue'
-import ThemeHomePanelShell from '@/components/theme/homepage/ThemeHomePanelShell.vue'
-import ThemeHomeProgressRing from '@/components/theme/homepage/ThemeHomeProgressRing.vue'
+import { Backpack, BookOpen, Compass, Landmark, Mail, Map, Orbit, Settings, Swords } from 'lucide-vue-next'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
 import { useStoryOverlay } from '@/composables/useStoryOverlay'
 import { useWorldAdvanceSummary } from '@/composables/useWorldAdvanceSummary'
@@ -344,465 +371,241 @@ function handlePlayerFortune() {
   }
   success(`${result.title}：机缘已记录`)
 }
-
 </script>
 
 <style scoped>
-.cultivation-v3-page {
+.cultivation-home {
   display: grid;
-  gap: 0.24rem;
-  padding: 0.04rem 0 calc(6rem + env(safe-area-inset-bottom, 0px));
-  position: relative;
+  gap: 0.72rem;
+  padding: 0.08rem 0 calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
-.cultivation-v3-page::before {
-  content: '';
-  position: absolute;
-  inset: 3.8rem 0 auto;
-  height: 18rem;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(235, 244, 242, 0.42)),
-    url('@/assets/theme/generated/homepage-v3-scenic-focus-clean.png') center top / cover no-repeat;
-  filter: blur(3px) saturate(0.95);
-  opacity: 0.72;
-  z-index: 0;
-}
-
-.cultivation-v3-page > * {
-  position: relative;
-  z-index: 1;
-}
-
-.home-side-actions {
+.quick-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.12rem;
-  padding: 0 0.02rem 0 0;
+  gap: 0.42rem;
 }
 
-.side-action {
+.quick-action {
   display: grid;
   justify-items: center;
-  gap: 0.08rem;
+  gap: 0.18rem;
   border: 0;
   background: transparent;
   color: #4f5e5e;
   font-family: var(--font-game);
-  font-size: 0.6rem;
+  font-size: 0.68rem;
 }
 
-.side-action span {
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.home-main-panel {
-  margin-top: -0.12rem;
-}
-
-.main-panel-stage {
-  position: relative;
-  height: 100%;
-}
-
-.panel-copy,
-.panel-center,
-.panel-side {
-  position: absolute;
-  min-width: 0;
-}
-
-.panel-copy {
-  left: 2.8%;
-  top: 8.8%;
-  width: 29%;
+.quick-action-icon {
+  width: 2.3rem;
+  height: 2.3rem;
   display: grid;
-  align-content: start;
-  gap: 0.15rem;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px solid rgba(121, 165, 155, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(236, 247, 243, 0.86)),
+    radial-gradient(circle at top, rgba(255, 220, 146, 0.18), transparent 58%);
+  box-shadow: 0 12px 24px rgba(91, 121, 117, 0.1);
+  color: #6f9d95;
 }
 
-.panel-copy-head {
-  display: inline-flex;
+.cultivation-hero {
+  overflow: hidden;
+}
+
+.hero-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-main {
+  display: grid;
+  grid-template-columns: 7.4rem minmax(0, 1fr);
+  gap: 0.9rem;
   align-items: center;
-  gap: 0.22rem;
 }
 
-.panel-copy-head strong {
-  color: #4d4138;
-  font-family: var(--font-game);
-  font-size: 1.24rem;
-  line-height: 1;
-}
-
-.panel-copy-head span {
-  color: #c0ab77;
-  font-size: 0.82rem;
-}
-
-.panel-stat {
+.progress-orb {
+  position: relative;
+  width: 7.4rem;
+  aspect-ratio: 1;
   display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    conic-gradient(from 180deg, #78b8b0 0deg, #78b8b0 var(--progress-angle), rgba(120, 184, 176, 0.14) 0deg),
+    radial-gradient(circle at center, rgba(255, 253, 244, 0.98) 0 58%, transparent 59%),
+    linear-gradient(180deg, rgba(241, 250, 246, 0.96), rgba(255, 251, 238, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(121, 165, 155, 0.22),
+    0 18px 34px rgba(88, 123, 116, 0.14);
+}
+
+.progress-orb::before {
+  content: '';
+  position: absolute;
+  inset: 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(218, 185, 115, 0.34);
+}
+
+.progress-orb-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
   gap: 0.18rem;
-}
-
-.panel-stat span,
-.panel-substats p,
-.panel-side-tag span,
-.panel-side-tag small {
-  color: rgba(89, 87, 76, 0.82);
-  font-size: 0.62rem;
-  line-height: 1.14;
-}
-
-.panel-stat strong {
-  color: #45413d;
-  font-family: var(--font-game);
-  font-size: 0.92rem;
-  line-height: 1.04;
-}
-
-.panel-substats {
-  display: grid;
-  gap: 0.18rem;
-}
-
-.panel-substats p,
-.panel-side-tag small {
-  margin: 0;
-}
-
-.panel-center {
-  left: 28.9%;
-  top: 2.2%;
-  width: 43.4%;
-  height: 84.5%;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 0.08rem;
-}
-
-.cultivation-ring {
-  width: min(100%, 6.85rem);
-  transform: translateY(0.04rem);
-}
-
-.panel-center :deep(.theme-home-button.size-lg) {
-  --button-height: 3.04rem;
-  --button-width: min(100%, 9.8rem);
-  --button-content-width: 56%;
-}
-
-.panel-side {
-  right: 1.6%;
-  top: 12%;
-  width: 18.4%;
-  display: grid;
-  align-content: start;
-  justify-items: center;
-  gap: 0.24rem;
-}
-
-.panel-side-tag {
-  display: grid;
-  justify-items: center;
-  gap: 0.08rem;
   text-align: center;
 }
 
-.panel-side-tag span {
+.progress-orb-inner span,
+.hero-value-row span,
+.hero-side-card span {
+  color: rgba(94, 104, 99, 0.74);
+  font-size: 0.72rem;
+}
+
+.progress-orb-inner strong {
+  color: #4d4138;
+  font-family: var(--font-game);
+  font-size: 1.78rem;
+  line-height: 1;
+}
+
+.progress-orb-inner small,
+.hero-side-card small,
+.entry-card small {
+  color: rgba(94, 104, 99, 0.68);
   font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
+  line-height: 1.45;
 }
 
-.panel-side-tag small {
-  max-width: 2.6rem;
-  line-height: 1.1;
-}
-
-.panel-side-action {
+.hero-main-copy {
   display: grid;
-  justify-items: center;
-  gap: 0.08rem;
-  border: 0;
-  background: transparent;
-  color: #5b4a3f;
-  font-family: var(--font-game);
-  font-size: 0.58rem;
-  transform: translate(0, 0);
+  gap: 0.8rem;
 }
 
-.panel-side-action span {
-  white-space: nowrap;
-}
-
-.offline-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.46rem 0.68rem;
-  border-radius: 1.1rem;
-  background: rgba(255, 251, 242, 0.74);
-  border: 1px solid rgba(218, 198, 154, 0.5);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.offline-copy {
+.hero-value-row {
   display: grid;
-  gap: 0.1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
-.offline-copy span {
-  color: rgba(113, 97, 70, 0.82);
-  font-size: 0.8rem;
-}
-
-.offline-copy strong {
-  color: #4b8c89;
-  font-family: var(--font-game);
+.hero-value-row strong,
+.hero-side-card strong {
+  display: block;
+  margin-top: 0.14rem;
+  color: #325154;
   font-size: 1rem;
 }
 
-.feature-grid {
+.hero-note-list {
   display: grid;
-  gap: 0.28rem;
+  gap: 0.34rem;
 }
 
-.primary-feature-grid,
-.secondary-feature-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.primary-feature-grid {
-  margin-top: -0.06rem;
-}
-
-.primary-feature-grid > :nth-child(3),
-.secondary-feature-grid > :nth-child(3) {
-  grid-column: 1 / -1;
-  width: calc(50% - 0.11rem);
-  justify-self: center;
-}
-
-.event-banner {
-  width: 100%;
-  margin-top: 0;
-}
-
-.banner-dots {
-  display: flex;
-  justify-content: center;
-  gap: 0.28rem;
-  margin-top: -0.02rem;
-  margin-bottom: 0;
-}
-
-.banner-dots span {
-  width: 0.32rem;
-  height: 0.32rem;
-  border-radius: 999px;
-  background: rgba(222, 212, 191, 0.9);
-}
-
-.banner-dots span.active {
-  background: #d5bc89;
-}
-
-.home-pulse-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.42rem;
-  padding: 0.88rem 0.86rem;
-  border-radius: 1.2rem;
-  border: 1px solid rgba(219, 203, 179, 0.75);
-  background:
-    linear-gradient(180deg, rgba(255, 251, 246, 0.86), rgba(247, 248, 244, 0.76)),
-    radial-gradient(circle at top left, rgba(170, 220, 210, 0.2), transparent 42%);
-  box-shadow:
-    0 0.8rem 1.8rem rgba(120, 148, 146, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  margin-top: 0.06rem;
-}
-
-.pulse-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  grid-column: 1 / -1;
-}
-
-.pulse-heading span {
-  color: rgba(98, 94, 85, 0.72);
-  font-size: 0.82rem;
-}
-
-.pulse-heading strong {
-  color: #4e8582;
-  font-family: var(--font-game);
-  font-size: 1.08rem;
-}
-
-.home-pulse-panel p {
+.hero-note-list p,
+.entry-card p,
+.pulse-text {
   margin: 0;
-  color: rgba(88, 95, 97, 0.84);
-  font-size: 0.86rem;
-  line-height: 1.42;
-  grid-column: 1 / -1;
+  color: rgba(82, 94, 89, 0.8);
+  font-size: 0.78rem;
+  line-height: 1.56;
 }
 
-.pulse-chips {
+.hero-side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.hero-side-card {
+  padding: 0.82rem 0.88rem;
+  border-radius: 16px;
+  border: 1px solid rgba(121, 165, 155, 0.16);
+  background: rgba(255, 255, 252, 0.68);
+}
+
+.hero-footer {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.entry-card {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.entry-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.entry-icon {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(118, 183, 173, 0.14);
+  color: #6f9d95;
+}
+
+.entry-head strong {
+  color: #4d4138;
+  font-size: 0.98rem;
+}
+
+.pulse-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pulse-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  grid-column: 1 / -1;
+  gap: 0.46rem;
 }
 
 .pulse-chip {
-  min-height: 2rem;
-  padding: 0 0.8rem;
+  min-height: 2.1rem;
+  padding: 0 0.84rem;
   border-radius: 999px;
-  border: 1px solid rgba(186, 172, 144, 0.65);
-  background: rgba(255, 255, 255, 0.64);
-  color: #5a6a6c;
+  border: 1px solid rgba(195, 177, 147, 0.52);
+  background: rgba(255, 251, 243, 0.86);
+  color: #6b6052;
   font-family: var(--font-game);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
-@media (max-width: 720px) {
-  .cultivation-v3-page {
-    gap: 0.28rem;
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+.pulse-chip:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 390px) {
+  .hero-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 
-  .home-side-actions {
-    gap: 0.1rem;
+  .hero-main-copy,
+  .hero-side {
+    width: 100%;
   }
 
-  .side-action span {
-    font-size: 0.48rem;
-  }
-
-  .main-panel-grid {
-    display: contents;
-  }
-
-  .panel-copy {
-    left: 2.2%;
-    top: 8.4%;
-    width: 29.8%;
-    gap: 0.12rem;
-  }
-
-  .panel-copy-head strong {
-    font-size: 0.92rem;
-  }
-
-  .panel-stat strong {
-    font-size: 0.78rem;
-  }
-
-  .panel-stat span,
-  .panel-substats p,
-  .panel-side-tag span,
-  .panel-side-tag small {
-    font-size: 0.52rem;
-  }
-
-  .cultivation-ring {
-    width: min(100%, 5.08rem);
-    transform: translateY(0.02rem);
-  }
-
-  .panel-center :deep(.theme-home-button.size-lg) {
-    --button-height: 2.76rem;
-    --button-width: min(100%, 8.8rem);
-    --button-content-width: 55%;
-  }
-
-  .panel-center {
-    left: 27.6%;
-    top: 3%;
-    width: 45.8%;
-    height: 82%;
-  }
-
-  .panel-side {
-    right: 0.8%;
-    top: 13%;
-    width: 19%;
-    gap: 0.16rem;
-  }
-
-  .panel-side-tag {
-    gap: 0.06rem;
-  }
-
-  .panel-side-tag span {
-    font-size: 0.48rem;
-  }
-
-  .panel-side-tag small {
-    max-width: 2.2rem;
-    font-size: 0.48rem;
-  }
-
-  .panel-side-action {
-    gap: 0.06rem;
-    font-size: 0.46rem;
-    transform: translate(0, 0.02rem);
-  }
-
-  .primary-feature-grid,
-  .secondary-feature-grid {
-    gap: 0.18rem 0.18rem;
-  }
-
-  .primary-feature-grid > :nth-child(3),
-  .secondary-feature-grid > :nth-child(3) {
-    width: calc(50% - 0.11rem);
-  }
-
-  .home-pulse-panel {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.32rem;
-    padding: 0.76rem 0.72rem;
-    margin-top: 0.04rem;
-  }
-
-  .pulse-heading span {
-    font-size: 0.72rem;
-  }
-
-  .pulse-heading strong {
-    font-size: 0.96rem;
-  }
-
-  .home-pulse-panel p {
-    font-size: 0.78rem;
-    line-height: 1.34;
-  }
-
-  .pulse-chips {
-    gap: 0.38rem;
-  }
-
-  .pulse-chip {
-    min-height: 1.84rem;
-    padding: 0 0.68rem;
-    font-size: 0.72rem;
-  }
-
-  .event-banner {
-    margin-top: 0;
-  }
-
-  .banner-dots {
-    margin-top: 0;
-    margin-bottom: 0.02rem;
+  .hero-value-row,
+  .hero-side,
+  .entry-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

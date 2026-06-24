@@ -5,9 +5,11 @@
     <header class="top-shell">
       <div class="hud-shell" :class="`tone-${sectAlertTone}`">
         <div class="player-block">
-          <ThemeHomeIconBadge class="avatar-orb" size="lg">
-            <span class="avatar-glyph">{{ realmIcon }}</span>
-          </ThemeHomeIconBadge>
+          <div class="avatar-orb" :class="getRealmClass">
+            <div class="avatar-orb-inner">
+              <span class="avatar-glyph">{{ realmIcon }}</span>
+            </div>
+          </div>
           <div class="player-copy">
             <strong>{{ sectStore.currentSect?.name ?? playerStore.name }}</strong>
             <span class="realm-pill" :class="getRealmClass">{{ playerStore.name }} · {{ playerStore.realmInfo.fullName }}</span>
@@ -175,7 +177,6 @@ import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import StoryPlayer from '@/components/story/StoryPlayer.vue'
-import ThemeHomeIconBadge from '@/components/theme/homepage/ThemeHomeIconBadge.vue'
 import ThemeHomeNavTab from '@/components/theme/homepage/ThemeHomeNavTab.vue'
 import ThemeHomeResourcePill from '@/components/theme/homepage/ThemeHomeResourcePill.vue'
 import { sfxDiscovery, sfxStoryChoice, useAudio } from '@/composables/useAudio'
@@ -594,6 +595,81 @@ onUnmounted(() => {
 
 .avatar-orb {
   flex: 0 0 auto;
+  position: relative;
+  width: 4.1rem;
+  height: 4.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 238, 0.98), rgba(239, 248, 244, 0.94)),
+    radial-gradient(circle at top, rgba(255, 220, 146, 0.2), transparent 58%);
+  border: 1px solid rgba(205, 177, 116, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 16px 28px rgba(88, 123, 116, 0.12);
+}
+
+.avatar-orb::before,
+.avatar-orb::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.avatar-orb::before {
+  inset: 0.2rem;
+  border: 1px solid rgba(118, 181, 171, 0.34);
+}
+
+.avatar-orb::after {
+  right: 0.1rem;
+  top: 0.18rem;
+  width: 0.62rem;
+  height: 0.62rem;
+  background: linear-gradient(180deg, #f19a74, #dd7751);
+  box-shadow: 0 0 0 0.14rem rgba(255, 251, 247, 0.95);
+}
+
+.avatar-orb-inner {
+  width: 3.1rem;
+  height: 3.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(180deg, rgba(185, 226, 220, 0.9), rgba(120, 184, 176, 0.86));
+  border: 1px solid rgba(111, 164, 155, 0.3);
+  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.34);
+}
+
+.avatar-orb.realm-golden .avatar-orb-inner,
+.avatar-orb.realm-mahayana .avatar-orb-inner {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(180deg, rgba(242, 220, 152, 0.92), rgba(209, 169, 82, 0.9));
+}
+
+.avatar-orb.realm-infant .avatar-orb-inner,
+.avatar-orb.realm-god .avatar-orb-inner {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(180deg, rgba(206, 191, 242, 0.92), rgba(145, 120, 204, 0.9));
+}
+
+.avatar-orb.realm-tribulation .avatar-orb-inner {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(180deg, rgba(178, 224, 233, 0.94), rgba(78, 164, 184, 0.9));
+}
+
+.avatar-orb.realm-foundation .avatar-orb-inner,
+.avatar-orb.realm-immortal .avatar-orb-inner {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(180deg, rgba(194, 230, 193, 0.94), rgba(99, 176, 125, 0.9));
 }
 
 .player-copy {

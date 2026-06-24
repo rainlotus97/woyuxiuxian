@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useSlots, watch } from 'vue'
-import buttonTexture from '@/assets/theme/generated/component-masters-homepage-v3-transparent/primary-button-v3.png'
 
 const props = withDefaults(defineProps<{
   block?: boolean
@@ -50,7 +49,6 @@ const SIZE_MIN_REM: Record<'sm' | 'md' | 'lg', number> = {
 }
 
 const buttonStyle = computed(() => ({
-  '--home-button-image': `url("${buttonTexture}")`,
   '--home-button-label-size': `${labelFontSize.value}rem`
 }))
 
@@ -101,6 +99,11 @@ watch(() => props.size, () => {
   --button-height: 3.5rem;
   --button-width: min(100%, 15.25rem);
   --button-content-width: 62%;
+  --home-button-border: rgba(203, 173, 115, 0.58);
+  --home-button-border-soft: rgba(115, 173, 162, 0.24);
+  --home-button-top: rgba(255, 252, 244, 0.98);
+  --home-button-bottom: rgba(236, 247, 241, 0.94);
+  --home-button-text: #6f5222;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -110,12 +113,40 @@ watch(() => props.size, () => {
   height: var(--button-height);
   padding: 0;
   border: 0;
-  background: center / 100% 100% no-repeat var(--home-button-image);
-  color: #eff3ea;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--home-button-text);
   cursor: pointer;
   appearance: none;
-  transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
-  filter: drop-shadow(0 0.42rem 0.72rem rgba(101, 159, 154, 0.14));
+  transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 0.42rem 0.72rem rgba(101, 159, 154, 0.14);
+}
+
+.theme-home-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid var(--home-button-border);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.9), transparent 42%),
+    linear-gradient(180deg, var(--home-button-top), var(--home-button-bottom));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(207, 174, 107, 0.2);
+  pointer-events: none;
+}
+
+.theme-home-button::after {
+  content: '';
+  position: absolute;
+  inset: 0.36rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid var(--home-button-border-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.04)),
+    linear-gradient(90deg, transparent 0 10%, rgba(255, 228, 165, 0.12) 18%, rgba(128, 191, 180, 0.1) 82%, transparent 100%);
+  pointer-events: none;
 }
 
 .theme-home-button.size-sm {
@@ -135,6 +166,8 @@ watch(() => props.size, () => {
 }
 
 .button-content {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -154,7 +187,7 @@ watch(() => props.size, () => {
   width: 1.04rem;
   height: 1.04rem;
   flex: 0 0 auto;
-  color: #eef7ef;
+  color: #6f9d95;
 }
 
 .button-icon :deep(svg) {
@@ -165,7 +198,7 @@ watch(() => props.size, () => {
 .button-label {
   min-width: 0;
   overflow: hidden;
-  color: #f3f5ee;
+  color: var(--home-button-text);
   font-family: var(--font-game);
   font-size: var(--home-button-label-size, 1rem);
   font-weight: 700;
@@ -175,13 +208,13 @@ watch(() => props.size, () => {
   white-space: nowrap;
   letter-spacing: 0.01em;
   text-shadow:
-    0 0.0625rem 0 rgba(31, 59, 61, 0.46),
-    0 0 0.28rem rgba(255, 250, 238, 0.12);
+    0 1px 0 rgba(255, 255, 255, 0.78),
+    0 0 0.32rem rgba(255, 247, 228, 0.26);
 }
 
 .theme-home-button:hover:not(:disabled) {
   transform: translateY(-0.0625rem);
-  filter: brightness(1.02) drop-shadow(0 0.5rem 0.8rem rgba(101, 159, 154, 0.18));
+  box-shadow: 0 0.5rem 0.8rem rgba(101, 159, 154, 0.18);
 }
 
 .theme-home-button:active:not(:disabled) {
@@ -197,7 +230,11 @@ watch(() => props.size, () => {
 
 @media (max-width: 640px) {
   .theme-home-button {
-    filter: drop-shadow(0 0.28rem 0.54rem rgba(101, 159, 154, 0.12));
+    box-shadow: 0 0.28rem 0.54rem rgba(101, 159, 154, 0.12);
+  }
+
+  .theme-home-button::after {
+    inset: 0.34rem 0.62rem;
   }
 
   .button-content {

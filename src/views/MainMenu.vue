@@ -1,246 +1,404 @@
 <template>
   <main class="main-menu">
+    <div class="menu-backdrop"></div>
+
     <button type="button" class="menu-audio-toggle" :class="{ active: bgmEnabled }" @click="handleToggleBgm">
-      <span class="menu-audio-toggle-inner">
+      <ThemeHomeIconBadge size="sm">
         <component :is="bgmEnabled ? Volume2 : VolumeX" :size="16" />
-        <small>{{ bgmEnabled ? '静音' : '开声' }}</small>
-      </span>
+      </ThemeHomeIconBadge>
+      <span>{{ bgmEnabled ? '静音' : '开声' }}</span>
     </button>
 
-    <!-- === 顶部标题 === -->
-    <div class="menu-header">
-      <h1 class="game-title">我欲修仙</h1>
-      <p class="game-subtitle">— 文字修仙 · 万劫轮回 —</p>
-    </div>
+    <div class="menu-shell">
+      <template v-if="currentScreen === 'home'">
+        <ThemeHomePanelShell class="hero-panel">
+          <div class="hero-content">
+            <div class="hero-copy">
+              <span class="hero-tag">凡骨问道</span>
+              <h1 class="game-title">我欲修仙</h1>
+              <p class="game-subtitle">文字修仙 · 万劫轮回</p>
+            </div>
 
-    <!-- === 存档选择 / 主页 === -->
-    <div v-if="currentScreen === 'home'" class="menu-body">
-      <div class="home-buttons">
-        <button
-          v-if="hasAnySave"
-          class="btn-home btn-continue"
-          @click="handleContinue"
+            <div class="hero-side">
+              <div class="hero-stat">
+                <span>存档进度</span>
+                <strong>{{ saveSlotsCount }}/5</strong>
+              </div>
+              <div class="hero-stat">
+                <span>当前版本</span>
+                <strong>青云界 v0.1.0</strong>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <ThemeHomeButton
+                v-if="hasAnySave"
+                size="lg"
+                block
+                @click="handleContinue"
+              >
+                <template #icon>
+                  <Sparkles :size="16" />
+                </template>
+                继续修途
+              </ThemeHomeButton>
+
+              <ThemeHomeButton size="lg" block @click="handleNewGame">
+                <template #icon>
+                  <Star :size="16" />
+                </template>
+                开启新篇
+              </ThemeHomeButton>
+            </div>
+          </div>
+        </ThemeHomePanelShell>
+
+        <div class="home-grid">
+          <GameSurface
+            tone="gold"
+            padding="md"
+            compact
+            clickable
+            eyebrow="主线入口"
+            title="继续修行"
+            :subtitle="hasAnySave ? '沿着最近一次闭关后的进度继续前行。' : '当前没有可继续的进度，请先开启新的修行。'"
+            @click="hasAnySave ? handleContinue() : handleNewGame()"
+          >
+            <div class="menu-card-meta">
+              <span>{{ hasAnySave ? '最近存档可直接进入修炼页' : '从性别、灵根与血脉开始塑造角色' }}</span>
+              <ThemeHomeIconBadge size="sm">
+                <Sparkles :size="16" />
+              </ThemeHomeIconBadge>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            tone="jade"
+            padding="md"
+            compact
+            clickable
+            eyebrow="角色创建"
+            title="新建道途"
+            subtitle="重新投身轮回，选择新的起点与资质。"
+            @click="handleNewGame"
+          >
+            <div class="menu-card-meta">
+              <span>保留现有世界风格，用卡片式流程完成建角</span>
+              <ThemeHomeIconBadge size="sm">
+                <Star :size="16" />
+              </ThemeHomeIconBadge>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            tone="mist"
+            padding="md"
+            compact
+            clickable
+            eyebrow="存档"
+            title="存档管理"
+            :subtitle="`${saveSlotsCount} 个槽位已写入，支持切换不同修行进度。`"
+            @click="currentScreen = 'saves'"
+          >
+            <div class="menu-card-meta">
+              <span>查看角色境界、修为、灵石与保存时间</span>
+              <ThemeHomeIconBadge size="sm">
+                <FolderOpen :size="16" />
+              </ThemeHomeIconBadge>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            tone="realm"
+            padding="md"
+            compact
+            clickable
+            eyebrow="系统"
+            title="音频与设置"
+            subtitle="管理声音开关，并保留危险操作的二次确认。"
+            @click="currentScreen = 'settings'"
+          >
+            <div class="menu-card-meta">
+              <span>{{ bgmEnabled ? '背景音当前已开启' : '背景音当前处于关闭状态' }}</span>
+              <ThemeHomeIconBadge size="sm">
+                <Settings :size="16" />
+              </ThemeHomeIconBadge>
+            </div>
+          </GameSurface>
+        </div>
+
+        <GameSurface tone="mist" padding="md" compact class="menu-note-card">
+          <div class="menu-note">
+            <div>
+              <span>界面基准</span>
+              <strong>iPhone 12 Pro</strong>
+            </div>
+            <p>首页已回归与修炼、地图、设置页一致的玉青金边卡片体系。</p>
+          </div>
+        </GameSurface>
+      </template>
+
+      <template v-else-if="currentScreen === 'saves'">
+        <GameSurface
+          tone="gold"
+          padding="lg"
+          eyebrow="存档总览"
+          title="存档管理"
+          subtitle="不同轮回与角色进度统一陈列，点击已有槽位即可载入。"
+          class="screen-shell"
         >
-          <span class="btn-icon"><Volume2 :size="20" /></span>
-          <span class="btn-label">
-            <strong>继续修途</strong>
-            <small>从上次离开的地方继续</small>
-          </span>
-        </button>
+          <template #header>
+            <button class="ghost-back" type="button" @click="currentScreen = 'home'">返回首页</button>
+          </template>
 
-        <button class="btn-home btn-new" @click="handleNewGame">
-          <span class="btn-icon"><Sparkles :size="20" /></span>
-          <span class="btn-label">
-            <strong>开始新篇章</strong>
-            <small>创建新的角色，踏入修仙界</small>
-          </span>
-        </button>
+          <div class="save-list">
+            <GameSurface
+              v-for="(slot, i) in saveSlots"
+              :key="i"
+              :tone="slot.hasData ? 'gold' : 'mist'"
+              padding="md"
+              compact
+              :clickable="slot.hasData"
+              class="save-slot-card"
+              @click="slot.hasData ? handleLoadSlot(i) : undefined"
+            >
+              <div class="save-slot-head">
+                <div class="save-slot-index">存档 {{ i + 1 }}</div>
+                <span class="save-slot-state" :class="{ empty: !slot.hasData }">
+                  {{ slot.hasData ? '可载入' : '空槽位' }}
+                </span>
+              </div>
 
-        <button class="btn-home btn-slots" @click="currentScreen = 'saves'">
-          <span class="btn-icon"><FolderOpen :size="20" /></span>
-          <span class="btn-label">
-            <strong>存档管理</strong>
-            <small>{{ saveSlotsCount }} / 5 个存档槽</small>
-          </span>
-        </button>
+              <template v-if="slot.hasData">
+                <div class="save-slot-main">
+                  <strong>{{ slot.playerName }}</strong>
+                  <span>{{ slot.playerRealm }}</span>
+                </div>
+                <div class="save-slot-stats">
+                  <div>
+                    <small>修为</small>
+                    <strong>{{ formatBigNum(slot.cultivation) }}</strong>
+                  </div>
+                  <div>
+                    <small>灵石</small>
+                    <strong>{{ formatBigNum(slot.gold) }}</strong>
+                  </div>
+                </div>
+                <p class="save-slot-time">{{ slot.savedAtLabel }}</p>
+              </template>
 
-        <button class="btn-home btn-settings" @click="currentScreen = 'settings'">
-          <span class="btn-icon"><Settings :size="20" /></span>
-          <span class="btn-label">
-            <strong>设置</strong>
-            <small>音画、重置与关于</small>
-          </span>
-        </button>
-      </div>
+              <p v-else class="save-slot-empty-copy">尚未写入角色进度，可在创建角色后自动保存到空槽位。</p>
+            </GameSurface>
+          </div>
+        </GameSurface>
+      </template>
 
-      <!-- 版本信息 -->
-      <div class="version-info">
-        <small>v0.1.0 · 青云界</small>
-      </div>
+      <template v-else-if="currentScreen === 'settings'">
+        <div class="settings-stack">
+          <GameSurface
+            tone="mist"
+            padding="lg"
+            eyebrow="系统设置"
+            title="音频与数据"
+            subtitle="保持与游戏内设置页一致的清爽玉色结构，只保留首页真正需要的控制项。"
+          >
+            <template #header>
+              <button class="ghost-back" type="button" @click="currentScreen = 'home'">返回首页</button>
+            </template>
+
+            <div class="settings-hero">
+              <ThemeHomeIconBadge size="lg">
+                <component :is="bgmEnabled ? Volume2 : VolumeX" :size="24" />
+              </ThemeHomeIconBadge>
+              <div class="settings-hero-copy">
+                <span>声音状态</span>
+                <strong>{{ bgmEnabled ? '背景音已开启' : '背景音已关闭' }}</strong>
+                <p>默认不自动播放，保留用户主动开启的行为方式。</p>
+              </div>
+            </div>
+          </GameSurface>
+
+          <GameSurface tone="gold" padding="md" title="声音控制" subtitle="保持轻量，只在首页提供最常用的开关。">
+            <div class="settings-row">
+              <div class="settings-row-copy">
+                <strong>背景音乐</strong>
+                <small>{{ bgmEnabled ? '当前允许播放 BGM' : '当前已静音' }}</small>
+              </div>
+              <ThemeHomeButton size="sm" @click="handleToggleBgm">
+                {{ bgmEnabled ? '关闭' : '开启' }}
+              </ThemeHomeButton>
+            </div>
+          </GameSurface>
+
+          <GameSurface tone="realm" padding="md" title="危险操作" subtitle="清除本地数据前维持二次确认，避免误触。">
+            <div class="settings-row danger-row">
+              <div class="settings-row-copy">
+                <strong>重置游戏</strong>
+                <small>会清空全部本地存档与缓存状态。</small>
+              </div>
+              <button class="danger-button" type="button" @click="showResetConfirm = true">重置</button>
+            </div>
+          </GameSurface>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="creation-shell">
+          <GameSurface
+            tone="gold"
+            padding="lg"
+            eyebrow="角色创建"
+            title="踏入修仙界"
+            subtitle="维持游戏内页的卡片布局，将建角流程收束成一组移动端可读性更高的步骤卡。"
+          >
+            <template #header>
+              <button class="ghost-back" type="button" @click="currentScreen = 'home'">返回首页</button>
+            </template>
+
+            <div class="step-indicator">
+              <div
+                v-for="(s, i) in steps"
+                :key="s.key"
+                class="step-dot"
+                :class="{ active: i === currentStepIndex, done: i < currentStepIndex }"
+              >
+                <span>{{ i < currentStepIndex ? '✓' : s.num }}</span>
+                <small>{{ s.label }}</small>
+              </div>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            v-if="creation.currentStep.value === 'gender'"
+            tone="mist"
+            padding="lg"
+            title="选择你的道途"
+            subtitle="男女性别会带来不同叙事视角，整体保持与现有世界观一致。"
+          >
+            <div class="option-grid">
+              <button class="choice-card" type="button" @click="creation.selectGender('male')">
+                <span class="choice-symbol">♂</span>
+                <strong>男主 · 云逸</strong>
+                <p>执剑问道，于微末之间起势。</p>
+              </button>
+              <button class="choice-card" type="button" @click="creation.selectGender('female')">
+                <span class="choice-symbol">♀</span>
+                <strong>女主 · 苏清鸢</strong>
+                <p>身负轮回残忆，自困局中破局。</p>
+              </button>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            v-if="creation.currentStep.value === 'spirit_root'"
+            tone="gold"
+            padding="lg"
+            title="灵根觉醒"
+            subtitle="天机盘转动后，根骨资质会决定修炼效率与突破优势。"
+          >
+            <div v-if="creation.spiritRoot.value" class="awakening-card" :style="{ '--accent-color': rootColor }">
+              <div class="awakening-heading">
+                <span class="awakening-element">
+                  {{ creation.spiritRoot.value.primaryElement }}
+                  <small v-if="creation.spiritRoot.value.secondaryElement">·{{ creation.spiritRoot.value.secondaryElement }}</small>
+                </span>
+                <strong>[{{ rootLabel }}] {{ rootName }}</strong>
+              </div>
+
+              <div class="awakening-stats">
+                <div class="awakening-stat">
+                  <small>修炼速度</small>
+                  <strong>+{{ (creation.spiritRoot.value.cultivationSpeedBonus * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat">
+                  <small>元素亲和</small>
+                  <strong>+{{ (creation.spiritRoot.value.elementAffinity * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat">
+                  <small>突破加成</small>
+                  <strong>+{{ (creation.spiritRoot.value.breakthroughBonus * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat">
+                  <small>技能槽</small>
+                  <strong>{{ creation.spiritRoot.value.skillSlots }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <ThemeHomeButton size="md" block :disabled="creation.rerollsRemaining.value <= 0" @click="creation.rerollSpiritRoot()">
+                <template #icon>
+                  <RefreshCw :size="16" />
+                </template>
+                重测 ({{ creation.rerollsRemaining.value }}/3)
+              </ThemeHomeButton>
+              <ThemeHomeButton size="md" block @click="creation.acceptSpiritRoot()">接受灵根</ThemeHomeButton>
+            </div>
+          </GameSurface>
+
+          <GameSurface
+            v-if="creation.currentStep.value === 'bloodline'"
+            tone="realm"
+            padding="lg"
+            title="血脉觉醒"
+            subtitle="最后确认你的血脉与道号，随后正式踏入修仙界。"
+          >
+            <div v-if="creation.bloodline.value" class="awakening-card bloodline-card" :style="{ '--accent-color': bloodlineColor }">
+              <div class="awakening-heading">
+                <span class="awakening-eyebrow">先天血脉</span>
+                <strong>{{ bloodlineName }}</strong>
+              </div>
+              <p class="bloodline-desc">{{ creation.bloodline.value.description }}</p>
+
+              <div class="awakening-stats">
+                <div class="awakening-stat" v-if="creation.bloodline.value.statBonuses.attackPercent">
+                  <small>攻击</small>
+                  <strong>+{{ (creation.bloodline.value.statBonuses.attackPercent * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat" v-if="creation.bloodline.value.statBonuses.defensePercent">
+                  <small>防御</small>
+                  <strong>+{{ (creation.bloodline.value.statBonuses.defensePercent * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat" v-if="creation.bloodline.value.statBonuses.hpPercent">
+                  <small>气血</small>
+                  <strong>+{{ (creation.bloodline.value.statBonuses.hpPercent * 100).toFixed(0) }}%</strong>
+                </div>
+                <div class="awakening-stat">
+                  <small>修炼</small>
+                  <strong>+{{ (creation.bloodline.value.cultivationBonus * 100).toFixed(0) }}%</strong>
+                </div>
+              </div>
+            </div>
+
+            <label class="name-field">
+              <span>道号</span>
+              <input v-model="characterName" maxlength="8" placeholder="输入你的道号" />
+            </label>
+
+            <ThemeHomeButton size="lg" block @click="handleCompleteCreation">
+              <template #icon>
+                <Star :size="18" />
+              </template>
+              踏入修仙界
+            </ThemeHomeButton>
+          </GameSurface>
+        </div>
+      </template>
     </div>
 
-    <!-- === 存档管理 === -->
-    <div v-else-if="currentScreen === 'saves'" class="menu-body">
-      <div class="screen-header">
-        <button class="btn-back" @click="currentScreen = 'home'">← 返回</button>
-        <h2>存档管理</h2>
-      </div>
-
-      <div class="save-slots">
-        <div
-          v-for="(slot, i) in saveSlots"
-          :key="i"
-          class="save-slot"
-          :class="{ 'has-data': slot.hasData, 'empty': !slot.hasData }"
-          @click="slot.hasData ? handleLoadSlot(i) : undefined"
-        >
-          <div class="slot-index">#{{ i + 1 }}</div>
-          <div v-if="slot.hasData" class="slot-content">
-            <div class="slot-header">
-              <span class="slot-name">{{ slot.playerName }}</span>
-              <span class="slot-realm">{{ slot.playerRealm }}</span>
-            </div>
-            <div class="slot-stats">
-              <small>修为 {{ formatBigNum(slot.cultivation) }}</small>
-              <small>灵石 {{ formatBigNum(slot.gold) }}</small>
-            </div>
-            <div class="slot-time">{{ slot.savedAtLabel }}</div>
-          </div>
-          <div v-else class="slot-empty">
-            <span>空存档</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- === 设置 === -->
-    <div v-else-if="currentScreen === 'settings'" class="menu-body">
-      <div class="screen-header">
-        <button class="btn-back" @click="currentScreen = 'home'">← 返回</button>
-        <h2>设置</h2>
-      </div>
-
-      <div class="settings-card">
-        <div class="setting-row">
-          <span>音效</span>
-          <button class="toggle-btn" :class="{ on: bgmEnabled }" @click="handleToggleBgm">
-            {{ bgmEnabled ? '开' : '关' }}
-          </button>
-        </div>
-        <div class="setting-row danger">
-          <span>重置游戏</span>
-          <button class="btn-danger" @click="showResetConfirm = true">重置</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- === 创建角色（原有流程） === -->
-    <div v-else class="menu-body create-body">
-      <!-- 步骤指示器 -->
-      <div class="step-indicator">
-        <div
-          v-for="(s, i) in steps"
-          :key="s.key"
-          class="step-dot"
-          :class="{ active: i === currentStepIndex, done: i < currentStepIndex }"
-        >
-          <span>{{ i < currentStepIndex ? '✓' : s.num }}</span>
-          <small>{{ s.label }}</small>
-        </div>
-      </div>
-
-      <!-- Step 1: 性别 -->
-      <div v-if="creation.currentStep.value === 'gender'" class="step-content">
-        <div class="step-title">
-          <h2>选择你的道途</h2>
-          <p class="step-desc">男女性别有不同视角。</p>
-        </div>
-        <div class="gender-cards">
-          <button class="gender-card" @click="creation.selectGender('male')">
-            <span class="gender-icon">♂</span>
-            <strong>男主 · 云逸</strong>
-            <p>执剑问道，遇苏清鸢于微末之时。</p>
-          </button>
-          <button class="gender-card" @click="creation.selectGender('female')">
-            <span class="gender-icon">♀</span>
-            <strong>女主 · 苏清鸢</strong>
-            <p>身负轮回记忆，破笼而出。</p>
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 2: 灵根 -->
-      <div v-if="creation.currentStep.value === 'spirit_root'" class="step-content">
-        <div class="step-title">
-          <h2>灵根觉醒</h2>
-          <p class="step-desc">天机盘转动，你的根骨将决定修仙之路的起点。</p>
-        </div>
-        <div class="root-display" v-if="creation.spiritRoot.value">
-          <div class="root-element" :style="{ color: rootColor }">
-            {{ creation.spiritRoot.value.primaryElement }}
-            <span v-if="creation.spiritRoot.value.secondaryElement">·{{ creation.spiritRoot.value.secondaryElement }}</span>
-          </div>
-          <div class="root-grade" :style="{ color: rootColor }">
-            [{{ rootLabel }}] {{ rootName }}
-          </div>
-          <div class="root-stats">
-            <div class="root-stat">
-              <small>修炼速度</small>
-              <strong>+{{ (creation.spiritRoot.value.cultivationSpeedBonus * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="root-stat">
-              <small>元素亲和</small>
-              <strong>+{{ (creation.spiritRoot.value.elementAffinity * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="root-stat">
-              <small>突破加成</small>
-              <strong>+{{ (creation.spiritRoot.value.breakthroughBonus * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="root-stat">
-              <small>技能槽</small>
-              <strong>{{ creation.spiritRoot.value.skillSlots }}</strong>
-            </div>
-          </div>
-        </div>
-        <div class="root-actions">
-          <button class="btn-primary" @click="creation.rerollSpiritRoot()" :disabled="creation.rerollsRemaining.value <= 0">
-            <RefreshCw :size="16" /> 重测 ({{ creation.rerollsRemaining.value }}/3)
-          </button>
-          <button class="btn-primary" @click="creation.acceptSpiritRoot()">
-            ✓ 接受
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 3: 血脉 -->
-      <div v-if="creation.currentStep.value === 'bloodline'" class="step-content">
-        <div class="step-title">
-          <h2>血脉觉醒</h2>
-          <p class="step-desc">深埋在你体内的先天血脉，开始苏醒……</p>
-        </div>
-        <div class="bloodline-display" v-if="creation.bloodline.value">
-          <div class="bloodline-name" :style="{ color: bloodlineColor }">
-            {{ bloodlineName }}
-          </div>
-          <p class="bloodline-desc">{{ creation.bloodline.value.description }}</p>
-          <div class="bloodline-stats compact-stats">
-            <div class="bl-stat" v-if="creation.bloodline.value.statBonuses.attackPercent">
-              <small>攻击</small><strong>+{{ (creation.bloodline.value.statBonuses.attackPercent * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="bl-stat" v-if="creation.bloodline.value.statBonuses.defensePercent">
-              <small>防御</small><strong>+{{ (creation.bloodline.value.statBonuses.defensePercent * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="bl-stat" v-if="creation.bloodline.value.statBonuses.hpPercent">
-              <small>气血</small><strong>+{{ (creation.bloodline.value.statBonuses.hpPercent * 100).toFixed(0) }}%</strong>
-            </div>
-            <div class="bl-stat">
-              <small>修炼</small><strong>+{{ (creation.bloodline.value.cultivationBonus * 100).toFixed(0) }}%</strong>
-            </div>
-          </div>
-        </div>
-        <div class="naming-section">
-          <label class="name-field">
-            <small>道号</small>
-            <input v-model="characterName" maxlength="8" placeholder="输入你的道号…" />
-          </label>
-        </div>
-        <button class="btn-primary btn-complete" @click="handleCompleteCreation">
-          <span class="btn-icon"><Star :size="20" /></span> 踏入修仙界
-        </button>
-      </div>
-    </div>
-
-    <!-- 重置确认弹窗 -->
     <Transition name="fade">
       <div v-if="showResetConfirm" class="confirm-overlay" @click.self="showResetConfirm = false">
-        <div class="confirm-card">
-          <h3>确认重置</h3>
-          <p>重置将清除所有存档数据，此操作不可撤销。</p>
-          <div class="confirm-actions">
-            <button class="btn-secondary" @click="showResetConfirm = false">取消</button>
-            <button class="btn-danger" @click="handleReset">确认重置</button>
+        <GameSurface tone="gold" padding="lg" class="confirm-card">
+          <div class="confirm-copy">
+            <span>确认重置</span>
+            <strong>此操作不可撤销</strong>
+            <p>将清除所有本地存档、设置与缓存数据，请确认当前没有需要保留的进度。</p>
           </div>
-        </div>
+          <div class="confirm-actions">
+            <ThemeHomeButton size="sm" block @click="showResetConfirm = false">取消</ThemeHomeButton>
+            <button class="danger-button large" type="button" @click="handleReset">确认重置</button>
+          </div>
+        </GameSurface>
       </div>
     </Transition>
   </main>
@@ -250,6 +408,10 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { FolderOpen, RefreshCw, Settings, Sparkles, Star, Volume2, VolumeX } from 'lucide-vue-next'
+import GameSurface from '@/components/game-ui/GameSurface.vue'
+import ThemeHomeButton from '@/components/theme/homepage/ThemeHomeButton.vue'
+import ThemeHomeIconBadge from '@/components/theme/homepage/ThemeHomeIconBadge.vue'
+import ThemeHomePanelShell from '@/components/theme/homepage/ThemeHomePanelShell.vue'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useAudio } from '@/composables/useAudio'
 import { useCharacterCreation } from '@/composables/useCharacterCreation'
@@ -312,13 +474,13 @@ function handleContinue() {
     loadFromSlot(lastSlot)
     router.push('/game/cultivation')
   } else {
-    // 没有最近的存档，进入存档管理
     currentScreen.value = 'saves'
   }
 }
 
 function handleNewGame() {
   creation.reset()
+  characterName.value = ''
   currentScreen.value = 'create'
 }
 
@@ -331,7 +493,6 @@ function handleLoadSlot(slotIndex: number) {
 function handleCompleteCreation() {
   creation.completeCreation(characterName.value)
   if (creation.currentStep.value === 'completed') {
-    // 自动保存到第一个空槽位
     const emptySlot = saveSlots.value.findIndex(s => !s.hasData)
     if (emptySlot >= 0) saveToSlot(emptySlot)
     router.push('/game/cultivation')
@@ -357,6 +518,7 @@ function formatBigNum(n: number): string {
 }
 
 onMounted(() => {
+  void playerStore
   refreshSlots()
 })
 </script>
@@ -364,631 +526,582 @@ onMounted(() => {
 <style scoped>
 .main-menu {
   position: relative;
-  min-height: 100vh; min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 16px 40px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding:
+    calc(var(--ui-page-padding-top) + env(safe-area-inset-top, 0px))
+    var(--ui-page-padding-x)
+    calc(var(--ui-page-padding-bottom) + env(safe-area-inset-bottom, 0px));
   color: #315257;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(255, 226, 145, 0.34), transparent 24%),
-    radial-gradient(circle at 86% 10%, rgba(108, 203, 180, 0.26), transparent 30%),
-    linear-gradient(120deg, transparent 0 34%, rgba(255, 237, 174, 0.28) 34% 35%, transparent 35% 100%),
-    linear-gradient(135deg, rgba(248, 255, 244, 0.98) 0%, rgba(235, 249, 243, 0.96) 46%, rgba(255, 248, 226, 0.94) 100%);
-  font-family: var(--font-game, serif);
+  overflow-x: hidden;
 }
 
-/* Audio toggle */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 218, 140, 0.24), transparent 24%),
+    radial-gradient(circle at 88% 12%, rgba(123, 187, 176, 0.26), transparent 28%),
+    linear-gradient(180deg, rgba(248, 255, 250, 0.98), rgba(239, 249, 244, 0.96) 48%, rgba(250, 246, 234, 0.98));
+}
+
+.menu-shell {
+  width: min(100%, var(--ui-phone-base-width));
+  margin: 0 auto;
+  display: grid;
+  gap: var(--ui-page-gap);
+}
+
 .menu-audio-toggle {
   position: fixed;
-  top: calc(14px + env(safe-area-inset-top, 0px));
-  right: 14px;
-  z-index: 10;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid rgba(103, 149, 144, 0.22);
-  border-radius: 10px;
-  background: rgba(255, 255, 250, 0.84);
-  color: #4b6767;
-  font-size: 11px;
-  font-family: inherit;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: max(12px, calc((100vw - var(--ui-phone-base-width)) / 2 + 12px));
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.18rem 0.28rem 0.18rem 0.18rem;
+  border: 1px solid rgba(120, 161, 154, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 249, 0.86);
+  color: rgba(61, 90, 89, 0.82);
+  font: inherit;
+  font-size: 0.75rem;
   backdrop-filter: blur(14px);
-  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(88, 123, 116, 0.12);
 }
 
 .menu-audio-toggle.active {
-  border-color: rgba(188, 141, 58, 0.3);
-  background: rgba(255, 249, 233, 0.9);
+  border-color: rgba(188, 141, 58, 0.24);
   color: #8b6226;
 }
 
-/* Header */
-.menu-header {
-  text-align: center;
-  padding: 0 0 32px;
+.hero-panel {
+  margin-top: 1.7rem;
+}
+
+.hero-content {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.82fr);
+  grid-template-areas:
+    "copy side"
+    "actions actions";
+  gap: 0.95rem 1rem;
+}
+
+.hero-copy {
+  grid-area: copy;
+  align-self: start;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.62rem;
+  border-radius: 999px;
+  background: rgba(255, 247, 220, 0.82);
+  color: rgba(143, 97, 36, 0.9);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
 }
 
 .game-title {
-  margin: 0;
-  font-size: 36px;
+  margin: 0.38rem 0 0;
+  color: #8d6328;
+  font-size: clamp(2rem, 1.46rem + 2.4vw, 2.5rem);
   font-weight: 800;
-  color: #8e6227;
-  letter-spacing: 8px;
-  text-shadow: 0 2px 8px rgba(188, 141, 58, 0.2);
+  letter-spacing: 0.24em;
+  line-height: 1.05;
+  text-shadow: 0 4px 16px rgba(188, 141, 58, 0.16);
 }
 
 .game-subtitle {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: rgba(49, 82, 87, 0.5);
-  letter-spacing: 2px;
+  margin: 0.35rem 0 0;
+  color: rgba(67, 92, 90, 0.76);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
 }
 
-/* Menu body */
-.menu-body {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Home buttons */
-.home-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.btn-home {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: 60px;
-  padding: 14px 18px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  font-family: inherit;
-  cursor: pointer;
-  text-align: left;
-  transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.btn-home:active {
-  transform: scale(0.98);
-}
-
-.btn-continue {
-  border-color: rgba(188, 141, 58, 0.35);
-  background: linear-gradient(180deg, rgba(255, 249, 233, 0.92), rgba(255, 245, 220, 0.88));
-  box-shadow: 0 4px 16px rgba(188, 141, 58, 0.15);
-}
-
-.btn-icon {
-  width: 40px; height: 40px;
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  border-radius: 10px;
-  background: rgba(255, 248, 229, 0.9);
-  font-size: 20px;
-  border: 1px solid rgba(188, 141, 58, 0.2);
-}
-
-.btn-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.btn-label strong {
-  font-size: 15px;
-  color: #315257;
-}
-
-.btn-label small {
-  font-size: 11px;
-  color: rgba(49, 82, 87, 0.6);
-}
-
-.version-info {
-  text-align: center;
-  padding-top: 8px;
-  color: rgba(49, 82, 87, 0.3);
-  font-size: 11px;
-}
-
-/* Screen header */
-.screen-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 0 8px;
-}
-
-.screen-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #8e6227;
-}
-
-.btn-back {
-  padding: 6px 12px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.6);
-  color: #315257;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-/* Save slots */
-.save-slots {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.save-slot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.save-slot.has-data:active {
-  border-color: rgba(188, 141, 58, 0.3);
-  background: rgba(255, 249, 233, 0.8);
-}
-
-.slot-index {
-  width: 32px; height: 32px;
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: rgba(111, 157, 149, 0.12);
-  color: rgba(49, 82, 87, 0.6);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.save-slot.has-data .slot-index {
-  background: rgba(188, 141, 58, 0.15);
-  color: #8b6226;
-}
-
-.slot-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.slot-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.slot-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #315257;
-}
-
-.slot-realm {
-  font-size: 11px;
-  color: #8b6226;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(188, 141, 58, 0.1);
-}
-
-.slot-stats {
-  display: flex;
-  gap: 12px;
-}
-
-.slot-stats small {
-  font-size: 10px;
-  color: rgba(49, 82, 87, 0.55);
-}
-
-.slot-time {
-  font-size: 10px;
-  color: rgba(49, 82, 87, 0.4);
-}
-
-.slot-empty {
-  color: rgba(49, 82, 87, 0.35);
-  font-size: 13px;
-}
-
-/* Settings */
-.settings-card {
-  padding: 14px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.setting-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-}
-
-.setting-row + .setting-row {
-  border-top: 1px solid rgba(111, 157, 149, 0.1);
-}
-
-.setting-row span {
-  font-size: 14px;
-  color: #315257;
-}
-
-.toggle-btn {
-  min-width: 48px;
-  padding: 6px 14px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 8px;
-  background: rgba(111, 157, 149, 0.08);
-  color: #315257;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.toggle-btn.on {
-  border-color: rgba(188, 141, 58, 0.3);
-  background: rgba(255, 249, 233, 0.8);
-  color: #8b6226;
-}
-
-.btn-danger {
-  padding: 6px 14px;
-  border: 1px solid rgba(195, 80, 80, 0.3);
-  border-radius: 8px;
-  background: rgba(195, 80, 80, 0.08);
-  color: #c35050;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-/* Confirm dialog */
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.hero-side {
+  grid-area: side;
   display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(49, 82, 87, 0.3);
-  backdrop-filter: blur(3px);
+  gap: 0.55rem;
+  align-self: start;
 }
 
-.confirm-card {
-  width: 100%; max-width: 320px;
-  padding: 24px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
+.hero-stat {
+  padding: 0.7rem 0.78rem;
+  border: 1px solid rgba(188, 141, 58, 0.16);
   border-radius: 16px;
-  background: rgba(255, 255, 250, 0.98);
-  box-shadow: 0 24px 48px rgba(49, 82, 87, 0.2);
+  background: rgba(255, 252, 244, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.confirm-card h3 {
-  margin: 0 0 8px;
-  font-size: 17px;
-  color: #c35050;
+.hero-stat span {
+  display: block;
+  color: rgba(67, 92, 90, 0.66);
+  font-size: 0.68rem;
 }
 
-.confirm-card p {
-  margin: 0 0 20px;
-  font-size: 13px;
-  color: rgba(49, 82, 87, 0.7);
-  line-height: 1.6;
+.hero-stat strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #325154;
+  font-size: 0.92rem;
+  line-height: 1.2;
 }
 
-.confirm-actions {
+.hero-actions {
+  grid-area: actions;
+  display: grid;
+  gap: 0.5rem;
+  align-content: end;
+}
+
+.home-grid,
+.settings-stack,
+.creation-shell {
+  display: grid;
+  gap: var(--ui-page-gap);
+}
+
+.menu-card-meta {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgba(67, 92, 90, 0.78);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
-.btn-secondary {
+.menu-note-card {
+  margin-top: -0.1rem;
+}
+
+.menu-note {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.menu-note span {
+  display: block;
+  color: rgba(67, 92, 90, 0.62);
+  font-size: 0.72rem;
+}
+
+.menu-note strong {
+  color: #8d6328;
+  font-size: 0.92rem;
+}
+
+.menu-note p {
+  margin: 0;
+  color: rgba(67, 92, 90, 0.74);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.screen-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.ghost-back {
+  border: 1px solid rgba(120, 161, 154, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 249, 0.76);
+  color: #4b6767;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.45rem 0.82rem;
+}
+
+.save-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.save-slot-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.save-slot-head,
+.save-slot-main,
+.save-slot-stats,
+.settings-row,
+.settings-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.save-slot-head {
+  align-items: flex-start;
+}
+
+.save-slot-index {
+  color: #8b6226;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.save-slot-state {
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 247, 220, 0.82);
+  color: #8b6226;
+  font-size: 0.7rem;
+}
+
+.save-slot-state.empty {
+  background: rgba(229, 239, 238, 0.82);
+  color: rgba(67, 92, 90, 0.68);
+}
+
+.save-slot-main {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.save-slot-main strong {
+  color: #325154;
+  font-size: 1rem;
+}
+
+.save-slot-main span {
+  color: rgba(143, 97, 36, 0.9);
+  font-size: 0.76rem;
+}
+
+.save-slot-stats {
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+.save-slot-stats div {
+  min-width: 5.2rem;
+}
+
+.save-slot-stats small,
+.settings-row-copy small,
+.settings-hero-copy span {
+  display: block;
+  color: rgba(67, 92, 90, 0.66);
+  font-size: 0.72rem;
+}
+
+.save-slot-stats strong {
+  color: #325154;
+  font-size: 0.92rem;
+}
+
+.save-slot-time,
+.save-slot-empty-copy,
+.settings-hero-copy p,
+.bloodline-desc {
+  margin: 0;
+  color: rgba(67, 92, 90, 0.74);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.settings-hero {
+  align-items: center;
+}
+
+.settings-hero-copy {
   flex: 1;
-  padding: 12px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.6);
-  color: #315257;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
 }
 
-/* Step indicator & creation (preserved from original) */
+.settings-hero-copy strong,
+.settings-row-copy strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: #325154;
+  font-size: 0.96rem;
+}
+
+.danger-row {
+  align-items: center;
+}
+
+.danger-button {
+  min-width: 4.6rem;
+  min-height: 2.55rem;
+  padding: 0.62rem 1rem;
+  border: 1px solid rgba(195, 80, 80, 0.3);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 245, 243, 0.98), rgba(248, 223, 219, 0.92));
+  color: #b7524b;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  box-shadow: 0 14px 26px rgba(195, 80, 80, 0.12);
+}
+
+.danger-button.large {
+  flex: 1;
+}
+
 .step-indicator {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(111,157,149,0.16);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.66);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 
 .step-dot {
   display: grid;
-  place-items: center;
-  gap: 4px;
+  justify-items: center;
+  gap: 0.35rem;
 }
 
 .step-dot span {
-  width: 30px; height: 30px;
-  display: grid; place-items: center;
-  border-radius: 8px;
-  background: rgba(111,157,149,0.14);
-  color: rgba(49,82,87,0.5);
-  font-size: 12px; font-weight: 800;
-}
-
-.step-dot.active span {
-  background: rgba(255,244,208,0.9);
-  color: #8b6226;
-  box-shadow: 0 0 0 2px rgba(188,141,58,0.2);
-}
-
-.step-dot.done span {
-  background: #7eb8da; color: #fff;
+  width: 2.05rem;
+  height: 2.05rem;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(229, 239, 238, 0.92);
+  color: rgba(67, 92, 90, 0.58);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .step-dot small {
-  font-size: 10px;
-  color: rgba(49,82,87,0.6);
+  color: rgba(67, 92, 90, 0.72);
+  font-size: 0.68rem;
 }
 
-.step-content {
-  padding: 20px;
-  border: 1px solid rgba(111, 157, 149, 0.2);
-  border-radius: 16px;
-  background: rgba(255, 255, 250, 0.92);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.step-dot.active span {
+  background: rgba(255, 244, 208, 0.96);
+  color: #8b6226;
+  box-shadow: 0 0 0 2px rgba(188, 141, 58, 0.18);
 }
 
-.step-title h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #8e6227;
+.step-dot.done span {
+  background: rgba(114, 176, 167, 0.9);
+  color: #f4fcfa;
 }
 
-.step-desc {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: rgba(49,82,87,0.68);
-  line-height: 1.5;
-}
-
-.gender-cards {
+.option-grid {
   display: grid;
-  gap: 10px;
+  gap: 0.85rem;
 }
 
-.gender-card {
-  padding: 16px;
-  border: 1px solid rgba(111,157,149,0.2);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.58);
-  font-family: inherit;
-  cursor: pointer;
+.choice-card {
+  display: grid;
+  gap: 0.38rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid rgba(120, 161, 154, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(240, 249, 244, 0.86)),
+    radial-gradient(circle at top right, rgba(255, 220, 146, 0.16), transparent 58%);
+  color: #325154;
+  font: inherit;
   text-align: left;
+  box-shadow: 0 18px 34px rgba(88, 123, 116, 0.09);
 }
 
-.gender-card:active {
-  border-color: rgba(188,141,58,0.38);
-  background: rgba(255,247,220,0.86);
+.choice-symbol {
+  color: #8b6226;
+  font-size: 1.8rem;
+  line-height: 1;
 }
 
-.gender-icon {
-  font-size: 30px;
+.choice-card strong {
+  font-size: 1rem;
 }
 
-.gender-card strong {
-  font-size: 15px;
-  color: #315257;
+.choice-card p {
+  margin: 0;
+  color: rgba(67, 92, 90, 0.72);
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
-.gender-card p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: rgba(49,82,87,0.68);
+.awakening-card {
+  --accent-color: #8b6226;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 28%, white);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 241, 0.94), rgba(239, 249, 244, 0.88)),
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-color) 16%, white), transparent 56%);
 }
 
-.root-display {
+.awakening-heading {
+  display: grid;
+  gap: 0.24rem;
   text-align: center;
-  padding: 20px 14px;
-  border: 1px solid rgba(188,141,58,0.22);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,251,236,0.78), rgba(241,252,247,0.64));
 }
 
-.root-element {
-  font-size: 42px;
+.awakening-element {
+  color: var(--accent-color);
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: 4px;
+  letter-spacing: 0.18em;
 }
 
-.root-grade {
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 4px;
+.awakening-element small,
+.awakening-eyebrow {
+  font-size: 0.9rem;
 }
 
-.root-stats {
+.awakening-heading strong {
+  color: var(--accent-color);
+  font-size: 1rem;
+}
+
+.awakening-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
-.root-stat {
-  padding: 6px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.56);
-}
-
-.root-stat small {
-  font-size: 10px;
-  color: rgba(49,82,87,0.6);
-}
-
-.root-stat strong {
-  font-size: 14px;
-  color: #8e6227;
-  display: block;
-}
-
-.root-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.btn-primary {
-  min-height: 46px;
-  padding: 0 16px;
-  border: 1px solid rgba(188, 141, 58, 0.28);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #fff3c5, #bfe9d4);
-  color: #735022;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.btn-primary:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-complete {
-  min-height: 50px;
-  font-size: 16px;
-}
-
-.bloodline-display {
-  text-align: center;
-  padding: 20px 14px;
-  border: 1px solid rgba(188,141,58,0.22);
+.awakening-stat {
+  padding: 0.7rem;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,251,236,0.78), rgba(241,252,247,0.64));
+  background: rgba(255, 255, 255, 0.74);
 }
 
-.bloodline-name {
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.bloodline-desc {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: rgba(49,82,87,0.72);
-  line-height: 1.6;
-}
-
-.bloodline-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 14px;
-}
-
-.bl-stat {
-  padding: 6px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.56);
-}
-
-.bl-stat small {
-  font-size: 10px;
-  color: rgba(49,82,87,0.6);
-}
-
-.bl-stat strong {
-  font-size: 13px;
-  color: #8e6227;
+.awakening-stat small {
   display: block;
+  color: rgba(67, 92, 90, 0.62);
+  font-size: 0.68rem;
 }
 
-.naming-section {
+.awakening-stat strong {
+  display: block;
+  margin-top: 0.12rem;
+  color: #325154;
+  font-size: 0.9rem;
+}
+
+.bloodline-card .awakening-heading strong {
+  font-size: 1.08rem;
+}
+
+.action-row {
   display: grid;
-  gap: 8px;
+  gap: 0.6rem;
 }
 
-.name-field small {
-  font-size: 11px;
-  color: rgba(49,82,87,0.6);
+.name-field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.name-field span {
+  color: rgba(67, 92, 90, 0.7);
+  font-size: 0.74rem;
 }
 
 .name-field input {
   width: 100%;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid rgba(111,157,149,0.22);
-  border-radius: 10px;
-  outline: none;
-  background: rgba(255,255,255,0.72);
-  color: #315257;
-  font-size: 15px;
-  font-family: inherit;
+  min-height: 3rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgba(120, 161, 154, 0.24);
+  border-radius: 16px;
+  background: rgba(255, 255, 250, 0.9);
+  color: #325154;
+  font: inherit;
+  font-size: 0.92rem;
   box-sizing: border-box;
+}
+
+.name-field input::placeholder {
+  color: rgba(67, 92, 90, 0.42);
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(42, 59, 62, 0.36);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-card {
+  width: min(100%, 21rem);
+}
+
+.confirm-copy {
+  display: grid;
+  gap: 0.36rem;
+}
+
+.confirm-copy span {
+  color: rgba(183, 82, 75, 0.82);
+  font-size: 0.72rem;
+}
+
+.confirm-copy strong {
+  color: #b7524b;
+  font-size: 1.14rem;
+}
+
+.confirm-copy p {
+  margin: 0;
+  color: rgba(67, 92, 90, 0.76);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s;
+  transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
 
-/* Mobile responsive */
-@media (max-width: 640px) {
-  .main-menu {
-    padding: 40px 14px 30px;
-  }
-  .game-title {
-    font-size: 30px;
-  }
-  .menu-body {
-    gap: 10px;
-  }
-  .btn-home {
-    min-height: 54px;
-    padding: 12px 14px;
+@media (min-width: 391px) {
+  .home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.create-body {
-  overflow-y: auto;
-  max-height: 80vh;
+@media (max-width: 390px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "copy"
+      "side"
+      "actions";
+  }
+
+  .save-slot-main,
+  .save-slot-stats,
+  .settings-row,
+  .settings-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .save-slot-main {
+    gap: 0.2rem;
+  }
 }
 </style>
