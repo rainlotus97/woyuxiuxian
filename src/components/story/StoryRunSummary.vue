@@ -1,5 +1,5 @@
 <template>
-  <GameSurface tone="realm" padding="md" title="卷宗运行" :subtitle="summary">
+  <GameSurface tone="realm" padding="md" title="故事回响" :subtitle="summary">
     <div class="run-summary">
       <div class="summary-strip">
         <div v-for="item in statusItems" :key="item.label" class="status-card">
@@ -36,12 +36,12 @@ const props = defineProps<{
 }>()
 
 const summary = computed(() => {
-  if (!props.hasSave) return `${props.selectedPerspectiveLabel} · 尚未入卷`
-  return `${props.perspectiveLabel} · 第 ${props.volume} 卷 · 第 ${props.loop} 周目`
+  if (!props.hasSave) return `${props.selectedPerspectiveLabel} · 这条线还没真正动起来`
+  return `${props.perspectiveLabel} · 第 ${props.volume} 段命线 · 第 ${props.loop} 轮走向`
 })
 
 const currentNodeLabel = computed(() => props.currentNodeName || props.currentNodeId || '尚未启程')
-const currentNodeDetail = computed(() => props.currentNodeMap || '选择视角后开启本卷主线')
+const currentNodeDetail = computed(() => props.currentNodeMap || '选定视角后，眼前这段事才会真正接上')
 const progressLabel = computed(() => `${props.completedCount}/${props.totalNodes}`)
 
 const replayLabel = computed(() => {
@@ -50,7 +50,7 @@ const replayLabel = computed(() => {
 })
 
 const replayDetail = computed(() => {
-  if (!props.latestReplay) return '触发剧情战后会保留战况'
+  if (!props.latestReplay) return '碰上剧情冲突后，会把这一战记下来'
   return props.latestReplay.title
 })
 
@@ -58,31 +58,31 @@ const statusItems = computed(() => [
   {
     label: '当前视角',
     value: props.hasSave ? props.perspectiveLabel : props.selectedPerspectiveLabel,
-    detail: props.hasSave ? '读取现有卷宗' : '准备开启新线'
+    detail: props.hasSave ? '顺着现有走向往下接' : '准备从这条线起步'
   },
   {
-    label: '节点进度',
+    label: '走到哪里',
     value: progressLabel.value,
-    detail: `第 ${props.volume} 卷 · 第 ${props.loop} 周目`
+    detail: `第 ${props.volume} 段命线 · 第 ${props.loop} 轮走向`
   },
   {
-    label: '当前章回',
+    label: '眼前这一段',
     value: currentNodeLabel.value,
     detail: currentNodeDetail.value
   },
   {
-    label: '剧情战',
+    label: '冲突回放',
     value: replayLabel.value,
     detail: replayDetail.value
   }
 ])
 
 const effectItems = [
-  '解锁人物',
-  '推动关系',
-  '开放地图',
-  '影响宗门',
-  '触发剧情战'
+  '碰见新人物',
+  '关系起变化',
+  '地图会松动',
+  '宗门会受影响',
+  '可能撞上剧情战'
 ]
 </script>
 

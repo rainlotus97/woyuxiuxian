@@ -1,5 +1,5 @@
 <template>
-  <GameSurface tone="gold" padding="md" title="卷宗进度" :subtitle="summary">
+  <GameSurface tone="gold" padding="md" title="眼下走到哪了" :subtitle="summary">
     <div class="story-progress-panel">
       <div class="metric-grid">
         <div v-for="metric in metrics" :key="metric.label" class="metric">
@@ -9,7 +9,7 @@
       </div>
 
       <div class="current-node">
-        <span class="node-label">当前章回</span>
+        <span class="node-label">眼前这一段</span>
         <strong>{{ currentNodeName }}</strong>
         <small>{{ currentNodeMeta }}</small>
       </div>
@@ -32,16 +32,16 @@ const props = defineProps<{
 }>()
 
 const summary = computed(() => {
-  return `${props.perspectiveLabel} · 第 ${props.loop} 周目`
+  return `${props.perspectiveLabel} · 第 ${props.loop} 轮走向`
 })
 
 const currentNodeName = computed(() => props.currentNodeName || '尚未启程')
-const currentNodeMeta = computed(() => props.currentNodeMap || '选择视角后开启本卷主线')
+const currentNodeMeta = computed(() => props.currentNodeMap || '选定视角后，这边的事才会真正动起来')
 
 const metrics = computed(() => [
-  { label: '当前卷', value: `第 ${props.volume} 卷` },
-  { label: '已读节点', value: `${props.completedCount}` },
-  { label: '本卷节点', value: `${props.totalNodes}` }
+  { label: '当前阶段', value: `第 ${props.volume} 段命线` },
+  { label: '已经撞上', value: `${props.completedCount}` },
+  { label: '这一段总数', value: `${props.totalNodes}` }
 ])
 </script>
 

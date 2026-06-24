@@ -12,11 +12,14 @@ import {
 import type { BattleRuntimeSnapshot, BattleRuntimeUnit } from '@/game/battle/battleRuntime'
 import { buildBattleArena } from './battleArenaBuilder'
 import { resolveBattleFormation, type BattleFormationPlacement } from './battleSceneLayout'
+import { getEffectForElement, ELEMENT_EFFECTS } from '@/game/battle/battleEffectsConfig'
 
 interface ActorSprite {
   unitId: string
   spriteKey: string
   battleRole: BattleRuntimeUnit['battleRole']
+  icon: Phaser.GameObjects.Text
+  crest: Phaser.GameObjects.Ellipse
   sprite: Phaser.GameObjects.Sprite
   shadow: Phaser.GameObjects.Ellipse
   hpBar: Phaser.GameObjects.Rectangle
@@ -41,6 +44,7 @@ export class BattleScene extends Phaser.Scene {
   private pendingEndResults: Array<'victory' | 'defeat' | 'fled'> = []
   private latestUnits = new Map<string, BattleRuntimeUnit>()
   private readyTimer: Phaser.Time.TimerEvent | null = null
+  private readyAttempts = 0
 
   constructor() {
     super('BattleScene')
@@ -55,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
     this.pendingCommands = []
     this.pendingHits = []
     this.pendingEndResults = []
+    this.readyAttempts = 0
     this.createArena()
     this.createAnimations()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.disposeScene())
@@ -82,19 +87,9 @@ export class BattleScene extends Phaser.Scene {
       })
     )
     this.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
-      if (this.disposed || !this.time) return
-      this.readyTimer?.destroy()
-      this.readyTimer = this.time.delayedCall(0, () => {
-        this.readyTimer = null
-        if (!this.hasRenderableScene() || !this.hasBattleAssets() || !this.battleInstanceId || !isActiveBattleInstance(this.battleInstanceId)) return
-        this.ready = true
-        markBattleSceneReady(this.battleInstanceId)
-        gameEvents.emit('battle:scene-ready', {
-          sceneKey: 'BattleScene',
-          battleInstanceId: this.battleInstanceId
-        })
-      })
+      this.scheduleReadyProbe(0)
     })
+    this.scheduleReadyProbe(24)
   }
 
   update() {
@@ -157,6 +152,7 @@ export class BattleScene extends Phaser.Scene {
     this.latestUnits = new Map()
     this.readyTimer?.destroy()
     this.readyTimer = null
+    this.readyAttempts = 0
     this.time?.removeAllEvents()
     this.tweens?.killAll()
     for (const off of this.unsubscribers) off()
@@ -185,6 +181,8 @@ export class BattleScene extends Phaser.Scene {
       const hpRatio = Math.max(0, unit.stats.currentHp / unit.stats.maxHp)
       actor.hpBar.width = 46 * hpRatio
       actor.sprite.setAlpha(unit.isAlive ? 1 : 0.45)
+      actor.icon.setAlpha(unit.isAlive ? 1 : 0.45)
+      actor.crest.setAlpha(unit.isAlive ? 0.88 : 0.42)
       if (!unit.isAlive && actor.sprite.anims.currentAnim?.key !== `${unit.spriteKey}_down`) {
         actor.sprite.play(`${unit.spriteKey}_down`)
       }
@@ -197,6 +195,40 @@ export class BattleScene extends Phaser.Scene {
   private createArena() {
     this.cameras.main.setBackgroundColor(this.arenaTheme.cameraBackgroundColor)
     this.arena = buildBattleArena(this, this.arenaTheme)
+  }
+
+  private scheduleReadyProbe(delay: number) {
+    if (this.disposed || this.ready || !this.time) return
+    this.readyTimer?.destroy()
+    this.readyTimer = this.time.delayedCall(delay, () => {
+      this.readyTimer = null
+      this.tryMarkReady()
+    })
+  }
+
+  private tryMarkReady() {
+    if (this.disposed || this.ready) return
+    const battleInstanceId = this.battleInstanceId
+    if (
+      this.hasRenderableScene()
+      && this.hasBattleAssets()
+      && battleInstanceId
+      && isActiveBattleInstance(battleInstanceId)
+    ) {
+      this.ready = true
+      this.readyAttempts = 0
+      markBattleSceneReady(battleInstanceId)
+      gameEvents.emit('battle:scene-ready', {
+        sceneKey: 'BattleScene',
+        battleInstanceId
+      })
+      return
+    }
+
+    this.readyAttempts += 1
+    if (this.readyAttempts < 20) {
+      this.scheduleReadyProbe(40)
+    }
   }
 
   private rebuildArena() {
@@ -266,10 +298,19 @@ export class BattleScene extends Phaser.Scene {
       return
     }
     const shadow = add.ellipse(placement.x, placement.y + 33, placement.shadowWidth, placement.shadowHeight, 0x4e6e68, 0.22)
+    const crest = add.ellipse(placement.x, placement.y - 6, Math.max(24, placement.scale * 9), Math.max(24, placement.scale * 9), unit.side === 'ally' ? 0xeafaf5 : 0xffeff1, 0.88)
+      .setStrokeStyle(2, this.resolveEffectTint(this.resolveUnitAccentType(unit)), 0.9)
     const sprite = add.sprite(placement.x, placement.y, unit.spriteKey, 0)
       .setScale(placement.scale)
       .play(`${unit.spriteKey}_idle`)
     sprite.setAlpha(0)
+    const icon = add.text(placement.x, placement.y - 7, unit.markerText || unit.icon || '·', {
+      fontFamily: 'serif',
+      fontSize: `${Math.max(14, Math.round(placement.scale * 5.2))}px`,
+      color: unit.side === 'ally' ? '#245f57' : '#7f3242',
+      stroke: '#fff8e6',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(sprite.depth + 1)
     const hpFrame = add.rectangle(placement.x - 29, placement.y - 72, 58, 10, 0xffffff, 0.78).setOrigin(0, 0.5)
     const hpBg = add.rectangle(placement.x - 25, placement.y - 69, 50, 5, 0xd7c9b1, 0.88).setOrigin(0, 0.5)
     const hpBar = add.rectangle(placement.x - 24, placement.y - 69, 48, 4, unit.side === 'ally' ? 0x45bda9 : 0xe55969, 1).setOrigin(0, 0.5)
@@ -286,7 +327,7 @@ export class BattleScene extends Phaser.Scene {
       .setScale(Math.max(0.5, placement.scale * 0.2))
       .setBlendMode(Phaser.BlendModes.ADD)
     this.tweens.add({ targets: aura, alpha: 0, scale: aura.scale * 1.4, duration: 820, ease: 'Sine.easeOut', onComplete: () => aura.destroy() })
-    this.actors.set(unit.id, { unitId: unit.id, spriteKey: unit.spriteKey, battleRole: unit.battleRole, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
+    this.actors.set(unit.id, { unitId: unit.id, spriteKey: unit.spriteKey, battleRole: unit.battleRole, icon, crest, sprite, shadow, hpFrame, hpBg, hpBar, name, side: unit.side })
   }
 
   private playCommand(command: BattleSceneCommand) {
@@ -325,6 +366,10 @@ export class BattleScene extends Phaser.Scene {
   private playHitEffects(command: BattleSceneCommand, target: ActorSprite) {
     const add = this.getRenderableFactory()
     if (!add || !this.isActorAlive(target)) return
+    const sourceUnit = this.latestUnits.get(command.actorId)
+    const effectConfig = (command.type === 'skill' && command.skillId
+      ? getEffectForElement(this.resolveSkillElement(command.skillId, sourceUnit?.element ?? '金'))
+      : ELEMENT_EFFECTS.slash) ?? ELEMENT_EFFECTS.slash
     this.cameras.main.shake(command.type === 'skill' ? 190 : 110, command.type === 'skill' ? 0.008 : 0.004)
     target.sprite.play(`${target.sprite.texture.key}_hit`)
     target.sprite.setTint(0xffffff)
@@ -335,33 +380,23 @@ export class BattleScene extends Phaser.Scene {
       if (this.isActorAlive(target)) target.sprite.play(`${target.sprite.texture.key}_idle`)
     })
 
+    const resolvedType = effectConfig.type
     const ring = add.image(target.sprite.x, target.sprite.y - 4, 'vfx_impact_ring')
-      .setScale(command.type === 'skill' ? 0.55 : 0.42)
+      .setScale(command.type === 'skill' ? (resolvedType === 'defend' ? 0.72 : 0.55) : 0.42)
       .setAlpha(0.96)
       .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(this.resolveEffectTint(resolvedType))
     this.tweens.add({
       targets: ring,
       alpha: 0,
-      scale: command.type === 'skill' ? 1.35 : 0.95,
+      scale: command.type === 'skill' ? (resolvedType === 'defend' ? 1.02 : 1.35) : 0.95,
       duration: command.type === 'skill' ? 360 : 280,
       ease: 'Quad.easeOut',
       onComplete: () => ring.destroy()
     })
 
-    const slash = add.image(target.sprite.x, target.sprite.y - 14, command.type === 'skill' ? 'vfx_skill_slash' : 'vfx_slash')
-      .setScale(command.type === 'skill' ? 1.55 : 1.05)
-      .setAlpha(0.95)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setAngle(target.side === 'enemy' ? -12 : 168)
-    this.tweens.add({
-      targets: slash,
-      alpha: 0,
-      scale: slash.scale * 1.35,
-      angle: slash.angle + (target.side === 'enemy' ? 18 : -18),
-      duration: command.type === 'skill' ? 320 : 240,
-      onComplete: () => slash.destroy()
-    })
-    this.playImpactSparks(target.sprite.x, target.sprite.y - 10, command.type === 'skill' ? 14 : 8)
+    this.playElementEffect(resolvedType, target)
+    this.playImpactSparks(target.sprite.x, target.sprite.y - 10, command.type === 'skill' ? 14 : 8, this.resolveEffectTint(resolvedType))
     this.tweens.add({
       targets: target.sprite,
       scaleX: target.sprite.scaleX * 1.08,
@@ -387,7 +422,7 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: ring, scale: 0.78, alpha: 0, duration: 380, ease: 'Quad.easeOut', onComplete: () => ring.destroy() })
   }
 
-  private playImpactSparks(x: number, y: number, count: number) {
+  private playImpactSparks(x: number, y: number, count: number, tint: number) {
     const add = this.getRenderableFactory()
     if (!add) return
     for (let i = 0; i < count; i++) {
@@ -397,6 +432,7 @@ export class BattleScene extends Phaser.Scene {
         .setScale(Phaser.Math.FloatBetween(0.46, 0.82))
         .setAlpha(0.95)
         .setBlendMode(Phaser.BlendModes.ADD)
+        .setTint(tint)
       this.tweens.add({
         targets: spark,
         x: x + Math.cos(angle) * distance,
@@ -408,6 +444,104 @@ export class BattleScene extends Phaser.Scene {
         onComplete: () => spark.destroy()
       })
     }
+  }
+
+  private playElementEffect(type: string, target: ActorSprite) {
+    const add = this.getRenderableFactory()
+    if (!add) return
+
+    if (type === 'fire') {
+      const blaze = add.ellipse(target.sprite.x, target.sprite.y - 10, 54, 66, 0xff9a5a, 0.14)
+        .setStrokeStyle(2, 0xffc97d, 0.9)
+      this.tweens.add({
+        targets: blaze,
+        alpha: 0,
+        scaleX: 1.24,
+        scaleY: 1.18,
+        duration: 260,
+        onComplete: () => blaze.destroy()
+      })
+      for (let i = 0; i < 4; i++) {
+        const flame = add.circle(target.sprite.x + (i - 1.5) * 10, target.sprite.y - 12 - i * 8, 7 + i * 2, 0xff8d57, 0.88)
+          .setBlendMode(Phaser.BlendModes.ADD)
+        this.tweens.add({
+          targets: flame,
+          y: flame.y - 32,
+          alpha: 0,
+          scale: 1.56,
+          duration: 260 + i * 50,
+          onComplete: () => flame.destroy()
+        })
+      }
+      return
+    }
+
+    if (type === 'ice') {
+      const frost = add.ellipse(target.sprite.x, target.sprite.y - 8, 58, 72, 0x8ed9ff, 0.1)
+        .setStrokeStyle(2, 0xc8ecff, 0.92)
+      this.tweens.add({
+        targets: frost,
+        alpha: 0,
+        scaleX: 1.12,
+        scaleY: 1.08,
+        duration: 280,
+        onComplete: () => frost.destroy()
+      })
+      for (let i = 0; i < 5; i++) {
+        const shard = add.rectangle(target.sprite.x - 20 + i * 10, target.sprite.y - 18 + (i % 2) * 5, 5, 18, 0x8ed9ff, 0.94)
+          .setAngle(i % 2 === 0 ? -28 : 24)
+          .setBlendMode(Phaser.BlendModes.ADD)
+        this.tweens.add({
+          targets: shard,
+          y: shard.y + 22,
+          alpha: 0,
+          duration: 340,
+          onComplete: () => shard.destroy()
+        })
+      }
+      return
+    }
+
+    if (type === 'defend' || type === 'block') {
+      const shield = add.ellipse(target.sprite.x, target.sprite.y - 8, 62, 76, 0xe5f5c8, 0.16)
+        .setStrokeStyle(3, type === 'block' ? 0xf1c982 : 0xbfe28a, 0.9)
+      const guard = add.image(target.sprite.x, target.sprite.y - 10, 'vfx_impact_ring')
+        .setScale(0.56)
+        .setAlpha(0.78)
+        .setTint(type === 'block' ? 0xf1c982 : 0xbfe28a)
+        .setBlendMode(Phaser.BlendModes.ADD)
+      this.tweens.add({
+        targets: shield,
+        alpha: 0,
+        scaleX: 1.12,
+        scaleY: 1.08,
+        duration: 340,
+        onComplete: () => shield.destroy()
+      })
+      this.tweens.add({
+        targets: guard,
+        alpha: 0,
+        scale: 0.92,
+        duration: 280,
+        onComplete: () => guard.destroy()
+      })
+      return
+    }
+
+    const slash = add.image(target.sprite.x, target.sprite.y - 14, 'vfx_slash')
+      .setScale(0.92)
+      .setAlpha(0.84)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(this.resolveEffectTint(type))
+      .setAngle(target.side === 'enemy' ? -12 : 168)
+    this.tweens.add({
+      targets: slash,
+      alpha: 0,
+      scale: slash.scale * 1.3,
+      angle: slash.angle + (target.side === 'enemy' ? 18 : -18),
+      duration: 220,
+      onComplete: () => slash.destroy()
+    })
   }
 
   showDamage(hit: BattleSceneHit) {
@@ -504,6 +638,29 @@ export class BattleScene extends Phaser.Scene {
     return Boolean(this.battleInstanceId && battleInstanceId === this.battleInstanceId)
   }
 
+  private resolveSkillElement(skillId: string, fallback: string) {
+    if (skillId.includes('fire')) return '火'
+    if (skillId.includes('ice')) return '冰'
+    if (skillId.includes('thunder')) return '雷'
+    if (skillId.includes('shield') || skillId.includes('defense')) return '防'
+    return fallback
+  }
+
+  private resolveEffectTint(type: string) {
+    const tintMap: Record<string, number> = {
+      slash: 0xf8d781,
+      fire: 0xff8d57,
+      ice: 0x8ed9ff,
+      thunder: 0xd8b5ff,
+      wind: 0xc8f1d0,
+      earth: 0xd9b381,
+      water: 0x7dd9e8,
+      wood: 0x9be28e,
+      defend: 0xe3f0b8
+    }
+    return tintMap[type] ?? 0xf8d781
+  }
+
   private relayoutActors() {
     if (this.actors.size === 0 || this.latestUnits.size === 0) return
     const allyUnits = Array.from(this.latestUnits.values()).filter(unit => unit.side === 'ally')
@@ -524,16 +681,24 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private applyPlacement(actor: ActorSprite, placement: BattleFormationPlacement) {
+    const isMobile = this.scale.width <= 720
+    const nameYOffset = isMobile ? 102 : 91
+    const hpYOffset = isMobile ? 80 : 72
     actor.battleRole = placement.role
     actor.sprite.setPosition(placement.x, placement.y)
     actor.sprite.setScale(placement.scale)
+    actor.crest.setPosition(placement.x, placement.y - 6)
+    actor.crest.width = Math.max(24, placement.scale * 9)
+    actor.crest.height = Math.max(24, placement.scale * 9)
+    actor.icon.setPosition(placement.x, placement.y - 7)
+    actor.icon.setFontSize(Math.max(14, Math.round(placement.scale * 5.2)))
     actor.shadow.setPosition(placement.x, placement.y + 33)
     actor.shadow.width = placement.shadowWidth
     actor.shadow.height = placement.shadowHeight
-    actor.hpFrame.setPosition(placement.x - 29, placement.y - 72)
-    actor.hpBg.setPosition(placement.x - 25, placement.y - 69)
-    actor.hpBar.setPosition(placement.x - 24, placement.y - 69)
-    actor.name.setPosition(placement.x, placement.y - 91)
+    actor.hpFrame.setPosition(placement.x - 29, placement.y - hpYOffset)
+    actor.hpBg.setPosition(placement.x - 25, placement.y - (hpYOffset - 3))
+    actor.hpBar.setPosition(placement.x - 24, placement.y - (hpYOffset - 3))
+    actor.name.setPosition(placement.x, placement.y - nameYOffset)
   }
 
   private getPlacements(units: BattleRuntimeUnit[], side: 'ally' | 'enemy') {
@@ -541,11 +706,24 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private destroyActor(actor: ActorSprite) {
+    actor.icon.destroy()
+    actor.crest.destroy()
     actor.sprite.destroy()
     actor.shadow.destroy()
     actor.hpBar.destroy()
     actor.hpBg.destroy()
     actor.hpFrame.destroy()
     actor.name.destroy()
+  }
+
+  private resolveUnitAccentType(unit: BattleRuntimeUnit) {
+    if (unit.element.includes('火')) return 'fire'
+    if (unit.element.includes('冰')) return 'ice'
+    if (unit.element.includes('雷')) return 'thunder'
+    if (unit.element.includes('风')) return 'wind'
+    if (unit.element.includes('木')) return 'wood'
+    if (unit.element.includes('水')) return 'water'
+    if (unit.element.includes('土')) return 'earth'
+    return unit.side === 'ally' ? 'defend' : 'slash'
   }
 }

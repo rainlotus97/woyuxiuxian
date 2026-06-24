@@ -45,7 +45,7 @@ export const DESTINY_RANK_LABELS: Record<DestinyRank, string> = {
   ordinary: '平命',
   fated: '有缘',
   anomalous: '异数',
-  legendary: '天命'
+  legendary: '大来头'
 }
 
 export const BLOODLINE_GRADE_LABELS: Record<BloodlineGrade, string> = {

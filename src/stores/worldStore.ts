@@ -103,6 +103,24 @@ interface WorldState {
   worldFlags: string[]
 }
 
+function normalizeLoadedPlayerJourneys(journeys: PlayerJourneyEntry[]) {
+  return journeys.map(entry => {
+    if (entry.title !== '修炼顿悟') return entry
+    const cultivationReward = entry.rewards.find(reward => reward.type === 'cultivation')
+    const rewardValue = typeof cultivationReward?.value === 'number' ? cultivationReward.value : null
+    if (rewardValue === null || rewardValue <= 120) return entry
+
+    const normalizedValue = Math.max(12, Math.min(72, Math.round(rewardValue * 0.28)))
+    return {
+      ...entry,
+      text: entry.text.replace(/额外凝聚了\d+点修为/u, `顺手补上了${normalizedValue}点修为`),
+      rewards: entry.rewards.map(reward => reward.type === 'cultivation'
+        ? { ...reward, value: normalizedValue }
+        : reward)
+    }
+  })
+}
+
 const STORAGE_KEY = 'woyu-xiuxian-world'
 const TICK_MS = 10 * 60 * 1000
 const MAX_OFFLINE_TICKS = 144
@@ -178,7 +196,7 @@ export const useWorldStore = defineStore('world', () => {
           parsed.npcStates?.length ? parsed.npcStates : defaults.npcStates
         ),
         logs: normalizeWorldLogs(parsed.logs ?? defaults.logs),
-        playerJourneys: parsed.playerJourneys ?? defaults.playerJourneys,
+        playerJourneys: normalizeLoadedPlayerJourneys(parsed.playerJourneys ?? defaults.playerJourneys),
         npcStories: parsed.npcStories ?? defaults.npcStories,
         areaAnomalies: parsed.areaAnomalies ?? defaults.areaAnomalies,
         unlockedNpcIds: parsed.unlockedNpcIds ?? defaults.unlockedNpcIds,
@@ -198,7 +216,7 @@ export const useWorldStore = defineStore('world', () => {
   const npcDefinitions = ref<NpcDefinition[]>([...initialData.npcDefinitions])
   const npcStates = ref<NpcRuntimeState[]>([...initialData.npcStates])
   const logs = ref<WorldLogEntry[]>(normalizeWorldLogs(initialData.logs))
-  const playerJourneys = ref<PlayerJourneyEntry[]>([...initialData.playerJourneys])
+  const playerJourneys = ref<PlayerJourneyEntry[]>(normalizeLoadedPlayerJourneys([...initialData.playerJourneys]))
   const npcStories = ref<NpcStoryRecord[]>([...initialData.npcStories])
   const areaAnomalies = ref<WorldAreaAnomaly[]>([...initialData.areaAnomalies])
   const unlockedNpcIds = ref<string[]>([...initialData.unlockedNpcIds])
@@ -406,7 +424,7 @@ export const useWorldStore = defineStore('world', () => {
     const mapStore = useMapStore()
     const sectStore = useSectStore()
     const mode = idleMode.value
-    const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 60))
+    const baseGain = Math.max(1, Math.floor(playerStore.cultivationPerSecond * 18))
 
     if (playerStore.captivity.isCaptured) {
       const captorName = playerStore.captivity.captorSectId

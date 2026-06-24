@@ -1,0 +1,38 @@
+<svg width="1280" height="880" viewBox="0 0 1280 880" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="encStroke" x1="74" y1="58" x2="1206" y2="822" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E9DBB3"/>
+      <stop offset="0.28" stop-color="#B88F4A"/>
+      <stop offset="0.62" stop-color="#E2D7B7"/>
+      <stop offset="1" stop-color="#8EA887"/>
+    </linearGradient>
+    <linearGradient id="encFill" x1="640" y1="44" x2="640" y2="836" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF8"/>
+      <stop offset="0.6" stop-color="#F4F7F0"/>
+      <stop offset="1" stop-color="#E8F1EA"/>
+    </linearGradient>
+    <radialGradient id="jadeArc" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1018 224) rotate(142) scale(270 180)">
+      <stop stop-color="#D8ECE2"/>
+      <stop offset="1" stop-color="#D8ECE2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="jadeArc2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(250 630) rotate(-32) scale(270 180)">
+      <stop stop-color="#D8ECE2"/>
+      <stop offset="1" stop-color="#D8ECE2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="50" y="42" width="1180" height="796" rx="54" fill="url(#encFill)" stroke="url(#encStroke)" stroke-width="16"/>
+  <rect x="76" y="68" width="1128" height="744" rx="38" stroke="#F8F5E8" stroke-width="5"/>
+  <rect x="92" y="84" width="1096" height="712" rx="30" fill="url(#jadeArc)"/>
+  <rect x="92" y="84" width="1096" height="712" rx="30" fill="url(#jadeArc2)"/>
+
+  <path d="M544 40L586 74H694L736 40L710 118H570L544 40Z" fill="#EEF4E9" stroke="#D8AF62" stroke-width="6"/>
+  <path d="M118 176C160 166 202 176 244 206C212 210 188 224 170 248C142 232 124 208 118 176Z" fill="#EDF5EC" stroke="#D8AF63" stroke-width="6"/>
+  <path d="M1162 702C1120 712 1078 702 1036 672C1068 668 1092 654 1110 630C1138 646 1156 670 1162 702Z" fill="#EDF5EC" stroke="#D8AF63" stroke-width="6"/>
+
+  <path d="M1022 122C1050 146 1068 176 1076 212C1048 194 1020 188 992 194C1006 170 1016 146 1022 122Z" fill="#E8F1E8" stroke="#CDAA63" stroke-width="6"/>
+  <path d="M258 758C230 734 212 704 204 668C232 686 260 692 288 686C274 710 264 734 258 758Z" fill="#E8F1E8" stroke="#CDAA63" stroke-width="6"/>
+
+  <circle cx="1016" cy="226" r="18" fill="#F8FCF8" stroke="#CFAA67" stroke-width="5"/>
+  <circle cx="264" cy="654" r="18" fill="#F8FCF8" stroke="#CFAA67" stroke-width="5"/>
+</svg>

@@ -4,13 +4,22 @@ import type * as ToneNs from 'tone'
 // ====== Tone.js 延迟加载 ======
 type ToneModule = typeof ToneNs
 let T: ToneModule | null = null
+let toneStarted = false
 
 const loadTone = async (): Promise<ToneModule> => {
   if (!T) {
     T = await import('tone')
   }
-  await T.start()
   return T
+}
+
+const ensureToneStarted = async (): Promise<ToneModule> => {
+  const Tone = await loadTone()
+  if (!toneStarted) {
+    await Tone.start()
+    toneStarted = true
+  }
+  return Tone
 }
 
 // ====== 本地存储键名 ======
@@ -32,19 +41,16 @@ const getStoredBoolean = (key: string, defaultValue: boolean): boolean => {
 
 // ====== 音量设置 ======
 const sfxEnabled = ref(getStoredBoolean(STORAGE_KEY_SFX, true))
-const bgmEnabled = ref(false)
-try {
-  localStorage.setItem(STORAGE_KEY_BGM, 'false')
-} catch {
-  // localStorage 不可用时忽略
-}
+const bgmEnabled = ref(getStoredBoolean(STORAGE_KEY_BGM, false))
 const sfxVolume = 0.35
-const bgmVolume = 0.18
+const bgmVolume = 0.16
 
 const toDb = (v: number): number => (v <= 0 ? -Infinity : 20 * Math.log10(v))
 
 // ====== 高级音效播放器 ======
 type WaveType = 'sine' | 'square' | 'triangle' | 'sawtooth'
+type PolyVoiceKind = 'synth' | 'fm' | 'am'
+type MonoVoiceKind = 'mono' | 'fm'
 
 interface SfxOptions {
   freq: number
@@ -63,7 +69,7 @@ const playSfx = (options: SfxOptions): void => {
 
   // 自动初始化 Tone.js（用户交互后才能启动 AudioContext）
   if (!T) {
-    void loadTone()
+    void ensureToneStarted()
     // Tone.js 尚未初始化，跳过本次播放（用户需要再次点击）
     return
   }
@@ -98,7 +104,7 @@ const playChord = (freqs: number[], duration: number, type: WaveType = 'sine', v
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
-    void loadTone()
+    void ensureToneStarted()
     return
   }
 
@@ -121,7 +127,7 @@ const playGlissando = (startFreq: number, endFreq: number, duration: number, typ
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
-    void loadTone()
+    void ensureToneStarted()
     return
   }
 
@@ -148,7 +154,7 @@ const playNoise = (duration: number, type: 'white' | 'pink' | 'brown' = 'brown',
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
-    void loadTone()
+    void ensureToneStarted()
     return
   }
 
@@ -378,6 +384,30 @@ export const sfxDeath = (): void => {
   setTimeout(() => playSfx({ freq: 80, duration: 0.8, type: 'sawtooth', vol: 0.1, attack: 0.2 }), 400)
 }
 
+/** 治疗回响 - 灵息回流 */
+export const sfxHealPulse = (): void => {
+  playChord([392, 523, 659], 0.26, 'sine', 0.12)
+  setTimeout(() => playSfx({ freq: 784, duration: 0.24, type: 'triangle', vol: 0.08, attack: 0.02, release: 0.18 }), 120)
+}
+
+/** 护盾凝成 - 灵障成形 */
+export const sfxShield = (): void => {
+  playChord([220, 330, 440], 0.24, 'triangle', 0.12)
+  setTimeout(() => playGlissando(420, 620, 0.18, 'sine', 0.08), 60)
+}
+
+/** 招架反震 - 金铁回响 */
+export const sfxParry = (): void => {
+  playSfx({ freq: 520, duration: 0.08, type: 'square', vol: 0.2, attack: 0.002, release: 0.08 })
+  setTimeout(() => playSfx({ freq: 980, duration: 0.1, type: 'triangle', vol: 0.14, attack: 0.002, release: 0.1 }), 24)
+}
+
+/** 斩杀收束 - 杀意定音 */
+export const sfxFinisher = (): void => {
+  playGlissando(260, 120, 0.18, 'sawtooth', 0.18)
+  setTimeout(() => playChord([131, 196, 262], 0.32, 'square', 0.14), 100)
+}
+
 /** 胜利 - 正气浩然 */
 export const sfxVictory = (): void => {
   const notes = [392, 523, 659, 784, 1047]
@@ -591,6 +621,65 @@ export const sfxDiscovery = (): void => {
   setTimeout(() => playChord([523, 659, 784], 0.4, 'triangle', 0.1), 250)
 }
 
+/** 故事文本收束 - 纸页轻响 */
+export const sfxStoryTextSettle = (): void => {
+  playSfx({ freq: 784, duration: 0.08, type: 'triangle', vol: 0.06, attack: 0.01, release: 0.1 })
+  setTimeout(() => playSfx({ freq: 988, duration: 0.06, type: 'sine', vol: 0.04, attack: 0.01, release: 0.08 }), 40)
+}
+
+/** 对话切换 - 玉片轻触 */
+export const sfxStoryDialog = (): void => {
+  playSfx({ freq: 659, duration: 0.06, type: 'triangle', vol: 0.07, attack: 0.005, release: 0.08 })
+}
+
+/** 选项确认 - 定局 */
+export const sfxStoryChoice = (): void => {
+  playChord([523, 659], 0.12, 'sine', 0.07)
+  setTimeout(() => playSfx({ freq: 784, duration: 0.12, type: 'triangle', vol: 0.05, release: 0.14 }), 60)
+}
+
+/** 回忆闪回 - 往事回潮 */
+export const sfxMemoryFlash = (): void => {
+  playGlissando(440, 880, 0.22, 'sine', 0.08)
+  setTimeout(() => playChord([659, 784, 988], 0.3, 'sine', 0.06), 120)
+}
+
+/** 梦境涌现 - 幻雾轻旋 */
+export const sfxDream = (): void => {
+  playChord([392, 523, 784], 0.55, 'sine', 0.08)
+  setTimeout(() => playGlissando(523, 660, 0.4, 'triangle', 0.05), 200)
+}
+
+/** 结界展开 - 灵壁铺开 */
+export const sfxBarrier = (): void => {
+  playChord([262, 392, 523], 0.38, 'triangle', 0.12)
+  setTimeout(() => playNoise(0.4, 'white', 0.03, 2200), 40)
+}
+
+/** 符箓爆裂 - 灵纹炸开 */
+export const sfxTalismanBurst = (): void => {
+  sfxTalisman()
+  setTimeout(() => playChord([523, 659, 880], 0.18, 'square', 0.14), 140)
+}
+
+/** 心碎/诀别 - 弦断 */
+export const sfxHeartbreak = (): void => {
+  playSfx({ freq: 659, duration: 0.12, type: 'triangle', vol: 0.08, release: 0.16 })
+  setTimeout(() => playGlissando(523, 180, 0.4, 'sine', 0.1), 80)
+}
+
+/** 传送跃迁 - 阵光转移 */
+export const sfxTeleport = (): void => {
+  playGlissando(260, 1040, 0.16, 'sine', 0.12)
+  setTimeout(() => playChord([784, 1047, 1319], 0.18, 'triangle', 0.1), 120)
+}
+
+/** 秘境开门 - 石门启封 */
+export const sfxRealmGate = (): void => {
+  playSfx({ freq: 90, duration: 0.45, type: 'sawtooth', vol: 0.16, attack: 0.08, release: 0.3 })
+  setTimeout(() => playChord([196, 262, 330], 0.32, 'square', 0.12), 220)
+}
+
 // ============================================================
 //                    BGM 系统
 // ============================================================
@@ -601,19 +690,54 @@ export type BgmType =
   | 'sect_bamboo'    // 小竹峰 - 清闲幽静
   | 'sect_peak'      // 云顶峰 - 高远空灵
   | 'sect_pavilion'  // 藏经阁 - 古朴神秘
+  | 'moonlit_bamboo' // 月下竹海 - 夜修清寒
+  | 'celestial_palace' // 天游仙阙 - 威仪庄重
+  | 'jade_hall'      // 玉阙晨钟
+  | 'spirit_orchard' // 灵田春晓
+  | 'library_embers' // 残卷烛影
   // 四季场景
   | 'spring_rain'    // 春风细雨
   | 'summer_storm'   // 夏日雷电
   | 'autumn_wind'    // 秋风落叶
   | 'winter_snow'    // 冬日雪景
+  | 'plum_blossom_snow' // 梅雪将融
+  | 'lotus_night'    // 荷灯夜泊
   // 战斗场景
   | 'battle_normal'  // 普通战斗
   | 'battle_boss'    // Boss战斗
   | 'battle_phase2'  // Boss二阶段
+  | 'battle_raid'    // 群魔围攻
+  | 'duel_blade'     // 双锋对决
+  | 'chase_drums'    // 逐杀鼓点
   // 特殊场景
   | 'adventure'      // 历险探索
+  | 'story'          // 剧情卷宗
   | 'shop'           // 坊市
+  | 'ancient_ruins'  // 上古遗迹
   | 'tribulation'    // 渡劫
+  | 'warm_hearth'    // 灯下温酒
+  | 'sworn_bond'     // 同行誓约
+  | 'peach_blossom'  // 桃夭旧梦
+  | 'broken_vow'     // 誓裂
+  | 'grief_abyss'    // 深渊哀歌
+  | 'funeral_wind'   // 纸灰风灯
+  | 'empty_city'     // 空城无声
+  | 'suspense_steps' // 暗阶轻步
+  | 'mirror_dream'   // 镜梦
+  | 'star_ritual'    // 星坛秘祭
+  | 'mechanical_pulse' // 机关脉冲
+  | 'neon_alchemy'   // 霓火炼丹
+  | 'river_qin'      // 高山流水
+  | 'bamboo_flute'   // 竹溪远笛
+  | 'desert_bells'   // 荒漠驼铃
+  | 'festival_lantern' // 灯市流光
+  | 'dawn_return'    // 破晓归山
+  | 'night_patrol'   // 巡夜
+  | 'blood_moon'     // 血月
+  | 'memory_shards'  // 记忆碎片
+  | 'storm_siege'    // 风雷围城
+  | 'void_signal'    // 虚空讯号
+  | 'crystal_cavern' // 晶窟回响
 
 const currentBgmType = ref<BgmType | null>(null)
 
@@ -623,13 +747,40 @@ const currentBgmType = ref<BgmType | null>(null)
 
 interface BgmConfig {
   name: string
-  melody: number[]
-  bass: number[]
-  noteDur: number
+  tempo: number
+  subdivision: string
+  swing?: number
+  swingSubdivision?: string
+  melody: Array<string | string[] | null>
+  melodyDurations?: string[]
+  harmony?: Array<string | string[] | null>
+  harmonyDurations?: string[]
+  bass: Array<string | null>
+  bassDurations?: string[]
+  accent?: Array<string | null>
+  accentDurations?: string[]
   melodyWave: WaveType
   bassWave: WaveType
-  bassInterval?: number
-  // 环境音效
+  harmonyWave?: WaveType
+  accentWave?: WaveType
+  melodyVoice?: PolyVoiceKind
+  harmonyVoice?: PolyVoiceKind
+  bassVoice?: MonoVoiceKind
+  accentVoice?: PolyVoiceKind
+  melodyVolume?: number
+  harmonyVolume?: number
+  bassVolume?: number
+  accentVolume?: number
+  filterFreq?: number
+  filterQ?: number
+  reverbWet?: number
+  reverbRoomSize?: number
+  reverbDampening?: number
+  outputGain?: number
+  melodyEnvelope?: { attack: number; decay: number; sustain: number; release: number }
+  harmonyEnvelope?: { attack: number; decay: number; sustain: number; release: number }
+  bassEnvelope?: { attack: number; decay: number; sustain: number; release: number }
+  accentEnvelope?: { attack: number; decay: number; sustain: number; release: number }
   ambient?: {
     type: 'white' | 'pink' | 'brown'
     volume: number
@@ -637,211 +788,1537 @@ interface BgmConfig {
   }
 }
 
+function resolvePatternDuration(durations: string[] | undefined, index: number, fallback: string) {
+  if (!durations?.length) return fallback
+  return durations[index % durations.length] ?? fallback
+}
+
 const BGM_CONFIG: Record<BgmType, BgmConfig> = {
-  // ===== 门派场景 =====
-  // 门派主殿：庄严宏大，钟磬齐鸣，节奏稳重有力
   sect_main: {
     name: '门派主殿',
+    tempo: 74,
+    subdivision: '8n',
     melody: [
-      // 庄严的钟声上行
-      262, 0, 0, 0, 330, 0, 0, 0, 392, 0, 0, 0, 523, 0, 0, 0,
-      // 下降回应
-      523, 0, 0, 0, 392, 0, 0, 0, 330, 0, 0, 0, 262, 0, 0, 0
+      'G4', null, 'A4', null, 'C5', null, 'D5', null,
+      'C5', null, 'A4', null, 'G4', null, 'D4', null
     ],
-    bass: [131, 0, 0, 0, 165, 0, 0, 0],
-    noteDur: 0.7,
+    harmony: [
+      ['D4', 'G4'], null, ['E4', 'A4'], null, ['G4', 'C5'], null, ['A4', 'D5'], null,
+      ['G4', 'C5'], null, ['E4', 'A4'], null, ['D4', 'G4'], null, ['C4', 'F4'], null
+    ],
+    bass: ['G2', null, null, 'D3', null, null, 'A2', null],
+    accent: ['D5', null, null, null, null, null, 'A4', null],
     melodyWave: 'triangle',
-    bassWave: 'sine'
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.11,
+    harmonyVolume: 0.06,
+    bassVolume: 0.05,
+    melodyEnvelope: { attack: 0.08, decay: 0.22, sustain: 0.2, release: 0.42 },
+    harmonyEnvelope: { attack: 0.14, decay: 0.18, sustain: 0.16, release: 0.6 },
+    bassEnvelope: { attack: 0.02, decay: 0.28, sustain: 0.16, release: 0.5 },
+    accentEnvelope: { attack: 0.01, decay: 0.16, sustain: 0.04, release: 0.18 }
   },
 
-  // 小竹峰：极度清幽，几不可闻，如竹林深处偶有风动
   sect_bamboo: {
     name: '小竹峰',
+    tempo: 58,
+    subdivision: '8n',
+    swing: 0.08,
+    swingSubdivision: '8n',
     melody: [
-      // 极简，长休止
-      440, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 523, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 392, 0, 0, 0, 0, 0, 0, 0
+      'D4', null, 'F#4', 'A4', 'B4', 'A4', 'F#4', 'E4',
+      'D4', null, 'E4', 'F#4', 'A4', 'B4', 'A4', 'F#4',
+      'G4', null, 'A4', 'B4', 'D5', 'B4', 'A4', 'F#4',
+      'E4', null, 'F#4', 'G4', 'A4', 'F#4', 'E4', 'D4'
     ],
-    bass: [110, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    noteDur: 1.2,
-    melodyWave: 'sine',
-    bassWave: 'sine'
-  },
-
-  // 云顶峰：高远空灵，云雾缭绕，音符飘渺
-  sect_peak: {
-    name: '云顶峰',
-    melody: [
-      // 高音区的飘渺旋律
-      784, 0, 0, 880, 0, 0, 784, 0, 0, 659, 0, 0, 523, 0, 0, 0,
-      587, 0, 0, 659, 0, 0, 784, 0, 0, 880, 0, 0, 1047, 0, 0, 0
+    melodyDurations: ['4n', '8n', '8n', '8n', '4n', '8n', '8n', '8n'],
+    harmony: [
+      ['D3', 'A3', 'D4'], null, ['F#3', 'A3', 'D4'], null, ['G3', 'B3', 'D4'], null, ['A3', 'D4', 'F#4'], null,
+      ['D3', 'A3', 'D4'], null, ['E3', 'A3', 'C#4'], null, ['F#3', 'A3', 'D4'], null, ['A3', 'D4', 'F#4'], null,
+      ['G3', 'B3', 'D4'], null, ['A3', 'D4', 'F#4'], null, ['B3', 'D4', 'G4'], null, ['A3', 'D4', 'F#4'], null,
+      ['E3', 'A3', 'C#4'], null, ['G3', 'B3', 'D4'], null, ['A3', 'D4', 'F#4'], null, ['D3', 'A3', 'D4'], null
     ],
-    bass: [131, 0, 0, 0, 0, 0, 0, 0],
-    noteDur: 0.8,
-    melodyWave: 'sine',
-    bassWave: 'sine'
-  },
-
-  // 藏经阁：古朴神秘，低沉庄严，如古卷翻页
-  sect_pavilion: {
-    name: '藏经阁',
-    melody: [
-      // 低沉神秘的下行
-      330, 0, 0, 294, 0, 0, 262, 0, 0, 220, 0, 0, 196, 0, 0, 0,
-      // 缓慢回升
-      220, 0, 0, 262, 0, 0, 294, 0, 0, 330, 0, 0, 262, 0, 0, 0
-    ],
-    bass: [110, 0, 0, 0, 98, 0, 0, 0],
-    noteDur: 0.65,
-    melodyWave: 'triangle',
-    bassWave: 'sine'
-  },
-
-  // ===== 四季场景 =====
-  // 春风细雨：轻快跳跃，生机勃勃，如雨滴溅落
-  spring_rain: {
-    name: '春风细雨',
-    melody: [
-      // 轻快的跳跃音型，模拟雨滴
-      523, 587, 523, 440, 523, 587, 659, 523, 440, 392, 440, 523, 440, 392, 330, 392,
-      440, 523, 440, 392, 330, 294, 330, 392, 440, 523, 587, 523, 440, 392, 330, 294
-    ],
-    bass: [262, 0, 330, 0, 392, 0, 330, 0],
-    noteDur: 0.2,
+    harmonyDurations: ['2n', '2n', '2n', '2n', '2n', '2n', '2n', '2n'],
+    bass: ['D2', null, 'A1', null, 'G1', null, 'A1', null, 'E2', null, 'B1', null, 'G1', null, 'D2', null],
+    bassDurations: ['2n.', '2n', '2n.', '2n', '2n.', '2n', '2n.', '2n'],
+    accent: [null, 'A5', null, null, null, 'D6', null, null, null, 'A5', null, null, 'G5', null, null, null],
     melodyWave: 'sine',
     bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.098,
+    harmonyVolume: 0.052,
+    bassVolume: 0.04,
+    accentVolume: 0.032,
+    filterFreq: 2800,
+    filterQ: 0.68,
+    reverbWet: 0.24,
+    reverbRoomSize: 0.9,
+    reverbDampening: 1800,
+    outputGain: 0.88,
+    melodyEnvelope: { attack: 0.1, decay: 0.12, sustain: 0.09, release: 0.82 },
+    harmonyEnvelope: { attack: 0.24, decay: 0.1, sustain: 0.05, release: 1.12 },
+    bassEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.09, release: 0.64 },
+    accentEnvelope: { attack: 0.04, decay: 0.08, sustain: 0.02, release: 0.26 },
+    ambient: { type: 'brown', volume: 0.005, filterFreq: 920 }
+  },
+
+  sect_peak: {
+    name: '云顶峰',
+    tempo: 68,
+    subdivision: '8n',
+    melody: [
+      'E5', null, 'G5', null, 'A5', null, 'G5', null,
+      'E5', null, 'D5', null, 'C5', null, 'D5', null
+    ],
+    harmony: [
+      ['B4', 'E5'], null, ['D5', 'G5'], null, ['E5', 'A5'], null, ['D5', 'G5'], null,
+      ['B4', 'E5'], null, ['A4', 'D5'], null, ['G4', 'C5'], null, ['A4', 'D5'], null
+    ],
+    bass: ['E3', null, null, 'B2', null, null, 'A2', null],
+    accent: ['E6', null, null, null, 'D6', null, null, null],
+    melodyWave: 'sine',
+    bassWave: 'triangle',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.09,
+    harmonyVolume: 0.05,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.16, decay: 0.18, sustain: 0.16, release: 0.55 },
+    harmonyEnvelope: { attack: 0.2, decay: 0.16, sustain: 0.1, release: 0.72 },
+    bassEnvelope: { attack: 0.05, decay: 0.22, sustain: 0.08, release: 0.6 },
+    accentEnvelope: { attack: 0.03, decay: 0.12, sustain: 0.04, release: 0.26 },
+    ambient: { type: 'white', volume: 0.006, filterFreq: 4200 }
+  },
+
+  sect_pavilion: {
+    name: '藏经阁',
+    tempo: 62,
+    subdivision: '8n',
+    melody: [
+      'E4', null, 'G4', null, 'E4', null, 'D4', null,
+      'C4', null, 'D4', null, 'E4', null, 'G4', null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, ['D4', 'G4'], null, ['B3', 'E4'], null, ['A3', 'D4'], null,
+      ['G3', 'C4'], null, ['A3', 'D4'], null, ['B3', 'E4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['E2', null, 'G2', null, 'D2', null, 'C2', null],
+    accent: [null, 'E5', null, null, null, 'D5', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.095,
+    harmonyVolume: 0.052,
+    bassVolume: 0.04,
+    melodyEnvelope: { attack: 0.04, decay: 0.26, sustain: 0.18, release: 0.36 },
+    harmonyEnvelope: { attack: 0.12, decay: 0.24, sustain: 0.16, release: 0.58 },
+    bassEnvelope: { attack: 0.02, decay: 0.28, sustain: 0.12, release: 0.45 },
+    accentEnvelope: { attack: 0.01, decay: 0.12, sustain: 0.04, release: 0.2 }
+  },
+
+  moonlit_bamboo: {
+    name: '月下竹海',
+    tempo: 52,
+    subdivision: '4n',
+    melody: [
+      'D5', null, 'A4', null, 'G4', null, 'A4', null,
+      'C5', null, 'A4', null, 'E4', null, 'G4', null
+    ],
+    harmony: [
+      ['A4', 'D5'], null, ['E4', 'A4'], null, ['D4', 'G4'], null, ['E4', 'A4'], null,
+      ['G4', 'C5'], null, ['E4', 'A4'], null, ['C4', 'E4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['D2', null, 'A2', null, 'G2', null, 'A2', null],
+    accent: [null, 'D6', null, null, null, 'A5', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.075,
+    harmonyVolume: 0.044,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.22, decay: 0.12, sustain: 0.08, release: 0.88 },
+    harmonyEnvelope: { attack: 0.28, decay: 0.08, sustain: 0.05, release: 1.02 },
+    bassEnvelope: { attack: 0.16, decay: 0.14, sustain: 0.05, release: 0.92 },
+    accentEnvelope: { attack: 0.06, decay: 0.08, sustain: 0.02, release: 0.26 },
+    ambient: { type: 'brown', volume: 0.01, filterFreq: 720 }
+  },
+
+  celestial_palace: {
+    name: '天游仙阙',
+    tempo: 76,
+    subdivision: '8n',
+    melody: [
+      'C5', null, 'E5', null, 'G5', null, 'A5', null,
+      'G5', null, 'E5', null, 'D5', null, 'C5', null
+    ],
+    harmony: [
+      ['G4', 'C5'], null, ['B4', 'E5'], null, ['D5', 'G5'], null, ['E5', 'A5'], null,
+      ['D5', 'G5'], null, ['B4', 'E5'], null, ['A4', 'D5'], null, ['G4', 'C5'], null
+    ],
+    bass: ['C3', null, null, 'G2', null, null, 'A2', null],
+    accent: ['C6', null, null, null, 'G5', null, 'A5', null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    accentVoice: 'fm',
+    melodyVolume: 0.1,
+    harmonyVolume: 0.058,
+    bassVolume: 0.038,
+    melodyEnvelope: { attack: 0.1, decay: 0.18, sustain: 0.14, release: 0.52 },
+    harmonyEnvelope: { attack: 0.16, decay: 0.16, sustain: 0.1, release: 0.68 },
+    bassEnvelope: { attack: 0.04, decay: 0.22, sustain: 0.1, release: 0.48 },
+    accentEnvelope: { attack: 0.02, decay: 0.1, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'pink', volume: 0.005, filterFreq: 1700 }
+  },
+
+  jade_hall: {
+    name: '玉阙晨钟',
+    tempo: 80,
+    subdivision: '8n',
+    melody: [
+      'D5', null, 'F5', null, 'A5', null, 'F5', null,
+      'D5', null, 'E5', null, 'G5', null, 'A5', null
+    ],
+    harmony: [
+      ['A4', 'D5'], null, ['C5', 'F5'], null, ['E5', 'A5'], null, ['C5', 'F5'], null,
+      ['A4', 'D5'], null, ['B4', 'E5'], null, ['D5', 'G5'], null, ['E5', 'A5'], null
+    ],
+    bass: ['D3', null, null, 'A2', null, null, 'G2', null],
+    accent: ['D6', null, null, null, 'A5', null, null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.1,
+    harmonyVolume: 0.056,
+    bassVolume: 0.034,
+    melodyEnvelope: { attack: 0.08, decay: 0.18, sustain: 0.14, release: 0.46 },
+    harmonyEnvelope: { attack: 0.16, decay: 0.14, sustain: 0.08, release: 0.62 },
+    bassEnvelope: { attack: 0.04, decay: 0.2, sustain: 0.1, release: 0.44 },
+    accentEnvelope: { attack: 0.02, decay: 0.08, sustain: 0.02, release: 0.16 }
+  },
+
+  spirit_orchard: {
+    name: '灵田春晓',
+    tempo: 74,
+    subdivision: '8n',
+    melody: [
+      'G4', 'A4', 'B4', 'D5', 'B4', 'A4', 'G4', null,
+      'E4', 'G4', 'A4', 'B4', 'A4', 'G4', 'E4', null
+    ],
+    harmony: [
+      ['D4', 'G4'], null, ['E4', 'A4'], null, ['G4', 'B4'], null, ['E4', 'A4'], null,
+      ['C4', 'E4'], null, ['D4', 'G4'], null, ['E4', 'A4'], null, ['C4', 'E4'], null
+    ],
+    bass: ['G2', null, 'D3', null, 'E2', null, 'C3', null],
+    accent: [null, 'D5', null, null, null, 'B4', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.086,
+    harmonyVolume: 0.048,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.04, decay: 0.16, sustain: 0.1, release: 0.24 },
+    harmonyEnvelope: { attack: 0.08, decay: 0.14, sustain: 0.08, release: 0.34 },
+    bassEnvelope: { attack: 0.04, decay: 0.18, sustain: 0.1, release: 0.28 },
+    accentEnvelope: { attack: 0.01, decay: 0.08, sustain: 0.02, release: 0.14 },
+    ambient: { type: 'pink', volume: 0.01, filterFreq: 1800 }
+  },
+
+  library_embers: {
+    name: '残卷烛影',
+    tempo: 54,
+    subdivision: '4n',
+    melody: [
+      'E4', null, 'G4', null, 'B4', null, 'A4', null,
+      'G4', null, 'E4', null, 'D4', null, 'E4', null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, ['D4', 'G4'], null, ['G4', 'B4'], null, ['E4', 'A4'], null,
+      ['D4', 'G4'], null, ['B3', 'E4'], null, ['A3', 'D4'], null, ['B3', 'E4'], null
+    ],
+    bass: ['E2', null, 'B1', null, 'A1', null, 'D2', null],
+    accent: [null, null, 'E5', null, null, null, 'D5', null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.078,
+    harmonyVolume: 0.044,
+    bassVolume: 0.028,
+    melodyEnvelope: { attack: 0.18, decay: 0.12, sustain: 0.08, release: 0.78 },
+    harmonyEnvelope: { attack: 0.22, decay: 0.1, sustain: 0.05, release: 0.92 },
+    bassEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.08, release: 0.64 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'brown', volume: 0.008, filterFreq: 760 }
+  },
+
+  spring_rain: {
+    name: '春风细雨',
+    tempo: 72,
+    subdivision: '8n',
+    melody: [
+      'A4', 'C5', 'A4', 'G4', 'A4', 'C5', 'D5', 'C5',
+      'A4', 'G4', 'E4', 'G4', 'A4', null, 'G4', null
+    ],
+    harmony: [
+      ['E4', 'A4'], null, ['E4', 'A4'], null, ['E4', 'A4'], null, ['G4', 'D5'], null,
+      ['E4', 'A4'], null, ['C4', 'E4'], null, ['E4', 'A4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['A2', null, 'C3', null, 'D3', null, 'G2', null],
+    accent: [null, 'E5', null, null, null, null, 'D5', null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.08,
+    harmonyVolume: 0.05,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.03, decay: 0.14, sustain: 0.08, release: 0.2 },
+    harmonyEnvelope: { attack: 0.08, decay: 0.14, sustain: 0.08, release: 0.28 },
+    bassEnvelope: { attack: 0.04, decay: 0.18, sustain: 0.1, release: 0.3 },
+    accentEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.02, release: 0.14 },
     ambient: { type: 'pink', volume: 0.012, filterFreq: 2000 }
   },
 
-  // 夏日雷电：激烈紧张，骤雨初歇，有爆发感
   summer_storm: {
     name: '夏日雷电',
+    tempo: 84,
+    subdivision: '8n',
     melody: [
-      // 紧张的低音旋律
-      165, 0, 196, 0, 220, 0, 262, 0, 220, 0, 196, 0, 165, 0, 131, 0,
-      // 突然的高音爆发
-      523, 0, 0, 659, 0, 0, 784, 0, 0, 659, 0, 0, 523, 0, 0, 392
+      'G3', null, 'A3', null, 'C4', null, 'A3', null,
+      'G3', null, 'F3', null, 'G3', null, null, 'D4'
     ],
-    bass: [82, 0, 98, 0, 110, 0, 131, 0],
-    noteDur: 0.25,
-    melodyWave: 'sawtooth',
-    bassWave: 'square',
+    harmony: [
+      ['D3', 'G3'], null, ['E3', 'A3'], null, ['G3', 'C4'], null, ['E3', 'A3'], null,
+      ['D3', 'G3'], null, ['C3', 'F3'], null, ['D3', 'G3'], null, null, ['A3', 'D4']
+    ],
+    bass: ['G1', null, 'A1', null, 'C2', null, 'A1', null],
+    accent: ['D5', null, null, null, null, null, 'C5', null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sawtooth',
+    accentWave: 'square',
+    melodyVolume: 0.085,
+    harmonyVolume: 0.05,
+    bassVolume: 0.045,
+    melodyEnvelope: { attack: 0.04, decay: 0.18, sustain: 0.14, release: 0.24 },
+    harmonyEnvelope: { attack: 0.02, decay: 0.18, sustain: 0.08, release: 0.22 },
+    bassEnvelope: { attack: 0.02, decay: 0.2, sustain: 0.14, release: 0.36 },
+    accentEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.02, release: 0.12 },
     ambient: { type: 'white', volume: 0.025, filterFreq: 2000 }
   },
 
-  // 秋风落叶：悲伤缓慢，下行旋律，萧瑟凄凉
   autumn_wind: {
     name: '秋风落叶',
+    tempo: 58,
+    subdivision: '4n',
     melody: [
-      // 持续下行的悲伤旋律
-      392, 0, 0, 0, 330, 0, 0, 0, 294, 0, 0, 0, 262, 0, 0, 0,
-      220, 0, 0, 0, 196, 0, 0, 0, 175, 0, 0, 0, 165, 0, 0, 0
+      'G4', null, 'E4', null, 'D4', null, 'C4', null,
+      'A3', null, 'C4', null, 'D4', null, 'E4', null
     ],
-    bass: [98, 0, 0, 0, 82, 0, 0, 0],
-    noteDur: 1.0,
+    harmony: [
+      ['D4', 'G4'], null, ['C4', 'E4'], null, ['A3', 'D4'], null, ['G3', 'C4'], null,
+      ['E3', 'A3'], null, ['G3', 'C4'], null, ['A3', 'D4'], null, ['C4', 'E4'], null
+    ],
+    bass: ['G2', null, 'E2', null, 'D2', null, 'C2', null],
+    accent: [null, null, 'D5', null, null, null, 'C5', null],
     melodyWave: 'triangle',
     bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.08,
+    harmonyVolume: 0.045,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.08, decay: 0.22, sustain: 0.16, release: 0.46 },
+    harmonyEnvelope: { attack: 0.12, decay: 0.18, sustain: 0.08, release: 0.52 },
+    bassEnvelope: { attack: 0.04, decay: 0.24, sustain: 0.08, release: 0.5 },
+    accentEnvelope: { attack: 0.01, decay: 0.08, sustain: 0.02, release: 0.14 },
     ambient: { type: 'brown', volume: 0.03, filterFreq: 600 }
   },
 
-  // 冬日雪景：极简空灵，几乎静止，偶有雪花飘落
   winter_snow: {
     name: '冬日雪景',
+    tempo: 50,
+    subdivision: '2n',
     melody: [
-      // 极少的音符，大量留白
-      880, 0, 0, 0, 0, 0, 0, 0, 784, 0, 0, 0, 0, 0, 0, 0,
-      659, 0, 0, 0, 0, 0, 0, 0, 523, 0, 0, 0, 0, 0, 0, 0
+      'G5', null, 'E5', null, 'C5', null, 'E5', null,
+      'D5', null, 'A4', null, 'G4', null, null, null
     ],
-    bass: [131, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    noteDur: 1.5,
+    harmony: [
+      ['D5', 'G5'], null, ['B4', 'E5'], null, ['G4', 'C5'], null, ['B4', 'E5'], null,
+      ['A4', 'D5'], null, ['E4', 'A4'], null, ['D4', 'G4'], null, null, null
+    ],
+    bass: ['G2', null, 'E2', null, 'C2', null, 'D2', null],
+    accent: [null, 'G6', null, null, null, 'E6', null, null],
     melodyWave: 'sine',
     bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.07,
+    harmonyVolume: 0.045,
+    bassVolume: 0.025,
+    melodyEnvelope: { attack: 0.22, decay: 0.14, sustain: 0.08, release: 0.82 },
+    harmonyEnvelope: { attack: 0.28, decay: 0.1, sustain: 0.05, release: 0.95 },
+    bassEnvelope: { attack: 0.12, decay: 0.14, sustain: 0.06, release: 0.85 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.2 },
     ambient: { type: 'white', volume: 0.008, filterFreq: 5000 }
   },
 
-  // ===== 战斗场景 =====
+  plum_blossom_snow: {
+    name: '梅雪将融',
+    tempo: 46,
+    subdivision: '2n',
+    melody: [
+      'D5', null, 'A4', null, 'F4', null, 'A4', null,
+      'C5', null, 'A4', null, 'D5', null, null, null
+    ],
+    harmony: [
+      ['A4', 'D5'], null, ['F4', 'A4'], null, ['D4', 'F4'], null, ['F4', 'A4'], null,
+      ['G4', 'C5'], null, ['E4', 'A4'], null, ['A4', 'D5'], null, null, null
+    ],
+    bass: ['D2', null, 'A1', null, 'F2', null, 'G2', null],
+    accent: [null, 'D6', null, null, null, 'C6', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.068,
+    harmonyVolume: 0.042,
+    bassVolume: 0.024,
+    melodyEnvelope: { attack: 0.26, decay: 0.1, sustain: 0.06, release: 0.96 },
+    harmonyEnvelope: { attack: 0.3, decay: 0.08, sustain: 0.04, release: 1.1 },
+    bassEnvelope: { attack: 0.14, decay: 0.12, sustain: 0.04, release: 0.96 },
+    accentEnvelope: { attack: 0.04, decay: 0.06, sustain: 0.02, release: 0.2 },
+    ambient: { type: 'white', volume: 0.006, filterFreq: 5400 }
+  },
+
+  lotus_night: {
+    name: '荷灯夜泊',
+    tempo: 70,
+    subdivision: '8n',
+    melody: [
+      'A4', null, 'C5', null, 'E5', null, 'D5', null,
+      'C5', null, 'A4', null, 'G4', null, 'A4', null
+    ],
+    harmony: [
+      ['E4', 'A4'], null, ['G4', 'C5'], null, ['B4', 'E5'], null, ['A4', 'D5'], null,
+      ['G4', 'C5'], null, ['E4', 'A4'], null, ['D4', 'G4'], null, ['E4', 'A4'], null
+    ],
+    bass: ['A2', null, null, 'E2', null, null, 'D2', null],
+    accent: [null, null, 'E6', null, null, 'D6', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.082,
+    harmonyVolume: 0.048,
+    bassVolume: 0.028,
+    melodyEnvelope: { attack: 0.1, decay: 0.16, sustain: 0.1, release: 0.48 },
+    harmonyEnvelope: { attack: 0.18, decay: 0.14, sustain: 0.08, release: 0.66 },
+    bassEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.08, release: 0.46 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.16 },
+    ambient: { type: 'pink', volume: 0.008, filterFreq: 1500 }
+  },
+
   battle_normal: {
     name: '战斗',
+    tempo: 108,
+    subdivision: '16n',
+    swing: 0.02,
+    swingSubdivision: '16n',
     melody: [
-      220, 0, 262, 0, 330, 0, 262, 0, 220, 0, 262, 0, 330, 0, 392, 0,
-      330, 0, 392, 0, 440, 0, 392, 0, 330, 0, 262, 0, 220, 0, 262, 0
+      'E4', null, 'G4', 'A4', 'B4', 'A4', 'G4', 'E4',
+      'D4', 'E4', 'G4', 'A4', 'B4', 'A4', 'G4', 'D4',
+      'E4', null, 'G4', 'B4', 'D5', 'B4', 'A4', 'G4',
+      'A4', 'G4', 'E4', 'D4', 'B3', 'D4', 'E4', null
     ],
-    bass: [110, 0, 110, 0, 131, 0, 131, 0],
-    noteDur: 0.22,
-    melodyWave: 'sawtooth',
-    bassWave: 'square',
-    bassInterval: 2
+    harmony: [
+      ['E3', 'B3'], null, ['G3', 'B3'], null, ['A3', 'D4'], null, ['G3', 'B3'], null,
+      ['D3', 'A3'], null, ['E3', 'B3'], null, ['G3', 'D4'], null, ['A3', 'D4'], null,
+      ['E3', 'B3'], null, ['G3', 'B3'], null, ['B3', 'E4'], null, ['A3', 'D4'], null,
+      ['G3', 'D4'], null, ['A3', 'D4'], null, ['E3', 'B3'], null, ['D3', 'A3'], null
+    ],
+    bass: [
+      'E2', null, 'B1', null, 'A1', null, 'G1', null,
+      'D2', null, 'A1', null, 'E2', null, 'G1', null
+    ],
+    accent: [
+      null, 'E5', null, null, 'B5', null, null, null,
+      null, 'A5', null, null, 'D6', null, null, null
+    ],
+    melodyWave: 'triangle',
+    bassWave: 'sawtooth',
+    harmonyWave: 'square',
+    accentWave: 'square',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    accentVoice: 'fm',
+    melodyVolume: 0.098,
+    harmonyVolume: 0.044,
+    bassVolume: 0.074,
+    accentVolume: 0.042,
+    filterFreq: 5100,
+    filterQ: 0.52,
+    reverbWet: 0.08,
+    reverbRoomSize: 0.54,
+    reverbDampening: 3200,
+    outputGain: 0.94,
+    melodyEnvelope: { attack: 0.003, decay: 0.12, sustain: 0.07, release: 0.16 },
+    harmonyEnvelope: { attack: 0.002, decay: 0.09, sustain: 0.03, release: 0.12 },
+    bassEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.16, release: 0.22 },
+    accentEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.02, release: 0.08 }
   },
 
   battle_boss: {
     name: 'Boss战',
+    tempo: 96,
+    subdivision: '16n',
     melody: [
-      131, 0, 165, 0, 196, 0, 165, 0, 131, 0, 98, 0, 131, 0, 165, 0,
-      196, 0, 262, 0, 196, 0, 165, 0, 131, 0, 165, 0, 196, 0, 262, 0
+      'G3', 'G3', 'C4', 'G3', 'E4', 'C4', 'G3', 'F3',
+      'A3', 'A3', 'D4', 'A3', 'F4', 'D4', 'A3', 'G3'
     ],
-    bass: [65, 0, 65, 0, 82, 0, 82, 0],
-    noteDur: 0.3,
+    harmony: [
+      ['D3', 'G3'], null, ['G3', 'C4'], null, ['C4', 'E4'], null, ['D3', 'G3'], null,
+      ['E3', 'A3'], null, ['A3', 'D4'], null, ['D4', 'F4'], null, ['E3', 'A3'], null
+    ],
+    bass: ['G1', null, 'G1', null, 'A1', null, 'A1', null],
+    accent: ['D5', null, null, null, 'F5', null, null, null],
     melodyWave: 'sawtooth',
-    bassWave: 'sawtooth',
-    bassInterval: 2
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.12,
+    harmonyVolume: 0.06,
+    bassVolume: 0.08,
+    melodyEnvelope: { attack: 0.001, decay: 0.09, sustain: 0.08, release: 0.12 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.04, release: 0.08 },
+    bassEnvelope: { attack: 0.001, decay: 0.12, sustain: 0.12, release: 0.16 },
+    accentEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.02, release: 0.08 }
   },
 
   battle_phase2: {
     name: 'Boss二阶段',
+    tempo: 132,
+    subdivision: '16n',
     melody: [
-      98, 131, 98, 131, 165, 131, 98, 131, 98, 131, 98, 131, 165, 196, 165, 131,
-      165, 196, 165, 131, 98, 131, 98, 65, 98, 131, 165, 196, 262, 196, 165, 131
+      'C4', 'E4', 'C4', 'G4', 'C4', 'A4', 'G4', 'E4',
+      'D4', 'F4', 'D4', 'A4', 'D4', 'C5', 'A4', 'F4'
     ],
-    bass: [65, 65, 65, 65, 82, 82, 65, 65],
-    noteDur: 0.18,
+    harmony: [
+      ['G3', 'C4'], null, ['G3', 'C4'], null, ['A3', 'E4'], null, ['G3', 'D4'], null,
+      ['A3', 'D4'], null, ['A3', 'D4'], null, ['C4', 'G4'], null, ['A3', 'F4'], null
+    ],
+    bass: ['C2', 'C2', 'C2', 'C2', 'D2', 'D2', 'A1', 'A1'],
+    accent: [null, 'G5', null, 'A5', null, 'C6', null, 'A5'],
     melodyWave: 'sawtooth',
     bassWave: 'square',
-    bassInterval: 1
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.13,
+    harmonyVolume: 0.065,
+    bassVolume: 0.085,
+    melodyEnvelope: { attack: 0.001, decay: 0.07, sustain: 0.06, release: 0.1 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.03, release: 0.07 },
+    bassEnvelope: { attack: 0.001, decay: 0.1, sustain: 0.1, release: 0.12 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.08 }
   },
 
-  // ===== 特殊场景 =====
-  // 历险探索：神秘未知，危机四伏，低沉缓慢
+  battle_raid: {
+    name: '群魔围攻',
+    tempo: 144,
+    subdivision: '16n',
+    melody: [
+      'E4', 'G4', 'A4', 'G4', 'E4', 'D4', 'E4', 'A4',
+      'E4', 'G4', 'A4', 'C5', 'A4', 'G4', 'E4', 'D4'
+    ],
+    harmony: [
+      ['B3', 'E4'], null, ['D4', 'G4'], null, ['E4', 'A4'], null, ['D4', 'G4'], null,
+      ['B3', 'E4'], null, ['D4', 'G4'], null, ['E4', 'A4'], null, ['C4', 'F4'], null
+    ],
+    bass: ['E2', 'E2', null, 'D2', 'A1', 'A1', null, 'G1'],
+    accent: [null, 'E5', null, 'A5', null, 'G5', null, 'C6'],
+    melodyWave: 'sawtooth',
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.125,
+    harmonyVolume: 0.06,
+    bassVolume: 0.082,
+    melodyEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.05, release: 0.08 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.03, release: 0.06 },
+    bassEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.1, release: 0.1 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.06 }
+  },
+
+  duel_blade: {
+    name: '双锋对决',
+    tempo: 122,
+    subdivision: '16n',
+    swing: 0,
+    swingSubdivision: '16n',
+    melody: [
+      'E4', 'G4', 'A4', 'B4', 'D5', 'B4', 'A4', 'G4',
+      'E4', 'G4', 'B4', 'D5', 'E5', 'D5', 'B4', 'G4',
+      'D4', 'F4', 'G4', 'A4', 'C5', 'A4', 'G4', 'F4',
+      'E4', 'G4', 'A4', 'B4', 'A4', 'G4', 'E4', 'B3'
+    ],
+    harmony: [
+      ['E3', 'B3'], null, ['G3', 'B3'], null, ['A3', 'D4'], null, ['G3', 'B3'], null,
+      ['E3', 'B3'], null, ['B3', 'E4'], null, ['A3', 'D4'], null, ['G3', 'B3'], null,
+      ['D3', 'A3'], null, ['F3', 'A3'], null, ['G3', 'C4'], null, ['F3', 'A3'], null,
+      ['E3', 'B3'], null, ['G3', 'B3'], null, ['A3', 'D4'], null, ['E3', 'B3'], null
+    ],
+    bass: [
+      'E2', null, 'B1', null, 'D2', null, 'G1', null,
+      'E2', null, 'B1', null, 'A1', null, 'G1', null
+    ],
+    accent: [
+      null, 'E5', null, null, 'D6', null, null, null,
+      null, 'E6', null, null, 'C6', null, null, 'A5'
+    ],
+    melodyWave: 'triangle',
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    accentVoice: 'fm',
+    melodyVolume: 0.102,
+    harmonyVolume: 0.048,
+    bassVolume: 0.08,
+    accentVolume: 0.038,
+    filterFreq: 4300,
+    filterQ: 0.9,
+    reverbWet: 0.06,
+    reverbRoomSize: 0.38,
+    reverbDampening: 3600,
+    outputGain: 0.91,
+    melodyEnvelope: { attack: 0.001, decay: 0.056, sustain: 0.044, release: 0.076 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.03, release: 0.06 },
+    bassEnvelope: { attack: 0.001, decay: 0.1, sustain: 0.13, release: 0.1 },
+    accentEnvelope: { attack: 0.001, decay: 0.032, sustain: 0.02, release: 0.054 }
+  },
+
+  chase_drums: {
+    name: '逐杀鼓点',
+    tempo: 152,
+    subdivision: '16n',
+    melody: [
+      'C4', null, 'C4', 'D4', 'E4', null, 'E4', 'G4',
+      'A4', null, 'A4', 'G4', 'E4', null, 'D4', 'C4'
+    ],
+    harmony: [
+      ['G3', 'C4'], null, null, null, ['A3', 'D4'], null, null, null,
+      ['C4', 'E4'], null, null, null, ['A3', 'D4'], null, null, null
+    ],
+    bass: ['C2', 'C2', 'D2', 'D2', 'E2', 'E2', 'G1', 'G1'],
+    accent: ['C5', null, 'D5', null, 'E5', null, 'G5', null],
+    melodyWave: 'sawtooth',
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'square',
+    melodyVolume: 0.124,
+    harmonyVolume: 0.046,
+    bassVolume: 0.088,
+    melodyEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.04, release: 0.06 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.03, sustain: 0.02, release: 0.05 },
+    bassEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.1, release: 0.08 },
+    accentEnvelope: { attack: 0.001, decay: 0.03, sustain: 0.02, release: 0.05 }
+  },
+
   adventure: {
     name: '历险探索',
+    tempo: 72,
+    subdivision: '8n',
+    swing: 0.12,
+    swingSubdivision: '8n',
     melody: [
-      // 神秘的探索感，音符稀疏
-      196, 0, 0, 0, 0, 220, 0, 0, 0, 0, 262, 0, 0, 0, 0, 196,
-      0, 0, 0, 0, 262, 0, 0, 0, 0, 330, 0, 0, 0, 0, 262, 0
+      'E4', null, 'G4', 'A4', 'B4', null, 'A4', 'G4',
+      'E4', null, 'D4', 'E4', 'G4', 'A4', 'B4', 'A4',
+      'D5', null, 'B4', 'A4', 'G4', null, 'E4', 'G4',
+      'A4', null, 'B4', 'D5', 'B4', 'A4', 'G4', 'E4'
     ],
-    bass: [65, 0, 0, 0, 0, 0, 0, 0, 82, 0, 0, 0, 0, 0, 0, 0],
-    noteDur: 0.55,
+    melodyDurations: ['4n', '8n', '8n', '8n', '4n', '8n', '8n', '8n'],
+    harmony: [
+      ['E3', 'B3'], null, ['G3', 'B3'], null, ['A3', 'D4'], null, ['G3', 'B3'], null,
+      ['D3', 'A3'], null, ['E3', 'B3'], null, ['G3', 'D4'], null, ['A3', 'D4'], null,
+      ['B3', 'D4'], null, ['A3', 'D4'], null, ['G3', 'B3'], null, ['E3', 'B3'], null,
+      ['G3', 'D4'], null, ['A3', 'D4'], null, ['B3', 'E4'], null, ['E3', 'B3'], null
+    ],
+    harmonyDurations: ['2n', '2n', '2n', '2n', '2n', '2n', '2n', '2n'],
+    bass: ['E2', null, 'B1', null, 'D2', null, 'A1', null, 'G1', null, 'D2', null, 'E2', null, 'D2', null],
+    bassDurations: ['2n.', '2n', '2n.', '2n', '2n.', '2n', '2n.', '2n'],
+    accent: [null, 'B4', null, null, null, 'D5', null, null, null, 'E5', null, null, 'D5', null, null, null],
     melodyWave: 'triangle',
-    bassWave: 'sine'
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.088,
+    harmonyVolume: 0.048,
+    bassVolume: 0.032,
+    accentVolume: 0.03,
+    filterFreq: 3200,
+    filterQ: 0.46,
+    reverbWet: 0.18,
+    reverbRoomSize: 0.76,
+    reverbDampening: 2300,
+    outputGain: 0.89,
+    melodyEnvelope: { attack: 0.06, decay: 0.18, sustain: 0.15, release: 0.34 },
+    harmonyEnvelope: { attack: 0.12, decay: 0.18, sustain: 0.1, release: 0.42 },
+    bassEnvelope: { attack: 0.05, decay: 0.24, sustain: 0.11, release: 0.36 },
+    accentEnvelope: { attack: 0.016, decay: 0.1, sustain: 0.02, release: 0.2 }
   },
 
-  // 坊市：人间烟火，热闹非凡，节奏明快
+  story: {
+    name: '卷宗叙事',
+    tempo: 40,
+    subdivision: '8n',
+    swing: 0.04,
+    swingSubdivision: '8n',
+    melody: [
+      'E4', null, 'G4', 'B4', 'A4', null, 'G4', 'E4',
+      'D4', null, 'E4', 'G4', 'A4', null, 'B4', 'A4',
+      'G4', null, 'A4', 'B4', 'D5', null, 'B4', 'G4',
+      'E4', null, 'G4', 'A4', 'B4', null, 'A4', 'G4',
+      'C5', null, 'D5', 'E5', 'G5', null, 'E5', 'D5',
+      'B4', null, 'A4', 'G4', 'E4', null, 'G4', 'A4',
+      'B4', null, 'D5', 'E5', 'D5', null, 'B4', 'A4',
+      'G4', null, 'E4', 'D4', 'E4', null, 'G4', 'E4'
+    ],
+    melodyDurations: ['2n', '8n', '8n', '4n', '2n', '8n', '8n', '8n'],
+    harmony: [
+      ['E3', 'B3', 'E4'], null, ['G3', 'D4', 'G4'], null, ['A3', 'E4', 'A4'], null, ['G3', 'D4', 'G4'], null,
+      ['D3', 'A3', 'D4'], null, ['E3', 'B3', 'E4'], null, ['A3', 'E4', 'A4'], null, ['B3', 'F#4', 'B4'], null,
+      ['G3', 'D4', 'G4'], null, ['A3', 'E4', 'A4'], null, ['D4', 'A4', 'D5'], null, ['B3', 'F#4', 'B4'], null,
+      ['E3', 'B3', 'E4'], null, ['G3', 'D4', 'G4'], null, ['A3', 'E4', 'A4'], null, ['G3', 'D4', 'G4'], null,
+      ['C4', 'G4', 'C5'], null, ['D4', 'A4', 'D5'], null, ['B3', 'F#4', 'B4'], null, ['A3', 'E4', 'A4'], null,
+      ['G3', 'D4', 'G4'], null, ['E3', 'B3', 'E4'], null, ['D3', 'A3', 'D4'], null, ['E3', 'B3', 'E4'], null,
+      ['G3', 'D4', 'G4'], null, ['A3', 'E4', 'A4'], null, ['B3', 'F#4', 'B4'], null, ['A3', 'E4', 'A4'], null,
+      ['E3', 'B3', 'E4'], null, ['D3', 'A3', 'D4'], null, ['E3', 'B3', 'E4'], null, ['A3', 'E4', 'A4'], null
+    ],
+    harmonyDurations: ['2n', '2n', '2n', '2n', '2n', '2n', '2n', '2n'],
+    bass: [
+      'E2', null, 'G1', null, 'A1', null, 'G1', null,
+      'D2', null, 'E2', null, 'A1', null, 'B1', null,
+      'G1', null, 'A1', null, 'D2', null, 'B1', null,
+      'C2', null, 'G1', null, 'A1', null, 'E2', null
+    ],
+    bassDurations: ['2n.', '2n', '2n.', '2n', '2n.', '2n', '2n.', '2n'],
+    accent: [
+      null, 'E5', null, null, null, 'B5', null, null,
+      null, 'A5', null, null, null, 'G5', null, null,
+      null, 'B5', null, null, null, 'E6', null, null,
+      null, 'A5', null, null, null, 'D6', null, null
+    ],
+    accentDurations: ['8n', '8n', '4n', '8n', '8n', '8n', '8n', '8n'],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    bassVoice: 'mono',
+    accentVoice: 'fm',
+    melodyVolume: 0.082,
+    harmonyVolume: 0.044,
+    bassVolume: 0.028,
+    accentVolume: 0.02,
+    filterFreq: 2400,
+    filterQ: 0.74,
+    reverbWet: 0.28,
+    reverbRoomSize: 0.94,
+    reverbDampening: 1600,
+    outputGain: 0.84,
+    melodyEnvelope: { attack: 0.24, decay: 0.08, sustain: 0.05, release: 1.6 },
+    harmonyEnvelope: { attack: 0.42, decay: 0.05, sustain: 0.03, release: 2.0 },
+    bassEnvelope: { attack: 0.18, decay: 0.08, sustain: 0.05, release: 1.3 },
+    accentEnvelope: { attack: 0.08, decay: 0.04, sustain: 0.02, release: 0.56 },
+    ambient: { type: 'brown', volume: 0.004, filterFreq: 780 }
+  },
+
   shop: {
     name: '坊市',
+    tempo: 98,
+    subdivision: '8n',
     melody: [
-      // 活泼热闹的旋律
-      392, 440, 523, 440, 392, 330, 392, 440, 523, 587, 523, 440, 392, 330, 294, 330,
-      392, 440, 523, 587, 523, 440, 392, 440, 523, 659, 587, 523, 440, 392, 330, 294
+      'G4', 'A4', 'C5', 'A4', 'G4', 'E4', 'G4', 'A4',
+      'C5', 'A4', 'G4', 'E4', 'D4', 'E4', 'G4', null
     ],
-    bass: [196, 220, 262, 220, 165, 196, 220, 262],
-    noteDur: 0.18,
-    melodyWave: 'square',
-    bassWave: 'triangle'
+    harmony: [
+      ['D4', 'G4'], null, ['E4', 'A4'], null, ['G4', 'C5'], null, ['E4', 'A4'], null,
+      ['D4', 'G4'], null, ['C4', 'E4'], null, ['A3', 'D4'], null, ['C4', 'E4'], null
+    ],
+    bass: ['G2', 'A2', 'C3', 'A2', 'E2', 'G2', 'A2', 'C3'],
+    accent: [null, 'D5', null, null, null, 'E5', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.085,
+    harmonyVolume: 0.048,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.02, decay: 0.15, sustain: 0.08, release: 0.18 },
+    harmonyEnvelope: { attack: 0.04, decay: 0.14, sustain: 0.06, release: 0.22 },
+    bassEnvelope: { attack: 0.03, decay: 0.16, sustain: 0.12, release: 0.22 },
+    accentEnvelope: { attack: 0.01, decay: 0.08, sustain: 0.02, release: 0.12 }
   },
 
-  // 渡劫：生死一线，天威浩荡，极其紧张
+  ancient_ruins: {
+    name: '上古遗迹',
+    tempo: 64,
+    subdivision: '8n',
+    melody: [
+      'E4', null, 'F4', null, 'A4', null, 'G4', null,
+      'D4', null, 'E4', null, 'G4', null, 'C5', null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, ['C4', 'F4'], null, ['E4', 'A4'], null, ['D4', 'G4'], null,
+      ['A3', 'D4'], null, ['B3', 'E4'], null, ['D4', 'G4'], null, ['G4', 'C5'], null
+    ],
+    bass: ['E2', null, 'F2', null, 'A1', null, 'G1', null],
+    accent: [null, null, 'E5', null, null, 'D5', null, 'C5'],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.088,
+    harmonyVolume: 0.05,
+    bassVolume: 0.034,
+    melodyEnvelope: { attack: 0.12, decay: 0.18, sustain: 0.14, release: 0.44 },
+    harmonyEnvelope: { attack: 0.18, decay: 0.14, sustain: 0.08, release: 0.62 },
+    bassEnvelope: { attack: 0.06, decay: 0.2, sustain: 0.1, release: 0.5 },
+    accentEnvelope: { attack: 0.02, decay: 0.08, sustain: 0.02, release: 0.14 },
+    ambient: { type: 'brown', volume: 0.015, filterFreq: 880 }
+  },
+
   tribulation: {
     name: '渡劫',
+    tempo: 88,
+    subdivision: '8n',
     melody: [
-      // 紧张的低音轰鸣
-      65, 0, 82, 0, 98, 0, 82, 0, 65, 0, 55, 0, 65, 0, 82, 0,
-      // 偶尔的高音雷鸣
-      0, 0, 0, 0, 523, 0, 0, 0, 0, 0, 0, 0, 659, 0, 0, 0
+      'C3', null, 'E3', null, 'G3', null, 'E3', null,
+      'C3', null, 'G2', null, 'C3', null, 'E3', null
     ],
-    bass: [32, 0, 41, 0, 49, 0, 41, 0],
-    noteDur: 0.4,
+    harmony: [
+      ['G2', 'C3'], null, ['B2', 'E3'], null, ['D3', 'G3'], null, ['B2', 'E3'], null,
+      ['G2', 'C3'], null, ['D2', 'G2'], null, ['G2', 'C3'], null, ['B2', 'E3'], null
+    ],
+    bass: ['C2', null, 'E2', null, 'G1', null, 'E2', null],
+    accent: ['C5', null, null, null, 'G5', null, null, null],
     melodyWave: 'sawtooth',
     bassWave: 'sawtooth',
-    bassInterval: 2
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.11,
+    harmonyVolume: 0.05,
+    bassVolume: 0.07,
+    melodyEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.18 },
+    harmonyEnvelope: { attack: 0.02, decay: 0.08, sustain: 0.04, release: 0.14 },
+    bassEnvelope: { attack: 0.001, decay: 0.12, sustain: 0.12, release: 0.2 },
+    accentEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.02, release: 0.08 }
+  },
+
+  warm_hearth: {
+    name: '灯下温酒',
+    tempo: 64,
+    subdivision: '8n',
+    melody: [
+      'G4', null, 'B4', null, 'D5', null, 'B4', null,
+      'A4', null, 'G4', null, 'E4', null, 'G4', null
+    ],
+    harmony: [
+      ['D4', 'G4'], null, ['G4', 'B4'], null, ['A4', 'D5'], null, ['G4', 'B4'], null,
+      ['E4', 'A4'], null, ['D4', 'G4'], null, ['C4', 'E4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['G2', null, 'D3', null, 'A2', null, 'C3', null],
+    accent: [null, 'D5', null, null, null, 'B4', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.084,
+    harmonyVolume: 0.046,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.1, release: 0.42 },
+    harmonyEnvelope: { attack: 0.14, decay: 0.14, sustain: 0.08, release: 0.56 },
+    bassEnvelope: { attack: 0.05, decay: 0.18, sustain: 0.1, release: 0.4 },
+    accentEnvelope: { attack: 0.02, decay: 0.08, sustain: 0.02, release: 0.16 }
+  },
+
+  sworn_bond: {
+    name: '同行誓约',
+    tempo: 76,
+    subdivision: '8n',
+    melody: [
+      'A4', 'C5', 'E5', 'C5', 'A4', 'B4', 'D5', 'B4',
+      'G4', 'A4', 'C5', 'A4', 'E4', 'G4', 'A4', null
+    ],
+    harmony: [
+      ['E4', 'A4'], null, ['A4', 'C5'], null, ['G4', 'D5'], null, ['B4', 'D5'], null,
+      ['D4', 'G4'], null, ['E4', 'A4'], null, ['C4', 'E4'], null, ['E4', 'A4'], null
+    ],
+    bass: ['A2', null, 'E2', null, 'G2', null, 'D2', null],
+    accent: [null, 'E5', null, null, 'D5', null, null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.09,
+    harmonyVolume: 0.05,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.04, decay: 0.14, sustain: 0.1, release: 0.24 },
+    harmonyEnvelope: { attack: 0.1, decay: 0.14, sustain: 0.08, release: 0.38 },
+    bassEnvelope: { attack: 0.04, decay: 0.16, sustain: 0.1, release: 0.28 },
+    accentEnvelope: { attack: 0.01, decay: 0.06, sustain: 0.02, release: 0.14 }
+  },
+
+  peach_blossom: {
+    name: '桃夭旧梦',
+    tempo: 72,
+    subdivision: '8n',
+    melody: [
+      'C5', null, 'E5', null, 'G5', null, 'E5', null,
+      'D5', null, 'C5', null, 'A4', null, 'C5', null
+    ],
+    harmony: [
+      ['G4', 'C5'], null, ['C5', 'E5'], null, ['E5', 'G5'], null, ['C5', 'E5'], null,
+      ['A4', 'D5'], null, ['G4', 'C5'], null, ['E4', 'A4'], null, ['G4', 'C5'], null
+    ],
+    bass: ['C3', null, 'G2', null, 'A2', null, 'E2', null],
+    accent: [null, 'G5', null, null, null, 'E5', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.086,
+    harmonyVolume: 0.048,
+    bassVolume: 0.028,
+    melodyEnvelope: { attack: 0.08, decay: 0.14, sustain: 0.08, release: 0.36 },
+    harmonyEnvelope: { attack: 0.16, decay: 0.12, sustain: 0.06, release: 0.54 },
+    bassEnvelope: { attack: 0.06, decay: 0.16, sustain: 0.08, release: 0.4 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.16 },
+    ambient: { type: 'pink', volume: 0.007, filterFreq: 1450 }
+  },
+
+  broken_vow: {
+    name: '誓裂',
+    tempo: 58,
+    subdivision: '8n',
+    melody: [
+      'A4', null, 'G4', null, 'E4', null, 'D4', null,
+      'C4', null, 'D4', null, 'E4', null, 'G4', null
+    ],
+    harmony: [
+      ['E4', 'A4'], null, ['D4', 'G4'], null, ['C4', 'E4'], null, ['A3', 'D4'], null,
+      ['G3', 'C4'], null, ['A3', 'D4'], null, ['C4', 'E4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['A2', null, 'G2', null, 'E2', null, 'D2', null],
+    accent: [null, null, 'E5', null, null, null, 'D5', null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'triangle',
+    melodyVolume: 0.078,
+    harmonyVolume: 0.042,
+    bassVolume: 0.028,
+    melodyEnvelope: { attack: 0.14, decay: 0.12, sustain: 0.08, release: 0.68 },
+    harmonyEnvelope: { attack: 0.2, decay: 0.1, sustain: 0.05, release: 0.82 },
+    bassEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.08, release: 0.58 },
+    accentEnvelope: { attack: 0.02, decay: 0.08, sustain: 0.02, release: 0.14 }
+  },
+
+  grief_abyss: {
+    name: '深渊哀歌',
+    tempo: 42,
+    subdivision: '2n',
+    melody: [
+      'E4', null, 'D4', null, 'B3', null, 'A3', null,
+      'G3', null, 'A3', null, 'B3', null, null, null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, ['A3', 'D4'], null, ['G3', 'B3'], null, ['E3', 'A3'], null,
+      ['D3', 'G3'], null, ['E3', 'A3'], null, ['G3', 'B3'], null, null, null
+    ],
+    bass: ['E2', null, 'D2', null, 'B1', null, 'A1', null],
+    accent: [null, 'E5', null, null, null, 'D5', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.072,
+    harmonyVolume: 0.04,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.28, decay: 0.08, sustain: 0.04, release: 1.04 },
+    harmonyEnvelope: { attack: 0.34, decay: 0.06, sustain: 0.03, release: 1.18 },
+    bassEnvelope: { attack: 0.18, decay: 0.12, sustain: 0.04, release: 0.98 },
+    accentEnvelope: { attack: 0.04, decay: 0.06, sustain: 0.02, release: 0.2 },
+    ambient: { type: 'brown', volume: 0.012, filterFreq: 520 }
+  },
+
+  funeral_wind: {
+    name: '纸灰风灯',
+    tempo: 50,
+    subdivision: '4n',
+    melody: [
+      'D4', null, 'F4', null, 'E4', null, 'D4', null,
+      'A3', null, 'C4', null, 'D4', null, 'F4', null
+    ],
+    harmony: [
+      ['A3', 'D4'], null, ['C4', 'F4'], null, ['B3', 'E4'], null, ['A3', 'D4'], null,
+      ['E3', 'A3'], null, ['G3', 'C4'], null, ['A3', 'D4'], null, ['C4', 'F4'], null
+    ],
+    bass: ['D2', null, 'F2', null, 'E2', null, 'A1', null],
+    accent: [null, null, 'D5', null, null, null, 'C5', null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.074,
+    harmonyVolume: 0.042,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.16, decay: 0.12, sustain: 0.08, release: 0.72 },
+    harmonyEnvelope: { attack: 0.24, decay: 0.08, sustain: 0.04, release: 0.88 },
+    bassEnvelope: { attack: 0.1, decay: 0.14, sustain: 0.08, release: 0.64 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.16 },
+    ambient: { type: 'brown', volume: 0.014, filterFreq: 640 }
+  },
+
+  empty_city: {
+    name: '空城无声',
+    tempo: 48,
+    subdivision: '4n',
+    melody: [
+      'G4', null, null, null, 'D4', null, null, null,
+      'E4', null, null, null, 'C4', null, null, null
+    ],
+    harmony: [
+      ['D4', 'G4'], null, null, null, ['A3', 'D4'], null, null, null,
+      ['B3', 'E4'], null, null, null, ['G3', 'C4'], null, null, null
+    ],
+    bass: ['G2', null, null, null, 'D2', null, null, null],
+    accent: [null, null, 'G5', null, null, null, 'D5', null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVolume: 0.062,
+    harmonyVolume: 0.036,
+    bassVolume: 0.022,
+    melodyEnvelope: { attack: 0.24, decay: 0.08, sustain: 0.04, release: 1.1 },
+    harmonyEnvelope: { attack: 0.32, decay: 0.05, sustain: 0.03, release: 1.22 },
+    bassEnvelope: { attack: 0.16, decay: 0.1, sustain: 0.04, release: 1.0 },
+    accentEnvelope: { attack: 0.05, decay: 0.04, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'white', volume: 0.004, filterFreq: 3600 }
+  },
+
+  suspense_steps: {
+    name: '暗阶轻步',
+    tempo: 92,
+    subdivision: '16n',
+    melody: [
+      'E4', null, 'F4', null, 'E4', null, 'D4', null,
+      'E4', null, 'G4', null, 'A4', null, 'G4', null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, null, null, ['C4', 'F4'], null, null, null,
+      ['B3', 'E4'], null, null, null, ['D4', 'G4'], null, null, null
+    ],
+    bass: ['E2', null, 'F2', null, 'E2', null, 'D2', null],
+    accent: ['E5', null, null, null, 'G5', null, null, null],
+    melodyWave: 'square',
+    bassWave: 'sawtooth',
+    harmonyWave: 'triangle',
+    accentWave: 'square',
+    melodyVolume: 0.092,
+    harmonyVolume: 0.038,
+    bassVolume: 0.056,
+    melodyEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.04, release: 0.08 },
+    harmonyEnvelope: { attack: 0.01, decay: 0.06, sustain: 0.03, release: 0.1 },
+    bassEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.1, release: 0.12 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.06 }
+  },
+
+  mirror_dream: {
+    name: '镜梦',
+    tempo: 66,
+    subdivision: '8n',
+    melody: [
+      'E5', null, 'C5', null, 'A4', null, 'C5', null,
+      'G4', null, 'A4', null, 'E5', null, 'C5', null
+    ],
+    harmony: [
+      ['C5', 'E5'], null, ['A4', 'C5'], null, ['E4', 'A4'], null, ['A4', 'C5'], null,
+      ['D4', 'G4'], null, ['E4', 'A4'], null, ['C5', 'E5'], null, ['A4', 'C5'], null
+    ],
+    bass: ['A2', null, 'E2', null, 'G2', null, 'D2', null],
+    accent: [null, 'E6', null, null, null, 'C6', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.08,
+    harmonyVolume: 0.044,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.16, decay: 0.1, sustain: 0.06, release: 0.76 },
+    harmonyEnvelope: { attack: 0.22, decay: 0.08, sustain: 0.04, release: 0.9 },
+    bassEnvelope: { attack: 0.08, decay: 0.12, sustain: 0.06, release: 0.66 },
+    accentEnvelope: { attack: 0.04, decay: 0.06, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'pink', volume: 0.006, filterFreq: 1250 }
+  },
+
+  star_ritual: {
+    name: '星坛秘祭',
+    tempo: 78,
+    subdivision: '8n',
+    melody: [
+      'F4', null, 'A4', null, 'C5', null, 'E5', null,
+      'D5', null, 'C5', null, 'A4', null, 'F4', null
+    ],
+    harmony: [
+      ['C4', 'F4'], null, ['E4', 'A4'], null, ['G4', 'C5'], null, ['B4', 'E5'], null,
+      ['A4', 'D5'], null, ['G4', 'C5'], null, ['E4', 'A4'], null, ['C4', 'F4'], null
+    ],
+    bass: ['F2', null, 'C2', null, 'A1', null, 'D2', null],
+    accent: ['F5', null, null, null, 'E5', null, null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.088,
+    harmonyVolume: 0.05,
+    bassVolume: 0.032,
+    melodyEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.12, release: 0.42 },
+    harmonyEnvelope: { attack: 0.18, decay: 0.12, sustain: 0.06, release: 0.64 },
+    bassEnvelope: { attack: 0.06, decay: 0.16, sustain: 0.08, release: 0.48 },
+    accentEnvelope: { attack: 0.03, decay: 0.08, sustain: 0.02, release: 0.18 }
+  },
+
+  mechanical_pulse: {
+    name: '机关脉冲',
+    tempo: 112,
+    subdivision: '16n',
+    melody: [
+      'E4', null, 'E4', 'G4', null, 'B4', null, 'G4',
+      'D4', null, 'D4', 'F4', null, 'A4', null, 'F4'
+    ],
+    harmony: [
+      ['B3', 'E4'], null, null, null, ['E4', 'G4'], null, null, null,
+      ['A3', 'D4'], null, null, null, ['D4', 'F4'], null, null, null
+    ],
+    bass: ['E2', 'E2', null, 'E2', 'D2', 'D2', null, 'D2'],
+    accent: ['E5', null, 'G5', null, 'D5', null, 'F5', null],
+    melodyWave: 'square',
+    bassWave: 'square',
+    harmonyWave: 'sawtooth',
+    accentWave: 'square',
+    melodyVoice: 'am',
+    harmonyVoice: 'am',
+    melodyVolume: 0.11,
+    harmonyVolume: 0.044,
+    bassVolume: 0.078,
+    melodyEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.04, release: 0.06 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.05 },
+    bassEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.12, release: 0.08 },
+    accentEnvelope: { attack: 0.001, decay: 0.03, sustain: 0.02, release: 0.05 }
+  },
+
+  neon_alchemy: {
+    name: '霓火炼丹',
+    tempo: 118,
+    subdivision: '16n',
+    melody: [
+      'A4', null, 'C5', 'E5', null, 'G5', null, 'E5',
+      'B4', null, 'D5', 'F5', null, 'A5', null, 'F5'
+    ],
+    harmony: [
+      ['E4', 'A4'], null, null, null, ['G4', 'C5'], null, null, null,
+      ['F4', 'B4'], null, null, null, ['A4', 'D5'], null, null, null
+    ],
+    bass: ['A2', 'A2', null, 'G2', 'B2', 'B2', null, 'A2'],
+    accent: ['E6', null, 'G6', null, 'F6', null, 'A6', null],
+    melodyWave: 'sawtooth',
+    bassWave: 'square',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    accentVoice: 'fm',
+    melodyVolume: 0.112,
+    harmonyVolume: 0.042,
+    bassVolume: 0.074,
+    melodyEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.04, release: 0.06 },
+    harmonyEnvelope: { attack: 0.01, decay: 0.06, sustain: 0.03, release: 0.08 },
+    bassEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.1, release: 0.08 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.06 }
+  },
+
+  river_qin: {
+    name: '高山流水',
+    tempo: 42,
+    subdivision: '8n',
+    swing: 0.06,
+    swingSubdivision: '8n',
+    melody: [
+      'D4', null, 'F#4', 'A4', 'D5', null, 'A4', 'F#4',
+      'E4', null, 'F#4', 'A4', 'B4', null, 'A4', 'F#4',
+      'G4', null, 'B4', 'D5', 'E5', null, 'D5', 'B4',
+      'A4', null, 'F#4', 'E4', 'D4', null, 'F#4', 'A4'
+    ],
+    harmony: [
+      ['D3', 'A3', 'D4'], null, ['F#3', 'A3', 'D4'], null, ['A3', 'D4', 'F#4'], null, ['F#3', 'A3', 'D4'], null,
+      ['E3', 'A3', 'C#4'], null, ['F#3', 'A3', 'D4'], null, ['G3', 'B3', 'D4'], null, ['F#3', 'A3', 'D4'], null,
+      ['G3', 'B3', 'D4'], null, ['A3', 'C#4', 'E4'], null, ['D4', 'F#4', 'A4'], null, ['G3', 'B3', 'D4'], null,
+      ['E3', 'A3', 'C#4'], null, ['D3', 'A3', 'D4'], null, ['G3', 'B3', 'D4'], null, ['D3', 'A3', 'D4'], null
+    ],
+    bass: ['D2', null, 'A1', null, 'D2', null, 'A1', null, 'E2', null, 'A1', null, 'G1', null, 'D2', 'A1'],
+    accent: [null, 'A4', null, null, 'D5', null, null, null, null, 'B4', null, null, 'D6', null, null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    accentVoice: 'fm',
+    melodyVolume: 0.078,
+    harmonyVolume: 0.042,
+    bassVolume: 0.024,
+    accentVolume: 0.022,
+    filterFreq: 2100,
+    filterQ: 0.82,
+    reverbWet: 0.3,
+    reverbRoomSize: 0.96,
+    reverbDampening: 1500,
+    outputGain: 0.82,
+    melodyEnvelope: { attack: 0.28, decay: 0.12, sustain: 0.07, release: 1.34 },
+    harmonyEnvelope: { attack: 0.38, decay: 0.1, sustain: 0.05, release: 1.5 },
+    bassEnvelope: { attack: 0.16, decay: 0.16, sustain: 0.07, release: 1.12 },
+    accentEnvelope: { attack: 0.08, decay: 0.08, sustain: 0.02, release: 0.4 },
+    ambient: { type: 'brown', volume: 0.004, filterFreq: 860 }
+  },
+
+  bamboo_flute: {
+    name: '竹溪远笛',
+    tempo: 63,
+    subdivision: '4n',
+    melody: [
+      'G5', null, 'E5', 'D5', 'E5', null, 'G5', null,
+      'A5', null, 'G5', 'E5', 'D5', null, 'B4', null,
+      'D5', null, 'E5', 'G5', 'A5', null, 'G5', 'E5',
+      'D5', null, 'E5', 'D5', 'B4', null, 'G4', null
+    ],
+    harmony: [
+      ['D5', 'G5'], null, ['B4', 'E5'], null, ['A4', 'D5'], null, ['B4', 'E5'], null,
+      ['E5', 'A5'], null, ['D5', 'G5'], null, ['B4', 'E5'], null, ['A4', 'D5'], null,
+      ['A4', 'D5'], null, ['B4', 'E5'], null, ['E5', 'A5'], null, ['D5', 'G5'], null,
+      ['B4', 'E5'], null, ['A4', 'D5'], null, ['G4', 'B4'], null, ['D4', 'G4'], null
+    ],
+    bass: [
+      'G2', null, 'E2', null, 'D2', null, 'B1', null,
+      'A2', null, 'G2', null, 'E2', null, 'D2', null
+    ],
+    accent: [
+      null, 'G6', null, null, null, 'E6', null, null,
+      null, 'A6', null, null, null, 'G6', null, null
+    ],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    accentVoice: 'fm',
+    melodyVolume: 0.082,
+    harmonyVolume: 0.044,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.16, decay: 0.12, sustain: 0.06, release: 0.82 },
+    harmonyEnvelope: { attack: 0.22, decay: 0.08, sustain: 0.04, release: 1.02 },
+    bassEnvelope: { attack: 0.1, decay: 0.14, sustain: 0.06, release: 0.82 },
+    accentEnvelope: { attack: 0.04, decay: 0.08, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'brown', volume: 0.008, filterFreq: 780 }
+  },
+
+  desert_bells: {
+    name: '荒漠驼铃',
+    tempo: 78,
+    subdivision: '8n',
+    melody: [
+      'D4', null, 'F4', null, 'A4', null, 'F4', null,
+      'C5', null, 'A4', null, 'G4', null, 'F4', null
+    ],
+    harmony: [
+      ['A3', 'D4'], null, ['C4', 'F4'], null, ['E4', 'A4'], null, ['C4', 'F4'], null,
+      ['G4', 'C5'], null, ['E4', 'A4'], null, ['D4', 'G4'], null, ['C4', 'F4'], null
+    ],
+    bass: ['D2', null, 'A1', null, 'C2', null, 'G1', null],
+    accent: ['D5', null, null, null, 'C5', null, null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'triangle',
+    melodyVolume: 0.086,
+    harmonyVolume: 0.046,
+    bassVolume: 0.032,
+    melodyEnvelope: { attack: 0.04, decay: 0.16, sustain: 0.1, release: 0.28 },
+    harmonyEnvelope: { attack: 0.12, decay: 0.14, sustain: 0.08, release: 0.44 },
+    bassEnvelope: { attack: 0.06, decay: 0.18, sustain: 0.08, release: 0.36 },
+    accentEnvelope: { attack: 0.01, decay: 0.08, sustain: 0.02, release: 0.14 },
+    ambient: { type: 'brown', volume: 0.02, filterFreq: 700 }
+  },
+
+  festival_lantern: {
+    name: '灯市流光',
+    tempo: 106,
+    subdivision: '8n',
+    melody: [
+      'G4', 'B4', 'D5', 'B4', 'C5', 'E5', 'G5', 'E5',
+      'D5', 'B4', 'G4', 'A4', 'C5', 'D5', 'E5', null
+    ],
+    harmony: [
+      ['D4', 'G4'], null, ['G4', 'B4'], null, ['G4', 'C5'], null, ['C5', 'E5'], null,
+      ['A4', 'D5'], null, ['D4', 'G4'], null, ['E4', 'A4'], null, ['G4', 'C5'], null
+    ],
+    bass: ['G2', 'D3', 'G2', 'C3', 'D3', 'G2', 'A2', 'C3'],
+    accent: [null, 'D5', null, 'G5', null, 'E5', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'triangle',
+    melodyVolume: 0.092,
+    harmonyVolume: 0.05,
+    bassVolume: 0.032,
+    melodyEnvelope: { attack: 0.02, decay: 0.14, sustain: 0.08, release: 0.16 },
+    harmonyEnvelope: { attack: 0.04, decay: 0.12, sustain: 0.06, release: 0.2 },
+    bassEnvelope: { attack: 0.03, decay: 0.16, sustain: 0.1, release: 0.2 },
+    accentEnvelope: { attack: 0.01, decay: 0.06, sustain: 0.02, release: 0.12 }
+  },
+
+  dawn_return: {
+    name: '破晓归山',
+    tempo: 72,
+    subdivision: '8n',
+    melody: [
+      'C5', null, 'E5', null, 'G5', null, 'A5', null,
+      'G5', null, 'E5', null, 'D5', null, 'C5', null
+    ],
+    harmony: [
+      ['G4', 'C5'], null, ['B4', 'E5'], null, ['D5', 'G5'], null, ['E5', 'A5'], null,
+      ['D5', 'G5'], null, ['B4', 'E5'], null, ['A4', 'D5'], null, ['G4', 'C5'], null
+    ],
+    bass: ['C3', null, 'G2', null, 'A2', null, 'D2', null],
+    accent: [null, 'C6', null, null, null, 'G5', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.09,
+    harmonyVolume: 0.05,
+    bassVolume: 0.03,
+    melodyEnvelope: { attack: 0.08, decay: 0.16, sustain: 0.1, release: 0.42 },
+    harmonyEnvelope: { attack: 0.16, decay: 0.14, sustain: 0.08, release: 0.56 },
+    bassEnvelope: { attack: 0.06, decay: 0.18, sustain: 0.08, release: 0.42 },
+    accentEnvelope: { attack: 0.02, decay: 0.06, sustain: 0.02, release: 0.14 }
+  },
+
+  night_patrol: {
+    name: '巡夜',
+    tempo: 88,
+    subdivision: '16n',
+    melody: [
+      'D4', null, 'F4', null, 'D4', null, 'A3', null,
+      'C4', null, 'E4', null, 'C4', null, 'G3', null
+    ],
+    harmony: [
+      ['A3', 'D4'], null, null, null, ['F3', 'A3'], null, null, null,
+      ['G3', 'C4'], null, null, null, ['E3', 'G3'], null, null, null
+    ],
+    bass: ['D2', null, 'A1', null, 'C2', null, 'G1', null],
+    accent: ['D5', null, null, null, 'C5', null, null, null],
+    melodyWave: 'square',
+    bassWave: 'sawtooth',
+    harmonyWave: 'triangle',
+    accentWave: 'square',
+    melodyVolume: 0.088,
+    harmonyVolume: 0.036,
+    bassVolume: 0.054,
+    melodyEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.04, release: 0.08 },
+    harmonyEnvelope: { attack: 0.01, decay: 0.05, sustain: 0.03, release: 0.1 },
+    bassEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.08, release: 0.12 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.06 }
+  },
+
+  blood_moon: {
+    name: '血月',
+    tempo: 90,
+    subdivision: '8n',
+    melody: [
+      'C4', null, 'D#4', null, 'G4', null, 'F4', null,
+      'C4', null, 'A#3', null, 'G3', null, 'F3', null
+    ],
+    harmony: [
+      ['G3', 'C4'], null, ['A#3', 'D#4'], null, ['D4', 'G4'], null, ['C4', 'F4'], null,
+      ['G3', 'C4'], null, ['F3', 'A#3'], null, ['D3', 'G3'], null, ['C3', 'F3'], null
+    ],
+    bass: ['C2', null, 'A#1', null, 'G1', null, 'F1', null],
+    accent: ['C5', null, null, null, 'G5', null, null, null],
+    melodyWave: 'sawtooth',
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.104,
+    harmonyVolume: 0.05,
+    bassVolume: 0.074,
+    melodyEnvelope: { attack: 0.01, decay: 0.08, sustain: 0.08, release: 0.14 },
+    harmonyEnvelope: { attack: 0.02, decay: 0.06, sustain: 0.04, release: 0.1 },
+    bassEnvelope: { attack: 0.001, decay: 0.1, sustain: 0.12, release: 0.14 },
+    accentEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.02, release: 0.08 }
+  },
+
+  memory_shards: {
+    name: '记忆碎片',
+    tempo: 68,
+    subdivision: '16n',
+    melody: [
+      'E5', null, 'B4', 'G4', null, 'E4', null, 'G4',
+      'D5', null, 'A4', 'F4', null, 'D4', null, 'F4'
+    ],
+    harmony: [
+      ['B4', 'E5'], null, null, null, ['G4', 'B4'], null, null, null,
+      ['A4', 'D5'], null, null, null, ['F4', 'A4'], null, null, null
+    ],
+    bass: ['E2', null, 'B1', null, 'D2', null, 'A1', null],
+    accent: [null, 'E6', null, null, null, 'D6', null, null],
+    melodyWave: 'triangle',
+    bassWave: 'sine',
+    harmonyWave: 'sine',
+    accentWave: 'sine',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    melodyVolume: 0.082,
+    harmonyVolume: 0.04,
+    bassVolume: 0.026,
+    melodyEnvelope: { attack: 0.06, decay: 0.08, sustain: 0.04, release: 0.2 },
+    harmonyEnvelope: { attack: 0.14, decay: 0.08, sustain: 0.03, release: 0.32 },
+    bassEnvelope: { attack: 0.06, decay: 0.12, sustain: 0.08, release: 0.26 },
+    accentEnvelope: { attack: 0.03, decay: 0.05, sustain: 0.02, release: 0.14 }
+  },
+
+  storm_siege: {
+    name: '风雷围城',
+    tempo: 138,
+    subdivision: '16n',
+    melody: [
+      'D4', 'F4', 'A4', 'F4', 'D4', 'G4', 'A4', 'C5',
+      'D5', 'C5', 'A4', 'G4', 'F4', 'D4', 'C4', 'A3'
+    ],
+    harmony: [
+      ['A3', 'D4'], null, ['C4', 'F4'], null, ['D4', 'G4'], null, ['F4', 'A4'], null,
+      ['A4', 'D5'], null, ['G4', 'C5'], null, ['F4', 'A4'], null, ['D4', 'G4'], null
+    ],
+    bass: ['D2', 'D2', 'G1', 'G1', 'A1', 'A1', 'C2', 'C2'],
+    accent: ['D5', null, 'F5', null, 'A5', null, 'C6', null],
+    melodyWave: 'sawtooth',
+    bassWave: 'square',
+    harmonyWave: 'square',
+    accentWave: 'triangle',
+    melodyVolume: 0.122,
+    harmonyVolume: 0.056,
+    bassVolume: 0.086,
+    melodyEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.05, release: 0.08 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.03, release: 0.06 },
+    bassEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.1, release: 0.08 },
+    accentEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.06 }
+  },
+
+  void_signal: {
+    name: '虚空讯号',
+    tempo: 96,
+    subdivision: '16n',
+    melody: [
+      'E4', null, 'A#4', null, 'F#4', null, 'C5', null,
+      'D#4', null, 'A4', null, 'F4', null, 'B4', null
+    ],
+    harmony: [
+      ['B3', 'E4'], null, null, null, ['F4', 'A#4'], null, null, null,
+      ['A3', 'D#4'], null, null, null, ['F#4', 'B4'], null, null, null
+    ],
+    bass: ['E2', null, 'A#1', null, 'D#2', null, 'F#1', null],
+    accent: ['E5', null, 'C6', null, 'D#5', null, 'B5', null],
+    melodyWave: 'square',
+    bassWave: 'square',
+    harmonyWave: 'sawtooth',
+    accentWave: 'square',
+    melodyVoice: 'fm',
+    harmonyVoice: 'am',
+    accentVoice: 'fm',
+    melodyVolume: 0.108,
+    harmonyVolume: 0.04,
+    bassVolume: 0.07,
+    melodyEnvelope: { attack: 0.001, decay: 0.05, sustain: 0.04, release: 0.06 },
+    harmonyEnvelope: { attack: 0.001, decay: 0.04, sustain: 0.02, release: 0.05 },
+    bassEnvelope: { attack: 0.001, decay: 0.06, sustain: 0.1, release: 0.08 },
+    accentEnvelope: { attack: 0.001, decay: 0.03, sustain: 0.02, release: 0.05 }
+  },
+
+  crystal_cavern: {
+    name: '晶窟回响',
+    tempo: 62,
+    subdivision: '8n',
+    melody: [
+      'E5', null, 'G5', null, 'B5', null, 'G5', null,
+      'D5', null, 'F5', null, 'A5', null, 'F5', null
+    ],
+    harmony: [
+      ['B4', 'E5'], null, ['D5', 'G5'], null, ['G5', 'B5'], null, ['D5', 'G5'], null,
+      ['A4', 'D5'], null, ['C5', 'F5'], null, ['F5', 'A5'], null, ['C5', 'F5'], null
+    ],
+    bass: ['E2', null, 'B2', null, 'D2', null, 'A2', null],
+    accent: [null, 'E6', null, null, null, 'D6', null, null],
+    melodyWave: 'sine',
+    bassWave: 'sine',
+    harmonyWave: 'triangle',
+    accentWave: 'sine',
+    melodyVoice: 'am',
+    harmonyVoice: 'fm',
+    melodyVolume: 0.08,
+    harmonyVolume: 0.046,
+    bassVolume: 0.028,
+    melodyEnvelope: { attack: 0.12, decay: 0.1, sustain: 0.06, release: 0.58 },
+    harmonyEnvelope: { attack: 0.2, decay: 0.08, sustain: 0.04, release: 0.76 },
+    bassEnvelope: { attack: 0.08, decay: 0.12, sustain: 0.06, release: 0.54 },
+    accentEnvelope: { attack: 0.04, decay: 0.06, sustain: 0.02, release: 0.18 },
+    ambient: { type: 'white', volume: 0.009, filterFreq: 4600 }
   }
 }
 
@@ -849,19 +2326,91 @@ const BGM_CONFIG: Record<BgmType, BgmConfig> = {
 let bgmPlaying = false
 let bgmLoopId = 0
 let melodySynth: unknown = null
+let harmonySynth: unknown = null
 let bassSynth: unknown = null
+let accentSynth: unknown = null
 let ambientNoise: unknown = null
 let ambientFilter: unknown = null
+let bgmOutput: unknown = null
+let bgmFilter: unknown = null
+let bgmReverb: unknown = null
+let bgmScheduleId: number | null = null
+
+const createPolySynth = (
+  Tone: ToneModule,
+  kind: PolyVoiceKind,
+  wave: WaveType,
+  envelope: { attack: number; decay: number; sustain: number; release: number },
+  volume: number,
+  destination: ToneNs.ToneAudioNode
+) => {
+  const options = {
+    oscillator: { type: wave },
+    envelope,
+    volume: toDb(volume)
+  }
+
+  switch (kind) {
+    case 'fm':
+      return new Tone.PolySynth(Tone.FMSynth, {
+        ...options,
+        harmonicity: 1.5,
+        modulationIndex: 4
+      }).connect(destination)
+    case 'am':
+      return new Tone.PolySynth(Tone.AMSynth, {
+        ...options,
+        harmonicity: 1.25
+      }).connect(destination)
+    default:
+      return new Tone.PolySynth(Tone.Synth, options).connect(destination)
+  }
+}
+
+const createBassSynth = (
+  Tone: ToneModule,
+  kind: MonoVoiceKind,
+  wave: WaveType,
+  envelope: { attack: number; decay: number; sustain: number; release: number },
+  volume: number,
+  destination: ToneNs.ToneAudioNode
+) => {
+  if (kind === 'fm') {
+    return new Tone.FMSynth({
+      oscillator: { type: wave },
+      envelope,
+      harmonicity: 0.5,
+      modulationIndex: 2,
+      volume: toDb(volume)
+    }).connect(destination)
+  }
+
+  return new Tone.MonoSynth({
+    oscillator: { type: wave },
+    envelope,
+    volume: toDb(volume)
+  }).connect(destination)
+}
 
 const cleanupBgm = (): void => {
   safeDispose(melodySynth)
+  safeDispose(harmonySynth)
   safeDispose(bassSynth)
+  safeDispose(accentSynth)
   safeDispose(ambientNoise)
   safeDispose(ambientFilter)
+  safeDispose(bgmReverb)
+  safeDispose(bgmFilter)
+  safeDispose(bgmOutput)
   melodySynth = null
+  harmonySynth = null
   bassSynth = null
+  accentSynth = null
   ambientNoise = null
   ambientFilter = null
+  bgmReverb = null
+  bgmFilter = null
+  bgmOutput = null
   currentBgmType.value = null
 }
 
@@ -876,7 +2425,7 @@ const playBgmLoop = async (type: BgmType): Promise<void> => {
 
   let Tone: ToneModule
   try {
-    Tone = await loadTone()
+    Tone = await ensureToneStarted()
   } catch {
     bgmPlaying = false
     currentBgmType.value = null
@@ -892,25 +2441,72 @@ const playBgmLoop = async (type: BgmType): Promise<void> => {
   }
 
   const config = BGM_CONFIG[type]
+  Tone.Transport.bpm.value = config.tempo
+  Tone.Transport.swing = config.swing ?? 0
+  Tone.Transport.swingSubdivision = config.swingSubdivision ?? config.subdivision
+  Tone.Transport.stop()
+  if (bgmScheduleId !== null) {
+    Tone.Transport.clear(bgmScheduleId)
+    bgmScheduleId = null
+  }
 
-  melodySynth = new Tone.Synth({
-    oscillator: { type: config.melodyWave },
-    envelope: { attack: 0.1, decay: 0.2, sustain: 0.3, release: 0.3 },
-    volume: toDb(bgmVolume)
-  }).toDestination()
+  bgmOutput = new Tone.Gain(config.outputGain ?? 0.92).toDestination()
+  bgmFilter = new Tone.Filter({
+    type: 'lowpass',
+    frequency: config.filterFreq ?? (type.startsWith('battle') ? 5400 : 4200),
+    Q: config.filterQ ?? 0.4
+  })
+  bgmReverb = new Tone.Freeverb({
+    roomSize: config.reverbRoomSize ?? (type.startsWith('battle') ? 0.6 : 0.84),
+    dampening: config.reverbDampening ?? (type.startsWith('battle') ? 2800 : 2200),
+    wet: config.reverbWet ?? (type.startsWith('battle') ? 0.1 : 0.16)
+  })
 
-  bassSynth = new Tone.Synth({
-    oscillator: { type: config.bassWave },
-    envelope: { attack: 0.05, decay: 0.3, sustain: 0.2, release: 0.4 },
-    volume: toDb(bgmVolume * 0.4)
-  }).toDestination()
+  ;(bgmFilter as ToneNs.Filter).connect(bgmOutput as ToneNs.Gain)
+  ;(bgmFilter as ToneNs.Filter).connect(bgmReverb as ToneNs.Freeverb)
+  ;(bgmReverb as ToneNs.Freeverb).connect(bgmOutput as ToneNs.Gain)
 
-  // 环境音效
+  melodySynth = createPolySynth(
+    Tone,
+    config.melodyVoice ?? 'synth',
+    config.melodyWave,
+    config.melodyEnvelope ?? { attack: 0.1, decay: 0.2, sustain: 0.3, release: 0.3 },
+    config.melodyVolume ?? bgmVolume,
+    bgmFilter as ToneNs.ToneAudioNode
+  )
+
+  harmonySynth = createPolySynth(
+    Tone,
+    config.harmonyVoice ?? 'synth',
+    config.harmonyWave ?? 'sine',
+    config.harmonyEnvelope ?? { attack: 0.12, decay: 0.16, sustain: 0.12, release: 0.45 },
+    config.harmonyVolume ?? bgmVolume * 0.45,
+    bgmFilter as ToneNs.ToneAudioNode
+  )
+
+  bassSynth = createBassSynth(
+    Tone,
+    config.bassVoice ?? 'mono',
+    config.bassWave,
+    config.bassEnvelope ?? { attack: 0.05, decay: 0.3, sustain: 0.2, release: 0.4 },
+    config.bassVolume ?? bgmVolume * 0.4,
+    bgmFilter as ToneNs.ToneAudioNode
+  )
+
+  accentSynth = createPolySynth(
+    Tone,
+    config.accentVoice ?? 'synth',
+    config.accentWave ?? 'triangle',
+    config.accentEnvelope ?? { attack: 0.01, decay: 0.12, sustain: 0.02, release: 0.15 },
+    config.accentVolume ?? (config.melodyVolume ?? bgmVolume) * 0.55,
+    bgmFilter as ToneNs.ToneAudioNode
+  )
+
   if (config.ambient) {
     ambientFilter = new Tone.Filter({
       type: 'lowpass',
       frequency: config.ambient.filterFreq
-    }).toDestination()
+    }).connect(bgmOutput as ToneNs.Gain)
 
     ambientNoise = new Tone.Noise(config.ambient.type)
     ;(ambientNoise as ToneNs.Noise).volume.value = toDb(config.ambient.volume)
@@ -919,8 +2515,14 @@ const playBgmLoop = async (type: BgmType): Promise<void> => {
   }
 
   let noteIndex = 0
+  const patternLength = Math.max(
+    config.melody.length,
+    config.harmony?.length ?? 0,
+    config.bass.length,
+    config.accent?.length ?? 0
+  )
 
-  const playNext = (): void => {
+  const triggerPattern = (time: number): void => {
     if (!bgmEnabled.value || !bgmPlaying || myLoopId !== bgmLoopId) {
       if (myLoopId === bgmLoopId) {
         bgmPlaying = false
@@ -930,38 +2532,62 @@ const playBgmLoop = async (type: BgmType): Promise<void> => {
       return
     }
 
-    if (!melodySynth || !bassSynth) return
+    if (!melodySynth || !harmonySynth || !bassSynth || !accentSynth) return
 
-    const freq = config.melody[noteIndex % config.melody.length]!
+    const melodyNote = config.melody[noteIndex % config.melody.length] ?? null
+    const harmonyNote = config.harmony?.[noteIndex % (config.harmony?.length || 1)] ?? null
+    const bassNote = config.bass[noteIndex % config.bass.length] ?? null
+    const accentNote = config.accent?.[noteIndex % (config.accent?.length || 1)] ?? null
 
     try {
-      ;(melodySynth as ToneNs.Synth).volume.value = toDb(bgmVolume)
-      if (freq > 0) {
-        ;(melodySynth as ToneNs.Synth).triggerAttackRelease(freq, config.noteDur * 0.7)
+      if (melodyNote) {
+        ;(melodySynth as ToneNs.PolySynth).triggerAttackRelease(
+          melodyNote,
+          resolvePatternDuration(config.melodyDurations, noteIndex, config.subdivision),
+          time
+        )
       }
-
-      const bassInterval = config.bassInterval ?? 4
-      if (noteIndex % bassInterval === 0) {
-        const bassIndex = Math.floor(noteIndex / bassInterval) % config.bass.length
-        const bassFreq = config.bass[bassIndex]!
-        if (bassFreq > 0) {
-          ;(bassSynth as ToneNs.Synth).volume.value = toDb(bgmVolume * 0.4)
-          ;(bassSynth as ToneNs.Synth).triggerAttackRelease(bassFreq, config.noteDur * 2.5)
-        }
+      if (harmonyNote) {
+        ;(harmonySynth as ToneNs.PolySynth).triggerAttackRelease(
+          harmonyNote,
+          resolvePatternDuration(config.harmonyDurations, noteIndex, '4n'),
+          time
+        )
+      }
+      if (bassNote) {
+        ;(bassSynth as ToneNs.MonoSynth).triggerAttackRelease(
+          bassNote,
+          resolvePatternDuration(config.bassDurations, noteIndex, '4n'),
+          time
+        )
+      }
+      if (accentNote) {
+        ;(accentSynth as ToneNs.PolySynth).triggerAttackRelease(
+          accentNote,
+          resolvePatternDuration(config.accentDurations, noteIndex, '16n'),
+          time
+        )
       }
     } catch {
       /* synth may be disposed */
     }
 
-    noteIndex++
-    setTimeout(playNext, config.noteDur * 1000)
+    noteIndex = (noteIndex + 1) % Math.max(patternLength, 1)
   }
 
-  playNext()
+  bgmScheduleId = Tone.Transport.scheduleRepeat(triggerPattern, config.subdivision)
+  if (Tone.Transport.state !== 'started') {
+    Tone.Transport.start('+0.05')
+  }
 }
 
 const stopBgm = (): void => {
   bgmPlaying = false
+  if (T && bgmScheduleId !== null) {
+    T.Transport.clear(bgmScheduleId)
+    bgmScheduleId = null
+    T.Transport.stop()
+  }
   cleanupBgm()
 }
 
@@ -1035,24 +2661,60 @@ export const useAudio = () => {
       { type: 'sect_bamboo', name: '小竹峰', category: '门派' },
       { type: 'sect_peak', name: '云顶峰', category: '门派' },
       { type: 'sect_pavilion', name: '藏经阁', category: '门派' },
+      { type: 'moonlit_bamboo', name: '月下竹海', category: '门派' },
+      { type: 'celestial_palace', name: '天游仙阙', category: '门派' },
+      { type: 'jade_hall', name: '玉阙晨钟', category: '门派' },
+      { type: 'spirit_orchard', name: '灵田春晓', category: '门派' },
+      { type: 'library_embers', name: '残卷烛影', category: '门派' },
       // 四季场景
       { type: 'spring_rain', name: '春风细雨', category: '四季' },
       { type: 'summer_storm', name: '夏日雷电', category: '四季' },
       { type: 'autumn_wind', name: '秋风落叶', category: '四季' },
       { type: 'winter_snow', name: '冬日雪景', category: '四季' },
+      { type: 'plum_blossom_snow', name: '梅雪将融', category: '四季' },
+      { type: 'lotus_night', name: '荷灯夜泊', category: '四季' },
       // 战斗场景
       { type: 'battle_normal', name: '普通战斗', category: '战斗' },
       { type: 'battle_boss', name: 'Boss战', category: '战斗' },
       { type: 'battle_phase2', name: 'Boss二阶段', category: '战斗' },
+      { type: 'battle_raid', name: '群魔围攻', category: '战斗' },
+      { type: 'duel_blade', name: '双锋对决', category: '战斗' },
+      { type: 'chase_drums', name: '逐杀鼓点', category: '战斗' },
       // 特殊场景
       { type: 'adventure', name: '历险探索', category: '特殊' },
+      { type: 'story', name: '卷宗叙事', category: '特殊' },
       { type: 'shop', name: '坊市', category: '特殊' },
-      { type: 'tribulation', name: '渡劫', category: '特殊' }
+      { type: 'ancient_ruins', name: '上古遗迹', category: '特殊' },
+      { type: 'tribulation', name: '渡劫', category: '特殊' },
+      { type: 'warm_hearth', name: '灯下温酒', category: '剧情' },
+      { type: 'sworn_bond', name: '同行誓约', category: '剧情' },
+      { type: 'peach_blossom', name: '桃夭旧梦', category: '剧情' },
+      { type: 'broken_vow', name: '誓裂', category: '剧情' },
+      { type: 'grief_abyss', name: '深渊哀歌', category: '剧情' },
+      { type: 'funeral_wind', name: '纸灰风灯', category: '剧情' },
+      { type: 'empty_city', name: '空城无声', category: '剧情' },
+      { type: 'suspense_steps', name: '暗阶轻步', category: '剧情' },
+      { type: 'mirror_dream', name: '镜梦', category: '剧情' },
+      { type: 'star_ritual', name: '星坛秘祭', category: '剧情' },
+      { type: 'mechanical_pulse', name: '机关脉冲', category: '实验' },
+      { type: 'neon_alchemy', name: '霓火炼丹', category: '实验' },
+      { type: 'river_qin', name: '高山流水', category: '国风' },
+      { type: 'bamboo_flute', name: '竹溪远笛', category: '国风' },
+      { type: 'desert_bells', name: '荒漠驼铃', category: '地域' },
+      { type: 'festival_lantern', name: '灯市流光', category: '地域' },
+      { type: 'dawn_return', name: '破晓归山', category: '剧情' },
+      { type: 'night_patrol', name: '巡夜', category: '剧情' },
+      { type: 'blood_moon', name: '血月', category: '剧情' },
+      { type: 'memory_shards', name: '记忆碎片', category: '剧情' },
+      { type: 'storm_siege', name: '风雷围城', category: '剧情' },
+      { type: 'void_signal', name: '虚空讯号', category: '实验' },
+      { type: 'crystal_cavern', name: '晶窟回响', category: '地域' }
     ]
   }
 
   const startCultivationBgm = (): void => switchBgm('sect_bamboo')
   const startAdventureBgm = (): void => switchBgm('adventure')
+  const startStoryBgm = (): void => switchBgm('story')
   const startShopBgm = (): void => switchBgm('shop')
   const startBattleBgm = (): void => switchBgm('battle_normal')
   const startBossBgm = (): void => switchBgm('battle_boss')
@@ -1071,6 +2733,7 @@ export const useAudio = () => {
     getBgmList,
     startCultivationBgm,
     startAdventureBgm,
+    startStoryBgm,
     startShopBgm,
     startBattleBgm,
     startBossBgm,
@@ -1108,6 +2771,10 @@ export const SFX_LIST: { name: string; fn: () => void; description: string; cate
   { name: 'sfxHurt', fn: sfxHurt, description: '气血翻涌', category: '战斗' },
   { name: 'sfxCritical', fn: sfxCritical, description: '命悬一线', category: '战斗' },
   { name: 'sfxDeath', fn: sfxDeath, description: '魂飞魄散', category: '战斗' },
+  { name: 'sfxHealPulse', fn: sfxHealPulse, description: '灵息回流', category: '战斗' },
+  { name: 'sfxShield', fn: sfxShield, description: '灵障成形', category: '战斗' },
+  { name: 'sfxParry', fn: sfxParry, description: '金铁回响', category: '战斗' },
+  { name: 'sfxFinisher', fn: sfxFinisher, description: '杀意定音', category: '战斗' },
   { name: 'sfxVictory', fn: sfxVictory, description: '正气浩然', category: '战斗' },
   { name: 'sfxDefeat', fn: sfxDefeat, description: '功亏一篑', category: '战斗' },
   { name: 'sfxEncounter', fn: sfxEncounter, description: '阴风阵阵', category: '战斗' },
@@ -1133,5 +2800,15 @@ export const SFX_LIST: { name: string; fn: () => void; description: string; cate
   { name: 'sfxBossPhase2', fn: sfxBossPhase2, description: '真身显现', category: '特殊' },
   { name: 'sfxTribulation', fn: sfxTribulation, description: '天雷滚滚', category: '特殊' },
   { name: 'sfxDivine', fn: sfxDivine, description: '仙缘降临', category: '特殊' },
-  { name: 'sfxDiscovery', fn: sfxDiscovery, description: '仙缘巧合', category: '特殊' }
+  { name: 'sfxDiscovery', fn: sfxDiscovery, description: '仙缘巧合', category: '特殊' },
+  { name: 'sfxStoryTextSettle', fn: sfxStoryTextSettle, description: '纸页轻响', category: '剧情' },
+  { name: 'sfxStoryDialog', fn: sfxStoryDialog, description: '玉片轻触', category: '剧情' },
+  { name: 'sfxStoryChoice', fn: sfxStoryChoice, description: '定局', category: '剧情' },
+  { name: 'sfxMemoryFlash', fn: sfxMemoryFlash, description: '往事回潮', category: '剧情' },
+  { name: 'sfxDream', fn: sfxDream, description: '幻雾轻旋', category: '剧情' },
+  { name: 'sfxHeartbreak', fn: sfxHeartbreak, description: '弦断诀别', category: '剧情' },
+  { name: 'sfxBarrier', fn: sfxBarrier, description: '灵壁铺开', category: '法阵' },
+  { name: 'sfxTalismanBurst', fn: sfxTalismanBurst, description: '灵纹炸开', category: '法阵' },
+  { name: 'sfxTeleport', fn: sfxTeleport, description: '阵光转移', category: '法阵' },
+  { name: 'sfxRealmGate', fn: sfxRealmGate, description: '石门启封', category: '法阵' }
 ]

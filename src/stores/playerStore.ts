@@ -27,6 +27,11 @@ import {
   getStarterSkills
 } from '@/types/skill'
 import type { AreaProgress } from '@/types/adventure'
+import type { Perspective } from '@/types/storyChapter'
+import type { SpiritRoot } from '@/types/spiritRoot'
+import type { Bloodline } from '@/types/bloodline'
+import type { ChoiceState } from '@/types/choiceState'
+import { EMPTY_CHOICE_STATE } from '@/types/choiceState'
 
 // 背包物品接口
 export interface InventoryItem {
@@ -66,6 +71,12 @@ interface PlayerState {
 
   // 等级
   level: number
+
+  // 创建信息
+  perspective?: Perspective
+  spiritRoot?: SpiritRoot | null
+  bloodline?: Bloodline | null
+  choiceState?: ChoiceState
 
   // 资源
   gold: number
@@ -191,6 +202,9 @@ function getDefaultPlayer(): PlayerState {
 
 // LocalStorage key
 const STORAGE_KEY = 'woyu-xiuxian-player'
+const OFFLINE_GAIN_CAP_SECONDS = 60 * 25
+const OFFLINE_GAIN_FULL_RATE_SECONDS = 60 * 6
+const OFFLINE_GAIN_REDUCED_RATE = 0.18
 
 export const usePlayerStore = defineStore('player', () => {
   // ====== 状态 ======
@@ -281,6 +295,13 @@ export const usePlayerStore = defineStore('player', () => {
   const maxStamina = ref(initialData.maxStamina ?? 100)
   const lastStaminaRecoverTime = ref(initialData.lastStaminaRecoverTime ?? Date.now())
 
+  
+  // 视角与选择系统
+  const perspective = ref<Perspective>(initialData.perspective ?? 'male')
+  const spiritRoot = ref<SpiritRoot | null>(initialData.spiritRoot ?? null)
+  const bloodline = ref<Bloodline | null>(initialData.bloodline ?? null)
+  const choiceState = ref<ChoiceState>(initialData.choiceState ?? { ...EMPTY_CHOICE_STATE })
+
   // ====== 计算属性 ======
 
   // 体力恢复速率（每分钟恢复点数）
@@ -320,26 +341,34 @@ export const usePlayerStore = defineStore('player', () => {
     return resolveCharacterProgression(allEquipped.value, learnedSkills.value, temporaryBuffs.value)
   })
 
-  // 总属性 = 基础 + 装备加成 + 技能被动加成
+  // 总属性 = 基础 + 装备加成 + 技能被动加成 + 灵根/血脉加成
   const totalStats = computed<UnitStats>(() => {
     const base = baseStats.value
     const equipBonus = equipmentBonuses.value
     const skillBonus = skillBonuses.value
+    const bl = bloodline.value
+
+    // 血脉百分比加成
+    const bloodlineHp = bl ? Math.floor((base.maxHp || 0) * (bl.statBonuses.hpPercent || 0)) : 0
+    const bloodlineMp = bl ? Math.floor((base.maxMp || 0) * (bl.statBonuses.mpPercent || 0)) : 0
+    const bloodlineAtk = bl ? Math.floor((base.attack || 0) * (bl.statBonuses.attackPercent || 0)) : 0
+    const bloodlineDef = bl ? Math.floor((base.defense || 0) * (bl.statBonuses.defensePercent || 0)) : 0
+    const bloodlineSpd = bl ? Math.floor((base.speed || 0) * (bl.statBonuses.speedPercent || 0)) : 0
 
     return {
-      maxHp: (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0),
+      maxHp: (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0) + bloodlineHp,
       currentHp: Math.min(
-        base.currentHp + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0),
-        (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0)
+        base.currentHp + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0) + bloodlineHp,
+        (base.maxHp || 0) + (equipBonus.maxHp || 0) + (skillBonus.maxHp || 0) + bloodlineHp
       ),
-      maxMp: (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0),
+      maxMp: (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0) + bloodlineMp,
       currentMp: Math.min(
-        base.currentMp + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0),
-        (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0)
+        base.currentMp + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0) + bloodlineMp,
+        (base.maxMp || 0) + (equipBonus.maxMp || 0) + (skillBonus.maxMp || 0) + bloodlineMp
       ),
-      attack: (base.attack || 0) + (equipBonus.attack || 0) + (skillBonus.attack || 0),
-      defense: (base.defense || 0) + (equipBonus.defense || 0) + (skillBonus.defense || 0),
-      speed: (base.speed || 0) + (equipBonus.speed || 0) + (skillBonus.speed || 0),
+      attack: (base.attack || 0) + (equipBonus.attack || 0) + (skillBonus.attack || 0) + bloodlineAtk,
+      defense: (base.defense || 0) + (equipBonus.defense || 0) + (skillBonus.defense || 0) + bloodlineDef,
+      speed: (base.speed || 0) + (equipBonus.speed || 0) + (skillBonus.speed || 0) + bloodlineSpd,
       critRate: (base.critRate || 0) + (equipBonus.critRate || 0) + (skillBonus.critRate || 0),
       critDamage: (base.critDamage || 0) + (equipBonus.critDamage || 0) + (skillBonus.critDamage || 0)
     }
@@ -380,13 +409,24 @@ export const usePlayerStore = defineStore('player', () => {
   // 境界主色调（用于文字）
   const realmPrimaryColor = computed(() => REALM_PRIMARY_COLOR[realm.value])
 
-  // 每秒修为获取量（基础值 * 境界层级系数）
+  // 每秒修为获取量（基础值 * 境界层级系数 * 灵根/血脉加成）
   const cultivationPerSecond = computed(() => {
     const baseValue = REALM_CULTIVATION_PER_SECOND[realm.value]
     const levelBonus = 1 + (realmLevel.value - 1) * 0.1 // 每层增加10%
     const progression = characterProgression.value
-    const value = baseValue * levelBonus * progression.cultivationMultiplier + progression.cultivationFlatBonus
-    return Number(Math.max(0, value).toFixed(2))
+    
+    // 灵根修炼速度加成
+    const root = spiritRoot.value
+    const rootBonus = root ? root.cultivationSpeedBonus : 0
+    // 血脉修炼加成  
+    const bl = bloodline.value
+    const bloodlineBonus = bl ? bl.cultivationBonus : 0
+    // 突破加成影响修炼效率（每10%突破加成 = 5%修炼速度）
+    const breakthroughEffBonus = root ? root.breakthroughBonus * 0.5 : 0
+    
+    const totalMultiplier = progression.cultivationMultiplier + rootBonus + bloodlineBonus + breakthroughEffBonus
+    const value = baseValue * levelBonus * totalMultiplier + progression.cultivationFlatBonus
+    return Math.max(1, Math.round(value))
   })
 
   // 获取下一个境界
@@ -408,12 +448,18 @@ export const usePlayerStore = defineStore('player', () => {
     icon?: string
     element?: Element
     quality?: Quality
+    perspective?: Perspective
+    spiritRoot?: SpiritRoot | null
+    bloodline?: Bloodline | null
   }) {
     const nextName = profile.name?.trim()
     if (nextName) name.value = nextName.slice(0, 8)
     if (profile.icon) icon.value = profile.icon.slice(0, 2)
     if (profile.element) element.value = profile.element
     if (profile.quality) quality.value = profile.quality
+    if (profile.perspective) perspective.value = profile.perspective
+    if (profile.spiritRoot !== undefined) spiritRoot.value = profile.spiritRoot
+    if (profile.bloodline !== undefined) bloodline.value = profile.bloodline
     created.value = true
   }
 
@@ -432,6 +478,10 @@ export const usePlayerStore = defineStore('player', () => {
         cultivation: cultivation.value,
         maxCultivation: maxCultivation.value,
         level: level.value,
+        perspective: perspective.value,
+        spiritRoot: toRaw(spiritRoot.value),
+        bloodline: toRaw(bloodline.value),
+        choiceState: toRaw(choiceState.value),
         gold: gold.value,
         baseStats: toRaw(baseStats.value),
         equipmentBonuses: toRaw(equipmentBonuses.value),
@@ -815,9 +865,12 @@ export const usePlayerStore = defineStore('player', () => {
     const now = Date.now()
     const elapsed = now - idleStartTime.value
     const seconds = Math.floor(elapsed / 1000)
+    const effectiveSeconds = Math.min(seconds, OFFLINE_GAIN_CAP_SECONDS)
+    const reducedSeconds = Math.max(0, effectiveSeconds - OFFLINE_GAIN_FULL_RATE_SECONDS)
+    const fullRateSeconds = effectiveSeconds - reducedSeconds
 
-    // 使用当前境界的修为获取速度
-    const gains = seconds * cultivationPerSecond.value
+    // 离线收益只保留短时全额，后续显著衰减，避免一挂就爆发式成长
+    const gains = Math.round(fullRateSeconds * cultivationPerSecond.value + reducedSeconds * cultivationPerSecond.value * OFFLINE_GAIN_REDUCED_RATE)
 
     idleStartTime.value = now
     temporaryBuffs.value = tickFoodProgressionEffects(temporaryBuffs.value)
@@ -1097,6 +1150,7 @@ export const usePlayerStore = defineStore('player', () => {
     id, created, name, icon, element, quality,
     realm, realmLevel, cultivation, maxCultivation,
     level, gold,
+    perspective, spiritRoot, bloodline, choiceState,
     baseStats, equipmentBonuses, skillBonuses, totalStats,
     characterProgression,
     equippedWeapon, equippedArmor, equippedAccessory1, equippedAccessory2,

@@ -4,5 +4,3 @@ export type { BattleArenaTheme, BattleArenaLayout, BattleArenaLayerSpec, BattleA
 export { ENEMIES } from './enemies'
 export { SKILL_DEFINITIONS } from './skills'
 export { SKILL_TREE } from './skillTrees'
-export { SUMMON_DEFINITIONS, getSummonDefinition } from './summons'
-export type { SummonDefinition } from './summons'

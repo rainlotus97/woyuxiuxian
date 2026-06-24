@@ -129,7 +129,7 @@
             <strong>脱离宗门</strong>
             <small>退出后将失去当前宗门的贡献、声望与部分世界关联。</small>
           </div>
-          <GameActionButton icon="🚪" tone="rose" @click="showLeaveDialog = true">
+          <GameActionButton icon="LogOut" tone="rose" @click="showLeaveDialog = true">
             退出宗门
           </GameActionButton>
         </div>
@@ -236,8 +236,8 @@ const selectedFacilityId = ref('')
 const showLeaveDialog = ref(false)
 
 const tabs = [
-  { id: 'tasks' as const, name: '任务', icon: '📋' },
-  { id: 'facilities' as const, name: '设施', icon: '🏛️' },
+  { id: 'tasks' as const, name: '任务', icon: 'Clipboard' },
+  { id: 'facilities' as const, name: '设施', icon: 'Castle' },
   { id: 'diplomacy' as const, name: '外交', icon: '⚔️' }
 ]
 

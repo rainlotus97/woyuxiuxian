@@ -14,7 +14,9 @@
         class="order-row"
         :class="{ active: currentActorId === unit.id, enemy: unit.side === 'enemy' }"
       >
-        <span class="order-icon">{{ unit.icon }}</span>
+        <span class="order-icon" :class="unit.portraitKey ? `portrait-${unit.portraitKey}` : ''">
+          <GameIcon :icon="unit.icon" :size="12" />
+        </span>
         <div class="order-meta">
           <b>{{ cleanName(unit.name) }}</b>
           <div class="gauge"><i :style="{ width: `${unit.actionGauge}%` }"></i></div>
@@ -26,6 +28,7 @@
 
 <script setup lang="ts">
 import type { BattleRuntimeUnit } from '@/game/battle/battleRuntime'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import BattlePanelShell from './BattlePanelShell.vue'
 
 defineProps<{
@@ -41,10 +44,10 @@ function cleanName(name: string) {
 <style scoped>
 .action-order {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   right: 18px;
-  top: calc(88px + env(safe-area-inset-top, 0px));
-  width: 170px;
+  top: calc(72px + env(safe-area-inset-top, 0px));
+  width: 156px;
 }
 
 .order-list {
@@ -80,6 +83,32 @@ function cleanName(name: string) {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.74);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  color: #35585a;
+}
+
+.order-icon.portrait-ally_protagonist {
+  background: linear-gradient(135deg, rgba(255, 241, 186, 0.94), rgba(244, 196, 104, 0.82));
+  color: #6a4518;
+}
+
+.order-icon.portrait-ally_companion,
+.order-icon.portrait-ally_pet,
+.order-icon.portrait-ally_summon {
+  background: linear-gradient(135deg, rgba(211, 248, 237, 0.94), rgba(126, 225, 201, 0.84));
+  color: #1f6f66;
+}
+
+.order-icon.portrait-enemy_enemy,
+.order-icon.portrait-enemy_elite,
+.order-icon.portrait-enemy_boss {
+  background: linear-gradient(135deg, rgba(255, 228, 225, 0.94), rgba(232, 128, 140, 0.84));
+  color: #7f2f3c;
+}
+
+.order-icon.portrait-enemy_boss {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 0 0 1px rgba(181, 87, 100, 0.22);
 }
 
 .order-meta {
@@ -112,10 +141,19 @@ function cleanName(name: string) {
 
 @media (max-width: 720px) {
   .action-order {
-    top: auto;
-    bottom: 210px;
+    left: 10px;
     right: 10px;
-    width: 126px;
+    top: auto;
+    bottom: calc(152px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    padding: 3px 5px;
+  }
+
+  .order-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(46px, 1fr);
+    overflow-x: auto;
+    gap: 3px;
   }
 
   .order-meta b {
@@ -123,8 +161,20 @@ function cleanName(name: string) {
   }
 
   .order-row {
-    grid-template-columns: 22px 1fr;
-    padding: 5px;
+    grid-template-columns: 18px 1fr;
+    padding: 0;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .order-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  .gauge {
+    height: 4px;
   }
 }
 </style>

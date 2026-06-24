@@ -1,8 +1,9 @@
 <template>
   <button
     class="story-perspective-card"
-    :class="[{ active }, `tone-${tone}`]"
+    :class="[{ active, disabled }, `tone-${tone}`]"
     type="button"
+    :disabled="disabled"
     @click="$emit('select')"
   >
     <span class="card-mark">{{ mark }}</span>
@@ -10,7 +11,7 @@
       <strong>{{ title }}</strong>
       <small>{{ subtitle }}</small>
     </span>
-    <span class="card-status">{{ active ? '已选' : '切换' }}</span>
+    <span class="card-status">{{ disabled ? '暂不可切' : active ? '已选' : '切换' }}</span>
   </button>
 </template>
 
@@ -25,9 +26,11 @@ withDefaults(defineProps<{
   mark: string
   tone?: 'pine' | 'rose'
   active?: boolean
+  disabled?: boolean
 }>(), {
   tone: 'pine',
-  active: false
+  active: false,
+  disabled: false
 })
 </script>
 
@@ -55,6 +58,18 @@ withDefaults(defineProps<{
 .story-perspective-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 36px rgba(83, 116, 103, 0.16);
+}
+
+.story-perspective-card.disabled {
+  opacity: 0.54;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 10px 22px rgba(83, 116, 103, 0.08);
+}
+
+.story-perspective-card.disabled:hover {
+  transform: none;
+  box-shadow: 0 10px 22px rgba(83, 116, 103, 0.08);
 }
 
 .story-perspective-card.active {

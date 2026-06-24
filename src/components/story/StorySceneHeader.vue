@@ -1,98 +1,72 @@
 <template>
   <header class="story-scene-header">
-    <button class="back-button" type="button" @click="$emit('back')">返</button>
-    <div class="scene-title">
-      <span>{{ mapName }}</span>
-      <strong>{{ nodeName }}</strong>
-    </div>
-    <div class="scene-mark">章</div>
+    <button class="back-button" type="button" @click="$emit('back')">退</button>
+    <span v-if="mapCaption" class="scene-map">{{ mapCaption }}</span>
   </header>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 defineEmits<{
   back: []
 }>()
 
-defineProps<{
+const props = defineProps<{
   mapName: string
-  nodeName: string
+  presenceLabel: string
+  sceneHint?: string
 }>()
+
+const mapCaption = computed(() => {
+  return props.sceneHint || props.presenceLabel || ''
+})
+
 </script>
 
 <style scoped>
 .story-scene-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid rgba(131, 154, 128, 0.24);
-  border-radius: 20px;
-  background:
-    linear-gradient(135deg, rgba(255, 253, 241, 0.98), rgba(235, 248, 240, 0.92)),
-    radial-gradient(circle at 88% 0%, rgba(182, 125, 50, 0.17), transparent 42%);
-  box-shadow: 0 18px 42px rgba(74, 107, 97, 0.13);
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  min-height: 20px;
 }
 
 .back-button {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(144, 109, 54, 0.24);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #7d5525;
-  font-family: var(--font-game);
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 252, 244, 0.16);
+  color: rgba(125, 85, 37, 0.42);
+  font-family: var(--font-ui);
+  font-size: 8px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .back-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(105, 121, 93, 0.14);
+  background: rgba(255, 252, 244, 0.56);
+  box-shadow: 0 8px 18px rgba(105, 121, 93, 0.1);
 }
 
-.scene-title {
-  display: grid;
-  gap: 5px;
+.scene-map {
   min-width: 0;
-}
-
-.scene-title span {
-  color: rgba(77, 91, 80, 0.68);
-  font-size: 12px;
-}
-
-.scene-title strong {
-  color: #754f21;
-  font-size: clamp(20px, 4vw, 34px);
-  line-height: 1.1;
-  letter-spacing: 0;
-}
-
-.scene-mark {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 1px solid rgba(147, 101, 38, 0.2);
-  background: rgba(255, 255, 255, 0.58);
-  color: rgba(130, 82, 23, 0.82);
-  font-size: 22px;
-  font-weight: 900;
-}
-
-@media (max-width: 560px) {
-  .story-scene-header {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .scene-mark {
-    display: none;
-  }
+  max-width: min(100%, 10ch);
+  color: rgba(109, 127, 123, 0.48);
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

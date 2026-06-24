@@ -46,7 +46,7 @@
         <div class="relation-actions">
           <GameActionButton
             v-if="relation.canDeclareWar"
-            icon="⚔️"
+            icon="Swords"
             tone="rose"
             @click="$emit('declare-war', relation.sectId)"
           >

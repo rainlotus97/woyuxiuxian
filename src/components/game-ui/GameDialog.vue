@@ -97,8 +97,40 @@ defineEmits<{
 
 .dialog-footer {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
+  align-items: stretch;
+}
+
+.dialog-footer :deep(.game-action-btn) {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .dialog-overlay {
+    padding: 12px;
+  }
+
+  .dialog-card {
+    width: min(100vw - 24px, 420px);
+  }
+
+  .dialog-copy strong {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+
+  .dialog-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-footer :deep(.game-action-btn) {
+    width: 100%;
+    flex-basis: auto;
+  }
 }
 
 .dialog-fade-enter-active,

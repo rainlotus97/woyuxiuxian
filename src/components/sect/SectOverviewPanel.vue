@@ -32,9 +32,9 @@
       </div>
 
       <div class="sect-stats">
-        <GameStatChip icon="⭐" label="贡献" :value="contribution" tone="gold" />
+        <GameStatChip icon="Star" label="贡献" :value="contribution" tone="gold" />
         <GameStatChip icon="🏅" label="声望" :value="reputation" tone="jade" />
-        <GameStatChip icon="💰" label="日俸" :value="`${salary} 灵石`" tone="gold" />
+        <GameStatChip icon="Coins" label="日俸" :value="`${salary} 灵石`" tone="gold" />
       </div>
     </div>
 

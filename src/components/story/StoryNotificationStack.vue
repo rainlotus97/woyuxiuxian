@@ -22,23 +22,23 @@ defineProps<{
 <style scoped>
 .story-notification-stack {
   position: fixed;
-  right: 18px;
-  bottom: 86px;
+  right: 12px;
+  bottom: 78px;
   z-index: 220;
   display: grid;
-  gap: 10px;
-  width: min(320px, calc(100vw - 32px));
+  gap: 8px;
+  width: min(260px, calc(100vw - 24px));
 }
 
 .story-notification {
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(109, 134, 121, 0.18);
-  background: rgba(255, 255, 255, 0.94);
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(109, 134, 121, 0.12);
+  background: rgba(255, 255, 255, 0.88);
   color: #36514b;
-  box-shadow: 0 16px 34px rgba(73, 103, 94, 0.18);
-  font-size: 13px;
-  line-height: 1.5;
+  box-shadow: 0 10px 24px rgba(73, 103, 94, 0.12);
+  font-size: 12px;
+  line-height: 1.42;
 }
 
 .story-notification.success {

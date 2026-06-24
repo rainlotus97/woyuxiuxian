@@ -35,8 +35,8 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 20px 12px;
-  background: linear-gradient(180deg, rgba(247, 252, 248, 0.92), rgba(247, 252, 248, 0));
+  padding: calc(7px + env(safe-area-inset-top, 0px)) 12px 4px;
+  background: linear-gradient(180deg, rgba(247, 252, 248, 0.8), rgba(247, 252, 248, 0));
 }
 
 .icon-btn,
@@ -46,13 +46,13 @@ defineEmits<{
     linear-gradient(180deg, rgba(255, 255, 250, 0.9), rgba(239, 249, 240, 0.82)),
     radial-gradient(circle at top, rgba(255, 223, 142, 0.22), transparent 62%);
   color: #486560;
-  min-width: 82px;
-  height: 44px;
-  border-radius: 14px;
-  box-shadow: 0 14px 30px rgba(88, 130, 128, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  min-width: 64px;
+  height: 34px;
+  border-radius: 12px;
+  box-shadow: 0 10px 22px rgba(88, 130, 128, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .speed-btn.active {
@@ -64,36 +64,41 @@ defineEmits<{
 .battle-title {
   text-align: center;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .battle-title .eyebrow {
   color: rgba(71, 93, 91, 0.72);
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .battle-title strong {
   color: #95672a;
-  font-size: 20px;
+  font-size: 16px;
   letter-spacing: 0;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 @media (max-width: 720px) {
   .battle-hud.top {
-    padding-inline: 14px;
-    gap: 10px;
+    padding: calc(3px + env(safe-area-inset-top, 0px)) 8px 1px;
+    gap: 8px;
   }
 
   .icon-btn,
   .speed-btn {
-    min-width: 72px;
-    height: 40px;
-    font-size: 12px;
+    min-width: 48px;
+    height: 28px;
+    font-size: 9px;
+    border-radius: 10px;
+  }
+
+  .battle-title .eyebrow {
+    font-size: 8px;
   }
 
   .battle-title strong {
-    font-size: 17px;
+    font-size: 12px;
   }
 }
 </style>

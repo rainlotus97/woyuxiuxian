@@ -11,6 +11,7 @@ export interface BattleRuntimeUnit extends Unit {
   battleRole: BattleActorRole
   spriteKey: string
   portraitKey?: string
+  markerText?: string
   actionGauge: number
   skillCooldowns: Record<string, number>
 }
@@ -54,12 +55,6 @@ export interface BattlePreparedEffect {
   statusEffect?: StatusEffect
 }
 
-export interface BattlePreparedSummon {
-  actorId: string
-  summonId: string
-  side: 'ally' | 'enemy'
-}
-
 export interface BattleAppliedEffect {
   actorId: string
   targetId: string
@@ -70,15 +65,6 @@ export interface BattleAppliedEffect {
   isHeal: boolean
   appliedStatus?: StatusEffect
   targetDefeated: boolean
-}
-
-export interface BattleSummonOutcome {
-  actorId: string
-  summonId: string
-  summonName: string
-  unitId?: string
-  success: boolean
-  reason?: 'limit' | 'missing-owner' | 'missing-definition'
 }
 
 export interface BattleResolvedCommand {

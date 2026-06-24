@@ -143,7 +143,7 @@
                     <small>{{ seed.growTime }} 分钟</small>
                   </div>
                 </div>
-                <span class="seed-price">💎{{ seed.buyPrice }}</span>
+                <span class="seed-price"><GameIcon icon="Diamond" :size="12" />{{ seed.buyPrice }}</span>
               </button>
             </div>
           </GameSurface>

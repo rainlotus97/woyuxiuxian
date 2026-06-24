@@ -28,7 +28,7 @@
           <GameActionButton icon="🎁" tone="gold" :disabled="rewardReadyCount === 0" @click="$emit('claim-all-tasks')">
             一键领取
           </GameActionButton>
-          <GameActionButton icon="💰" tone="jade" :disabled="!canClaimSalary" @click="$emit('claim-salary')">
+          <GameActionButton icon="Coins" tone="jade" :disabled="!canClaimSalary" @click="$emit('claim-salary')">
             领取俸禄
           </GameActionButton>
         </div>
@@ -119,7 +119,7 @@
         <p class="card-copy">{{ warSummary }}</p>
 
         <div class="action-row">
-          <GameActionButton icon="⚔️" tone="jade" @click="$emit('go-tab', 'diplomacy')">
+          <GameActionButton icon="Swords" tone="jade" @click="$emit('go-tab', 'diplomacy')">
             查看战局
           </GameActionButton>
           <GameActionButton icon="📋" tone="gold" :disabled="!hasWarReport" @click="$emit('ack-war-report')">

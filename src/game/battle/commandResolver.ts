@@ -13,7 +13,6 @@ import {
   resolveIncomingDamage,
   resolveStatusEffectFromSkill
 } from './statusRuntime'
-import { prepareSummons } from './summonRuntime'
 import {
   resolveBattleCounterDamage,
   resolveBattleDamageModifier,
@@ -285,7 +284,7 @@ export function resolveBattleCommand(
   )
   const previewUnits = cloneRuntimeUnits(units)
   const previewEffects = applyPreparedEffects(previewUnits, preparedEffects)
-  const preparedSummons = prepareSummons(actor, units, skill)
+  
   const displayHits = previewEffects
     .filter(effect => (effect.effectType === 'damage' || effect.effectType === 'heal') && effect.amount > 0)
     .map(effect => ({
@@ -306,8 +305,24 @@ export function resolveBattleCommand(
     skill,
     targetIds,
     preparedEffects,
-    preparedSummons,
+    
     previewEffects,
     displayHits
   }
+}
+
+
+/** 召唤效果处理（存根） - 原 summonLifecycleRuntime 已移除 */
+export function applyPreparedSummons(
+  units: unknown[],
+  summons: unknown[],
+  nextSerial: () => number
+): unknown[] {
+  return []
+}
+
+
+/** 召唤行动生命周期（存根） */
+export function resolveSummonActionLifecycle(units: unknown[], actorId: string): unknown {
+  return null
 }

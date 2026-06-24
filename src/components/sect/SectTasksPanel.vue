@@ -96,7 +96,7 @@
           </div>
 
           <GameActionButton
-            icon="💰"
+            icon="Coins"
             :tone="canClaimSalary ? 'gold' : 'stone'"
             :disabled="!canClaimSalary"
             @click="$emit('claim-salary')"

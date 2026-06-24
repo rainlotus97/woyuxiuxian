@@ -1,5 +1,5 @@
 import { createUnit, type Unit } from '@/types/unit'
-import { getBattleActorRole, getBattleSpriteKey } from './presentationRoles'
+import { getBattleActorRole, getBattleBadgeIcon, getBattlePortraitKey, getBattleSpriteKey } from './presentationRoles'
 import { getSummonDefinition } from './config/summons'
 import type { BattleRuntimeUnit } from './runtimeTypes'
 import { createSkillCooldownState } from './skillCooldownRuntime'
@@ -10,11 +10,23 @@ export function toBattleRuntimeUnit(
   actionGauge = Math.random() * 18
 ): BattleRuntimeUnit {
   const battleRole = getBattleActorRole(unit, side)
+  const badgeIcon = getBattleBadgeIcon(battleRole, side, unit.icon)
+  const markerText = unit.icon || (
+    battleRole === 'boss' ? '魁'
+      : battleRole === 'elite' ? '锋'
+      : battleRole === 'enemy' ? '敌'
+      : battleRole === 'pet' ? '灵'
+      : battleRole === 'summon' ? '召'
+      : '剑'
+  )
   return {
     ...unit,
+    icon: badgeIcon,
+    markerText,
     side,
     battleRole,
     spriteKey: getBattleSpriteKey(battleRole, side),
+    portraitKey: getBattlePortraitKey(battleRole, side),
     actionGauge,
     skillCooldowns: createSkillCooldownState(unit.skills)
   }

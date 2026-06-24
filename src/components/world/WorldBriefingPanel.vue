@@ -2,9 +2,9 @@
   <GameSurface
     tone="gold"
     padding="md"
-    eyebrow="世界简报"
-    title="此刻要事"
-    subtitle="把主角处境、宗门压力、区域异动与关键人物动向压成当前最值得处理的几件事。"
+    eyebrow="后续回响"
+    title="这几股风声"
+    subtitle="眼前这件事之外，别的动静也在慢慢逼近。"
   >
     <div class="briefing-grid">
       <article
@@ -55,16 +55,16 @@ defineEmits<{
 <style scoped>
 .briefing-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .briefing-card {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  padding: 14px;
-  border-radius: 18px;
+  padding: 12px;
+  border-radius: 16px;
   border: 1px solid rgba(104, 147, 142, 0.18);
   background: rgba(255, 255, 255, 0.74);
 }
@@ -82,18 +82,18 @@ defineEmits<{
 .briefing-head {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .briefing-icon {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.8);
-  font-size: 20px;
+  font-size: 17px;
 }
 
 .briefing-copy {
@@ -109,15 +109,15 @@ defineEmits<{
 
 .briefing-copy strong {
   color: #315257;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .briefing-copy p {
   margin: 0;
   color: rgba(53, 81, 83, 0.8);
-  font-size: 12px;
-  line-height: 1.65;
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .briefing-footer {
@@ -129,15 +129,11 @@ defineEmits<{
 
 .briefing-footer small {
   color: rgba(73, 97, 95, 0.72);
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 @media (max-width: 860px) {
-  .briefing-grid {
-    grid-template-columns: 1fr;
-  }
-
   .briefing-footer {
     flex-direction: column;
     align-items: stretch;

@@ -14,7 +14,7 @@ export interface P0LoopRouteInput {
 
 export function resolveP0LoopRouteTarget(input: P0LoopRouteInput): P0LoopRouteTarget {
   if (input.id === 'adventure') return '/game/adventure'
-  if (input.id === 'story') return '/game/story'
+  if (input.id === 'story') return '/game/cultivation'
   if (input.id === 'npc') return '/game/companion'
   if (input.id === 'sect') return '/game/sect'
   if (input.id === 'map') {

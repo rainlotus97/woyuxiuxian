@@ -2,6 +2,26 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BattleRuntime, type BattleRuntimeSnapshot } from '@/game/battle/battleRuntime'
 import {
+  sfxAttack,
+  sfxBlock,
+  sfxBossAppear,
+  sfxCastPrepare,
+  sfxCritical,
+  sfxDeath,
+  sfxDefeat,
+  sfxEncounter,
+  sfxFinisher,
+  sfxFire,
+  sfxHealPulse,
+  sfxHeavyAttack,
+  sfxHurt,
+  sfxParry,
+  sfxShield,
+  sfxThunder,
+  sfxVictory,
+  useAudio
+} from '@/composables/useAudio'
+import {
   createBattleInstanceId,
   clearBattleSceneReady,
   gameEvents,
@@ -32,6 +52,7 @@ import { createUnit, type Unit } from '@/types/unit'
 import { getSkillById } from '@/types/skill'
 import { getAreaById, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
+import { resolveBattleBgmType } from '@/game/theme/gameTheme'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
 import {
   resolveBattleSkillProgression,
@@ -48,6 +69,7 @@ import {
   saveStoryBattleReplayRecord
 } from '@/story/runtime/storyBattleReplayArchive'
 import type { GameplayResult } from '@/story/types'
+import type { BattleResolvedCommand, BattleRuntimeHit, BattleRuntimeUnit } from '@/game/battle/battleRuntime'
 
 interface BattleSkillOption {
   id: string
@@ -62,6 +84,7 @@ interface BattleTargetOption {
   id: string
   name: string
   icon: string
+  portraitKey?: string
   side: 'ally' | 'enemy'
 }
 
@@ -75,6 +98,7 @@ export function useBattleSession() {
   const mapStore = useMapStore()
   const worldStore = useWorldStore()
   const { warning } = useToast()
+  const { switchBgm } = useAudio()
 
   const battleRuntime = ref<BattleRuntime | null>(null)
   const runtimeSnapshot = ref<BattleRuntimeSnapshot | null>(null)
@@ -90,7 +114,7 @@ export function useBattleSession() {
   let executing = false
   let unsubSceneReady: (() => void) | null = null
   let disposed = false
-  let sceneReady = false
+  const sceneReady = ref(false)
   let battleStarted = false
   let startLoopTimer = 0
   let battleRunId = 0
@@ -145,6 +169,7 @@ export function useBattleSession() {
       id: option.id,
       name: option.name,
       icon: option.icon,
+      portraitKey: option.portraitKey,
       side: option.side
     }))
   })
@@ -155,6 +180,7 @@ export function useBattleSession() {
     if (result === 'fled') return '脱离战场'
     return '战斗中'
   })
+  const battleVisualReady = computed(() => sceneReady.value && Boolean(runtimeSnapshot.value))
   const weatherLabel = computed(() => {
     const labels = {
       clear: '天色清朗',
@@ -314,7 +340,12 @@ export function useBattleSession() {
 
   function initBattle() {
     worldStore.simulateOffline()
+    sfxEncounter()
     battleRuntime.value = new BattleRuntime(createAllies(), createEnemies())
+    syncBattleBgm()
+    if (battleRuntime.value.units.some(unit => unit.side === 'enemy' && unit.battleRole === 'boss')) {
+      sfxBossAppear()
+    }
     usedPlayerSkillIds.clear()
     const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
     gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
@@ -327,7 +358,7 @@ export function useBattleSession() {
   function refreshSnapshot() {
     if (disposed) return
     runtimeSnapshot.value = battleRuntime.value?.snapshot() ?? null
-    if (runtimeSnapshot.value && sceneReady && isBattleSceneReady(battleInstanceId)) {
+    if (runtimeSnapshot.value && sceneReady.value && isBattleSceneReady(battleInstanceId)) {
       gameEvents.emit('battle:snapshot', { snapshot: runtimeSnapshot.value, battleInstanceId })
     }
   }
@@ -342,7 +373,7 @@ export function useBattleSession() {
       runtime.tick(delta, battleSpeed.value)
       const turnContext = runtime.consumePendingTurnContext()
       for (const hit of turnContext.hits) {
-        if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+        if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
           gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
@@ -352,6 +383,11 @@ export function useBattleSession() {
     if (runtime.phase !== 'ended') {
       frameId = requestAnimationFrame(loop)
     } else {
+      if (runtime.result === 'victory') {
+        sfxVictory()
+      } else if (runtime.result === 'defeat') {
+        sfxDefeat()
+      }
       if (isBattleSceneReady(battleInstanceId)) {
         gameEvents.emit('battle:ended', { result: runtime.result || 'defeat', battleInstanceId })
       }
@@ -416,7 +452,8 @@ export function useBattleSession() {
     if (resolved.skill && runtime.units.find(unit => unit.id === resolved.actorId)?.type === 'protagonist') {
       usedPlayerSkillIds.add(resolved.skill.id)
     }
-    if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+    playResolvedCommandSfx(runtime, resolved)
+    if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
       gameEvents.emit('battle:play-command', { command: resolved.command, battleInstanceId })
     }
     const timer = window.setTimeout(() => {
@@ -426,7 +463,8 @@ export function useBattleSession() {
         return
       }
       for (const hit of resolved.displayHits) {
-        if (sceneReady && isBattleSceneReady(battleInstanceId)) {
+        playHitSfx(runtime, hit)
+        if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
           gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
@@ -443,14 +481,14 @@ export function useBattleSession() {
   function bindScene() {
     unsubSceneReady = gameEvents.on('battle:scene-ready', payload => {
       if (disposed || payload.battleInstanceId !== battleInstanceId) return
-      sceneReady = true
+      sceneReady.value = true
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
       gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
       if (!battleStarted) {
         battleStarted = true
         startLoopTimer = window.setTimeout(() => {
           startLoopTimer = 0
-          if (disposed || !sceneReady || !isBattleSceneReady(battleInstanceId)) return
+          if (disposed || !sceneReady.value || !isBattleSceneReady(battleInstanceId)) return
           refreshSnapshot()
           frameId = requestAnimationFrame(loop)
         }, 0)
@@ -465,14 +503,14 @@ export function useBattleSession() {
       && getActiveBattleInstanceId() === battleInstanceId
       && isBattleSceneReady(battleInstanceId)
     ) {
-      sceneReady = true
+      sceneReady.value = true
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
       gameEvents.emit('battle:arena-theme', { arenaId, battleInstanceId })
       if (!battleStarted) {
         battleStarted = true
         startLoopTimer = window.setTimeout(() => {
           startLoopTimer = 0
-          if (disposed || !sceneReady || !isBattleSceneReady(battleInstanceId)) return
+          if (disposed || !sceneReady.value || !isBattleSceneReady(battleInstanceId)) return
           refreshSnapshot()
           frameId = requestAnimationFrame(loop)
         }, 0)
@@ -484,7 +522,7 @@ export function useBattleSession() {
 
   function disposeSession() {
     disposed = true
-    sceneReady = false
+    sceneReady.value = false
     battleStarted = false
     battleRunId++
     battleInstanceId = ''
@@ -642,9 +680,91 @@ export function useBattleSession() {
     router.push('/game/adventure')
   }
 
+  function syncBattleBgm() {
+    const runtime = battleRuntime.value
+    if (!runtime) return
+    switchBgm(resolveBattleBgmType(runtime.units))
+  }
+
+  function playResolvedCommandSfx(runtime: { units: BattleRuntimeUnit[] }, resolved: BattleResolvedCommand) {
+    const actor = runtime.units.find(unit => unit.id === resolved.actorId) ?? null
+    if (!actor) return
+
+    if (resolved.command.type === 'attack') {
+      if (actor.battleRole === 'boss') {
+        sfxHeavyAttack()
+      } else {
+        sfxAttack()
+      }
+      return
+    }
+
+    sfxCastPrepare()
+    const skillId = resolved.skill?.id ?? ''
+    const element = resolved.skill?.effects.find(effect => effect.element)?.element ?? actor.element
+    if (skillId.includes('shield') || resolved.skill?.effects.some(effect => effect.type === 'buff' || effect.statusEffect?.type === 'shield')) {
+      sfxShield()
+      return
+    }
+    if (resolved.skill?.effects.some(effect => effect.type === 'heal')) {
+      sfxHealPulse()
+      return
+    }
+    if (element === '火') {
+      sfxFire()
+      return
+    }
+    if (element === '雷') {
+      sfxThunder()
+      return
+    }
+    if (actor.battleRole === 'boss') {
+      sfxHeavyAttack()
+      return
+    }
+    sfxAttack()
+  }
+
+  function playHitSfx(runtime: { units: BattleRuntimeUnit[] }, hit: BattleRuntimeHit) {
+    const source = runtime.units.find(unit => unit.id === hit.actorId) ?? null
+    const target = runtime.units.find(unit => unit.id === hit.targetId) ?? null
+    if (!target) return
+
+    if (hit.isHeal) {
+      sfxHealPulse()
+      return
+    }
+
+    if (hit.amount <= 0) {
+      sfxParry()
+      return
+    }
+
+    sfxHurt()
+    if (hit.isCrit) {
+      sfxCritical()
+    }
+
+    const remainingHp = Math.max(0, target.stats.currentHp - hit.amount)
+    const hpRatio = remainingHp / Math.max(1, target.stats.maxHp)
+    if (hpRatio <= 0.2 && remainingHp > 0) {
+      sfxCritical()
+    }
+    if (remainingHp <= 0) {
+      sfxDeath()
+      sfxFinisher()
+      syncBattleBgm()
+      return
+    }
+    if (source?.id !== target.id && source && target.stats.defense > source.stats.attack * 0.9) {
+      sfxBlock()
+    }
+    syncBattleBgm()
+  }
+
   onMounted(() => {
     disposed = false
-    sceneReady = false
+    sceneReady.value = false
     battleStarted = false
     if (!validateBattleEntry()) return
     bindScene()
@@ -657,6 +777,7 @@ export function useBattleSession() {
 
   return {
     autoBattle,
+    battleVisualReady,
     battleRuntime,
     battleSpeed,
     claimAndExit,

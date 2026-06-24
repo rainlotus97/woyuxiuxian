@@ -48,8 +48,8 @@ export function getNpcGoalLabel(goal: string) {
   return labels[goal] ?? goal
 }
 
-export function formatJourneyRewards(rewards: Array<{ label: string; value: number | string }>) {
-  if (!rewards.length) return '无额外收益'
+export function formatJourneyRewards(rewards?: Array<{ label: string; value: number | string }>) {
+  if (!rewards?.length) return '无额外收益'
   return rewards.map(item => `${item.label} ${item.value}`).join(' · ')
 }
 

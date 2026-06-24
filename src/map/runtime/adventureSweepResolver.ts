@@ -36,7 +36,7 @@ export interface AdventureSweepResolution {
 export type AdventureSweepResult = AdventureSweepBlocked | AdventureSweepResolution
 
 export function resolveAdventureSweep(input: AdventureSweepInput): AdventureSweepResult {
-  const sweepCount = Math.max(1, Math.floor(input.sweepCount ?? 3))
+  const sweepCount = Math.max(1, Math.min(2, Math.floor(input.sweepCount ?? 2)))
   const staminaCost = input.access.sweepCost
   if (!input.access.sweepAllowed) {
     return {
@@ -46,14 +46,14 @@ export function resolveAdventureSweep(input: AdventureSweepInput): AdventureSwee
     }
   }
 
-  const rewardMultiplier = input.encounter?.rewardMultiplier ?? 1
+  const rewardMultiplier = Math.min(input.encounter?.rewardMultiplier ?? 1, 1.12)
   let cultivationGain = 0
   let goldGain = 0
   const drops: EncounterDropStack[] = []
 
   for (let index = 0; index < sweepCount; index++) {
-    cultivationGain += Math.max(1, Math.floor(input.rollReward(input.area.expReward) * rewardMultiplier))
-    goldGain += Math.max(1, Math.floor(input.rollReward(input.area.goldReward) * rewardMultiplier))
+    cultivationGain += Math.max(1, Math.floor(input.rollReward(input.area.expReward) * rewardMultiplier * 0.58))
+    goldGain += Math.max(1, Math.floor(input.rollReward(input.area.goldReward) * rewardMultiplier * 0.52))
     drops.push(...input.resolveDrops(input.area.drops, input.encounter as MapAreaEncounterContext | null))
   }
 
@@ -75,6 +75,6 @@ export function resolveAdventureSweep(input: AdventureSweepInput): AdventureSwee
       { type: 'battle', target: 'monster', times: sweepCount },
       { type: 'explore', target: input.area.id, times: sweepCount }
     ],
-    summary: `${input.area.name}扫荡 ${sweepCount} 次，获得 ${cultivationGain} 修为、${goldGain} 灵石。`
+    summary: `${input.area.name}扫荡 ${sweepCount} 次，带回 ${cultivationGain} 修为、${goldGain} 灵石。`
   }
 }

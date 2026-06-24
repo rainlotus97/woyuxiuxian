@@ -530,34 +530,6 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     ],
     unlockRealm: '元婴'
   },
-  demon_summon: {
-    id: 'demon_summon',
-    name: '魔侍召来',
-    description: '撕开深渊裂隙，召来魔侍加入战场',
-    icon: '召',
-    category: 'support',
-    branch: 'special',
-    tier: 3,
-    mpCost: 28,
-    mpCostPerLevel: 3,
-    cooldown: 4,
-    maxLevel: 10,
-    effects: [
-      {
-        type: 'summon',
-        targetType: 'self',
-        baseValue: 0,
-        scaling: 0,
-        summon: {
-          definitionId: 'abyss_guard',
-          count: 2,
-          maxActive: 2
-        }
-      }
-    ],
-    prerequisites: ['hellfire'],
-    unlockRealm: '金丹'
-  },
   abyss_claw: {
     id: 'abyss_claw',
     name: '魔侍裂爪',

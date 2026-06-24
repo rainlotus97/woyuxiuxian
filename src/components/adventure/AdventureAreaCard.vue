@@ -8,7 +8,9 @@
   >
     <div class="area-header">
       <div class="area-leading">
-        <div class="area-icon">{{ area.icon }}</div>
+        <div class="area-icon">
+          <GameIcon :icon="area.icon" :size="22" />
+        </div>
         <div class="area-copy">
           <strong>{{ area.name }}</strong>
           <small :style="{ color: realmColor }">
@@ -21,8 +23,6 @@
       </span>
     </div>
 
-    <p class="area-desc">{{ area.description }}</p>
-
     <div v-if="encounter" class="area-world-state">
       <span
         class="risk-badge"
@@ -30,31 +30,32 @@
       >
         {{ encounter.statusText }}
       </span>
-      <p>{{ encounter.encounterNote }}</p>
+      <p>{{ compactEncounterNote }}</p>
     </div>
+    <p v-else class="area-desc compact">{{ fieldLine }}</p>
 
     <div class="area-access-row" :class="`state-${access.entryState}`">
       <span class="access-badge">{{ access.entryLabel }}</span>
-      <p>{{ access.entryReason }}</p>
+      <p>{{ compactEntryReason }}</p>
     </div>
-    <small v-if="access.warnings[0]" class="access-warning">
+    <small v-if="showAccessWarning" class="access-warning">
       {{ access.warnings[0] }}
     </small>
 
     <div class="area-meta-grid">
       <div class="drop-strip">
-        <span class="meta-label">掉落</span>
+        <span class="meta-label">容易出</span>
         <div class="drops-items">
           <span
-            v-for="drop in area.drops.slice(0, 4)"
+            v-for="drop in area.drops.slice(0, 2)"
             :key="drop.id"
             class="drop-preview"
             :class="drop.quality"
             :title="drop.name"
           >
-            {{ drop.icon }}
+            <GameIcon :icon="drop.icon" :size="14" />
           </span>
-          <span v-if="area.drops.length > 4" class="more-drops">+{{ area.drops.length - 4 }}</span>
+          <span v-if="area.drops.length > 2" class="more-drops">+{{ area.drops.length - 2 }}</span>
         </div>
       </div>
 
@@ -92,7 +93,7 @@
 
         <template v-else-if="stars === 0">
           <GameActionButton
-            icon="⚔️"
+            icon="Swords"
             tone="jade"
             block
             :disabled="stamina < access.staminaCost"
@@ -104,7 +105,7 @@
 
         <template v-else>
           <GameActionButton
-            icon="⚔️"
+            icon="Swords"
             tone="jade"
             block
             :disabled="stamina < access.staminaCost"
@@ -128,6 +129,7 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import { computed } from 'vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
@@ -160,6 +162,61 @@ const difficultyConfig = computed(() => DIFFICULTY_CONFIG[props.area.difficulty 
 const difficultyColor = computed(() => difficultyConfig.value?.color || '#7eb8da')
 const difficultyLabel = computed(() => difficultyConfig.value?.label || props.area.difficulty)
 const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
+
+const areaFlavorMap = [
+  { match: /竹|林|森/u, line: '竹影和湿土气都重，适合先探风声。' },
+  { match: /沙|漠/u, line: '风沙埋痕很快，路上多半只留下半截线索。' },
+  { match: /剑峰|剑|崖/u, line: '石壁上多旧剑痕，来的人大多不肯空手下山。' },
+  { match: /火山|熔岩/u, line: '地火脾气躁，敢往里走的人一般都图大东西。' },
+  { match: /洞|穴/u, line: '光线压得低，脚步声和别人的心思都会被放大。' },
+  { match: /雪|冰/u, line: '风雪遮人脸，先站稳再谈往深处探。' },
+  { match: /湖|水|海/u, line: '水气会藏动静，很多事要等波纹散开才看得清。' },
+  { match: /谷/u, line: '谷里回声重，适合先听，再决定要不要正面撞上。' },
+  { match: /遗迹|古|殿|宫/u, line: '旧东西多，来路和禁制往往比妖兽更麻烦。' }
+]
+
+function compactLine(text: string, max = 34) {
+  const cleaned = text.replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned
+}
+
+const compactDescription = computed(() => compactLine(props.area.description, 34))
+const compactEncounterNote = computed(() => {
+  const text = props.encounter?.encounterNote ?? ''
+  const cleaned = text
+    .replace(/边境摩擦频发，?/u, '')
+    .replace(/强敌与机缘同时增多。?/u, '人和事都更杂。')
+    .replace(/天象平稳。?/u, '天象还算稳。')
+    .replace(/细雨助长灵气，也让战场更湿滑。?/u, '雨气压着脚下的路。')
+    .trim()
+  return compactLine(cleaned || text, 24)
+})
+const compactEntryReason = computed(() => compactLine(props.access.entryReason, 26))
+const showAccessWarning = computed(() => {
+  if (!props.access.warnings[0]) return false
+  return props.access.entryState !== 'open'
+})
+const fieldLine = computed(() => {
+  const realm = getRealmRequirementText(props.area.requiredRealm, props.area.requiredRealmLevel)
+  const source = props.area.description.replace(/\s+/g, ' ').trim()
+  const namedScene = source
+    .replace(/^位于[^，。]*[，。]\s*/u, '')
+    .replace(/适合[^，。]*修士历练[。]?/u, '')
+    .replace(/可获得.*$/u, '')
+    .trim()
+
+  if (namedScene) {
+    return compactLine(namedScene, 28)
+  }
+
+  const flavor = areaFlavorMap.find(entry => entry.match.test(props.area.name))?.line
+  if (flavor) {
+    return compactLine(flavor, 28)
+  }
+
+  return compactLine(`${realm}也能进去，先看风头再决定深不深入。`, 28)
+})
 </script>
 
 <style scoped>
@@ -175,23 +232,23 @@ const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .area-leading {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .area-icon {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .area-copy {
@@ -201,36 +258,43 @@ const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
 
 .area-copy strong {
   color: #315257;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .area-copy small {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .difficulty-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(105, 149, 143, 0.16);
-  font-size: 11px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
 .area-desc {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: rgba(49, 82, 87, 0.8);
-  font-size: 12px;
-  line-height: 1.65;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.area-desc.compact {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .area-world-state {
-  margin-top: 12px;
+  margin-top: 8px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .risk-badge {
@@ -238,48 +302,56 @@ const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
   align-items: center;
   width: fit-content;
   max-width: 100%;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border: 1px solid rgba(126, 184, 218, 0.28);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 
 .area-world-state p {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: rgba(73, 97, 95, 0.78);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .area-access-row {
   display: grid;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
   border: 1px solid rgba(104, 150, 145, 0.16);
   background: rgba(255, 255, 255, 0.62);
 }
 
 .area-access-row p {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: rgba(73, 97, 95, 0.78);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .access-badge {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid rgba(104, 150, 145, 0.18);
   color: #4c7a78;
   background: rgba(239, 250, 247, 0.78);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .area-access-row.state-risky .access-badge {
@@ -296,70 +368,82 @@ const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
 
 .access-warning {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
   color: rgba(73, 97, 95, 0.64);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .area-meta-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .drop-strip {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .meta-label {
   color: rgba(73, 97, 95, 0.68);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .drops-items {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .drop-preview {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  border-radius: 10px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5d4a24;
+  font-size: 12px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.74);
 }
 
-.drop-preview.common { border: 1px solid #9ca3af; }
-.drop-preview.fine { border: 1px solid #4ade80; }
-.drop-preview.rare { border: 1px solid #7eb8da; }
-.drop-preview.epic { border: 1px solid #a78bfa; }
-.drop-preview.legendary { border: 1px solid #fbbf24; }
+.drop-preview.common { border: 1px solid rgba(122, 150, 148, 0.18); }
+.drop-preview.fine { border: 1px solid rgba(87, 162, 118, 0.22); }
+.drop-preview.rare { border: 1px solid rgba(89, 137, 206, 0.24); }
+.drop-preview.epic { border: 1px solid rgba(146, 108, 191, 0.26); }
+.drop-preview.legendary {
+  border: 1px solid rgba(198, 144, 53, 0.32);
+  background: rgba(255, 248, 227, 0.92);
+}
 
 .more-drops {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.58);
   color: rgba(73, 97, 95, 0.72);
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .meta-chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 
 .area-stars {
   display: flex;
   gap: 4px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .star {
@@ -374,7 +458,7 @@ const difficultyWaves = computed(() => difficultyConfig.value?.waves || 1)
 .area-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 @media (max-width: 880px) {

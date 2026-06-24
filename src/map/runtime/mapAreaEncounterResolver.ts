@@ -75,6 +75,40 @@ const WEATHER_BATTLE_CONFIG: Record<WorldWeather, {
   mist: { enemyMultiplier: 1.05, rewardMultiplier: 1.06, note: '迷雾遮蔽视线，埋伏与奇遇都更常见。' }
 }
 
+const RISK_NOTE_VARIANTS: Record<AreaRiskLevel, string[]> = {
+  safe: [
+    '路上风声浅，妖气和人迹都还压得住。',
+    '这片地界还算安分，适合先认路。'
+  ],
+  watch: [
+    '表面还稳，但已经有人开始盯这片地方了。',
+    '气氛收紧了些，先听风声再深入更稳。'
+  ],
+  danger: [
+    '人和事都开始往这边聚，稍不留神就会撞正面。',
+    '边上已经有人试探伸手，机缘和麻烦多半一起到。'
+  ],
+  chaos: [
+    '这片地界已经失序，来的不只是一拨人。',
+    '局面彻底乱了，越往里走越像踩进别人没收拾完的旧账里。'
+  ]
+}
+
+const WEATHER_NOTE_VARIANTS: Record<WorldWeather, string[]> = {
+  clear: ['天象还算稳。'],
+  rain: ['雨气压着脚下的路。', '地面发潮，很多痕迹都不肯久留。'],
+  storm: ['雷雨激得灵气发躁。', '天上压着雷意，很多东西会提前露凶相。'],
+  flood: ['水路乱了，退路也会跟着乱。'],
+  fire: ['火脉躁得厉害，靠近时最好别只顾着抢。'],
+  mist: ['雾里更容易藏人，也更容易撞上埋伏。']
+}
+
+function pickVariant<T>(items: T[], seedSource: string) {
+  if (items.length <= 1) return items[0]
+  const seed = [...seedSource].reduce((sum, char) => sum + char.charCodeAt(0), 0)
+  return items[seed % items.length]
+}
+
 const AREA_RISK_PRIORITY: Record<AreaRiskLevel, number> = {
   safe: 0,
   watch: 1,
@@ -159,6 +193,8 @@ export function resolveMapAreaEncounter(
   const enemyStatMultiplier = Number((riskConfig.enemyMultiplier * weatherConfig.enemyMultiplier * contestedBonus * anomalyEnemyBonus).toFixed(3))
   const rewardMultiplier = Number((riskConfig.rewardMultiplier * weatherConfig.rewardMultiplier * rewardBonus * anomalyRewardBonus).toFixed(3))
   const anomalyNote = anomaly ? `异动：${anomaly.title}。${anomaly.riskHint}` : ''
+  const riskNote = pickVariant(RISK_NOTE_VARIANTS[state.riskLevel], mapAreaId)
+  const weatherNote = pickVariant(WEATHER_NOTE_VARIANTS[weather], `${mapAreaId}:${weather}`)
   const accessState: MapAreaEncounterContext['accessState'] =
     anomaly && anomaly.severity === 'legendary' && (
       anomaly.type === 'flood' || anomaly.type === 'fire' || anomaly.type === 'beast_tide'
@@ -190,7 +226,7 @@ export function resolveMapAreaEncounter(
     rewardMultiplier,
     contested: state.contested,
     statusText: `${riskConfig.label}${state.contested ? ' · 争夺中' : ''}${controllerSect ? ` · ${controllerSect.name}` : ''}${anomaly ? ' · 异动' : ''}`,
-    encounterNote: `${riskConfig.note}${weatherConfig.note}${anomalyNote}`,
+    encounterNote: `${riskNote}${weatherNote}${anomalyNote}`,
     anomaly,
     anomalyTitle: anomaly?.title ?? null,
     anomalyType: anomaly?.type ?? null,

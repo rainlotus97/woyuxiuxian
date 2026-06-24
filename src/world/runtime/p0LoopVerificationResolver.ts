@@ -24,10 +24,15 @@ import {
   resolveP0LoopReport,
   type P0LoopReportSummary
 } from './p0LoopReportResolver'
+import {
+  resolveP0LoopAcceptanceChecklist,
+  type P0LoopAcceptanceChecklistSummary
+} from './p0LoopAcceptanceChecklistResolver'
 
 export interface P0LoopVerificationInput {
   readiness: MainLoopReadinessInput
   evidence: P0LoopClosureEvidence
+  hotspotAreaId?: string | null
 }
 
 export interface P0LoopVerificationSummary {
@@ -37,6 +42,7 @@ export interface P0LoopVerificationSummary {
   p0Audit: P0LoopAuditSummary
   p0Acceptance: P0LoopAcceptanceSummary
   p0Report: P0LoopReportSummary
+  p0Checklist: P0LoopAcceptanceChecklistSummary
 }
 
 export function resolveP0LoopVerification(input: P0LoopVerificationInput): P0LoopVerificationSummary {
@@ -59,6 +65,12 @@ export function resolveP0LoopVerification(input: P0LoopVerificationInput): P0Loo
     acceptance: p0Acceptance,
     nextAction: p0NextAction
   })
+  const p0Checklist = resolveP0LoopAcceptanceChecklist({
+    readiness: loopReadiness,
+    closure: p0LoopClosure,
+    nextAction: p0NextAction,
+    hotspotAreaId: input.hotspotAreaId
+  })
 
   return {
     loopReadiness,
@@ -66,6 +78,7 @@ export function resolveP0LoopVerification(input: P0LoopVerificationInput): P0Loo
     p0NextAction,
     p0Audit,
     p0Acceptance,
-    p0Report
+    p0Report,
+    p0Checklist
   }
 }

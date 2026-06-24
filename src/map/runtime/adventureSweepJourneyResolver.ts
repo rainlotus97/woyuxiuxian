@@ -17,13 +17,17 @@ export interface AdventureSweepJourneyResult {
   tags: string[]
 }
 
+function formatMultiplier(multiplier: number) {
+  return `${Math.round(multiplier * 100)}`
+}
+
 export function resolveAdventureSweepJourney(input: AdventureSweepJourneyInput): AdventureSweepJourneyResult {
   const { result } = input
   const dropText = result.drops.length > 0
     ? `，并带回${result.drops.slice(0, 3).map(drop => `${drop.item.name}x${drop.quantity}`).join('、')}${result.drops.length > 3 ? '等物' : ''}`
     : ''
   const multiplierText = result.rewardMultiplier > 1
-    ? `当前区域态势让收益提升至 ${result.rewardMultiplier.toFixed(2)} 倍。`
+    ? `当前区域态势让收益提到了平时的 ${formatMultiplier(result.rewardMultiplier)}%。`
     : ''
 
   return {

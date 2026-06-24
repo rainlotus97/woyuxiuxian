@@ -1,43 +1,43 @@
 <template>
-  <div class="game-layout">
+  <div class="game-layout" :class="{ 'is-cultivation': isCultivationRoute }" :style="themeCssVars">
     <div class="layout-backdrop"></div>
 
     <header class="top-shell">
       <div class="hud-shell" :class="`tone-${sectAlertTone}`">
         <div class="player-block">
-          <div class="avatar-orb">{{ realmIcon }}</div>
+          <ThemeHomeIconBadge class="avatar-orb" size="lg">
+            <span class="avatar-glyph">{{ realmIcon }}</span>
+          </ThemeHomeIconBadge>
           <div class="player-copy">
-            <span class="realm-pill" :class="getRealmClass">{{ playerStore.realmInfo.fullName }}</span>
-            <strong>{{ playerStore.name }}</strong>
+            <strong>{{ sectStore.currentSect?.name ?? playerStore.name }}</strong>
+            <span class="realm-pill" :class="getRealmClass">{{ playerStore.name }} · {{ playerStore.realmInfo.fullName }}</span>
             <small>{{ worldStore.currentTimeLabel }} · {{ weatherLabel }}</small>
           </div>
         </div>
 
         <div class="resource-row" aria-label="主资源状态">
-          <GameStatChip icon="石" label="灵石" :value="playerStore.gold" tone="gold" compact />
-          <GameStatChip icon="修" label="修为" :value="formatCultivation" tone="jade" compact />
-          <GameStatChip icon="闻" label="异闻" :value="worldStore.visibleLogs.length" tone="rose" compact />
-          <GameStatChip icon="人" label="人物" :value="worldStore.unlockedNpcDefinitions.length" tone="jade" compact />
-          <RouterLink class="home-toggle" to="/" aria-label="返回首页">
-            <span><Home :size="15" /></span>
-            <small>首页</small>
-          </RouterLink>
-          <button
-            type="button"
-            class="audio-toggle"
-            :class="{ active: bgmEnabled }"
-            :aria-label="bgmEnabled ? '关闭背景音' : '开启背景音'"
-            @click="handleToggleBgm"
-          >
-            <span><component :is="bgmEnabled ? Volume2 : VolumeX" :size="15" /></span>
-            <small>{{ bgmEnabled ? '静音' : '开声' }}</small>
-          </button>
+          <ThemeHomeResourcePill label="修为" :value="resourceCultivationDisplay" suffix="+">
+            <template #icon>
+              <GameIcon icon="修" :size="18" />
+            </template>
+          </ThemeHomeResourcePill>
+          <ThemeHomeResourcePill label="灵石" :value="playerStore.gold" suffix="+">
+            <template #icon>
+              <GameIcon icon="石" :size="18" />
+            </template>
+          </ThemeHomeResourcePill>
+          <ThemeHomeResourcePill label="异闻" :value="worldStore.visibleLogs.length" suffix="+">
+            <template #icon>
+              <GameIcon icon="闻" :size="18" />
+            </template>
+          </ThemeHomeResourcePill>
         </div>
 
-        <p class="world-summary">
+        <p v-if="!isStoryOverlayVisible && !isCultivationRoute" class="world-summary">
           <span>{{ currentSectionName }}</span>
           {{ sectAlertSummary }}
         </p>
+        <p v-if="!isStoryOverlayVisible && ambientPrompt && !isCultivationRoute" class="encounter-prompt">{{ ambientPrompt }}</p>
       </div>
     </header>
 
@@ -97,8 +97,11 @@
           class="tab-item"
           :class="{ active: isActive(item.path) }"
         >
-          <component :is="item.icon" :size="21" />
-          <span>{{ item.shortName }}</span>
+          <ThemeHomeNavTab :label="item.shortName" :active="isActive(item.path)">
+            <template #icon>
+              <component :is="item.icon" :size="21" />
+            </template>
+          </ThemeHomeNavTab>
         </RouterLink>
 
         <button
@@ -107,14 +110,54 @@
           type="button"
           @click.stop="toggleMenu"
         >
-          <component :is="isMenuExpanded ? X : Grid3X3" :size="21" />
-          <span>{{ isMenuExpanded ? '收起' : '更多' }}</span>
+          <ThemeHomeNavTab :label="isMenuExpanded ? '收起' : '更多'" :active="isMenuExpanded">
+            <template #icon>
+              <component :is="isMenuExpanded ? X : Grid3X3" :size="21" />
+            </template>
+          </ThemeHomeNavTab>
         </button>
       </nav>
     </footer>
 
     <AnnouncementModal />
     <ItemAcquireModal />
+
+    <Transition name="story-overlay-fade">
+      <div
+        v-if="isStoryOverlayVisible && !isStandaloneStoryRoute"
+        class="story-overlay-wrap"
+        @click.self="handleCloseStoryOverlay"
+      >
+        <div class="story-overlay-shell">
+          <StoryPlayer @back="handleCloseStoryOverlay" />
+        </div>
+      </div>
+    </Transition>
+    
+    <GameDialog
+      :visible="randomEvent.hasCurrentEvent.value"
+      :title="randomEvent.currentEvent.value?.title ?? '缘起一页'"
+      eyebrow="奇遇回响"
+      @close="randomEvent.dismissEvent()"
+    >
+      <div class="event-dialog-body">
+        <small class="event-dialog-hint">{{ randomEvent.currentEvent.value?.prompt ?? '这段遭遇会被后续记住。' }}</small>
+        <p>{{ randomEvent.currentEvent.value?.description }}</p>
+      </div>
+      <template #footer>
+        <div class="event-dialog-actions">
+          <GameActionButton tone="stone" @click="randomEvent.dismissEvent()">暂缓</GameActionButton>
+          <GameActionButton
+            v-for="(choice, i) in randomEvent.currentEvent.value?.choices ?? []"
+            :key="i"
+            tone="gold"
+            @click="randomEvent.confirmChoice(i)"
+          >
+            {{ choice.text }}
+          </GameActionButton>
+        </div>
+      </template>
+    </GameDialog>
   </div>
 </template>
 
@@ -122,32 +165,29 @@
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import {
-  Backpack,
-  BookOpen,
   Grid3X3,
-  Home,
-  Landmark,
-  Map,
-  ScrollText,
-  Settings,
-  Sparkles,
-  Store,
-  Swords,
-  UserRound,
-  UsersRound,
-  Volume2,
-  VolumeX,
   X
 } from 'lucide-vue-next'
-import GameStatChip from '@/components/game-ui/GameStatChip.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
-import { useAudio } from '@/composables/useAudio'
+import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import StoryPlayer from '@/components/story/StoryPlayer.vue'
+import ThemeHomeIconBadge from '@/components/theme/homepage/ThemeHomeIconBadge.vue'
+import ThemeHomeNavTab from '@/components/theme/homepage/ThemeHomeNavTab.vue'
+import ThemeHomeResourcePill from '@/components/theme/homepage/ThemeHomeResourcePill.vue'
+import { sfxDiscovery, sfxStoryChoice, useAudio } from '@/composables/useAudio'
+import { useRandomEvent } from '@/composables/useRandomEvent'
+import { useStoryOverlay } from '@/composables/useStoryOverlay'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { useStoryStore } from '@/story/storyStore'
 import { getSectById } from '@/types/sect'
+import { GAME_THEME_TOKENS, MAIN_NAV_ITEMS, resolveGameIconComponent, resolveRouteBgmType } from '@/game/theme/gameTheme'
+import { resolveThemeCssVars } from '@/game/theme/themeAssetPack'
 
 interface MenuItem {
   path: string
@@ -159,33 +199,30 @@ interface MenuItem {
 
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
+const storyStore = useStoryStore()
 const worldStore = useWorldStore()
-const { bgmEnabled, toggleBgm } = useAudio()
+const randomEvent = useRandomEvent()
+const { bgmEnabled, switchBgm } = useAudio()
+const { isStoryOverlayVisible, isStandaloneStoryRoute, closeStoryOverlay } = useStoryOverlay()
 const route = useRoute()
 const isMenuExpanded = ref(false)
 let worldTickTimer: number | null = null
 
 const WORLD_TICK_INTERVAL_MS = 60 * 1000
 
-const menuItems: MenuItem[] = [
-  { path: '/game/cultivation', name: '修炼', shortName: '修炼', desc: '吐纳灵气，突破小境。', icon: Sparkles },
-  { path: '/game/adventure', name: '历险', shortName: '历险', desc: '历练刷图，搜罗材料。', icon: Swords },
-  { path: '/game/story', name: '故事', shortName: '故事', desc: '主线、支线与人物因果。', icon: BookOpen },
-  { path: '/game/map', name: '地图', shortName: '地图', desc: '查看界域、战线与风险。', icon: Map },
-  { path: '/game/sect', name: '宗门', shortName: '宗门', desc: '宗门关系、任务和战事。', icon: Landmark },
-  { path: '/game/companion', name: '伙伴', shortName: '伙伴', desc: '伙伴、灵兽与同行者。', icon: UsersRound },
-  { path: '/game/skills', name: '功法', shortName: '功法', desc: '功法树、招式与搭配。', icon: ScrollText },
-  { path: '/game/inventory', name: '背包', shortName: '背包', desc: '丹药、材料、法器与装备。', icon: Backpack },
-  { path: '/game/shop', name: '坊市', shortName: '坊市', desc: '补货、交易与稀有奇珍。', icon: Store },
-  { path: '/game/profile', name: '角色', shortName: '角色', desc: '角色面板与成长总览。', icon: UserRound },
-  { path: '/game/settings', name: '设置', shortName: '设置', desc: '音画、存档与辅助选项。', icon: Settings }
-]
+const menuItems: MenuItem[] = MAIN_NAV_ITEMS.map(item => ({
+  ...item,
+  icon: resolveGameIconComponent(item.icon)
+}))
 
 const tabItems = computed<MenuItem[]>(() => menuItems.slice(0, 5))
+const themeCssVars = computed(() => resolveThemeCssVars())
 
 const currentSectionName = computed(() => {
   return menuItems.find(item => item.path === route.path)?.name ?? '修途'
 })
+
+const isCultivationRoute = computed(() => route.path === '/game/cultivation')
 
 const weatherLabel = computed(() => {
   const labels: Record<typeof worldStore.weather, string> = {
@@ -199,31 +236,78 @@ const weatherLabel = computed(() => {
   return labels[worldStore.weather]
 })
 
+watch(isStoryOverlayVisible, visible => {
+  if (visible) {
+    sfxDiscovery()
+    return
+  }
+  sfxStoryChoice()
+})
+
 const sectAlertSummary = computed(() => {
   if (playerStore.captivity.isCaptured) {
     const captor = playerStore.captivity.captorSectId
       ? getSectById(playerStore.captivity.captorSectId)?.name ?? '敌对势力'
       : '敌对势力'
-    return `你当前被${captor}控制，主循环行动应优先处理脱困。`
+    return `你现在落在${captor}手里，先别想旁的，眼下只看怎么脱身。`
   }
 
   if (!sectStore.joinedSectId || !sectStore.currentSect) {
-    return worldStore.visibleLogs[0]?.title ?? '尚未加入宗门，游历与结识人物会决定你的归属。'
+    return worldStore.visibleLogs[0]?.title ?? '还没定下归处，先在路上碰人碰事，山门自然会找上来。'
   }
 
   if (sectStore.worldCondition.status === 'collapsed') {
-    return `${sectStore.currentSect.name}已陷入沦陷状态，宗门循环需要尽快重建。`
+    return `${sectStore.currentSect.name}山门已塌，接下来是谁救火、谁弃山门，很快就会见分晓。`
   }
 
   if (sectStore.worldCondition.status === 'rebuilding') {
-    return `${sectStore.currentSect.name}正在重建，资源调配与人手稳定优先。`
+    return `${sectStore.currentSect.name}还在重整，人手、库藏和脸面都得一点点重新接回来。`
   }
 
   if (sectStore.activeWar) {
-    return `${sectStore.currentSect.name}正卷入战事，地图和世界异闻会持续变化。`
+    return `${sectStore.currentSect.name}正陷在战事里，这几天地界和人物动向都会跟着偏转。`
   }
 
-  return `${sectStore.currentSect.name}山门暂稳，当前可通过历练、宗门事务与人物关系推进局势。`
+  return `${sectStore.currentSect.name}眼下还算稳，但一句话、一次历练，也足够把后面的事牵出来。`
+})
+
+const currentPrompt = computed(() => {
+  if (isStoryOverlayVisible.value) {
+    return '眼前这件事已经压过来了，顺着它往下走。'
+  }
+  if (route.path === '/game/adventure') {
+    return '这一路最要紧的不是掉多少东西，而是谁认得你，又是谁记恨你。'
+  }
+  if (route.path === '/game/sect') {
+    return '山门里一句话、坊市里一笔买卖，都可能把后面的人和事牵出来。'
+  }
+  return '这一轮修行不会白过，做过的事、人情旧账和后头的风声都会慢慢追上来。'
+})
+
+const encounterStatus = computed(() => randomEvent.getEncounterStatus())
+
+const encounterPrompt = computed(() => {
+  const status = encounterStatus.value
+  const memoryText = status.memoryHighlights.length
+    ? `旧账还在：${status.memoryHighlights.join('、')}`
+    : '旧恩旧怨暂时还没回头。'
+
+  if (status.isDailyBlocked) {
+    return `今天额外冒头的事已经露完了。${memoryText}`
+  }
+
+  if (status.isStoryDailyBlocked) {
+    return `今天和这条事相关的人情旧怨已经露过脸了。${memoryText}`
+  }
+
+  return `${status.storyGateReason}${memoryText ? ` ${memoryText}` : ''}`
+})
+
+const ambientPrompt = computed(() => {
+  if (route.path === '/game/cultivation' || route.path === '/game/adventure') {
+    return encounterPrompt.value
+  }
+  return currentPrompt.value
 })
 
 const sectAlertTone = computed<'jade' | 'gold' | 'mist'>(() => {
@@ -236,11 +320,14 @@ const sectAlertTone = computed<'jade' | 'gold' | 'mist'>(() => {
   return 'jade'
 })
 
-const formatCultivation = computed(() => {
-  const cur = playerStore.cultivation
-  const max = playerStore.maxCultivation
+const resourceCultivationDisplay = computed(() => {
+  const cur = sanitizeNumber(playerStore.cultivation)
+  const max = sanitizeNumber(playerStore.maxCultivation)
+  if (isCultivationRoute.value) {
+    return formatAmount(cur)
+  }
   if (max >= 10000) {
-    return `${(cur / 1000).toFixed(1)}k/${(max / 1000).toFixed(0)}k`
+    return `${Math.floor(cur / 1000)}k/${Math.floor(max / 1000)}k`
   }
   return `${formatAmount(cur)}/${formatAmount(max)}`
 })
@@ -292,13 +379,30 @@ function closeMenu() {
   isMenuExpanded.value = false
 }
 
-function handleToggleBgm() {
-  toggleBgm()
+function handleCloseStoryOverlay() {
+  void closeStoryOverlay()
+}
+
+async function ensureStoryOverlayReady() {
+  if (!isStoryOverlayVisible.value || isStandaloneStoryRoute.value) return
+  if (!storyStore.hasStoryContent) return
+
+  const preferredPerspective = playerStore.perspective ?? 'male'
+
+  if (storyStore.currentNodeId && storyStore.currentNode) {
+    await storyStore.continueStory(preferredPerspective)
+    return
+  }
+
+  await storyStore.initStory(preferredPerspective, storyStore.currentVolume || 1)
 }
 
 function formatAmount(value: number) {
-  if (Number.isInteger(value)) return String(value)
-  return value.toFixed(1)
+  return String(Math.round(sanitizeNumber(value)))
+}
+
+function sanitizeNumber(value: number) {
+  return Number.isFinite(value) ? value : 0
 }
 
 function startWorldClock() {
@@ -306,17 +410,36 @@ function startWorldClock() {
   if (worldTickTimer) return
   worldTickTimer = window.setInterval(() => {
     worldStore.advanceTick()
+    randomEvent.checkForEvent()
   }, WORLD_TICK_INTERVAL_MS)
+}
+
+function syncRouteBgm(path: string) {
+  if (!bgmEnabled.value) return
+  switchBgm(resolveRouteBgmType(path))
 }
 
 onMounted(() => {
   startWorldClock()
+  syncRouteBgm(route.fullPath)
+  void ensureStoryOverlayReady()
 })
 
 watch(
   () => route.fullPath,
-  () => {
+  path => {
     isMenuExpanded.value = false
+    syncRouteBgm(path)
+    void ensureStoryOverlayReady()
+  }
+)
+
+watch(
+  () => bgmEnabled.value,
+  enabled => {
+    if (enabled) {
+      syncRouteBgm(route.fullPath)
+    }
   }
 )
 
@@ -330,20 +453,19 @@ onUnmounted(() => {
 
 <style scoped>
 .game-layout {
-  position: relative;
+  max-width: 430px;
+  margin: 0 auto;
+  box-shadow: 0 0 60px rgba(49, 82, 87, 0.12);
   min-height: 100vh;
   min-height: 100dvh;
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 12% 4%, rgba(255, 223, 138, 0.28), transparent 28%),
-    radial-gradient(circle at 86% 0%, rgba(115, 212, 190, 0.18), transparent 32%),
-    repeating-linear-gradient(90deg, rgba(87, 137, 125, 0.035) 0 1px, transparent 1px 72px),
-    repeating-linear-gradient(0deg, rgba(188, 141, 58, 0.03) 0 1px, transparent 1px 72px),
-    linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%);
+    v-bind('GAME_THEME_TOKENS.surfaceBackdrop');
   color: #315257;
 }
 
@@ -362,6 +484,31 @@ onUnmounted(() => {
     linear-gradient(115deg, transparent 0 34%, rgba(255, 238, 185, 0.24) 34% 35%, transparent 35% 100%),
     linear-gradient(25deg, transparent 0 62%, rgba(122, 180, 154, 0.16) 62% 63%, transparent 63% 100%);
   opacity: 0.8;
+}
+
+.game-layout.is-cultivation {
+  background:
+    linear-gradient(180deg, rgba(245, 251, 249, 0.96), rgba(232, 241, 239, 0.92));
+}
+
+.game-layout.is-cultivation .layout-backdrop::before {
+  background:
+    linear-gradient(180deg, rgba(247, 252, 251, 0.16), rgba(243, 248, 247, 0.38) 22%, rgba(230, 240, 239, 0.78) 100%),
+    url('@/assets/theme/generated/homepage-v3-scenic-focus-clean.png') center top / cover no-repeat;
+  filter: saturate(0.96) blur(2px);
+  transform: scale(1.05);
+  opacity: 0.98;
+}
+
+.game-layout.is-cultivation .layout-backdrop::after {
+  background-image:
+    radial-gradient(circle at 8% 18%, rgba(255, 255, 255, 0.88), transparent 16%),
+    radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.76), transparent 14%),
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  opacity: 0.34;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.42) 46%, transparent 78%);
 }
 
 .layout-backdrop::after {
@@ -383,7 +530,7 @@ onUnmounted(() => {
 }
 
 .top-shell {
-  padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 0;
+  padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 0.75rem 0;
   z-index: 6;
   pointer-events: none;
 }
@@ -391,24 +538,42 @@ onUnmounted(() => {
 .hud-shell,
 .nav-drawer,
 .tab-bar {
-  max-width: 1120px;
   margin: 0 auto;
 }
 
 .hud-shell {
   display: grid;
-  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
-  align-items: center;
-  gap: 5px 10px;
-  padding: 5px 8px;
-  border: 1px solid rgba(101, 152, 145, 0.18);
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 250, 0.84), rgba(242, 251, 246, 0.68)),
-    linear-gradient(90deg, rgba(255, 238, 184, 0.2), transparent 46%);
-  box-shadow: 0 8px 22px rgba(88, 123, 116, 0.08);
-  backdrop-filter: blur(16px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: auto;
+}
+
+.game-layout.is-cultivation .top-shell {
+  padding-top: calc(0.18rem + env(safe-area-inset-top, 0px));
+  padding-inline: 0.58rem;
+}
+
+.game-layout.is-cultivation .hud-shell {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.26rem;
+}
+
+.game-layout.is-cultivation .player-block {
+  min-width: 0;
+  padding-top: 0.02rem;
+  gap: 0.56rem;
+}
+
+.game-layout.is-cultivation .resource-row {
+  align-self: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.2rem;
+  justify-content: stretch;
 }
 
 .hud-shell.tone-gold {
@@ -424,46 +589,40 @@ onUnmounted(() => {
 .player-block {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
 .avatar-orb {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  border: 1px solid rgba(188, 141, 58, 0.22);
-  background: linear-gradient(135deg, #fff0b0, #73d4be);
-  color: #8e6227;
-  font-size: 18px;
-  box-shadow: 0 12px 24px rgba(113, 196, 177, 0.18);
+  flex: 0 0 auto;
 }
 
 .player-copy {
   display: grid;
-  gap: 4px;
+  gap: 0.18rem;
+  min-width: 0;
 }
 
 .player-copy strong {
-  color: #315257;
-  font-size: 14px;
+  overflow: hidden;
+  color: #4d4b45;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-copy small {
-  color: rgba(74, 97, 96, 0.7);
-  font-size: 11px;
+  color: rgba(95, 104, 108, 0.76);
+  font-size: 0.78rem;
 }
 
 .realm-pill {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(123, 166, 176, 0.2);
-  background: rgba(255, 255, 255, 0.74);
-  font-size: 11px;
+  color: #4c5960;
+  font-size: 0.96rem;
+  line-height: 1.2;
 }
 
 .realm-qi { color: #4d99c2; }
@@ -475,68 +634,159 @@ onUnmounted(() => {
 .realm-mahayana { color: #c2932f; }
 .realm-immortal { color: #a6882d; }
 
+.event-dialog-body {
+  display: grid;
+  gap: 10px;
+}
+
+.event-dialog-body p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.event-dialog-hint {
+  color: rgba(92, 114, 110, 0.84);
+  line-height: 1.5;
+}
+
+.event-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.story-overlay-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding:
+    max(6px, calc(env(safe-area-inset-top) + 2px))
+    max(12px, env(safe-area-inset-right))
+    max(72px, calc(env(safe-area-inset-bottom) + 8px))
+    max(12px, env(safe-area-inset-left));
+  background:
+    linear-gradient(180deg, rgba(14, 22, 20, 0.01), rgba(17, 28, 26, 0.04) 28%, rgba(12, 20, 18, 0.1)),
+    radial-gradient(circle at 50% 82%, rgba(216, 176, 91, 0.05), transparent 16%);
+  backdrop-filter: blur(2px) saturate(0.96) brightness(0.99);
+  overflow: hidden;
+}
+
+.story-overlay-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 82%, rgba(255, 228, 163, 0.06), transparent 14%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 18%, rgba(255, 242, 196, 0.018) 74%, rgba(8, 15, 14, 0.03));
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.story-overlay-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 414px);
+  min-height: 0;
+  max-height: min(calc(100dvh - 10px - env(safe-area-inset-bottom)), 920px);
+  margin: 0 auto;
+  border-radius: 0;
+  overflow: visible;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  animation: story-shell-enter 0.42s cubic-bezier(0.2, 0.84, 0.24, 1);
+}
+
+.story-overlay-shell::before {
+  display: none;
+}
+
+.story-overlay-fade-enter-active,
+.story-overlay-fade-leave-active {
+  transition: opacity 0.24s ease;
+}
+
+.story-overlay-fade-enter-from,
+.story-overlay-fade-leave-to {
+  opacity: 0;
+}
+
+.story-overlay-fade-enter-from .story-overlay-shell {
+  transform: translateY(26px) scale(0.975);
+  filter: blur(8px);
+  opacity: 0.34;
+}
+
+.story-overlay-fade-leave-to .story-overlay-shell {
+  transform: translateY(18px) scale(0.985);
+  filter: blur(5px);
+  opacity: 0.24;
+}
+
+@keyframes story-shell-enter {
+  0% {
+    transform: translateY(22px) scale(0.978);
+    filter: blur(10px);
+    opacity: 0.34;
+  }
+  60% {
+    transform: translateY(-2px) scale(1.004);
+    filter: blur(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 720px) {
+  .story-overlay-wrap {
+    padding:
+      max(24px, env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      max(88px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+    align-items: center;
+  }
+
+  .story-overlay-shell {
+    width: min(414px, calc(100vw - 32px));
+    min-height: 0;
+    max-height: min(86dvh, 860px);
+    margin: 0 auto;
+    border-radius: 0;
+  }
+}
+
 .resource-row {
   display: grid;
-  grid-template-columns: repeat(6, max-content);
-  justify-content: flex-end;
-  gap: 5px;
-}
-
-.audio-toggle,
-.home-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 5px 8px;
-  border: 1px solid rgba(103, 149, 144, 0.18);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.58);
-  color: #4b6767;
-  font-family: var(--font-game);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-}
-
-.home-toggle {
-  text-decoration: none;
-}
-
-.audio-toggle.active {
-  border-color: rgba(188, 141, 58, 0.28);
-  background: rgba(255, 249, 233, 0.82);
-  color: #8b6226;
-}
-
-.audio-toggle span,
-.home-toggle span {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(255, 235, 169, 0.82);
-  font-size: 13px;
-}
-
-.audio-toggle svg,
-.home-toggle svg {
-  color: currentColor;
-}
-
-.audio-toggle small,
-.home-toggle small {
-  font-size: 10px;
-  font-weight: 700;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: end;
+  gap: 0.4rem;
 }
 
 .world-summary {
   grid-column: 1 / -1;
   margin: 0;
-  color: rgba(55, 82, 84, 0.78);
-  font-size: 11px;
-  line-height: 1.4;
+  color: rgba(74, 94, 97, 0.78);
+  font-size: 0.72rem;
+  line-height: 1.36;
+  text-align: right;
+}
+
+.encounter-prompt {
+  margin: -0.1rem 0 0;
+  color: rgba(95, 109, 91, 0.72);
+  font-size: 0.62rem;
+  line-height: 1.36;
+  text-align: right;
 }
 
 .main-shell {
@@ -551,8 +801,12 @@ onUnmounted(() => {
   isolation: isolate;
 }
 
+.game-layout.is-cultivation .main-shell {
+  padding: 2px 8px 6px;
+}
+
 .content-stage {
-  width: min(1120px, 100%);
+  width: 100%; max-width: 100%;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -561,8 +815,13 @@ onUnmounted(() => {
 .nav-shell {
   position: relative;
   z-index: 18;
-  padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 0 0.8rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
+}
+
+.game-layout.is-cultivation .nav-shell {
+  padding-inline: 0.56rem;
+  padding-bottom: calc(0.22rem + env(safe-area-inset-bottom, 0px));
 }
 
 .nav-shell.expanded {
@@ -594,7 +853,7 @@ onUnmounted(() => {
   right: 10px;
   bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   margin-bottom: 10px;
-  width: min(1120px, calc(100vw - 20px));
+  width: 100%;
   max-height: min(50vh, 430px);
   overflow: auto;
   border-radius: 14px;
@@ -732,55 +991,57 @@ onUnmounted(() => {
 .tab-bar {
   position: relative;
   z-index: 44;
-  height: 56px;
+  min-height: 4.9rem;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  align-items: center;
-  gap: 2px;
-  padding: 6px;
-  border: 1px solid rgba(102, 146, 141, 0.2);
-  border-radius: 14px;
+  align-items: end;
+  gap: 0;
+  padding: 0.34rem 0.28rem 0.14rem;
+  border: 1px solid rgba(224, 205, 175, 0.78);
+  border-radius: 1.8rem 1.8rem 0 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(239, 249, 245, 0.88)),
-    radial-gradient(circle at top, rgba(255, 223, 147, 0.18), transparent 58%);
-  box-shadow: 0 14px 38px rgba(57, 89, 84, 0.16);
+    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(248, 247, 243, 0.92)),
+    radial-gradient(circle at top, rgba(255, 223, 147, 0.16), transparent 58%);
+  box-shadow: 0 -0.1rem 0 rgba(255, 255, 255, 0.8), 0 -0.5rem 2rem rgba(72, 98, 100, 0.1);
   backdrop-filter: blur(18px);
 }
 
+.game-layout.is-cultivation .tab-bar {
+  min-height: 4.35rem;
+  padding: 0.22rem 0.18rem 0.08rem;
+  border-radius: 1.55rem 1.55rem 0 0;
+}
+
 .tab-item {
-  height: 44px;
   min-width: 0;
-  display: grid;
-  place-items: center;
-  gap: 3px;
-  padding: 4px 2px;
+  display: block;
+  padding: 0;
   border: 0;
-  border-radius: 9px;
   background: transparent;
-  color: rgba(65, 91, 89, 0.74);
-  font-family: var(--font-game);
-  font-size: 11px;
-  line-height: 1;
   text-decoration: none;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.tab-item svg {
-  display: block;
+.tab-item + .tab-item {
+  position: relative;
 }
 
-.tab-item.active {
-  background: rgba(255, 248, 229, 0.92);
-  color: #8b6226;
-  box-shadow: inset 0 0 0 1px rgba(194, 146, 66, 0.2);
+.tab-item + .tab-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.85rem;
+  bottom: 0.75rem;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(208, 192, 162, 0.72), transparent);
 }
 
 .world-summary span {
   display: inline-flex;
-  margin-right: 8px;
-  padding: 2px 7px;
-  border-radius: 8px;
+  margin-right: 0.5rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 0.5rem;
   border: 1px solid rgba(188, 141, 58, 0.24);
   background: rgba(255, 248, 229, 0.72);
   color: #8b6226;
@@ -798,7 +1059,6 @@ onUnmounted(() => {
 
   .resource-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    justify-content: flex-start;
   }
 
   .menu-grid {
@@ -811,88 +1071,98 @@ onUnmounted(() => {
     padding: 5px 8px 6px;
   }
 
+  .game-layout.is-cultivation .main-shell {
+    padding: 1px 7px 5px;
+  }
+
   .top-shell {
-    padding-inline: 10px;
+    padding-inline: 0.7rem;
   }
 
   .nav-shell {
-    padding-inline: 10px;
+    padding-inline: 0.7rem;
   }
 
   .hud-shell {
-    gap: 5px;
-    padding: 5px;
-    border-radius: 14px;
+    gap: 0.4rem;
+  }
+
+  .game-layout.is-cultivation .hud-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.22rem;
   }
 
   .player-block {
-    gap: 9px;
-  }
-
-  .avatar-orb {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
+    gap: 0.65rem;
   }
 
   .player-copy {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 4px 8px;
+    gap: 0.12rem;
   }
 
   .player-copy strong {
-    min-width: 0;
-    overflow: hidden;
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 1.18rem;
   }
 
   .player-copy small {
-    grid-column: 1 / -1;
-    font-size: 10px;
+    font-size: 0.72rem;
   }
 
   .realm-pill {
-    padding: 3px 7px;
-    font-size: 10px;
+    font-size: 0.86rem;
   }
 
   .resource-row {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
   }
 
-  .resource-row :deep(.stat-chip) {
-    flex-direction: column;
-    min-height: 34px;
-    justify-content: center;
-    gap: 2px;
-    padding: 5px 3px;
+  .game-layout.is-cultivation .player-copy strong {
+    font-size: 1.06rem;
   }
 
-  .resource-row :deep(.stat-copy small) {
-    display: none;
+  .game-layout.is-cultivation .top-shell {
+    padding-top: calc(0.08rem + env(safe-area-inset-top, 0px));
+    padding-inline: 0.5rem;
   }
 
-  .resource-row :deep(.stat-copy strong) {
-    font-size: 10px;
+  .game-layout.is-cultivation .player-block {
+    gap: 0.46rem;
   }
 
-  .audio-toggle,
-  .home-toggle {
-    min-height: 34px;
-    justify-content: center;
-    padding: 6px 4px;
+  .game-layout.is-cultivation .realm-pill {
+    font-size: 0.8rem;
+  }
+
+  .game-layout.is-cultivation .player-copy small {
+    font-size: 0.68rem;
+  }
+
+  .game-layout.is-cultivation .resource-row {
     gap: 3px;
   }
 
-  .audio-toggle small,
-  .home-toggle small {
-    display: block;
-    font-size: 9px;
+  .game-layout.is-cultivation .nav-shell {
+    padding-inline: 0.46rem;
+    padding-bottom: calc(0.14rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .game-layout.is-cultivation .tab-bar {
+    min-height: 4.12rem;
+    padding: 0.18rem 0.12rem 0.05rem;
+    border-radius: 1.35rem 1.35rem 0 0;
+  }
+
+  .game-layout.is-cultivation .realm-pill {
+    font-size: 0.82rem;
+  }
+
+  .game-layout.is-cultivation .player-copy small {
+    font-size: 0.68rem;
+  }
+
+  .resource-row :deep(.theme-home-resource-pill) {
+    width: 100%;
   }
 
   .world-summary {
@@ -918,13 +1188,9 @@ onUnmounted(() => {
   }
 
   .tab-bar {
-    height: 54px;
-    border-radius: 13px;
-  }
-
-  .tab-item {
-    height: 42px;
-    font-size: 10px;
+    min-height: 4.55rem;
+    padding: 0.28rem 0.22rem 0.1rem;
+    border-radius: 1.55rem 1.55rem 0 0;
   }
 }
 </style>

@@ -114,7 +114,8 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
       areaAnomalyCount: worldStore.areaAnomalies.length,
       sectJoined: Boolean(sectStore.currentSect),
       sectJoinableCount: sectStore.joinCandidates.filter(candidate => candidate.canJoin).length
-    }
+    },
+    hotspotAreaId: hotspotArea.value?.id ?? null
   }))
 
   const loopReadiness = computed(() => p0Verification.value.loopReadiness)
@@ -123,6 +124,7 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
   const p0Audit = computed(() => p0Verification.value.p0Audit)
   const p0Acceptance = computed(() => p0Verification.value.p0Acceptance)
   const p0Report = computed(() => p0Verification.value.p0Report)
+  const p0Checklist = computed(() => p0Verification.value.p0Checklist)
 
   return {
     hotspotArea,
@@ -131,6 +133,7 @@ export function useP0LoopStatus(options: UseP0LoopStatusOptions = {}) {
     p0NextAction,
     p0Audit,
     p0Acceptance,
-    p0Report
+    p0Report,
+    p0Checklist
   }
 }

@@ -103,6 +103,9 @@ export interface BattleArenaTheme {
   terrace: BattleArenaTerraceSpec
   sigil: BattleArenaSigilSpec
   sweep: BattleArenaSweepSpec
+  mobile?: {
+    sweepEnabled?: boolean
+  }
   layout: BattleArenaLayout
 }
 
@@ -138,33 +141,33 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
   misty_forest: {
     id: 'misty_forest',
     name: '迷雾森林',
-    cameraBackgroundColor: '#e8f7ff',
+    cameraBackgroundColor: '#dceee8',
     overlays: [
-      { xRatio: 0.5, yRatio: 0.18, widthRatio: 1.1, heightRatio: 0.42, color: 0xdff8ff, alpha: 0.26 },
-      { xRatio: 0.5, yRatio: 0.82, widthRatio: 1.05, heightRatio: 0.32, color: 0xe5f4d4, alpha: 0.16 }
+      { xRatio: 0.5, yRatio: 0.18, widthRatio: 1.1, heightRatio: 0.42, color: 0xdff6ee, alpha: 0.18 },
+      { xRatio: 0.5, yRatio: 0.82, widthRatio: 1.05, heightRatio: 0.32, color: 0xe8efd8, alpha: 0.1 }
     ],
     layers: [
-      { key: 'bg_cloud_base', xRatio: 0.5, yRatio: 0.5, fillScale: 1.02, alpha: 1, tint: 0xffffff },
-      { key: 'bg_cloud_glow', xRatio: 0.5, yRatio: 0.5, fillScale: 1.02, alpha: 0.42, tint: 0xfbf2b2 },
-      { key: 'bg_mountain_far', xRatio: 0.5, yRatio: 0.44, fillScale: 1.02, alpha: 0.86, tint: 0xb8d6ba },
-      { key: 'bg_mountain_near', xRatio: 0.5, yRatio: 0.52, fillScale: 1.02, alpha: 0.7, tint: 0x95bf84 }
+      { key: 'bg_cloud_base', xRatio: 0.5, yRatio: 0.5, fillScale: 1.02, alpha: 0.94, tint: 0xf8fff8 },
+      { key: 'bg_cloud_glow', xRatio: 0.5, yRatio: 0.5, fillScale: 1.02, alpha: 0.22, tint: 0xf0e7a6 },
+      { key: 'bg_mountain_far', xRatio: 0.5, yRatio: 0.44, fillScale: 1.02, alpha: 0.78, tint: 0xa9cab0 },
+      { key: 'bg_mountain_near', xRatio: 0.5, yRatio: 0.52, fillScale: 1.02, alpha: 0.58, tint: 0x83ae91 }
     ],
     driftingClouds: [
-      { key: 'bg_cloud_1', xRatio: 0.22, yRatio: 0.23, fillScale: 1.15, alpha: 0.46, duration: 18000, drift: 52, blendMode: 'screen', tint: 0xffffff },
-      { key: 'bg_cloud_2', xRatio: 0.72, yRatio: 0.31, fillScale: 1.12, alpha: 0.42, duration: 21000, drift: -46, blendMode: 'screen', tint: 0xf7fff1 },
-      { key: 'bg_cloud_3', xRatio: 0.44, yRatio: 0.48, fillScale: 1.18, alpha: 0.34, duration: 16000, drift: 38, blendMode: 'screen', tint: 0xffffff },
-      { key: 'bg_cloud_4', xRatio: 0.82, yRatio: 0.57, fillScale: 1.2, alpha: 0.32, duration: 19000, drift: -34, blendMode: 'screen', tint: 0xf6fffc }
+      { key: 'bg_cloud_1', xRatio: 0.22, yRatio: 0.23, fillScale: 1.15, alpha: 0.24, duration: 18000, drift: 32, blendMode: 'screen', tint: 0xffffff },
+      { key: 'bg_cloud_2', xRatio: 0.72, yRatio: 0.31, fillScale: 1.12, alpha: 0.2, duration: 21000, drift: -28, blendMode: 'screen', tint: 0xf7fff1 },
+      { key: 'bg_cloud_3', xRatio: 0.44, yRatio: 0.48, fillScale: 1.18, alpha: 0.16, duration: 16000, drift: 22, blendMode: 'screen', tint: 0xffffff },
+      { key: 'bg_cloud_4', xRatio: 0.82, yRatio: 0.57, fillScale: 1.2, alpha: 0.14, duration: 19000, drift: -18, blendMode: 'screen', tint: 0xf6fffc }
     ],
     terrace: {
       topRatio: 0.52,
       heightRatio: 0.28,
       radius: 26,
       fillColor: 0xf3dfb5,
-      fillAlpha: 0.48,
+      fillAlpha: 0.38,
       strokeColor: 0xd0a85a,
-      strokeAlpha: 0.24,
+      strokeAlpha: 0.16,
       accentColor: 0xb88f4d,
-      accentAlpha: 0.18
+      accentAlpha: 0.12
     },
     sigil: {
       centerYRatio: 0.54,
@@ -172,9 +175,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       innerRadiusRatio: 0.12,
       spokeCount: 8,
       primaryColor: 0xd8a944,
-      primaryAlpha: 0.34,
+      primaryAlpha: 0.18,
       secondaryColor: 0x56b9a8,
-      secondaryAlpha: 0.28,
+      secondaryAlpha: 0.14,
       rotationDuration: 32000,
       pulseDuration: 1600
     },
@@ -187,6 +190,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       angle: -5,
       duration: 1400,
       repeatDelay: 1300
+    },
+    mobile: {
+      sweepEnabled: false
     },
     layout: defaultLayout
   },
@@ -241,6 +247,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       angle: -8,
       duration: 1600,
       repeatDelay: 1800
+    },
+    mobile: {
+      sweepEnabled: false
     },
     layout: {
       ...defaultLayout,
@@ -301,6 +310,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       duration: 1500,
       repeatDelay: 1200
     },
+    mobile: {
+      sweepEnabled: false
+    },
     layout: {
       ...defaultLayout,
       ally: { ...defaultLayout.ally, anchorY: 0.68, curveScale: 0.045 },
@@ -358,6 +370,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       angle: -6,
       duration: 1300,
       repeatDelay: 1500
+    },
+    mobile: {
+      sweepEnabled: false
     },
     layout: {
       ...defaultLayout,
@@ -417,6 +432,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       duration: 1200,
       repeatDelay: 900
     },
+    mobile: {
+      sweepEnabled: false
+    },
     layout: {
       ...defaultLayout,
       actorScale: { ally: 3.08, enemy: 2.95, boss: 3.28 }
@@ -473,6 +491,9 @@ export const BATTLE_ARENA_THEMES: Record<string, BattleArenaTheme> = {
       angle: -5,
       duration: 1400,
       repeatDelay: 1400
+    },
+    mobile: {
+      sweepEnabled: false
     },
     layout: {
       ...defaultLayout,

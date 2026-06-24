@@ -55,18 +55,21 @@ function addDriftingCloud(scene: Phaser.Scene, arena: Phaser.GameObjects.Contain
 
 function createBattleTerrace(scene: Phaser.Scene, arena: Phaser.GameObjects.Container, theme: BattleArenaTheme) {
   const { width, height } = scene.scale
+  const isMobile = width <= 720
   const terrace = scene.add.graphics()
   const top = height * theme.terrace.topRatio
   terrace.fillStyle(theme.terrace.fillColor, theme.terrace.fillAlpha)
   terrace.fillRoundedRect(width * 0.08, top, width * 0.84, height * theme.terrace.heightRatio, theme.terrace.radius)
   terrace.lineStyle(2, theme.terrace.strokeColor, theme.terrace.strokeAlpha)
   terrace.strokeRoundedRect(width * 0.08, top, width * 0.84, height * theme.terrace.heightRatio, theme.terrace.radius)
-  terrace.lineStyle(1, theme.terrace.accentColor, theme.terrace.accentAlpha)
-  for (let index = 0; index < 7; index++) {
-    const y = top + 18 + index * 30
+  terrace.lineStyle(1, theme.terrace.accentColor, isMobile ? theme.terrace.accentAlpha * 0.05 : theme.terrace.accentAlpha * 0.22)
+  const stripeCount = isMobile ? 0 : 2
+  const stripeGap = isMobile ? 52 : 38
+  for (let index = 0; index < stripeCount; index++) {
+    const y = top + 20 + index * stripeGap
     terrace.beginPath()
-    terrace.moveTo(width * 0.11, y)
-    terrace.lineTo(width * 0.89, y + Math.sin(index) * 8)
+    terrace.moveTo(width * 0.15, y)
+    terrace.lineTo(width * 0.85, y + Math.sin(index) * 2)
     terrace.strokePath()
   }
   arena.add(terrace)
@@ -74,58 +77,35 @@ function createBattleTerrace(scene: Phaser.Scene, arena: Phaser.GameObjects.Cont
 
 function createBattleSigil(scene: Phaser.Scene, arena: Phaser.GameObjects.Container, theme: BattleArenaTheme) {
   const { width, height } = scene.scale
+  const isMobile = width <= 720
   const centerY = height * theme.sigil.centerYRatio
   const sigil = scene.add.graphics()
-  sigil.lineStyle(3, theme.sigil.primaryColor, theme.sigil.primaryAlpha)
+  sigil.lineStyle(isMobile ? 1 : 2, theme.sigil.primaryColor, isMobile ? theme.sigil.primaryAlpha * 0.08 : theme.sigil.primaryAlpha * 0.46)
   sigil.strokeCircle(width / 2, centerY, Math.min(width, height) * theme.sigil.outerRadiusRatio)
   sigil.strokeCircle(width / 2, centerY, Math.min(width, height) * theme.sigil.innerRadiusRatio)
-  sigil.lineStyle(1, theme.sigil.secondaryColor, theme.sigil.secondaryAlpha)
-  for (let index = 0; index < theme.sigil.spokeCount; index++) {
-    const angle = index * Math.PI * 2 / theme.sigil.spokeCount
+  sigil.lineStyle(1, theme.sigil.secondaryColor, isMobile ? theme.sigil.secondaryAlpha * 0.06 : theme.sigil.secondaryAlpha * 0.3)
+  const spokeCount = isMobile ? Math.max(3, Math.floor(theme.sigil.spokeCount / 2)) : Math.max(4, Math.floor(theme.sigil.spokeCount * 0.75))
+  for (let index = 0; index < spokeCount; index++) {
+    const angle = index * Math.PI * 2 / spokeCount
     const radius = Math.min(width, height) * (theme.sigil.outerRadiusRatio + 0.01)
     sigil.beginPath()
     sigil.moveTo(width / 2, centerY)
     sigil.lineTo(width / 2 + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius)
     sigil.strokePath()
   }
-  scene.tweens.add({ targets: sigil, angle: 360, duration: theme.sigil.rotationDuration, repeat: -1 })
-  scene.tweens.add({
-    targets: sigil,
-    alpha: { from: 0.32, to: 0.82 },
-    scale: { from: 0.94, to: 1.04 },
-    duration: theme.sigil.pulseDuration,
-    yoyo: true,
-    repeat: -1,
-    ease: 'Sine.easeInOut'
-  })
+  if (!isMobile) {
+    scene.tweens.add({
+      targets: sigil,
+      alpha: { from: 0.18, to: 0.34 },
+      duration: Math.max(2400, theme.sigil.pulseDuration * 2),
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    })
+  } else {
+    sigil.setAlpha(0.08)
+  }
   arena.add(sigil)
-}
-
-function createSweep(scene: Phaser.Scene, arena: Phaser.GameObjects.Container, theme: BattleArenaTheme) {
-  const { width, height } = scene.scale
-  const sweep = scene.add.rectangle(
-    width * 0.5,
-    height * theme.sweep.centerYRatio,
-    width * theme.sweep.widthRatio,
-    theme.sweep.height,
-    theme.sweep.color,
-    theme.sweep.alpha
-  )
-    .setBlendMode(Phaser.BlendModes.ADD)
-    .setAngle(theme.sweep.angle)
-
-  scene.tweens.add({
-    targets: sweep,
-    x: { from: width * 0.16, to: width * 0.84 },
-    alpha: { from: 0, to: Math.min(1, theme.sweep.alpha + 0.2) },
-    duration: theme.sweep.duration,
-    yoyo: true,
-    repeat: -1,
-    repeatDelay: theme.sweep.repeatDelay,
-    ease: 'Sine.easeInOut'
-  })
-
-  arena.add(sweep)
 }
 
 export function buildBattleArena(scene: Phaser.Scene, theme: BattleArenaTheme) {
@@ -145,7 +125,6 @@ export function buildBattleArena(scene: Phaser.Scene, theme: BattleArenaTheme) {
 
   createBattleTerrace(scene, arena, theme)
   createBattleSigil(scene, arena, theme)
-  createSweep(scene, arena, theme)
 
   return arena
 }

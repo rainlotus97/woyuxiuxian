@@ -1,0 +1,30 @@
+<svg width="1536" height="512" viewBox="0 0 1536 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stoneStroke" x1="98" y1="84" x2="1438" y2="428" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8D1BA"/>
+      <stop offset="0.32" stop-color="#9F937A"/>
+      <stop offset="0.7" stop-color="#EDE6D2"/>
+      <stop offset="1" stop-color="#A7967B"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="768" y1="72" x2="768" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBFBF8"/>
+      <stop offset="1" stop-color="#EDF1EE"/>
+    </linearGradient>
+    <radialGradient id="mist" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(768 256) rotate(90) scale(170 520)">
+      <stop stop-color="#E4ECE6" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#E4ECE6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="96" y="72" width="1344" height="368" rx="184" fill="url(#fill)" stroke="url(#stoneStroke)" stroke-width="14"/>
+  <rect x="116" y="92" width="1304" height="328" rx="164" stroke="#F4F0E4" stroke-width="5" opacity="0.92"/>
+  <rect x="132" y="108" width="1272" height="296" rx="148" fill="url(#mist)"/>
+
+  <path d="M180 256C210 202 250 178 302 176C270 196 262 222 276 242C288 260 282 286 254 306C254 280 238 266 206 262L180 256Z" fill="#EEF1ED" stroke="#B9AA8C" stroke-width="6"/>
+  <circle cx="206" cy="240" r="23" fill="#F9FBF8" stroke="#B9AA8C" stroke-width="6"/>
+  <path d="M1356 256C1326 202 1286 178 1234 176C1266 196 1274 222 1260 242C1248 260 1254 286 1282 306C1282 280 1298 266 1330 262L1356 256Z" fill="#EEF1ED" stroke="#B9AA8C" stroke-width="6"/>
+  <circle cx="1330" cy="240" r="23" fill="#F9FBF8" stroke="#B9AA8C" stroke-width="6"/>
+
+  <path d="M730 82L746 96H790L806 82L794 112H742L730 82Z" fill="#EEF1ED" stroke="#BAAC8D" stroke-width="5"/>
+  <path d="M730 430L746 416H790L806 430L794 400H742L730 430Z" fill="#EEF1ED" stroke="#BAAC8D" stroke-width="5"/>
+</svg>

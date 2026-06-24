@@ -94,11 +94,13 @@ function resolveCultivationJourney(context: PlayerJourneyResolverContext): Playe
     result.petIntimacyDelta += petRewards.petIntimacy
   }
   if (seededWorldRoll(context.clock.totalTicks, 'player-cultivate-insight') > 0.94) {
+    const insightGain = Math.max(3, Math.floor(gain * 0.28))
+    result.cultivationDelta += insightGain
     result.journeys.push({
       severity: 'major',
       title: '修炼顿悟',
-      text: `你在${formatWorldTime(context.clock)}心有所感，额外凝聚了${gain}点修为。`,
-      rewards: [{ type: 'cultivation', label: '修为', value: gain }],
+      text: `你在${formatWorldTime(context.clock)}心有所感，顺手补上了一截火候，额外凝聚了${insightGain}点修为。`,
+      rewards: [{ type: 'cultivation', label: '修为', value: insightGain }],
       tags: ['cultivation', 'insight']
     })
   }
@@ -134,7 +136,7 @@ function resolveAdventureJourney(context: PlayerJourneyResolverContext): PlayerJ
 
   if (seededWorldRoll(context.clock.totalTicks, 'player-adventure-encounter') > 0.9) {
     const areaId = context.activeAnomaly?.areaId ?? context.fallbackAreaId ?? undefined
-    const cultivationGain = 12 + Math.floor(seededWorldRoll(context.clock.totalTicks, 'player-adventure-insight') * 30)
+    const cultivationGain = 6 + Math.floor(seededWorldRoll(context.clock.totalTicks, 'player-adventure-insight') * 12)
     result.cultivationDelta += cultivationGain
     result.journeys.push({
       severity: 'major',

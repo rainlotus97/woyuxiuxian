@@ -28,10 +28,10 @@ export interface P0LoopNextActionSummary {
 }
 
 const KIND_LABELS: Record<P0LoopNextActionKind, string> = {
-  unblock: '先解阻塞',
-  verify: '先补闭环',
-  handle: '先处理状态',
-  expand: '继续扩展'
+  unblock: '先解眼前困局',
+  verify: '先去把这件事碰出来',
+  handle: '先顾眼前这件事',
+  expand: '顺势再往深处走'
 }
 
 function getKind(readiness: MainLoopReadinessItem, closure: P0LoopClosureItem): P0LoopNextActionKind {
@@ -60,7 +60,7 @@ function createNextActionItem(readiness: MainLoopReadinessItem, closure: P0LoopC
     kind,
     title: `${KIND_LABELS[kind]}：${closure.label}`,
     reason: kind === 'expand'
-      ? `${closure.evidence}，可继续把该循环做深。`
+      ? `${closure.evidence}，这条路已经有了回响，可以继续往深处走。`
       : `${closure.evidence}。${readiness.reason}`,
     actionHint: closure.nextAction,
     priority: getPriority(readiness, closure, kind),
@@ -87,8 +87,8 @@ export function resolveP0LoopNextAction(input: P0LoopNextActionInput): P0LoopNex
     id: 'idle',
     label: '挂机',
     kind: 'expand',
-    title: '继续扩展：挂机',
-    reason: '暂无 P0 循环数据，先回到主角行动。',
+    title: '顺势再往深处走：挂机',
+    reason: '眼下还没攒出多少动静，先让主角出门走一趟。',
     actionHint: '开始挂机',
     priority: 0,
     closureState: 'actionable',
@@ -98,12 +98,12 @@ export function resolveP0LoopNextAction(input: P0LoopNextActionInput): P0LoopNex
   const primary = items[0] ?? fallback
   const allClosed = items.length > 0 && items.every(item => item.closureState === 'closed')
   const headline = allClosed
-    ? 'P0 已有结果证据，下一步可以做深系统。'
+    ? '六条路都已经留下回响，接下来只管往深处推。'
     : primary.kind === 'unblock'
-      ? `${primary.label} 阻塞，先处理前置。`
+      ? `${primary.label} 这条路被卡住了，先把眼前因果理顺。`
       : primary.kind === 'verify'
-        ? `${primary.label} 还缺结果证据，建议先验证。`
-        : `${primary.label} 状态需要处理。`
+        ? `${primary.label} 这边还没碰出回响，先亲自去走一遭。`
+        : `${primary.label} 眼下有事，先顺手把它处理掉。`
 
   return {
     primary,

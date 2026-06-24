@@ -1,4 +1,5 @@
 import type { Unit } from '@/types/unit'
+import { resolveBattleUnitPresentation } from '@/game/theme/gameTheme'
 
 export type BattleActorRole =
   | 'protagonist'
@@ -33,7 +34,13 @@ export function getBattleActorRole(unit: Pick<Unit, 'id' | 'name' | 'type' | 'qu
 }
 
 export function getBattleSpriteKey(role: BattleActorRole, side: 'ally' | 'enemy') {
-  if (side === 'ally') return 'actor_ally'
-  if (role === 'boss') return 'actor_boss'
-  return 'actor_enemy'
+  return resolveBattleUnitPresentation(role, side).spriteKey
+}
+
+export function getBattlePortraitKey(role: BattleActorRole, side: 'ally' | 'enemy') {
+  return resolveBattleUnitPresentation(role, side).portraitKey
+}
+
+export function getBattleBadgeIcon(role: BattleActorRole, side: 'ally' | 'enemy', fallbackIcon = '') {
+  return resolveBattleUnitPresentation(role, side, fallbackIcon).badgeIcon
 }

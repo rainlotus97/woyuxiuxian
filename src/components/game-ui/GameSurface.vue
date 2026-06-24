@@ -73,18 +73,22 @@ function handleKeyboardClick(event: KeyboardEvent) {
 
 <style scoped>
 .game-surface {
-  --surface-border: rgba(101, 152, 145, 0.22);
+  --surface-border: var(--theme-surface-border, rgba(101, 152, 145, 0.22));
   --surface-bg:
+    var(--theme-surface-image, none),
     linear-gradient(180deg, rgba(255, 255, 250, 0.96), rgba(240, 249, 244, 0.88)),
     radial-gradient(circle at top, rgba(255, 227, 150, 0.14), transparent 62%);
   --surface-shadow: 0 18px 42px rgba(88, 123, 116, 0.14);
-  --surface-title: #8e6227;
-  --surface-text: #325154;
-  --surface-muted: rgba(67, 92, 90, 0.72);
+  --surface-title: var(--theme-surface-title, #8e6227);
+  --surface-text: var(--theme-surface-text, #325154);
+  --surface-muted: var(--theme-surface-muted, rgba(67, 92, 90, 0.72));
 
   border: 1px solid var(--surface-border);
   border-radius: 20px;
   background: var(--surface-bg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   box-shadow: var(--surface-shadow);
   backdrop-filter: blur(14px);
 }
@@ -92,6 +96,7 @@ function handleKeyboardClick(event: KeyboardEvent) {
 .tone-gold {
   --surface-border: rgba(188, 141, 58, 0.3);
   --surface-bg:
+    var(--theme-surface-image, none),
     linear-gradient(180deg, rgba(255, 252, 239, 0.98), rgba(246, 255, 242, 0.9)),
     radial-gradient(circle at top, rgba(255, 215, 122, 0.22), transparent 62%);
 }
@@ -99,6 +104,7 @@ function handleKeyboardClick(event: KeyboardEvent) {
 .tone-mist {
   --surface-border: rgba(119, 158, 178, 0.22);
   --surface-bg:
+    var(--theme-surface-image, none),
     linear-gradient(180deg, rgba(247, 253, 255, 0.94), rgba(239, 249, 246, 0.86)),
     radial-gradient(circle at top left, rgba(174, 218, 240, 0.18), transparent 64%);
 }
@@ -106,6 +112,7 @@ function handleKeyboardClick(event: KeyboardEvent) {
 .tone-realm {
   --surface-border: rgba(125, 170, 147, 0.26);
   --surface-bg:
+    var(--theme-surface-image, none),
     linear-gradient(180deg, rgba(242, 255, 247, 0.9), rgba(232, 247, 243, 0.88)),
     radial-gradient(circle at top right, rgba(88, 198, 165, 0.18), transparent 62%);
 }

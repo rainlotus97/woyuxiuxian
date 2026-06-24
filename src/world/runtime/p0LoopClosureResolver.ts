@@ -137,66 +137,66 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
       input,
       'idle',
       idleEvidence,
-      '已有挂机/机缘/修炼类行程',
-      '尚未看到主角行动结果',
-      `主角行程中已有 ${idleJourneyCount} 条挂机、修炼、机缘、采药、功法或宗门差遣记录。`,
-      '暂无主角行动行程；先开始挂机、处理机缘或切换挂机安排。',
+      '这一路已经留下修炼和行脚的动静',
+      '主角还没真正动起来',
+      `主角已经留下了 ${idleJourneyCount} 条修炼、机缘、采药、功法或差遣痕迹。`,
+      '眼下还没留下主角自己的动静；先开始挂机、处理机缘或改一路数。',
       [`主角行程 ${idleJourneyCount}`]
     ),
     createItem(
       input,
       'adventure',
       adventureEvidence,
-      '已有历险扫荡或战斗行程',
-      '尚未看到历险或战斗结果',
-      `主角行程中已有 ${adventureJourneyCount} 条历险、扫荡或战斗记录。`,
-      '暂无历险/战斗行程；先进入历险并完成一次扫荡或战斗。',
+      '外头这条路已经闹出动静',
+      '还没真正出去闯过',
+      `主角已经留下了 ${adventureJourneyCount} 条历险、扫荡或斗法痕迹。`,
+      '眼下还没在外头闯出响动；先去打一场，或先扫一遍地界。',
       [`历险行程 ${adventureJourneyCount}`]
     ),
     createItem(
       input,
       'story',
       storyEvidence,
-      '故事卷宗已有行程或节点进度',
-      '尚未看到故事节点进度',
+      '这条事已经露过脸了',
+      '这条事还没真正压进来',
       storySources.join('，'),
-      '暂无故事节点、完成进度或故事行程；先开启主线卷宗。',
+      '眼下还没留下这条事推进的痕迹；先让第一段风声真正压进主循环。',
       storySources
     ),
     createItem(
       input,
       'npc',
       npcEvidence,
-      '已有人物纪闻或互动行程',
-      evidence.unlockedNpcCount > 0 ? '人物已解锁但未产生日志' : '尚未解锁可观察人物',
+      '已经有人开始回头记住你',
+      evidence.unlockedNpcCount > 0 ? '人已经露面，但还没真正牵上你' : '眼下还没碰上能记住你的人',
       npcSources.join('，'),
       evidence.unlockedNpcCount > 0
-        ? `已解锁 ${evidence.unlockedNpcCount} 名人物，但暂无人物纪闻或互动行程。`
-        : '暂无可观察人物；先推进故事、历险或人物解锁效果。',
+        ? `已经露面的 ${evidence.unlockedNpcCount} 个人里，还没人真正和你结下回响。`
+        : '眼下还没有能回头撞上你的人；先推进故事、历练或人物解锁。',
       npcSources
     ),
     createItem(
       input,
       'map',
       mapEvidence,
-      '已有地图处置/探索/异动记录',
-      evidence.mapTotalAreaCount > 0 ? '地图可进入但缺少处置结果' : '尚未读取到地图区域',
+      '这片地界已经起过事了',
+      evidence.mapTotalAreaCount > 0 ? '地界已经摆在眼前，但你还没真正踩进去' : '眼下还没有能走进去的地界',
       mapSources.join('，'),
       evidence.mapTotalAreaCount > 0
-        ? `当前界域有 ${evidence.mapTotalAreaCount} 处区域，但暂无处置、探索、异动或地图行程。`
-        : '暂无可读取区域；先检查地图配置或界域解锁。',
+        ? `眼下有 ${evidence.mapTotalAreaCount} 处地界可看，但还没留下处置、探索或异动回响。`
+        : '眼下还没有地界能真正接过来；先检查解锁和地图配置。',
       mapSources
     ),
     createItem(
       input,
       'sect',
       sectEvidence,
-      '已有宗门归属或宗门行程',
-      evidence.sectJoinableCount > 0 ? '可拜山但尚未建立宗门结果' : '尚未建立宗门归属',
+      '山门这条线已经搭上了',
+      evidence.sectJoinableCount > 0 ? '山门已经朝你开口，但你还没真正选边站' : '眼下还没有山门收你入局',
       sectSources.join('，'),
       evidence.sectJoinableCount > 0
-        ? `当前有 ${evidence.sectJoinableCount} 个可拜山宗门，但暂无归属或宗门行程。`
-        : '暂无宗门归属或宗门行程；先推进拜山、故事或地图前置。',
+        ? `眼下已有 ${evidence.sectJoinableCount} 座山门可去叩门，但你还没真正和哪一边牵上。`
+        : '眼下还没和任何山门牵上线；先推进拜山、故事或地图前置。',
       sectSources
     )
   ]
@@ -213,10 +213,10 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
 
   const totalCount = items.length
   const headline = counts.blocked > 0
-    ? `P0 闭环 ${counts.closed}/${totalCount}，${counts.blocked} 项仍阻塞。`
+    ? `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，另有 ${counts.blocked} 条还被拦着。`
     : counts.closed === totalCount
-      ? 'P0 六项核心循环均已有结果证据。'
-      : `P0 闭环 ${counts.closed}/${totalCount}，${counts.actionable} 项可继续验证。`
+      ? '六条路都已经留了回响。'
+      : `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，另外 ${counts.actionable} 条还得亲自去碰一碰。`
 
   return {
     items,

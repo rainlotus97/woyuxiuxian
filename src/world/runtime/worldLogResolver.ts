@@ -35,6 +35,12 @@ const visibilityPriority: Record<WorldLogVisibility, number> = {
   briefing: 2
 }
 
+const backgroundDedupeTags = new Set([
+  'breakthrough',
+  'cultivation',
+  'weather'
+])
+
 const briefingTags = new Set([
   'anomaly',
   'captivity',
@@ -74,7 +80,7 @@ export function normalizeWorldLogs(logs: WorldLogEntry[]): WorldLogEntry[] {
       scope: log.scope,
       severity: log.severity,
       title: log.title,
-      text: log.text,
+      text: stripLegacyRepeatSuffix(log.text),
       actorIds: log.actorIds ?? [],
       tags: log.tags ?? [],
       mapId: log.mapId,
@@ -113,6 +119,8 @@ export function getVisibleWorldLogs(logs: WorldLogEntry[], limit = 12): WorldLog
     .filter(log => log.revealed && log.visibility !== 'hidden')
     .slice(0, 40)
     .sort((a, b) => {
+      const repetitiveDelta = getRepetitivePenalty(a) - getRepetitivePenalty(b)
+      if (repetitiveDelta !== 0) return repetitiveDelta
       const visibilityDelta = visibilityPriority[b.visibility] - visibilityPriority[a.visibility]
       if (visibilityDelta !== 0) return visibilityDelta
       const severityDelta = severityPriority[b.severity] - severityPriority[a.severity]
@@ -148,7 +156,6 @@ function mergeWorldLogEntry(existing: WorldLogEntry, incoming: WorldLogEntry): W
   const severity = pickHigherSeverity(existing.severity, incoming.severity)
   const visibility = pickHigherVisibility(existing.visibility, incoming.visibility)
   const repeatCount = (existing.repeatCount || 1) + 1
-  const text = repeatCount > 1 ? `${incoming.text}（近来已反复出现 ${repeatCount} 次）` : incoming.text
   return {
     ...existing,
     tick: incoming.tick,
@@ -156,7 +163,7 @@ function mergeWorldLogEntry(existing: WorldLogEntry, incoming: WorldLogEntry): W
     timeLabel: incoming.timeLabel,
     severity,
     visibility,
-    text,
+    text: incoming.text,
     actorIds: uniqueStrings([...existing.actorIds, ...incoming.actorIds]),
     tags: uniqueStrings([...existing.tags, ...incoming.tags]),
     mapId: incoming.mapId ?? existing.mapId,
@@ -175,4 +182,16 @@ function pickHigherVisibility(a: WorldLogVisibility, b: WorldLogVisibility): Wor
 
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)))
+}
+
+function stripLegacyRepeatSuffix(text: string) {
+  return text.replace(/（近来已反复出现\s*\d+\s*次）$/u, '').trim()
+}
+
+function getRepetitivePenalty(log: WorldLogEntry) {
+  const repeatCount = log.repeatCount ?? 1
+  if (repeatCount < 3) return 0
+  const backgroundTagCount = log.tags.filter(tag => backgroundDedupeTags.has(tag)).length
+  if (backgroundTagCount <= 0) return 0
+  return Math.min(4, repeatCount - 2)
 }

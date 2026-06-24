@@ -107,7 +107,7 @@ export function useWorldAdvanceSummary() {
             id: `quiet_${before.tick}_${worldStore.clock.totalTicks}`,
             label: '世界',
             title: '无事一时辰',
-            text: '这一个时辰风平浪静，修行、宗门与人物命数仍在暗处缓慢推进。',
+            text: '这一个时辰风平浪静，修行、宗门与人物动向仍在暗处缓慢推进。',
             tone: 'mist'
           }]
     }

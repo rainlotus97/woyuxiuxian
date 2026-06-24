@@ -131,11 +131,14 @@ export const useCompanionStore = defineStore('companion', () => {
       return null
     }
 
+    const rollResult = rollCompanion()
+    if (!rollResult) {
+      return null
+    }
+
     playerStore.addGold(-GACHA_CONFIG.singleCost)
     gachaPoints.value++
     totalGachaCount.value++
-
-    const rollResult = rollCompanion(gachaPoints.value)
     const isNew = addCompanion(rollResult.companion)
 
     // 如果抽到仙品或以上，重置保底
@@ -157,6 +160,11 @@ export const useCompanionStore = defineStore('companion', () => {
       return []
     }
 
+    const previewRoll = rollCompanion()
+    if (!previewRoll) {
+      return []
+    }
+
     playerStore.addGold(-GACHA_CONFIG.tenCost)
     const results: GachaResult[] = []
 
@@ -164,7 +172,8 @@ export const useCompanionStore = defineStore('companion', () => {
       gachaPoints.value++
       totalGachaCount.value++
 
-      const rollResult = rollCompanion(gachaPoints.value)
+      const rollResult = i === 0 ? previewRoll : rollCompanion()
+      if (!rollResult) break
       const isNew = addCompanion(rollResult.companion)
 
       results.push({

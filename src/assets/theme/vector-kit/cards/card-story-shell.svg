@@ -1,0 +1,35 @@
+<svg width="1280" height="880" viewBox="0 0 1280 880" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="storyStroke" x1="80" y1="50" x2="1200" y2="830" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1DEB0"/>
+      <stop offset="0.34" stop-color="#C89847"/>
+      <stop offset="0.7" stop-color="#FFF0C7"/>
+      <stop offset="1" stop-color="#B98534"/>
+    </linearGradient>
+    <linearGradient id="storyFill" x1="640" y1="44" x2="640" y2="836" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFEF8"/>
+      <stop offset="0.64" stop-color="#F7F8F1"/>
+      <stop offset="1" stop-color="#EEF4EB"/>
+    </linearGradient>
+    <radialGradient id="topMist" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(640 188) rotate(90) scale(140 480)">
+      <stop stop-color="#EFF7F0"/>
+      <stop offset="1" stop-color="#EFF7F0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="48" y="40" width="1184" height="800" rx="56" fill="url(#storyFill)" stroke="url(#storyStroke)" stroke-width="16"/>
+  <rect x="74" y="66" width="1132" height="748" rx="40" stroke="#FBF5E7" stroke-width="5"/>
+  <rect x="90" y="82" width="1100" height="716" rx="34" fill="url(#topMist)"/>
+
+  <path d="M534 40L580 78H700L746 40L716 128H564L534 40Z" fill="#F0F5EA" stroke="#DAB064" stroke-width="6"/>
+  <path d="M460 106C508 106 552 118 592 144" stroke="#E6C984" stroke-width="6" stroke-linecap="round"/>
+  <path d="M820 106C772 106 728 118 688 144" stroke="#E6C984" stroke-width="6" stroke-linecap="round"/>
+
+  <path d="M98 156C138 154 172 166 200 194C176 194 156 202 140 218C122 206 108 186 98 156Z" fill="#EEF4EB" stroke="#D8AF63" stroke-width="6"/>
+  <path d="M1182 156C1142 154 1108 166 1080 194C1104 194 1124 202 1140 218C1158 206 1172 186 1182 156Z" fill="#EEF4EB" stroke="#D8AF63" stroke-width="6"/>
+
+  <path d="M110 756C150 726 192 710 238 708C210 728 202 752 214 780C188 768 154 760 110 756Z" fill="#EDF4EB" stroke="#D8AF63" stroke-width="6"/>
+  <path d="M1170 756C1130 726 1088 710 1042 708C1070 728 1078 752 1066 780C1092 768 1126 760 1170 756Z" fill="#EDF4EB" stroke="#D8AF63" stroke-width="6"/>
+
+  <path d="M570 840L604 812H676L710 840L688 780H592L570 840Z" fill="#EEF4E9" stroke="#D8AF63" stroke-width="6"/>
+</svg>

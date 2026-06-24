@@ -52,7 +52,7 @@ function getActivityLabel(tags: string[], severity: WorldLogSeverity) {
   if (tags.includes('scheme')) return '谋算'
   if (tags.includes('relationship')) return '关系'
   if (tags.includes('lineage')) return '血脉'
-  if (severity === 'legendary') return '命数'
+  if (severity === 'legendary') return '大事'
   if (severity === 'major') return '要闻'
   return '动向'
 }

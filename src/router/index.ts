@@ -10,6 +10,11 @@ const router = createRouter({
       component: () => import('@/views/MainMenu.vue')
     },
     {
+      path: '/theme-showcase',
+      name: 'theme-showcase-standalone',
+      component: () => import('@/views/game/ThemeShowcaseView.vue')
+    },
+    {
       path: '/game',
       component: () => import('@/views/GameLayout.vue'),
       redirect: '/game/cultivation',
@@ -70,6 +75,16 @@ const router = createRouter({
           path: 'story',
           name: 'story',
           component: () => import('@/views/game/StoryView.vue')
+        },
+        {
+          path: 'theme-lab',
+          name: 'theme-lab',
+          component: () => import('@/views/game/ThemeLabView.vue')
+        },
+        {
+          path: 'theme-showcase',
+          name: 'theme-showcase',
+          component: () => import('@/views/game/ThemeShowcaseView.vue')
         }
       ]
     },

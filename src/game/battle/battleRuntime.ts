@@ -3,15 +3,15 @@ import type { Skill } from '@/types/skill'
 import { getSkillById } from '@/types/skill'
 import {
   applyPreparedEffects,
-  resolveBattleCommand
+  applyPreparedSummons,
+  resolveBattleCommand,
+  resolveSummonActionLifecycle
 } from './commandResolver'
 import { resolveCommandTargetIds } from './targeting'
 import {
   hasStatusEffect,
   processTurnStartStatuses
 } from './statusRuntime'
-import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
-import { resolveSummonActionLifecycle } from './summonLifecycleRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
 import { resolveBattleSpeedModifier } from './battleStatusModifierResolver'
 import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
@@ -34,7 +34,6 @@ import type {
 
 export type {
   BattleAppliedEffect,
-  BattlePreparedSummon,
   BattlePreparedEffect,
   BattleResolvedCommand,
   BattleRuntimeCommand,
@@ -44,7 +43,6 @@ export type {
   BattleRuntimeResult,
   BattleRuntimeSnapshot,
   BattleRuntimeUnit,
-  BattleSummonOutcome
 } from './runtimeTypes'
 
 export class BattleRuntime {
@@ -57,7 +55,6 @@ export class BattleRuntime {
   result: BattleRuntimeResult = null
   logs: BattleRuntimeLog[] = []
   private pendingTurnContext: BattleTurnContext = { hits: [], logs: [] }
-  private summonSerial = 0
   private replayRecorder = new BattleReplayRecorder()
 
   constructor(allies: Unit[], enemies: Unit[]) {
@@ -157,10 +154,6 @@ export class BattleRuntime {
       return { type: 'skill', actorId: actor.id, targetIds: [actor.id], skillId: selfDefenseBuff.id }
     }
 
-    const summonSkill = availableSkills.find(skill => skill.effects.some(effect => effect.type === 'summon')) ?? null
-    if (summonSkill && hasSummonCapacity(actor, this.units, summonSkill) && Math.random() < 0.72) {
-      return { type: 'skill', actorId: actor.id, targetIds: [], skillId: summonSkill.id }
-    }
 
     const controlSkill = availableSkills.find(skill => skill.effects.some(effect => {
       const statusType = effect.statusEffect?.type

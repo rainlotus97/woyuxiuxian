@@ -12,7 +12,24 @@
 }
 
 :root {
+  font-size: clamp(14px, 4.102564vw, 16px);
   color-scheme: light;
+  --theme-app-bg-image: none;
+  --theme-surface-image: none;
+  --theme-story-bg-image: none;
+  --theme-panel-texture: none;
+  --theme-button-texture: none;
+  --theme-emblem-texture: none;
+  --theme-app-base: #eef8f1;
+  --theme-app-glow: rgba(255, 223, 138, 0.22);
+  --theme-surface-border: rgba(101, 152, 145, 0.22);
+  --theme-surface-title: #8e6227;
+  --theme-surface-text: #325154;
+  --theme-surface-muted: rgba(67, 92, 90, 0.72);
+  --theme-story-text: rgba(46, 71, 66, 0.92);
+  --theme-gold: #c8a45c;
+  --theme-jade: #6fae98;
+  --theme-danger: #c36a61;
 
   /* 修仙主题配色（RGB 数值） */
   --color-bg: 240 249 244;        /* 晨雾青白 - 主循环底色 */
@@ -41,7 +58,11 @@
   --color-spirit-legendary: #ffd700; /* 神品 */
 
   /* 字体 */
-  --font-game: 'zpix', monospace;
+  --font-ui: 'Baskerville', 'Times New Roman', 'Songti SC', 'STSong', serif;
+  --font-reading: 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', serif;
+  --font-reading-sans: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-game: 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', serif;
+  --font-story: var(--font-reading);
 
   /* 间距基准 4px */
   --spacing-1: 4px;
@@ -64,6 +85,40 @@
   /* 实际内容区域（包含安全区域） */
   --header-height: calc(var(--nav-height) + var(--safe-area-top));
   --footer-height: calc(var(--tab-bar-height) + var(--safe-area-bottom));
+
+  /* 移动端页面尺寸语言：以 iPhone 12 Pro 390x844 为基准 */
+  --ui-phone-base-width: 390px;
+  --ui-page-max-width: 430px;
+  --ui-page-padding-x: clamp(14px, 4.1vw, 18px);
+  --ui-page-padding-top: calc(var(--safe-area-top) + clamp(14px, 3.8vw, 22px));
+  --ui-page-padding-bottom: calc(var(--safe-area-bottom) + clamp(24px, 6vw, 32px));
+  --ui-page-gap: clamp(14px, 3.6vw, 18px);
+  --ui-surface-radius: clamp(18px, 5vw, 24px);
+  --ui-section-padding: clamp(16px, 4.4vw, 20px);
+  --ui-card-padding: clamp(14px, 4vw, 18px);
+  --ui-title-xl: clamp(22px, 6.2vw, 26px);
+  --ui-title-lg: clamp(18px, 4.8vw, 21px);
+  --ui-title-md: clamp(15px, 4.2vw, 17px);
+  --ui-text-md: clamp(13px, 3.6vw, 15px);
+  --ui-text-sm: clamp(12px, 3.2vw, 13px);
+  --ui-line-height-copy: 1.68;
+
+  /* 透明按钮固定尺寸区间 */
+  --ui-button-sm-width: clamp(168px, 48vw, 208px);
+  --ui-button-md-width: clamp(196px, 61vw, 244px);
+  --ui-button-lg-width: min(100%, 322px);
+  --ui-button-sm-height: 46px;
+  --ui-button-md-height: 52px;
+  --ui-button-lg-height: 58px;
+  --ui-button-sm-side-inset: 42px;
+  --ui-button-md-side-inset: 52px;
+  --ui-button-lg-side-inset: 64px;
+  --ui-button-font-sm-max: 14px;
+  --ui-button-font-sm-min: 11px;
+  --ui-button-font-md-max: 16px;
+  --ui-button-font-md-min: 12px;
+  --ui-button-font-lg-max: 17px;
+  --ui-button-font-lg-min: 13px;
 }
 
 /* 生产环境禁止选中和复制 */
@@ -94,11 +149,15 @@ html {
 /* 全局基础样式 */
 body {
   margin: 0;
-  background-color: #eef8f1;
+  background-color: var(--theme-app-base);
   background-image:
-    radial-gradient(circle at 12% 0%, rgba(255, 223, 138, 0.22), transparent 30%),
+    var(--theme-app-bg-image),
+    radial-gradient(circle at 12% 0%, var(--theme-app-glow), transparent 30%),
     radial-gradient(circle at 86% 0%, rgba(115, 212, 190, 0.18), transparent 34%),
     linear-gradient(180deg, #f8fff5 0%, #eef8f1 52%, #e7f1eb 100%);
+  background-position: center top, center top, center top, center top;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-size: cover, auto, auto, auto;
   color: rgb(var(--color-text));
   font-family: var(--font-game);
   min-width: 320px;
@@ -131,24 +190,21 @@ img, .pixelated {
   text-align: initial;
 }
 
-/* 移动端字体放大 */
-@media (max-width: 768px) {
-  :root {
-    font-size: 15px;
-  }
-}
-
-@media (min-width: 768px) {
-  :root {
-    font-size: 14px;
-  }
-}
-
 button,
 input,
 select,
 textarea {
   font: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-ui {
+  font-family: var(--font-ui);
 }
 
 button {

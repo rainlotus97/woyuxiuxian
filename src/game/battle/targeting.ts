@@ -5,6 +5,7 @@ export interface SelectableBattleTarget {
   id: string
   name: string
   icon: string
+  portraitKey?: string
   side: 'ally' | 'enemy'
 }
 
@@ -42,6 +43,7 @@ export function getSelectableTargets(
     id: unit.id,
     name: unit.name,
     icon: unit.icon,
+    portraitKey: unit.portraitKey,
     side: unit.side
   }))
 }
@@ -90,4 +92,3 @@ export function resolveCommandTargetIds(
   }
   return [...ids]
 }
-

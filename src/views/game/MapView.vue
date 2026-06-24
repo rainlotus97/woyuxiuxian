@@ -9,14 +9,14 @@
     >
       <div class="realm-hero">
         <div class="date-stack">
-          <span class="date-pill">📅 {{ worldDateLabel }}</span>
+          <span class="date-pill"><Calendar :size="14" /> {{ worldDateLabel }}</span>
           <span class="season-pill">{{ getSeasonIcon(worldSeason) }} {{ seasonEffectLabel }}</span>
         </div>
 
         <div class="hero-stats">
-          <GameStatChip icon="🏔️" label="已征服" :value="`${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`" tone="gold" />
-          <GameStatChip icon="🧭" label="当前界域" :value="mapStore.currentRealm" tone="jade" />
-          <GameStatChip icon="📜" label="世界异闻" :value="worldStore.visibleLogs.length" tone="rose" />
+          <GameStatChip icon="Mountain" label="已征服" :value="`${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`" tone="gold" />
+          <GameStatChip icon="Compass" label="当前界域" :value="mapStore.currentRealm" tone="jade" />
+          <GameStatChip icon="Scroll" label="世界异闻" :value="worldStore.visibleLogs.length" tone="rose" />
         </div>
       </div>
     </GameSurface>
@@ -54,8 +54,9 @@
       >
         <div class="world-log-list">
           <div v-for="log in recentWorldLogs" :key="log.entry.id" class="world-log-item">
-            <strong>{{ log.entry.title }}<small v-if="log.entry.repeatCount > 1">x{{ log.entry.repeatCount }}</small></strong>
+            <strong>{{ log.entry.title }}</strong>
             <p>{{ log.entry.text }}</p>
+            <small v-if="log.repeatHint" class="world-log-repeat">{{ log.repeatHint }}</small>
             <div class="world-log-context">
               <span v-for="badge in log.badges" :key="`${badge.tone}-${badge.label}`" :class="`context-${badge.tone}`">
                 {{ badge.label }}
@@ -121,7 +122,7 @@
         <div class="area-status-row">
           <span v-if="mapStore.isAreaConquered(area.id)" class="status conquered">✓ 已征服</span>
           <span v-else-if="isAreaUnlocked(area)" class="status available">可挑战</span>
-          <span v-else class="status locked">🔒 未解锁</span>
+          <span v-else class="status locked"><Lock :size="14" /> 未解锁</span>
 
           <span v-if="area.sects.length > 0" class="sect-count">宗门 {{ area.sects.length }}</span>
         </div>
@@ -273,7 +274,7 @@
         </GameActionButton>
         <GameActionButton
           v-else
-          icon="🔒"
+          icon="Lock"
           tone="stone"
           disabled
         >
@@ -444,12 +445,12 @@ function createFallbackAreaAccess() {
 
 function getSeasonIcon(season: string): string {
   const icons: Record<string, string> = {
-    春: '🌸',
+    春: 'Spring',
     夏: '☀️',
-    秋: '🍂',
+    秋: 'Autumn',
     冬: '❄️'
   }
-  return icons[season] || '🌤️'
+  return icons[season] || 'Sunny'
 }
 
 function isAreaUnlocked(area: MapArea): boolean {
@@ -653,17 +654,19 @@ function handleChallenge(area: MapArea) {
   font-size: 13px;
 }
 
-.world-log-item strong small {
-  margin-left: 6px;
-  color: rgba(49, 82, 87, 0.68);
-  font-size: 11px;
-}
-
 .world-log-item p {
   margin: 7px 0 0;
   color: rgba(73, 97, 95, 0.78);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.world-log-repeat {
+  display: block;
+  margin-top: 6px;
+  color: rgba(126, 89, 35, 0.72);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .world-log-item small {

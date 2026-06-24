@@ -86,8 +86,8 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '⛓️',
       badge: '囚局',
       title: `你正受制于${input.captivity.captorName ?? '敌对势力'}`,
-      summary: input.captivity.forecastHint ?? '被俘后世界依旧推进，当前应优先寻找脱身窗口。',
-      meta: input.captivity.forecastLabel ?? '等待脱困时机',
+      summary: input.captivity.forecastHint ?? '人已落进别人手里，外头的人情、追索和旧账却不会停，先等脱身的缝隙露出来。',
+      meta: input.captivity.forecastLabel ?? '先盯住脱身时机',
       tone: 'mist',
       priority: 100,
       action: {
@@ -104,8 +104,8 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '🏚️',
       badge: '山门',
       title: `${input.sect.name}已陷入沦陷`,
-      summary: '宗门正在失去秩序与控制，后续应优先补上重建、救援与战后恢复链路。',
-      meta: '宗门主循环已进入高危阶段',
+      summary: '山门已经乱了套，伤者、库藏和旧部都会在这时候分出向背。',
+      meta: '先看谁还守得住山门',
       tone: 'mist',
       priority: 92,
       action: {
@@ -120,8 +120,8 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '⚔️',
       badge: '战局',
       title: `${input.sect.name}仍在交战`,
-      summary: '战线会持续推动区域易主、宗门受创和人物被俘，当前适合优先关注宗门与地图联动。',
-      meta: '战争会持续改写世界日志与地图压力',
+      summary: '战线还在往前拱，哪片地界易主，谁被拖下水，都会很快回到你面前。',
+      meta: '地图和山门都在跟着变',
       tone: 'gold',
       priority: 84,
       action: {
@@ -136,8 +136,8 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '🧱',
       badge: '重建',
       title: `${input.sect.name}正在重整`,
-      summary: '山门尚未恢复稳定，资源、设施与人手会直接影响后续世界态势。',
-      meta: '当前应优先拉回宗门经济与任务循环',
+      summary: '山门还没稳住，缺人、缺物还是缺脸面，都会决定它能不能重新立起来。',
+      meta: '先把山门的气接回来',
       tone: 'gold',
       priority: 76,
       action: {
@@ -154,7 +154,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '🪢',
       badge: '俘获',
       title: `${input.capturedNpc.name}被控制`,
-      summary: `${input.capturedNpc.title}已落入${input.capturedNpc.captorName ?? '未知势力'}手中，${input.capturedNpc.sectName}的关系网会持续受此事牵动。`,
+      summary: `${input.capturedNpc.title}已落入${input.capturedNpc.captorName ?? '未知势力'}手中，这一下会把${input.capturedNpc.sectName}的人情、仇怨和后手一并扯动。`,
       meta: `现踪：${input.capturedNpc.locationName}`,
       tone: input.capturedNpc.severity === 'legendary' ? 'mist' : 'gold',
       priority: input.capturedNpc.severity === 'legendary' ? 88 : 78,
@@ -173,9 +173,9 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       badge: '地图',
       title: `${input.hotspotArea.name}态势紧张`,
       summary: input.hotspotArea.anomalyTitle
-        ? `${input.hotspotArea.anomalyTitle}正在放大区域压力，历练收益与风险都会被推高。`
-        : `${input.hotspotArea.name}当前处于${getAreaRiskLabel(input.hotspotArea.riskLevel)}状态，已开始影响遭遇与收益。`,
-      meta: input.hotspotArea.contested ? '区域控制权正在争夺' : `风险评级：${getAreaRiskLabel(input.hotspotArea.riskLevel)}`,
+        ? `${input.hotspotArea.anomalyTitle}已经把这一带的风头顶起来了，机缘和凶险都会往这里聚。`
+        : `${input.hotspotArea.name}已经起了${getAreaRiskLabel(input.hotspotArea.riskLevel)}之势，路上撞见的人和事都会更偏锋。`,
+      meta: input.hotspotArea.contested ? '这一带正有人抢地盘' : `眼下是${getAreaRiskLabel(input.hotspotArea.riskLevel)}势头`,
       tone: input.hotspotArea.riskLevel === 'chaos' ? 'mist' : 'gold',
       priority: input.hotspotArea.riskLevel === 'chaos' ? 82 : 68,
       action: {
@@ -190,9 +190,9 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
     items.push({
       id: 'npc-spotlight',
       icon: '🧭',
-      badge: '命数',
+      badge: '人物',
       title: `${input.spotlightNpc.name}正在${input.spotlightNpc.goalLabel}`,
-      summary: `${input.spotlightNpc.destinyRankLabel}命数，当前对你的态度为${input.spotlightNpc.bondLabel}，状态${input.spotlightNpc.hpLabel}。`,
+      summary: `${input.spotlightNpc.name}来头不小，眼下对你还是${input.spotlightNpc.bondLabel}，人也还算${input.spotlightNpc.hpLabel}。`,
       meta: `声势：${input.spotlightNpc.notorietyLabel}`,
       tone: input.spotlightNpc.bondTone === 'hostile' ? 'mist' : 'jade',
       priority: input.spotlightNpc.bondTone === 'hostile' ? 74 : 62,
@@ -210,14 +210,14 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '📝',
       badge: '纪闻',
       title: input.latestNpcStory.title,
-      summary: '重要人物的破境、受创与冲突已沉淀成独立纪闻，可继续作为剧情与世界事件的钩子。',
+      summary: '这件事已经传开了，后面是追杀、报恩还是翻脸，就看谁先顺着它找过来。',
       meta: input.latestNpcStory.timeLabel,
       tone: input.latestNpcStory.severity === 'legendary' ? 'mist' : 'jade',
       priority: input.latestNpcStory.severity === 'legendary' ? 66 : 54,
       action: {
         kind: 'route',
-        label: '查看故事',
-        path: '/game/story'
+        label: '回主界续读',
+        path: '/game/cultivation'
       }
     })
   } else if (input.latestLog) {
@@ -226,14 +226,14 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
       icon: '📜',
       badge: '异闻',
       title: input.latestLog.title,
-      summary: '世界日志已经记录新的天气、势力或人物变化，可作为下一步行动的情报入口。',
+      summary: '外头刚起的动静已经记下来了，顺着这道风声走，多半能摸到下一桩事。',
       meta: input.latestLog.timeLabel,
       tone: input.latestLog.severity === 'legendary' || input.latestLog.severity === 'major' ? 'gold' : 'jade',
       priority: input.latestLog.severity === 'legendary' ? 60 : 48,
       action: {
         kind: 'route',
-        label: '查看剧情',
-        path: '/game/story'
+        label: '回主界续读',
+        path: '/game/cultivation'
       }
     })
   }

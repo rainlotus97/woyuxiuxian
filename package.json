@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "story:validate": "node scripts/validate-story.mjs",
     "assets:validate": "node scripts/validate-assets.mjs",
-    "runtime:validate": "node scripts/validate-runtime.mjs"
+    "runtime:validate": "node scripts/validate-runtime.mjs",
+    "theme:image2": "node scripts/generate-theme-ui-image2.mjs",
+    "theme:matte": "python3 scripts/remove-image-matte.py"
   },
   "dependencies": {
     "vue": "^3.5.25",

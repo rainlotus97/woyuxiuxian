@@ -46,35 +46,102 @@
     </GameSurface>
 
     <div v-if="activeTab === 'companions'" class="companions-panel">
-      <div v-if="companionStore.ownedCompanionDetails.length === 0" class="empty-state">
-        <div class="empty-icon">👥</div>
+      <GameSurface tone="jade" padding="md" compact class="companions-hero">
+        <div class="companions-hero-copy">
+          <span>人物册</span>
+          <strong>立绘与来历</strong>
+          <p>当前只跟随你选中的主角推进。初见先认其形，再翻面看一句来历，后续恩怨、羁绊和语音都从这里接。</p>
+        </div>
+      </GameSurface>
+
+      <section v-if="currentProtagonistProfile" class="current-protagonist-section">
+        <div class="section-heading">
+          <span>当前命线</span>
+          <strong>{{ currentProtagonistProfile.name }}</strong>
+          <p>本轮剧情只跟随当前主角前行，另一位主角暂不前置，可留到后续作为独立人物或好友线查看。</p>
+        </div>
+        <div class="companions-grid story-codex-grid protagonist-grid">
+          <StoryCharacterPreviewCard
+            :profile="currentProtagonistProfile"
+            class="companion-story-card protagonist-card"
+          />
+        </div>
+      </section>
+
+      <section v-if="companionStore.ownedCompanionDetails.length === 0" class="empty-state">
+        <div class="empty-icon"><Users :size="32" /></div>
         <div class="empty-text">暂无伙伴</div>
         <div class="empty-hint">前往招募获取伙伴</div>
-      </div>
+      </section>
 
-      <div v-else class="companions-grid">
-        <div
-          v-for="{ owned, definition } in companionStore.ownedCompanionDetails"
-          :key="owned.definitionId"
-          class="companion-card"
-          :class="{ equipped: owned.equipped }"
-          @click="selectedCompanionId = owned.definitionId"
-        >
-          <div class="card-header" :style="{ background: definition ? getQualityBg(definition.quality) : '' }">
-            <div class="card-icon">{{ definition?.icon ?? '?' }}</div>
-            <div class="card-stars">
-              <span v-for="i in owned.stars" :key="i">★</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="card-name">{{ definition?.name ?? '未知' }}</div>
-            <div class="card-level">Lv.{{ owned.level }}</div>
-            <div class="card-bond">❤️ {{ owned.bond }}</div>
-            <div class="card-specialty">{{ definition?.specialty ?? '-' }}</div>
-          </div>
-          <div class="card-badge" v-if="owned.equipped">上阵</div>
+      <section v-else class="companions-owned-section">
+        <div class="section-heading">
+          <span>同行中</span>
+          <strong>已入队伙伴</strong>
         </div>
-      </div>
+        <div
+          class="companions-grid"
+        >
+          <div
+            v-for="{ owned, definition } in companionStore.ownedCompanionDetails"
+            :key="owned.definitionId"
+            class="companion-card"
+            :class="{ equipped: owned.equipped }"
+          >
+            <div class="companion-card-shell">
+              <StoryCharacterPreviewCard
+                v-if="getStoryCharacterProfile(owned.definitionId)"
+                :profile="getStoryCharacterProfile(owned.definitionId)!"
+                class="companion-story-card"
+              />
+              <StoryProfileFallbackCard
+                v-else-if="definition"
+                :name="definition.name"
+                :title="`${definition.specialty}同行`"
+                :faction="resolveCompanionFaction(definition.name)"
+                :specialty="definition.specialty"
+                :quality="definition.quality"
+                :icon="definition.icon"
+                :intro="resolveCompanionIntro(definition.name)"
+                :description="definition.backstory"
+                :accent-color="getQualityColor(definition.quality)"
+                class="companion-story-card"
+              />
+              <div v-else class="companion-fallback-card">
+                <div class="card-body">
+                  <div class="card-name">未知伙伴</div>
+                  <div class="card-level">档案待补</div>
+                </div>
+              </div>
+            </div>
+            <div class="companion-card-status">
+              <span>Lv.{{ owned.level }}</span>
+              <span>❤️ {{ owned.bond }}</span>
+              <span>{{ definition?.specialty ?? '-' }}</span>
+            </div>
+            <button class="companion-card-open" type="button" @click="selectedCompanionId = owned.definitionId">
+              查看
+            </button>
+            <div class="card-badge" v-if="owned.equipped">上阵</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="story-codex-section">
+        <div class="section-heading">
+          <span>人物图鉴</span>
+          <strong>已入局人物立绘</strong>
+          <p>这里先记住样子、气息和出场方式。剧情正式揭名后，会继续沿用同一套人物档案与语音接口。</p>
+        </div>
+        <div class="companions-grid story-codex-grid">
+          <StoryCharacterPreviewCard
+            v-for="profile in codexProfiles"
+            :key="profile.id"
+            :profile="profile"
+            class="companion-story-card"
+          />
+        </div>
+      </section>
     </div>
 
     <!-- 招募面板 -->
@@ -94,7 +161,7 @@
           @click="handleSingleGacha"
         >
           <div class="btn-title">单抽</div>
-          <div class="btn-cost">💎 100</div>
+          <div class="btn-cost"><GameIcon icon="Diamond" :size="14" /> 100</div>
         </button>
         <button
           class="gacha-btn ten"
@@ -102,7 +169,7 @@
           @click="handleTenGacha"
         >
           <div class="btn-title">十连</div>
-          <div class="btn-cost">💎 900</div>
+          <div class="btn-cost"><GameIcon icon="Diamond" :size="14" /> 900</div>
         </button>
       </div>
 
@@ -194,7 +261,6 @@
       <div class="modal-content companion-detail-modal">
         <template v-if="selectedCompanionDef && selectedOwned">
           <div class="modal-header" :style="{ background: getQualityBg(selectedCompanionDef.quality) }">
-            <div class="detail-icon">{{ selectedCompanionDef.icon }}</div>
             <div class="detail-stars">
               <span v-for="i in selectedOwned.stars" :key="i">★</span>
             </div>
@@ -202,10 +268,31 @@
           </div>
 
           <div class="modal-body">
-            <div class="detail-name">{{ selectedCompanionDef.name }}</div>
-            <div class="detail-quality" :style="{ color: getQualityColor(selectedCompanionDef.quality) }">
-              {{ selectedCompanionDef.quality }}
-            </div>
+            <StoryCharacterPreviewCard
+              v-if="selectedStoryProfile"
+              :profile="selectedStoryProfile"
+              class="detail-story-card"
+            />
+            <StoryProfileFallbackCard
+              v-else-if="selectedCompanionDef"
+              :name="selectedCompanionDef.name"
+              :title="`${selectedCompanionDef.specialty}同行`"
+              :faction="resolveCompanionFaction(selectedCompanionDef.name)"
+              :specialty="selectedCompanionDef.specialty"
+              :quality="selectedCompanionDef.quality"
+              :icon="selectedCompanionDef.icon"
+              :intro="resolveCompanionIntro(selectedCompanionDef.name)"
+              :description="selectedCompanionDef.backstory"
+              :accent-color="getQualityColor(selectedCompanionDef.quality)"
+              class="detail-story-card"
+            />
+            <template v-else>
+              <div class="detail-icon">{{ selectedCompanionDef.icon }}</div>
+              <div class="detail-name">{{ selectedCompanionDef.name }}</div>
+              <div class="detail-quality" :style="{ color: getQualityColor(selectedCompanionDef.quality) }">
+                {{ selectedCompanionDef.quality }}
+              </div>
+            </template>
 
             <div class="detail-stats">
               <div class="stat-row">
@@ -227,8 +314,8 @@
             </div>
 
             <div class="detail-story">
-              <h4>背景故事</h4>
-              <p>{{ selectedCompanionDef.backstory }}</p>
+              <h4>{{ selectedStoryProfile ? '人物小传' : '背景故事' }}</h4>
+              <p>{{ selectedStoryProfile?.description ?? selectedCompanionDef.backstory }}</p>
             </div>
 
             <!-- 技能列表 -->
@@ -279,6 +366,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useCompanionStore } from '@/stores/companionStore'
+import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { COMPANION_QUALITY_CONFIG, GACHA_CONFIG, type GachaResult } from '@/types/companion'
 import { SKILL_DEFINITIONS } from '@/types/skill'
@@ -289,9 +377,17 @@ import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import NpcActivityPanel from '@/components/companion/NpcActivityPanel.vue'
 import NpcBondCard from '@/components/companion/NpcBondCard.vue'
+import StoryCharacterPreviewCard from '@/components/story/StoryCharacterPreviewCard.vue'
+import StoryProfileFallbackCard from '@/components/story/StoryProfileFallbackCard.vue'
+import {
+  resolveStoryCharacterProfileByName,
+  resolveStoryCodexProfiles,
+  resolveStoryProtagonistProfile
+} from '@/story/runtime/storyCharacterCodex'
 import type { NpcInteractionKind } from '@/world/runtime/npcCompanionResolver'
 
 const companionStore = useCompanionStore()
+const playerStore = usePlayerStore()
 const worldStore = useWorldStore()
 const { success, warning, info } = useToast()
 const {
@@ -301,9 +397,11 @@ const {
 } = useNpcActivityInsight()
 const { interactWithNpc: interactWithNpcWithJourney } = useNpcInteraction()
 
-const activeTab = ref<'bonds' | 'companions' | 'gacha' | 'formation'>('bonds')
+const activeTab = ref<'bonds' | 'companions' | 'gacha' | 'formation'>('companions')
 const selectedCompanionId = ref<string | null>(null)
 const gachaResults = ref<GachaResult[]>([])
+const codexProfiles = computed(() => resolveStoryCodexProfiles(playerStore.perspective))
+const currentProtagonistProfile = computed(() => resolveStoryProtagonistProfile(playerStore.perspective))
 
 const tabs = [
   { id: 'bonds' as const, name: '缘分', icon: '缘' },
@@ -358,6 +456,11 @@ const selectedOwned = computed(() => {
   ) ?? null
 })
 
+const selectedStoryProfile = computed(() => {
+  if (!selectedCompanionId.value) return null
+  return getStoryCharacterProfile(selectedCompanionId.value)
+})
+
 // 获取品质颜色
 function getQualityColor(quality: string): string {
   return COMPANION_QUALITY_CONFIG[quality as keyof typeof COMPANION_QUALITY_CONFIG]?.color ?? '#9ca3af'
@@ -373,6 +476,30 @@ function getQualityBg(quality: string): string {
 function getSkillName(skillId: string): string {
   const skill = SKILL_DEFINITIONS[skillId]
   return skill?.name ?? skillId
+}
+
+function getStoryCharacterProfile(definitionId: string) {
+  const definition = getCompanionByDefinitionId(definitionId)
+  if (!definition) return null
+  return resolveStoryCharacterProfileByName(definition.name)
+}
+
+function getCompanionByDefinitionId(definitionId: string) {
+  return companionStore.ownedCompanionDetails.find(item => item.owned.definitionId === definitionId)?.definition ?? null
+}
+
+function resolveCompanionFaction(name: string) {
+  if (name.includes('白若璃')) return '药王谷'
+  if (name.includes('林清寒')) return '青云剑阁'
+  if (name.includes('叶无痕')) return '影城'
+  return '同行人物'
+}
+
+function resolveCompanionIntro(name: string) {
+  if (name.includes('白若璃')) return '她先替你稳住伤势，再慢慢把药脉和人情债一起带进命里。'
+  if (name.includes('林清寒')) return '她认不认你，不在嘴上，而在那一剑会不会替你拦灾。'
+  if (name.includes('叶无痕')) return '这种人先记住影子和出手，真心话往往要很后面才会露。'
+  return '先记住这人的样子和来路，后头的关系会慢慢接上。'
 }
 
 // 单抽
@@ -599,16 +726,14 @@ function handleObserveNpcActivity() {
 /* 伙伴网格 */
 .companions-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .companion-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(126, 184, 218, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
+  position: relative;
+  min-width: 0;
   transition: all 0.15s ease;
 }
 
@@ -618,6 +743,85 @@ function handleObserveNpcActivity() {
 
 .companion-card:active {
   transform: scale(0.98);
+}
+
+.companions-hero {
+  margin-bottom: 12px;
+}
+
+.companions-owned-section,
+.story-codex-section {
+  display: grid;
+  gap: 10px;
+}
+
+.current-protagonist-section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.story-codex-section {
+  margin-top: 14px;
+}
+
+.protagonist-grid {
+  grid-template-columns: minmax(0, 340px);
+  justify-content: center;
+}
+
+.protagonist-card {
+  width: min(100%, 340px);
+  max-width: min(100%, 340px);
+}
+
+.section-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.section-heading span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.section-heading strong {
+  color: #8b6226;
+  font-size: 16px;
+}
+
+.section-heading p {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.74);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.companions-hero-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.companions-hero-copy span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 11px;
+}
+
+.companions-hero-copy strong {
+  color: #8b6226;
+  font-size: 18px;
+}
+
+.companions-hero-copy p {
+  margin: 0;
+  color: rgba(53, 81, 83, 0.76);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.companion-card-shell {
+  position: relative;
+  padding-bottom: 52px;
 }
 
 .card-header {
@@ -678,8 +882,110 @@ function handleObserveNpcActivity() {
   border-radius: 4px;
 }
 
-.companion-card {
-  position: relative;
+.companion-story-card {
+  width: min(100%, 340px);
+  min-height: 0;
+  justify-self: center;
+}
+
+.story-codex-grid .companion-story-card {
+  min-height: 0;
+}
+
+.detail-story-card {
+  margin-bottom: 12px;
+  min-height: 0;
+}
+
+.companion-fallback-card {
+  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(126, 184, 218, 0.2);
+}
+
+.companion-card-status {
+  position: absolute;
+  left: 8px;
+  right: 66px;
+  bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.companion-card-status span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(245, 251, 248, 0.84);
+  color: #6a6f5d;
+  font-size: 10px;
+  box-shadow: 0 4px 10px rgba(47, 70, 67, 0.08);
+}
+
+.companion-card-open {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  min-width: 52px;
+  padding: 6px 10px;
+  border: 1px solid rgba(166, 129, 69, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 248, 232, 0.94);
+  color: #8b632c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.companion-card-open + .card-badge {
+  top: 10px;
+}
+
+@media (max-width: 560px) {
+  .npc-bond-list,
+  .companions-grid {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .bond-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bond-hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .companion-story-card {
+    width: min(100%, 304px);
+  }
+
+  .story-codex-grid .companion-story-card {
+    width: min(100%, 304px);
+  }
+
+  .companion-card-status {
+    left: 8px;
+    right: 72px;
+    bottom: 10px;
+    gap: 5px;
+  }
+
+  .companion-card-status span {
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  .companion-card-open {
+    min-width: 56px;
+    padding: 7px 10px;
+    font-size: 10px;
+  }
 }
 
 /* 招募面板 */
@@ -989,28 +1295,31 @@ function handleObserveNpcActivity() {
 }
 
 .modal-content {
-  background: linear-gradient(180deg, rgba(35, 38, 52, 0.98) 0%, rgba(25, 27, 38, 0.98) 100%);
-  border: 1px solid rgba(200, 164, 92, 0.3);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(233, 243, 238, 0.96));
+  border: 1px solid rgba(200, 164, 92, 0.22);
   border-radius: 16px;
   width: 100%;
-  max-width: 340px;
+  max-width: 420px;
+  max-height: min(88vh, 860px);
   overflow: hidden;
 }
 
 .modal-header {
   position: relative;
-  padding: 20px;
-  text-align: center;
+  min-height: 36px;
+  padding: 12px 16px 0;
 }
 
 .detail-icon {
   font-size: 4rem;
+  text-align: center;
 }
 
 .detail-stars {
   font-size: 1rem;
   color: #fbbf24;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .modal-close {
@@ -1031,12 +1340,14 @@ function handleObserveNpcActivity() {
 }
 
 .modal-body {
-  padding: 16px;
+  max-height: min(80vh, 800px);
+  padding: 14px 16px 18px;
+  overflow-y: auto;
 }
 
 .detail-name {
   font-size: 1.25rem;
-  color: #e8e4d0;
+  color: #7a5324;
   font-weight: 500;
   text-align: center;
 }
@@ -1048,8 +1359,9 @@ function handleObserveNpcActivity() {
 }
 
 .detail-stats {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(137, 171, 162, 0.14);
+  border-radius: 14px;
   padding: 12px;
   margin-bottom: 12px;
 }
@@ -1058,12 +1370,12 @@ function handleObserveNpcActivity() {
   display: flex;
   justify-content: space-between;
   font-size: 0.8125rem;
-  color: #e8e4d0;
+  color: #35504b;
   padding: 4px 0;
 }
 
 .stat-row span:first-child {
-  color: var(--color-muted);
+  color: rgba(94, 116, 111, 0.74);
 }
 
 .detail-story {
@@ -1072,13 +1384,13 @@ function handleObserveNpcActivity() {
 
 .detail-story h4 {
   font-size: 0.8125rem;
-  color: var(--color-accent-warm);
+  color: #8b6226;
   margin-bottom: 6px;
 }
 
 .detail-story p {
   font-size: 0.8125rem;
-  color: var(--color-muted);
+  color: rgba(53, 81, 83, 0.78);
   line-height: 1.5;
 }
 
@@ -1162,19 +1474,53 @@ function handleObserveNpcActivity() {
   .observe-btn {
     flex: 1;
   }
+
+  .companions-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .companion-story-card {
+    min-height: 468px;
+  }
+
+  .detail-story-card {
+    min-height: min(84vh, 680px);
+  }
+
+  .companion-card-status {
+    left: 8px;
+    right: 68px;
+    bottom: 10px;
+    gap: 5px;
+  }
+
+  .companion-card-status span {
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  .companion-card-open {
+    right: 8px;
+    bottom: 10px;
+    min-width: 48px;
+    padding: 6px 9px;
+    font-size: 10px;
+  }
 }
 
 /* 技能列表 */
 .detail-skills {
   margin-top: 12px;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(137, 171, 162, 0.14);
+  border-radius: 14px;
 }
 
 .detail-skills h4 {
   font-size: 0.875rem;
-  color: #e8e4d0;
+  color: #35504b;
   margin-bottom: 8px;
 }
 
@@ -1189,11 +1535,11 @@ function handleObserveNpcActivity() {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 4px;
+  background: rgba(239, 247, 244, 0.92);
+  border: 1px solid rgba(107, 154, 143, 0.2);
+  border-radius: 999px;
   font-size: 0.75rem;
-  color: #e8e4d0;
+  color: #35504b;
 }
 
 .skill-icon {
@@ -1209,7 +1555,7 @@ function handleObserveNpcActivity() {
 }
 
 .no-skills {
-  color: var(--color-muted);
+  color: rgba(96, 118, 114, 0.72);
   font-size: 0.75rem;
   font-style: italic;
 }

@@ -48,23 +48,24 @@ const summaryText = computed(() => {
   position: absolute;
   z-index: 2;
   left: 18px;
-  bottom: 18px;
-  max-width: min(560px, calc(100vw - 36px));
+  bottom: 14px;
+  max-width: min(520px, calc(100vw - 36px));
 }
 
 .log-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .battle-log {
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: 10px;
   color: rgba(53, 71, 68, 0.82);
   background: rgba(255, 255, 255, 0.72);
   border-left: 3px solid rgba(76, 184, 166, 0.34);
-  box-shadow: 0 8px 20px rgba(89, 130, 128, 0.11);
-  font-size: 13px;
+  box-shadow: 0 6px 16px rgba(89, 130, 128, 0.09);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .battle-log.major {
@@ -77,6 +78,11 @@ const summaryText = computed(() => {
   .log-dock {
     right: 18px;
     max-width: none;
+  }
+
+  .battle-log {
+    font-size: 11px;
+    padding: 6px 9px;
   }
 }
 </style>

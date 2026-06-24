@@ -1,6 +1,8 @@
 <template>
   <div class="stat-chip" :class="[`tone-${tone}`, { compact }]">
-    <span class="stat-icon">{{ icon }}</span>
+    <span class="stat-icon">
+      <GameIcon :icon="icon" :size="14" />
+    </span>
     <div class="stat-copy">
       <small>{{ label }}</small>
       <strong>{{ value }}</strong>
@@ -9,6 +11,7 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 withDefaults(defineProps<{
   icon: string
   label: string

@@ -1,6 +1,8 @@
 import type { EnemyDefinition } from '@/types/adventure'
+import { GENERATED_ENEMIES } from './generatedEnemies'
 
 export const ENEMIES: Record<string, EnemyDefinition> = {
+  ...GENERATED_ENEMIES,
   slime: {
     id: 'slime',
     name: '史莱姆',
@@ -164,7 +166,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     realm: '金丹',
     realmLevel: 5,
     baseStats: { maxHp: 500, attack: 70, defense: 30, speed: 85 },
-    skills: ['hellfire', 'demon_summon'],
+    skills: ['hellfire', ],
     drops: ['demon_heart'],
     expReward: 150,
     goldReward: { min: 100, max: 150 }

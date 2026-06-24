@@ -48,7 +48,7 @@ export interface PlayerFortuneBlocked {
 
 export type PlayerFortuneResult = PlayerFortuneResolution | PlayerFortuneBlocked
 
-const BASE_STAMINA_COST = 8
+const BASE_STAMINA_COST = 12
 
 function pickFortuneType(input: PlayerFortuneInput): PlayerFortuneType {
   const roll = seededWorldRoll(input.clock.totalTicks, `player-fortune-${input.idleMode}-${input.weather}`)
@@ -113,9 +113,9 @@ export function resolvePlayerFortune(input: PlayerFortuneInput): PlayerFortuneRe
   const type = pickFortuneType(input)
   const cultivationGain = type === 'spirit_herb'
     ? 0
-    : 10 + Math.floor(seededWorldRoll(input.clock.totalTicks, `player-fortune-cultivation-${type}`) * 28)
+    : 6 + Math.floor(seededWorldRoll(input.clock.totalTicks, `player-fortune-cultivation-${type}`) * 14)
   const goldGain = type === 'hidden_cache'
-    ? 12 + Math.floor(seededWorldRoll(input.clock.totalTicks, 'player-fortune-gold') * 36)
+    ? 8 + Math.floor(seededWorldRoll(input.clock.totalTicks, 'player-fortune-gold') * 18)
     : 0
   const item = createFortuneItem(input, type)
   const content = createFortuneText(input, type, cultivationGain, goldGain, item)

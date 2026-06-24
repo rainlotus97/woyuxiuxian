@@ -33,8 +33,8 @@ const clampedPercent = computed(() => {
 const valueText = computed(() => `${formatAmount(props.current)}/${formatAmount(props.max)}`)
 
 function formatAmount(value: number) {
-  if (Number.isInteger(value)) return String(value)
-  return value.toFixed(1)
+  if (value >= 10000) return `${Math.round(value / 1000) / 10}万`
+  return String(Math.round(value))
 }
 </script>
 

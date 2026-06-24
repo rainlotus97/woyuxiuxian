@@ -14,6 +14,7 @@ export interface WorldLogContextView<T extends WorldLogEntry | NpcStoryRecord> {
   actorNames: string[]
   badges: WorldLogContextBadge[]
   contextLabel: string
+  repeatHint: string
 }
 
 interface WorldLogContextCatalog {
@@ -45,6 +46,13 @@ const tagLabels: Record<string, string> = {
 }
 
 const genericTags = new Set(['npc', 'player', 'world'])
+const AREA_ID_FALLBACK_LABELS: Record<string, string> = {
+  ancient_ruins: '上古遗迹',
+  forge_peak: '铸峰',
+  fox_den: '狐穴',
+  shadow_city: '影城',
+  star_sea: '星海'
+}
 
 export function resolveWorldLogContextView(
   log: WorldLogEntry,
@@ -71,7 +79,7 @@ function createContextView<T extends WorldLogEntry | NpcStoryRecord>(
   sectNames: string[],
   tags: string[]
 ): WorldLogContextView<T> {
-  const areaName = mapId ? getAreaById(mapId)?.name ?? mapId : null
+  const areaName = mapId ? getAreaById(mapId)?.name ?? AREA_ID_FALLBACK_LABELS[mapId] ?? mapId : null
   const badges: WorldLogContextBadge[] = []
 
   if (areaName) badges.push({ label: areaName, tone: 'area' })
@@ -91,7 +99,8 @@ function createContextView<T extends WorldLogEntry | NpcStoryRecord>(
     sectNames,
     actorNames,
     badges: dedupeBadges(badges).slice(0, 5),
-    contextLabel: createContextLabel(areaName, sectNames, actorNames)
+    contextLabel: createContextLabel(areaName, sectNames, actorNames),
+    repeatHint: createRepeatHint(entry)
   }
 }
 
@@ -147,4 +156,12 @@ function dedupeBadges(badges: WorldLogContextBadge[]) {
 
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)))
+}
+
+function createRepeatHint(entry: WorldLogEntry | NpcStoryRecord) {
+  const repeatCount = 'repeatCount' in entry ? (entry.repeatCount ?? 1) : 1
+  if (repeatCount <= 1) return ''
+  if (repeatCount <= 2) return '这股风声还没散'
+  if (repeatCount <= 4) return `这件事还在发酵（已反复 ${repeatCount} 次）`
+  return `这件旧事还在翻涌（已反复 ${repeatCount} 次）`
 }

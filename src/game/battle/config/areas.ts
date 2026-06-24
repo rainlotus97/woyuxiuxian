@@ -1,4 +1,5 @@
 import type { AreaDefinition, AreaDifficulty, AreaDifficultyConfig } from '@/types/adventure'
+import { GENERATED_AREAS } from './generatedAreas'
 
 export const DIFFICULTY_CONFIG: Record<AreaDifficulty, AreaDifficultyConfig> = {
   easy: { label: '简单', color: '#4ade80', multiplier: 0.8, waves: 1, enemyStatMult: 0.8, enemiesPerWave: [3] },
@@ -9,6 +10,7 @@ export const DIFFICULTY_CONFIG: Record<AreaDifficulty, AreaDifficultyConfig> = {
 }
 
 export const AREAS: AreaDefinition[] = [
+  ...GENERATED_AREAS,
   {
     id: 'misty_forest',
     name: '迷雾森林',

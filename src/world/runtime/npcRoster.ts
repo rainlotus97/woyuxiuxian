@@ -15,6 +15,7 @@ import type {
 } from '@/types/world'
 import { getNpcPotentialScore, normalizeNpcDefinitionProfile } from './npcProfile'
 import { seededWorldRoll } from './worldSeed'
+import { HAND_CRAFTED_NPCS } from "./npcHandCrafted"
 
 const SURNAMES = ['沈', '顾', '谢', '陆', '苏', '林', '韩', '白', '宁', '叶', '温', '秦', '萧', '洛', '祁', '商']
 const MALE_GIVEN_NAMES = ['长渊', '景玄', '玄策', '临川', '寒岳', '北辰', '知晦', '云峥', '少衡', '烬川', '远霄', '惊鸿']
@@ -47,7 +48,7 @@ const DESTINY_TEMPLATES: Record<DestinyRank, string[]> = {
   ordinary: ['守成', '藏锋', '小成'],
   fated: ['奇缘', '同道', '机兆'],
   anomalous: ['异数', '逆命', '隐劫'],
-  legendary: ['天命', '轮回', '古传']
+  legendary: ['大来头', '轮回', '古传']
 }
 
 const CONSTITUTION_NOTES: Record<ConstitutionType, string> = {
@@ -55,7 +56,7 @@ const CONSTITUTION_NOTES: Record<ConstitutionType, string> = {
   sword_bone: '骨相如剑，适合剑修与杀伐法门。',
   medicine_body: '经脉亲近草木丹气，炼丹与疗愈天赋更高。',
   demon_blood: '血气凶烈，爆发强但更易招来杀劫。',
-  star_meridian: '星力入脉，悟性与命数牵引都异于常人。',
+  star_meridian: '星力入脉，悟性与人事牵引都异于常人。',
   void_meridian: '空冥入体，适合阵法、遁术与奇门法。',
   thunder_body: '雷意淬身，破境凶险但战力成长极快。',
   ice_heart: '心湖似冰，抗心魔强，但情感线推进更慢。'
@@ -407,160 +408,58 @@ function buildRogueNpcDefinition(areaId: string): NpcDefinition {
     tags: [area?.realm ?? '人界', '游历人物']
   })
 }
-
 function createAnchorNpcDefinitions(): NpcDefinition[] {
-  return [
-    {
-      id: 'npc_su_qingyuan',
-      name: '苏清鸢',
-      gender: 'female',
-      role: 'main',
-      homeMapId: 'qingyun_mountain',
-      sectId: 'qingyun_sect',
-      aptitude: { root: '水', rootGrade: 'heavenly', talent: 'destined', bloodlineGrade: 'awakened', constitution: 'ice_heart', comprehension: 96, luck: 88, physique: 74, willpower: 98, growthFlaws: ['oath_bound'] },
-      personality: { ambition: 54, loyalty: 92, cruelty: 12, affection: 72, caution: 88, greed: 8 },
-      profile: {
-        title: '青云圣女',
-        origin: '青州苏氏嫡脉',
-        originType: 'cultivator_clan',
-        background: '青云宗圣女，传闻身怀前世记忆，一举一动都容易牵动主线局势与宗门态度。',
-        familyStatus: '苏氏仍在青州经营旧族势力，对她寄予厚望。',
-        identityHook: '既是正道门面的继承者，也可能成为改写宗门格局的关键节点。',
-        destinyRank: 'legendary',
-        destinyTags: ['轮回', '正道核心', '圣女'],
-        bloodline: '青州苏氏水脉已经觉醒，和轮回记忆互相牵引。',
-        constitutionNote: CONSTITUTION_NOTES.ice_heart,
-        factionStance: 'orthodox'
+  return HAND_CRAFTED_NPCS.map(hc => 
+    normalizeNpcDefinitionProfile({
+      id: hc.id,
+      name: hc.name,
+      gender: hc.gender,
+      role: hc.role,
+      homeMapId: hc.homeMapId,
+      sectId: hc.sectId || undefined,
+      aptitude: {
+        root: hc.root,
+        rootGrade: hc.rootGrade,
+        talent: hc.talent,
+        bloodlineGrade: hc.bloodlineGrade,
+        constitution: hc.constitution,
+        comprehension: hc.comprehension,
+        luck: hc.luck,
+        physique: hc.physique,
+        willpower: hc.willpower,
+        growthFlaws: [...(hc.growthFlaws || [])]
       },
-      tags: ['圣女', '轮回', '主线保护']
-    },
-    {
-      id: 'npc_mo_lao',
-      name: '墨老',
-      gender: 'male',
-      role: 'main',
-      homeMapId: 'cloud_peak',
-      aptitude: { root: '空', rootGrade: 'mutated', talent: 'monster', bloodlineGrade: 'ancient', constitution: 'void_meridian', comprehension: 90, luck: 62, physique: 48, willpower: 99, growthFlaws: ['weak_body'] },
-      personality: { ambition: 35, loyalty: 96, cruelty: 38, affection: 70, caution: 91, greed: 10 },
-      profile: {
-        title: '残魂护道者',
-        origin: '古井遗阵',
-        originType: 'ancient_lineage',
-        background: '寄宿于残阵中的古修残魂，熟悉灵脉与命数裂隙，常以旁观者姿态影响玩家路线。',
-        familyStatus: '前尘身世已碎，只余部分传承记忆与执念。',
-        identityHook: '他的过去与多处遗迹、灵脉、上古因果相连。',
-        destinyRank: 'anomalous',
-        destinyTags: ['古修传承', '守护', '空灵残魂'],
-        bloodline: '古修残脉只余魂火，却仍保留空冥真意。',
-        constitutionNote: CONSTITUTION_NOTES.void_meridian,
-        factionStance: 'neutral'
+      personality: {
+        ambition: hc.ambition,
+        loyalty: hc.loyalty,
+        cruelty: hc.cruelty,
+        affection: hc.affection,
+        caution: hc.caution,
+        greed: hc.greed
       },
-      tags: ['残魂', '守护者', '主线保护']
-    },
-    {
-      id: 'npc_xue_yan',
-      name: '薛焰',
-      gender: 'male',
-      role: 'enemy',
-      homeMapId: 'blood_sea',
-      sectId: 'blood_sect',
-      aptitude: { root: '火', rootGrade: 'single', talent: 'genius', bloodlineGrade: 'forbidden', constitution: 'demon_blood', comprehension: 78, luck: 56, physique: 84, willpower: 71, growthFlaws: ['unstable_meridian', 'vengeful'] },
-      personality: { ambition: 92, loyalty: 18, cruelty: 86, affection: 12, caution: 42, greed: 74 },
       profile: {
-        title: '血魔少主',
-        origin: '血海魔岭',
-        originType: 'fallen_house',
-        background: '血魔宗重点培养的魔道天才，行事狠戾，极易在世界线中成长成主线级反派。',
-        familyStatus: '背后有血魔旧脉支撑，也有同门在暗中觊觎其位。',
-        identityHook: '他若在乱世中坐大，很可能牵引出宗门沦陷与玩家被俘线。',
-        destinyRank: 'anomalous',
-        destinyTags: ['魔修', '反派种子', '血焰'],
-        bloodline: '血魔旧脉带有禁血污染，越战越容易失控。',
-        constitutionNote: CONSTITUTION_NOTES.demon_blood,
-        factionStance: 'demonic'
+        title: hc.title,
+        origin: hc.origin,
+        originType: hc.originType,
+        background: hc.background,
+        familyStatus: hc.familyStatus,
+        identityHook: hc.identityHook,
+        destinyRank: hc.destinyRank,
+        destinyTags: [...hc.destinyTags],
+        bloodline: hc.bloodline,
+        constitutionNote: hc.constitutionNote,
+        factionStance: hc.factionStance
       },
-      tags: ['反派种子', '魔修']
-    },
-    {
-      id: 'npc_lu_heng',
-      name: '陆衡',
-      gender: 'male',
-      role: 'sect',
-      homeMapId: 'qingyun_mountain',
-      sectId: 'qingyun_sect',
-      aptitude: { root: '金', rootGrade: 'dual', talent: 'spirit', bloodlineGrade: 'thin', constitution: 'sword_bone', comprehension: 67, luck: 50, physique: 66, willpower: 64, growthFlaws: [] },
-      personality: { ambition: 61, loyalty: 72, cruelty: 20, affection: 52, caution: 59, greed: 28 },
-      profile: {
-        title: '青云内门',
-        origin: '青云外山',
-        originType: 'sect_foundling',
-        background: '青云宗内门弟子，适合作为同门线、竞争线与早期伙伴线的过渡人物。',
-        familyStatus: '由青云宗执事抚养长大，对山门有天然归属感。',
-        identityHook: '若与玩家交好，可逐步变成稳定宗门盟友或同门竞争者。',
-        destinyRank: 'fated',
-        destinyTags: ['剑修', '同门候选', '山门旧识'],
-        bloodline: '青云外山旧脉仅有微弱剑意回响。',
-        constitutionNote: CONSTITUTION_NOTES.sword_bone,
-        factionStance: 'orthodox'
-      },
-      tags: ['同门候选', '剑修']
-    },
-    {
-      id: 'npc_bai_ruoli',
-      name: '白若璃',
-      gender: 'female',
-      role: 'companion',
-      homeMapId: 'azure_valley',
-      sectId: 'medicine_valley',
-      aptitude: { root: '木', rootGrade: 'single', talent: 'genius', bloodlineGrade: 'awakened', constitution: 'medicine_body', comprehension: 82, luck: 80, physique: 58, willpower: 76, growthFlaws: ['oath_bound'] },
-      personality: { ambition: 57, loyalty: 74, cruelty: 14, affection: 82, caution: 73, greed: 18 },
-      profile: {
-        title: '药王谷真传',
-        origin: '白氏药脉',
-        originType: 'cultivator_clan',
-        background: '擅长丹药与医理，若进入你的命运线，既能补足后勤，也会带来宗门与药脉的人情债。',
-        familyStatus: '白氏药脉在药王谷仍有影响力，家族与宗门关系微妙。',
-        identityHook: '她适合作为伙伴、情感支线与坊市经济线的关键枢纽。',
-        destinyRank: 'anomalous',
-        destinyTags: ['丹修', '同行候选', '药脉旧约'],
-        bloodline: '白氏药脉已经觉醒，能感知灵草药性。',
-        constitutionNote: CONSTITUTION_NOTES.medicine_body,
-        factionStance: 'orthodox'
-      },
-      tags: ['伙伴候选', '炼丹']
-    },
-    {
-      id: 'npc_shen_jingxuan',
-      name: '沈镜玄',
-      gender: 'male',
-      role: 'sect',
-      homeMapId: 'sky_temple',
-      sectId: 'sky_temple_sect',
-      aptitude: { root: '空', rootGrade: 'heavenly', talent: 'monster', bloodlineGrade: 'ancient', constitution: 'void_meridian', comprehension: 88, luck: 68, physique: 46, willpower: 92, growthFlaws: ['heart_demon'] },
-      personality: { ambition: 68, loyalty: 62, cruelty: 18, affection: 40, caution: 95, greed: 14 },
-      profile: {
-        title: '天机行走',
-        origin: '镜湖残脉',
-        originType: 'ancient_lineage',
-        background: '精于推衍和布局，常比旁人先一步嗅到战局、遗迹与背叛的味道。',
-        familyStatus: '其血脉与天机旧脉有关，族谱几乎断绝。',
-        identityHook: '他既可能成为预警者，也可能在关键时刻选择将你推入棋局。',
-        destinyRank: 'legendary',
-        destinyTags: ['天机', '布局者', '界域先知'],
-        bloodline: '镜湖古脉仍在体内留有推衍回响。',
-        constitutionNote: CONSTITUTION_NOTES.void_meridian,
-        factionStance: 'imperial'
-      },
-      tags: ['谋局者', '阵法']
-    }
-  ]
+      tags: [...hc.tags]
+    })
+  )
 }
 
 export function createDefaultNpcDefinitions(): NpcDefinition[] {
   const anchors = createAnchorNpcDefinitions()
   const sectGenerated = ALL_SECTS.map(buildSectNpcDefinition)
     .filter(definition => !anchors.some(anchor => anchor.id === definition.id || anchor.sectId === definition.sectId && anchor.role === definition.role))
-  const rogueGenerated = ['qingyun_mountain', 'fox_den', 'shadow_city', 'star_sea'].map(buildRogueNpcDefinition)
+  const rogueGenerated = ["qingyun_mountain", "fox_den", "shadow_city", "star_sea", "ancient_ruins", "forge_peak", "azure_valley", "cloud_peak"].map(buildRogueNpcDefinition)
 
   return [...anchors, ...sectGenerated, ...rogueGenerated]
 }

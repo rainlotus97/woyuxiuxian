@@ -1,4 +1,5 @@
 import type { UnitStats } from './unit'
+import { GENERATED_EQUIPMENT } from './generatedEquipment'
 
 // 装备品质
 export type EquipmentQuality = 'common' | 'fine' | 'excellent' | 'supreme' | 'legendary'
@@ -59,6 +60,7 @@ export const EQUIPMENT_TYPE_NAMES: Record<EquipmentType, string> = {
 // ==================== 装备数据库 ====================
 
 export const EQUIPMENT_DATABASE: Equipment[] = [
+  ...GENERATED_EQUIPMENT,
   // ========== 武器 ==========
   {
     id: 'weapon_001',

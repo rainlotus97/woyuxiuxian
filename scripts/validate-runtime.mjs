@@ -3413,7 +3413,8 @@ test('p0 loop verification composes the full p0 acceptance gate', async () => {
 
   const fresh = resolveP0LoopVerification({
     readiness: baseReadiness,
-    evidence: createEvidence()
+    evidence: createEvidence(),
+    hotspotAreaId: 'qingyun_mountain'
   })
 
   assert.equal(fresh.loopReadiness.items.length, 6)
@@ -3423,6 +3424,15 @@ test('p0 loop verification composes the full p0 acceptance gate', async () => {
   assert.equal(fresh.p0Acceptance.readyForP1, false)
   assert.equal(fresh.p0Report.remainingCount, 6)
   assert.equal(fresh.p0Report.nextActionId, 'sect')
+  assert.equal(fresh.p0Checklist.items.length, 6)
+  assert.equal(fresh.p0Checklist.readyForP1, false)
+  assert.equal(fresh.p0Checklist.nextItem.id, 'sect')
+  assert.equal(fresh.p0Checklist.items[0].id, 'idle')
+  assert.ok(fresh.p0Checklist.items[0].requirement.includes('主角行程'))
+  assert.deepEqual(fresh.p0Checklist.items.find(item => item.id === 'map').routeTarget, {
+    path: '/game/map',
+    query: { areaId: 'qingyun_mountain' }
+  })
 
   const partial = resolveP0LoopVerification({
     readiness: {
@@ -3455,6 +3465,9 @@ test('p0 loop verification composes the full p0 acceptance gate', async () => {
   assert.equal(partial.p0Acceptance.remainingCount, 4)
   assert.equal(partial.p0Report.readyForP1, false)
   assert.ok(partial.p0Report.acceptedItems.some(item => item.id === 'story' && item.detail.includes('完成节点 1')))
+  assert.equal(partial.p0Checklist.closedCount, 2)
+  assert.equal(partial.p0Checklist.remainingCount, 4)
+  assert.ok(partial.p0Checklist.closedItems.every(item => item.isClosed))
   assert.deepEqual(partial.p0Acceptance.acceptedItems.map(item => item.id), ['story', 'sect'])
 
   const complete = resolveP0LoopVerification({
@@ -3502,6 +3515,9 @@ test('p0 loop verification composes the full p0 acceptance gate', async () => {
   assert.equal(complete.p0Report.readyForP1, true)
   assert.equal(complete.p0Report.gateLabel, '可以进入 P1')
   assert.equal(complete.p0NextAction.allClosed, true)
+  assert.equal(complete.p0Checklist.readyForP1, true)
+  assert.equal(complete.p0Checklist.remainingCount, 0)
+  assert.equal(complete.p0Checklist.headline, 'P0 六项验收清单均有可回看证据。')
 })
 
 test('map area unlock resolver gates route focus by realm requirement', async () => {

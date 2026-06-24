@@ -1,0 +1,93 @@
+{
+  "model": "gpt-image-2",
+  "quality": "high",
+  "board": {
+    "id": "homepage-template-v3-styleboard",
+    "size": "1024x1536",
+    "output": "src/assets/theme/generated/styleboards/homepage-template-v3-styleboard-regenerated.png",
+    "prompt": "Use case: ui-mockup board. Reference the provided xianxia homepage template and recreate a clean component styleboard instead of a full playable screen. Preserve the same art direction: airy sky-blue atmosphere, ivory parchment surfaces, celadon teal accents, aged gold outlines, restrained cloud motifs, misty immortal mountain painting language, elegant Chinese xianxia mobile game UI. Show a curated family of reusable shells only: one top resource pill, one circular icon badge, one large cultivation panel shell, one primary CTA button, one feature card shell, one horizontal event banner shell, one bottom navigation tab shell. No text, no characters, no full page layout, no extra scenery outside the component previews, no watermark."
+  },
+  "assets": [
+    {
+      "id": "resource-pill-v1",
+      "size": "1536x512",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/resource-pill-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone top resource pill UI shell from this same xianxia interface family. Single object only, centered, front view, symmetrical capsule shape, ivory paper body, faint celadon-teal inset, thin aged-gold outline, tiny ornamental end caps, soft premium mobile-game polish without glossy plastic. Leave a clean center-left area for a future icon and a clean center-right area for numbers and a plus sign. No text, no numbers, no icon, no shadow, no scenery. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "side-icon-badge-v1",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/side-icon-badge-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone circular side action badge shell from the same xianxia interface family. Single object only, centered, front view. Pale celadon core, ivory rim, aged-gold trim, elegant simple frame, small top-right notification dot included as part of the design but without symbol details. Keep the inner area clean for a future icon glyph. No text, no icon, no extra UI, no hand, no scenery. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "cultivation-panel-v1",
+      "size": "1536x1024",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/cultivation-panel-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone large cultivation content panel shell from the same xianxia interface family. Single object only, centered, wide horizontal plaque-card hybrid with softly sculpted shoulders, ivory parchment surface, celadon-teal ring accent in the middle, aged-gold linework, cloud ornaments confined to the edges, delicate painted texture, calm and premium. Leave generous clean zones for future title, stats, center circle content, and side actions. No text, no numbers, no character, no scenery painting inside the panel. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "primary-button-v3",
+      "size": "1536x512",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/primary-button-v3-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone primary action button shell from the same xianxia interface family. Single object only, centered, front view, horizontal button with jade-celadon center, ivory highlights, aged-gold border, decorative diamond end caps, refined fantasy-xianxia tone, readable center kept clean for future label text. No text, no icon, no extra panel, no shadow, no scenery. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "feature-card-v1",
+      "size": "1024x1280",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/feature-card-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone feature card shell from the same xianxia interface family. Single object only, centered, upright rounded-rectangle card with ivory parchment face, faint painted mountain mist artwork built subtly into the lower half, celadon accents, aged-gold trim, small ornamental corners, clean upper-left space for title and short description, circular arrow-button recess near the bottom. No text, no icons, no separate floating button, no character. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "feature-card-v2",
+      "size": "1024x1280",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/feature-card-v2-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone feature card shell from the same xianxia interface family, but optimized for real mobile text layout. Single object only, centered, upright rounded-rectangle card with ivory parchment face, airy celadon and aged-gold trim, misty mountain painting confined mostly to the lower third, and a clearly defined blank editorial plaque area across the upper-left to upper-middle region for one short title and two short description lines. Keep that text-safe area bright, calm, and visually integrated into the card rather than a floating sticker. Include a circular action recess near the bottom and keep the overall style elegant, premium, and restrained. No text, no icons, no separate floating button, no character. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "event-banner-v1",
+      "size": "1536x640",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/event-banner-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone limited-time event banner shell from the same xianxia interface family. Single object only, centered, long horizontal ornate banner with ivory parchment body, celestial-blue scenic painting softly embedded inside the center, aged-gold trim, a narrow vertical tag panel attached on the left side, and a circular call-to-action plaque integrated on the right side. Keep all text areas blank. No words, no numerals, no watermark. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "event-banner-v2",
+      "size": "1536x640",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/event-banner-v2-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone limited-time event banner shell from the same xianxia interface family, optimized for readable mobile typography. Single object only, centered, long horizontal ornate banner with ivory parchment body, soft celadon scenic painting embedded in the middle, aged-gold trim, a slim left tag panel, and a circular call-to-action plaque integrated on the right side. Most importantly, provide one clearly integrated blank title-and-subtitle text-safe panel in the center-left area with soft parchment brightness and enough clean room for one title line and one small subtitle line. The text-safe area must feel built into the banner design, not pasted on top. No words, no numerals, no watermark. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    },
+    {
+      "id": "bottom-nav-tab-v1",
+      "size": "1536x512",
+      "output": "src/assets/theme/generated/component-masters-homepage-v3-matte/bottom-nav-tab-v1-matte.png",
+      "references": [
+        "src/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png"
+      ],
+      "prompt": "Using the attached homepage template strictly as style reference, create one standalone bottom navigation tab shell from the same xianxia interface family. Single object only, centered, front view. A soft ivory-celadon tab base with aged-gold trim and a highlighted selected-state emblem area, designed for an icon above and label below. Keep it as a reusable single tab item rather than the whole nav bar. No text, no icon glyph, no scenery, no shadow. Background must be one perfectly flat solid chroma green matte only, pure #00FF00, with no gradient, no texture, no lighting variation, no contact shadow. Do not use #00FF00 anywhere in the UI object."
+    }
+  ]
+}

@@ -45,6 +45,12 @@ function getPlaceLine(input: IdleJourneyInput) {
   return '于当前界域'
 }
 
+function formatCultivationGain(value: number) {
+  if (value <= 0) return '0'
+  if (value >= 10000) return `${Math.round(value / 1000) / 10}万`
+  return String(Math.max(1, Math.round(value)))
+}
+
 export function resolveIdleJourney(input: IdleJourneyInput): IdleJourneyResult {
   const modeLabel = MODE_LABELS[input.idleMode]
   const tags = ['idle', ...MODE_TAGS[input.idleMode]]
@@ -62,7 +68,7 @@ export function resolveIdleJourney(input: IdleJourneyInput): IdleJourneyResult {
 
   const placeLine = getPlaceLine(input)
   const gainLine = input.cultivationPerSecond > 0
-    ? `当前每息约可沉淀 ${input.cultivationPerSecond.toFixed(2)} 点修为。`
+    ? `当前每息约可沉淀 ${formatCultivationGain(input.cultivationPerSecond)} 点修为。`
     : '当前修为收益较低，更需要借助机缘、功法或宗门资源补足。'
 
   return {

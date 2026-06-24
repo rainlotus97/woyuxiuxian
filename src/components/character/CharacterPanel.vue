@@ -12,6 +12,8 @@
             <i :style="{ color: loadout.getQualityColor(summary.quality) }">{{ summary.quality }}</i>
             <i>{{ summary.realm }}</i>
             <i>{{ summary.element }}灵根</i>
+            <i v-if="loadout.playerStore.spiritRoot" :style="{ color: rootColor }">{{ getSpiritRootName(loadout.playerStore.spiritRoot) }}</i>
+            <i v-if="loadout.playerStore.bloodline" :style="{ color: bloodlineColor }">{{ getBloodlineName(loadout.playerStore.bloodline) }}</i>
           </div>
         </div>
         <div class="hero-metrics">
@@ -75,12 +77,18 @@
             <span>包裹</span>
             <strong>{{ summary.inventoryCount }}/{{ summary.maxInventorySlots }}</strong>
           </div>
+        <div v-if="loadout.playerStore.spiritRoot" class="root-stats small-grid">
+          <div><span>修炼速度</span><strong>+{{ (loadout.playerStore.spiritRoot.cultivationSpeedBonus*100).toFixed(0) }}%</strong></div>
+          <div><span>元素亲和</span><strong>+{{ (loadout.playerStore.spiritRoot.elementAffinity*100).toFixed(0) }}%</strong></div>
+          <div><span>突破加成</span><strong>+{{ (loadout.playerStore.spiritRoot.breakthroughBonus*100).toFixed(0) }}%</strong></div>
+          <div v-if="loadout.playerStore.bloodline"><span>血脉加成</span><strong>{{ loadout.playerStore.bloodline.name }}</strong></div>
+        </div>
           <div>
             <span>技能点</span>
             <strong>{{ summary.skillPoints }}</strong>
           </div>
           <div>
-            <span>修为/秒</span>
+            <span>每息修为</span>
             <strong>{{ formatRate(summary.cultivationPerSecond) }}</strong>
           </div>
           <div>
@@ -294,7 +302,7 @@ function getDetailStatLabel(key: string | number) {
 }
 
 function formatRate(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  return String(Math.max(1, Math.round(value)))
 }
 
 function formatPercent(value: number) {
@@ -441,6 +449,7 @@ function formatPercent(value: number) {
 }
 
 .summary-grid div,
+.root-stats div,
 .passive-list div,
 .progression-list div {
   display: grid;
@@ -625,3 +634,13 @@ function formatPercent(value: number) {
 
 }
 </style>
+import { getSpiritRootName, ROOT_GRADE_STATS } from '@/types/spiritRoot'
+import { getBloodlineName, BLOODLINE_GRADE_BASE } from '@/types/bloodline'
+const rootColor = computed(() => {
+  if (!loadout.playerStore.spiritRoot) return '#9ca3af'
+  return ROOT_GRADE_STATS[loadout.playerStore.spiritRoot.grade].color
+})
+const bloodlineColor = computed(() => {
+  if (!loadout.playerStore.bloodline) return '#9ca3af'
+  return BLOODLINE_GRADE_BASE[loadout.playerStore.bloodline.grade].color
+})
