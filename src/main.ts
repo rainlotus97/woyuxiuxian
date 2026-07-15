@@ -1,7 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import XianxiaUI from '@xianxia/ui'
 import router from '@/router'
 import App from './App.vue'
+import '@xianxia/ui/style.css'
 import './app.css'
 
 const app = createApp(App)
@@ -9,6 +11,7 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+app.use(XianxiaUI)
 app.mount('#app')
 
 // 注册 Service Worker (PWA 支持)

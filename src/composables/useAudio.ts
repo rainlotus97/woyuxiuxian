@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type * as ToneNs from 'tone'
+type Subdivision = '1m' | '1n' | '1n.' | `${2 | 4 | 8 | 16 | 32 | 64 | 128 | 256}${'n' | 'n.' | 't'}` | '0'
 
 // ====== Tone.js 延迟加载 ======
 type ToneModule = typeof ToneNs
@@ -748,9 +749,9 @@ const currentBgmType = ref<BgmType | null>(null)
 interface BgmConfig {
   name: string
   tempo: number
-  subdivision: string
+  subdivision: Subdivision
   swing?: number
-  swingSubdivision?: string
+  swingSubdivision?: Subdivision
   melody: Array<string | string[] | null>
   melodyDurations?: string[]
   harmony?: Array<string | string[] | null>

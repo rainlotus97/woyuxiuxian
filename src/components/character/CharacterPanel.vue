@@ -2,9 +2,9 @@
   <div class="character-panel">
     <GameSurface class="hero-surface" tone="realm" padding="lg">
       <div class="hero-row">
-        <div class="avatar-wrap" :style="{ '--element-color': loadout.getElementColor(summary.element) }">
-          <span>{{ summary.icon }}</span>
-        </div>
+        <XAvatarFrame size="4.75rem" shape="square" tone="gold" :alt="`${summary.name}的头像`">
+          <span class="avatar-glyph" :style="{ color: loadout.getElementColor(summary.element) }">{{ summary.icon }}</span>
+        </XAvatarFrame>
         <div class="hero-copy">
           <span class="eyebrow">本命修士</span>
           <h2>{{ summary.name }}</h2>
@@ -262,6 +262,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { XAvatarFrame } from '@xianxia/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
@@ -271,6 +272,8 @@ import InventoryGrid from '@/components/character/InventoryGrid.vue'
 import InventorySchemaPanel from '@/components/character/InventorySchemaPanel.vue'
 import SkillTreePanel from '@/components/character/SkillTreePanel.vue'
 import { useCharacterLoadout, type CharacterPanelTab } from '@/composables/useCharacterLoadout'
+import { BLOODLINE_GRADE_BASE, getBloodlineName } from '@/types/bloodline'
+import { getSpiritRootName, ROOT_GRADE_STATS } from '@/types/spiritRoot'
 import type { UnitStats } from '@/types/unit'
 
 const props = withDefaults(defineProps<{
@@ -288,6 +291,16 @@ const tabs: Array<{ id: CharacterPanelTab; label: string; icon: string }> = [
 ]
 
 const summary = computed(() => loadout.characterSummary.value)
+
+const rootColor = computed(() => {
+  const spiritRoot = loadout.playerStore.spiritRoot
+  return spiritRoot ? ROOT_GRADE_STATS[spiritRoot.grade]?.color ?? '#5e9387' : '#5e9387'
+})
+
+const bloodlineColor = computed(() => {
+  const bloodline = loadout.playerStore.bloodline
+  return bloodline ? BLOODLINE_GRADE_BASE[bloodline.grade]?.color ?? '#9b6e24' : '#9b6e24'
+})
 
 const breakthroughHint = computed(() => {
   if (loadout.playerStore.canBreakthrough) {
@@ -324,21 +337,11 @@ function formatPercent(value: number) {
   margin-bottom: 16px;
 }
 
-.avatar-wrap {
-  width: 76px;
-  height: 76px;
+.avatar-glyph {
   display: grid;
   place-items: center;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 38% 24%, rgba(255, 244, 198, 0.9), transparent 35%),
-    linear-gradient(145deg, rgba(255, 255, 250, 0.94), rgba(226, 247, 237, 0.9));
-  border: 2px solid var(--element-color);
-  box-shadow: 0 18px 34px rgba(84, 125, 113, 0.16);
-}
-
-.avatar-wrap span {
-  color: #8b6326;
+  width: 100%;
+  height: 100%;
   font-size: 34px;
   font-weight: 800;
 }
@@ -614,11 +617,6 @@ function formatPercent(value: number) {
     grid-template-columns: 64px minmax(0, 1fr);
   }
 
-  .avatar-wrap {
-    width: 64px;
-    height: 64px;
-  }
-
   .hero-metrics {
     grid-column: 1 / -1;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -634,13 +632,3 @@ function formatPercent(value: number) {
 
 }
 </style>
-import { getSpiritRootName, ROOT_GRADE_STATS } from '@/types/spiritRoot'
-import { getBloodlineName, BLOODLINE_GRADE_BASE } from '@/types/bloodline'
-const rootColor = computed(() => {
-  if (!loadout.playerStore.spiritRoot) return '#9ca3af'
-  return ROOT_GRADE_STATS[loadout.playerStore.spiritRoot.grade].color
-})
-const bloodlineColor = computed(() => {
-  if (!loadout.playerStore.bloodline) return '#9ca3af'
-  return BLOODLINE_GRADE_BASE[loadout.playerStore.bloodline.grade].color
-})

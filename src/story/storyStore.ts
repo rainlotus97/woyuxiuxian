@@ -2,9 +2,9 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
-import { REALM_ORDER, type Realm } from '@/types/unit'
+import type { Realm } from '@/types/unit'
 import type { InventoryItem } from '@/stores/playerStore'
-import type { StoryChapter, StorySection, StoryChoice as ChapterStoryChoice, ChoiceEffect } from '@/types/storyChapter'
+import type { StoryChapter, StorySection, ChoiceEffect } from '@/types/storyChapter'
 import { chapter_iron_and_blood } from './chapters/vol1/001_iron_and_blood'
 import { chapter_mountain_encounter } from './chapters/vol1/002_mountain_encounter'
 import { chapter_spirit_herb_valley } from './chapters/vol1/003_spirit_herb_valley'
@@ -144,7 +144,6 @@ export interface StoryCatalogEntry {
 }
 
 const STORAGE_KEY = 'story_save_data'
-const WORLD_NARRATIVE_MAP = '人物与异闻'
 const STORY_START_CHAPTER_BY_PERSPECTIVE: Record<'male' | 'female', string> = {
   male: 'vol1_ch001_iron_and_blood',
   female: 'vol1_ch008_girl_in_tianji'
@@ -435,7 +434,7 @@ function resolvePlayableNodeId(nodeId: string | null, maxDepth = 8): string | nu
   return nodeId
 }
 
-function resolveSectionNodeName(chapter: StoryChapter, section: StorySection) {
+function resolveSectionNodeName(section: StorySection) {
   if (section.type === 'dialog' && section.speaker) {
     return section.speaker
   }
@@ -601,7 +600,7 @@ function buildStoryNodesFromChapters(chapters: StoryChapter[]): StoryNode[] {
 
       const node: StoryNode = {
         id: nodeId,
-        name: resolveSectionNodeName(chapter, section),
+        name: resolveSectionNodeName(section),
         perspective: chapterPerspective,
         map: getChapterMapLabel(chapter),
         prerequisites: [],
@@ -1141,10 +1140,6 @@ export const useStoryStore = defineStore('story', () => {
       if (item.type === 'choice') return `${item.choiceRef} 选择 ${item.value}`
       return item.rawText ?? item.type
     })
-  }
-
-  function getEligibleNodes() {
-    return allNodes.value
   }
 
   function checkAvailableSideQuests(): SideQuestInfo[] {

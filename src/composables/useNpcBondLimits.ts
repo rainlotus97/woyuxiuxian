@@ -4,7 +4,6 @@
  * 确保好感度不能无限制提升
  */
 import { ref, computed } from 'vue'
-import { useWorldStore } from '@/stores/worldStore'
 
 export interface BondLimitState {
   /** 今日已互动NPC列表 (npcId -> 次数) */
@@ -51,8 +50,6 @@ export const MAX_WEEKLY_GIFTS_PER_NPC = 1
 
 export function useNpcBondLimits() {
   const limits = ref<BondLimitState>(loadLimits())
-  const worldStore = useWorldStore()
-
   /** 检查是否需要重置日/周计数器 */
   function checkReset() {
     const now = Date.now()

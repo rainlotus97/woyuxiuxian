@@ -10,5 +10,6 @@ export default storyParser
 
 
 export function parseMainStory(input: unknown): unknown {
+  void input
   return null
 }

@@ -181,7 +181,6 @@ function compactLine(text: string, max = 34) {
   return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned
 }
 
-const compactDescription = computed(() => compactLine(props.area.description, 34))
 const compactEncounterNote = computed(() => {
   const text = props.encounter?.encounterNote ?? ''
   const cleaned = text

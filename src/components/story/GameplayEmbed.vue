@@ -1,5 +1,9 @@
 <template>
-  <section class="gameplay-embed" :class="[`type-${gameplayType}`, { resolved: showResult }]">
+  <XPanel
+    class="gameplay-embed"
+    :class="[`type-${gameplayType}`, { resolved: showResult }]"
+    :tone="panelTone"
+  >
     <div class="gameplay-atmosphere" aria-hidden="true"></div>
 
     <header class="gameplay-head">
@@ -8,25 +12,30 @@
         <strong>{{ gameplayTitle }}</strong>
         <p>{{ headline }}</p>
       </div>
-      <span class="gameplay-seal" aria-hidden="true">{{ gameplayGlyph }}</span>
+      <span class="gameplay-seal" aria-hidden="true">
+        <XIcon :icon="gameplayIcon" size="1.4rem" />
+      </span>
     </header>
 
     <div class="gameplay-body">
-      <div class="gameplay-summary-card">
-        <span class="summary-kicker">{{ targetLabel }}</span>
+      <XCard class="gameplay-summary-card" :tone="panelTone">
+        <template #title>
+          <span class="summary-kicker">{{ targetLabel }}</span>
+        </template>
         <strong>{{ targetHeadline }}</strong>
         <p>{{ detailText }}</p>
-      </div>
+      </XCard>
 
       <div class="gameplay-intent-grid">
-        <article
-          v-for="item in intentItems"
+        <XStatChip
+          v-for="(item, index) in intentItems"
           :key="item.label"
           class="intent-card"
-        >
-          <small>{{ item.label }}</small>
-          <strong>{{ item.value }}</strong>
-        </article>
+          :label="item.label"
+          :value="item.value"
+          :icon="resolveIntentIcon(index)"
+          :tone="resolveIntentTone(index)"
+        />
       </div>
 
       <div class="gameplay-rail" aria-hidden="true">
@@ -39,34 +48,47 @@
     </div>
 
     <footer class="gameplay-actions">
-      <button class="btn primary" type="button" @click="handleStart">
+      <XButton :tone="panelTone" :disabled="isRunning" size-tone="sm" @click="handleStart">
+        <template #icon><XIcon :icon="gameplayIcon" size="1rem" /></template>
         {{ startButtonText }}
-      </button>
-      <button v-if="canSkip" class="btn secondary" type="button" @click="handleSkip">
+      </XButton>
+      <XButton v-if="canSkip" tone="stone" :disabled="isRunning" size-tone="sm" @click="handleSkip">
+        <template #icon><XIcon icon="chevron-right" size="1rem" /></template>
         先略过
-      </button>
+      </XButton>
     </footer>
 
     <Transition name="fade">
-      <div v-if="showResult" class="gameplay-result" :class="resultClass">
-        <span class="result-mark">{{ resultSuccess ? '已应下' : '出了岔子' }}</span>
-        <strong>{{ resultText }}</strong>
-        <p v-if="resultDetail" class="result-detail">{{ resultDetail }}</p>
-        <div v-if="resultRewards.length > 0" class="result-rewards">
-          <span v-for="reward in resultRewards" :key="reward">{{ reward }}</span>
-        </div>
-      </div>
+      <XAnnouncement
+        v-if="showResult"
+        class="gameplay-result"
+        :class="resultClass"
+        :eyebrow="resultSuccess ? '已应下' : '出了岔子'"
+        :title="resultText"
+        :message="resultDetail"
+        :icon="resultSuccess ? 'spark' : 'armor'"
+        :tone="resultSuccess ? 'jade' : 'rose'"
+      >
+        <template v-if="resultRewards.length > 0" #action>
+          <div class="result-rewards">
+            <span v-for="reward in resultRewards" :key="reward">{{ reward }}</span>
+          </div>
+        </template>
+      </XAnnouncement>
     </Transition>
-  </section>
+  </XPanel>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { XAnnouncement, XButton, XCard, XIcon, XPanel, XStatChip } from '@xianxia/ui'
+import type { XIconName, XTone } from '@xianxia/ui'
 import { gameplayBridge } from '@/story/gameplayBridge'
-import type { GameplayResult } from '@/story/types'
+import type { GameplayResult, GameplayTrigger, GameplayType } from '@/story/types'
 
 const props = defineProps<{
-  gameplayType: string
+  trigger?: GameplayTrigger
+  gameplayType: GameplayType
   targetId: string
   params?: Record<string, unknown>
   canSkip?: boolean
@@ -80,6 +102,12 @@ const emit = defineEmits<{
 const showResult = ref(false)
 const resultSuccess = ref(false)
 const lastResult = ref<GameplayResult | null>(null)
+const isRunning = ref(false)
+let resultTimer: number | null = null
+
+const panelTone = computed<'gold' | 'rose'>(() => (
+  props.gameplayType === 'battle' ? 'rose' : 'gold'
+))
 
 const targetLabel = computed(() => {
   const labels: Record<string, string> = {
@@ -117,16 +145,16 @@ const toneLabel = computed(() => {
   return labels[props.gameplayType] ?? '事件续接'
 })
 
-const gameplayGlyph = computed(() => {
-  const icons: Record<string, string> = {
-    battle: '战',
-    collect: '寻',
-    upgrade: '破',
-    explore: '行',
-    dialog: '言',
-    puzzle: '机'
+const gameplayIcon = computed<XIconName>(() => {
+  const icons: Record<string, XIconName> = {
+    battle: 'sword',
+    collect: 'backpack',
+    upgrade: 'cultivation',
+    explore: 'map',
+    dialog: 'scroll',
+    puzzle: 'settings'
   }
-  return icons[props.gameplayType] ?? '启'
+  return icons[props.gameplayType] ?? 'mission'
 })
 
 const headline = computed(() => {
@@ -210,14 +238,45 @@ const resultRewards = computed(() => {
 })
 
 async function handleStart() {
-  const result = await gameplayBridge.execute()
-  lastResult.value = result
-  showResult.value = true
-  resultSuccess.value = result.success
+  if (isRunning.value) return
+  isRunning.value = true
 
-  window.setTimeout(() => {
+  const trigger = props.trigger
+    ? cloneGameplayTrigger(props.trigger)
+    : {
+        type: props.gameplayType,
+        targetId: props.targetId,
+        params: props.params
+      }
+
+  try {
+    const result = await gameplayBridge.execute(trigger)
+    presentResult(result)
+  } catch {
+    const result: GameplayResult = {
+      success: false,
+      gameplayType: props.gameplayType,
+      targetId: props.targetId,
+      data: {
+        resultLabel: '这一截没接住',
+        text: '眼前的事暂时没能落定，稍后再试。'
+      }
+    }
+    presentResult(result)
+  }
+}
+
+function presentResult(result: GameplayResult) {
+  lastResult.value = result
+  resultSuccess.value = result.success
+  showResult.value = true
+
+  if (resultTimer !== null) window.clearTimeout(resultTimer)
+  resultTimer = window.setTimeout(() => {
     showResult.value = false
-    emit('complete', result)
+    isRunning.value = false
+    resultTimer = null
+    if (result.success) emit('complete', result)
   }, 1300)
 }
 
@@ -227,6 +286,24 @@ function handleSkip() {
 
 function asString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function cloneGameplayTrigger(trigger: GameplayTrigger): GameplayTrigger {
+  return {
+    ...trigger,
+    params: trigger.params ? { ...trigger.params } : undefined,
+    context: trigger.context ? { ...trigger.context } : undefined,
+    outcomeNodeIds: trigger.outcomeNodeIds ? { ...trigger.outcomeNodeIds } : undefined,
+    completionCondition: trigger.completionCondition?.map(condition => ({ ...condition }))
+  }
+}
+
+function resolveIntentIcon(index: number): XIconName {
+  return (['mission', 'chevron-right', 'spark'] as const)[index] ?? 'mission'
+}
+
+function resolveIntentTone(index: number): XTone {
+  return (['stone', 'jade', 'gold'] as const)[index] ?? 'stone'
 }
 
 function normalizePreviewItem(item: unknown) {
@@ -290,43 +367,50 @@ function resolveImpactLabel(type: string) {
 }
 
 watch(() => props.gameplayType, () => {
+  if (resultTimer !== null) window.clearTimeout(resultTimer)
+  resultTimer = null
   showResult.value = false
   lastResult.value = null
+  isRunning.value = false
+})
+
+onBeforeUnmount(() => {
+  if (resultTimer !== null) window.clearTimeout(resultTimer)
 })
 </script>
 
 <style scoped>
 .gameplay-embed {
   position: relative;
+  width: 100%;
+  min-height: 0;
+  border-radius: 26px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.gameplay-embed :deep(.x-panel__content) {
   display: grid;
   gap: 16px;
   padding: 18px 16px 16px;
-  border: 1px solid rgba(181, 145, 82, 0.18);
-  border-radius: 26px;
-  background:
-    linear-gradient(180deg, rgba(252, 253, 250, 0.95), rgba(241, 247, 243, 0.98)),
-    radial-gradient(circle at top, rgba(230, 194, 121, 0.14), transparent 38%);
-  box-shadow:
-    0 18px 34px rgba(31, 47, 45, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  overflow: hidden;
-  isolation: isolate;
 }
 
 .gameplay-atmosphere {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
+  pointer-events: none;
   background:
     radial-gradient(circle at 14% 14%, rgba(110, 153, 137, 0.08), transparent 22%),
     radial-gradient(circle at 82% 16%, rgba(227, 189, 112, 0.12), transparent 24%),
     linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(227, 236, 232, 0.2));
 }
 
-.gameplay-embed.type-battle {
-  background:
-    linear-gradient(180deg, rgba(255, 251, 247, 0.96), rgba(246, 241, 238, 0.98)),
-    radial-gradient(circle at top, rgba(195, 115, 88, 0.14), transparent 42%);
+.gameplay-head,
+.gameplay-body,
+.gameplay-actions {
+  position: relative;
+  z-index: 1;
 }
 
 .gameplay-head {
@@ -385,15 +469,19 @@ watch(() => props.gameplayType, () => {
 }
 
 .gameplay-summary-card {
-  display: grid;
-  gap: 5px;
-  padding: 14px 14px 15px;
+  min-height: 0;
   border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 253, 247, 0.98), rgba(246, 249, 245, 0.98));
-  box-shadow:
-    0 12px 24px rgba(36, 53, 51, 0.06),
-    inset 0 0 0 1px rgba(185, 151, 92, 0.12);
+}
+
+.gameplay-summary-card :deep(.x-card__content) {
+  gap: 5px;
+  min-height: 0;
+  padding: 14px 14px 15px;
+}
+
+.gameplay-summary-card :deep(.x-card__title) {
+  font-family: inherit;
+  letter-spacing: 0;
 }
 
 .summary-kicker {
@@ -424,26 +512,18 @@ watch(() => props.gameplayType, () => {
 }
 
 .intent-card {
-  display: grid;
-  gap: 4px;
+  width: 100%;
   min-width: 0;
-  padding: 11px 10px 12px;
-  border-radius: 16px;
-  background: rgba(247, 250, 246, 0.76);
-  border: 1px solid rgba(162, 187, 177, 0.14);
 }
 
-.intent-card small {
-  color: rgba(91, 117, 111, 0.72);
-  font-size: 9px;
-  line-height: 1.2;
+.intent-card :deep(.x-stat-chip__copy) {
+  overflow: hidden;
 }
 
-.intent-card strong {
-  color: #37514e;
-  font-size: 12px;
-  line-height: 1.45;
-  text-wrap: pretty;
+.intent-card :deep(.x-stat-chip__copy strong) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gameplay-rail {
@@ -474,72 +554,25 @@ watch(() => props.gameplayType, () => {
   gap: 10px;
 }
 
-.btn {
+.gameplay-actions :deep(.x-button) {
   flex: 1;
-  min-height: 44px;
-  border-radius: 16px;
-  border: 0;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.btn.primary {
-  background: linear-gradient(180deg, #f7e5ba, #d6e8d9);
-  color: #734e20;
-  box-shadow: 0 12px 22px rgba(49, 68, 64, 0.12);
-}
-
-.btn.primary:hover {
-  transform: translateY(-1px);
-}
-
-.btn.secondary {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(154, 180, 171, 0.2);
-  color: #4e6663;
+  min-width: 0;
 }
 
 .gameplay-result {
   position: absolute;
   inset: auto 16px 16px;
-  display: grid;
-  gap: 6px;
-  padding: 14px 14px 15px;
-  border-radius: 18px;
+  z-index: 3;
   box-shadow: 0 16px 30px rgba(28, 43, 41, 0.18);
   backdrop-filter: blur(8px);
 }
 
-.gameplay-result.success {
-  background: rgba(242, 249, 244, 0.96);
-  border: 1px solid rgba(118, 161, 145, 0.2);
+.gameplay-result :deep(.x-announcement__copy) {
+  min-width: 0;
 }
 
-.gameplay-result.failure {
-  background: rgba(255, 243, 241, 0.96);
-  border: 1px solid rgba(188, 121, 108, 0.18);
-}
-
-.result-mark {
-  color: rgba(133, 95, 39, 0.72);
-  font-size: 9px;
-  line-height: 1.2;
-  letter-spacing: 0.12em;
-}
-
-.gameplay-result strong {
-  color: #31504b;
-  font-size: 16px;
-  line-height: 1.2;
-}
-
-.result-detail {
-  margin: 0;
-  color: rgba(57, 80, 75, 0.78);
-  font-size: 12px;
-  line-height: 1.62;
+.gameplay-result :deep(.x-announcement__actions) {
+  max-width: 12rem;
 }
 
 .result-rewards {
@@ -573,9 +606,12 @@ watch(() => props.gameplayType, () => {
 
 @media (max-width: 560px) {
   .gameplay-embed {
+    border-radius: 22px;
+  }
+
+  .gameplay-embed :deep(.x-panel__content) {
     gap: 14px;
     padding: 15px 13px 13px;
-    border-radius: 22px;
   }
 
   .gameplay-head-copy strong {
@@ -595,18 +631,17 @@ watch(() => props.gameplayType, () => {
     grid-template-columns: 1fr;
   }
 
-  .intent-card {
-    grid-template-columns: 64px minmax(0, 1fr);
-    align-items: center;
-  }
-
-  .intent-card small,
-  .intent-card strong {
-    display: block;
-  }
-
   .gameplay-actions {
     flex-direction: column;
+  }
+
+  .gameplay-result {
+    inset-inline: 13px;
+  }
+
+  .gameplay-result :deep(.x-announcement__actions) {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }
 </style>

@@ -40,7 +40,7 @@ export interface BattleEffectConfig {
 }
 
 /** 按元素类型分组的特效配置 */
-export const ELEMENT_EFFECTS: Record<string, BattleEffectConfig> = {
+export const ELEMENT_EFFECTS = {
   slash: {
     type: 'slash', label: '斩击', icon: resolveBattleEffectIcon('slash'),
     description: '{actor}挥出一道凌厉的剑光，直劈{target}！剑气纵横，势不可挡！',
@@ -131,7 +131,7 @@ export const ELEMENT_EFFECTS: Record<string, BattleEffectConfig> = {
     description: '{target}身形飘忽如鬼魅，{actor}的攻击擦着衣角掠过，竟未伤及分毫！',
     cssClass: 'effect-dodge'
   }
-}
+} satisfies Record<BattleEffectType, BattleEffectConfig>
 
 export function getEffectForElement(element: string): BattleEffectConfig {
   const el = element.toLowerCase()

@@ -72,17 +72,28 @@ woyu-xiuxian/
 
 ```bash
 # 安装依赖
-npm install
+pnpm install
 
 # 启动开发服务器
-npm run dev
+pnpm dev
 
 # 构建生产版本
-npm run build
+pnpm build
 
 # 预览构建结果
-npm run preview
+pnpm preview
 ```
+
+### xianxia-ui 联调
+
+生产依赖固定为已发布的 `@xianxia/ui@1.0.0`。需要同时修改组件库时，在两个终端分别运行：
+
+```bash
+# 终端 1：使用组件库源码启动 Vite，支持 HMR
+pnpm dev:ui
+```
+
+`dev:ui` 仅在 `ui-local` mode 下启用兄弟目录源码别名；普通 `pnpm dev`、生产构建和 CI 始终解析 npm 版本，不改变 `package.json` 或 pnpm 锁文件。组件包自身可在另一个终端运行 `pnpm --dir ../web-main/xianxia-ui dev:lib`，验证发布产物边界。
 
 ## 校验
 

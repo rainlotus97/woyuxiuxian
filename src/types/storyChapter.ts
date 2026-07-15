@@ -3,7 +3,6 @@
  * 每个章节是一个 TypeScript 数据对象
  * 自动触发 + 卡片段落展示 + 回看打字机
  */
-import type { RootElement } from './spiritRoot'
 export type Perspective = 'male' | 'female' | 'both'
 /** 触发条件 */
 export interface ChapterTrigger {

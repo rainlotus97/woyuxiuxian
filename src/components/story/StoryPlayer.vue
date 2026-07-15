@@ -1,8 +1,12 @@
 <template>
   <div class="story-player" @click="handleStageTap">
     <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">风声正在接过来…</p>
+      <XAnnouncement
+        class="loading-feedback"
+        title="风声正在接过来…"
+        icon="scroll"
+        tone="gold"
+      />
     </div>
 
     <template v-else-if="currentNode">
@@ -70,9 +74,13 @@
               <p v-if="!displayPageText" class="story-fallback-text">这口风一散，马上就会接回上一截。</p>
             </StoryTextPanel>
 
-            <div v-if="showPauseFallbackPanel || useLightweightPauseNarration" class="story-pause-card">
+            <XPanel
+              v-if="showPauseFallbackPanel || useLightweightPauseNarration"
+              class="story-pause-card"
+              tone="gold"
+            >
               <p class="story-pause-copy">{{ useLightweightPauseNarration ? displayPageText : pauseFallbackText }}</p>
-            </div>
+            </XPanel>
 
             <StoryDialogList
               v-if="showDialogs"
@@ -85,14 +93,14 @@
               @complete="onDialogLineComplete"
             />
 
-            <section v-if="showMonologue" class="inner-monologue">
+            <XPanel v-if="showMonologue" class="inner-monologue" tone="mist">
               <span>一念掠过</span>
               <TypewriterText
                 :text="currentNode.content.innerMonologue ?? ''"
                 :speed="22"
                 @complete="onMonologueComplete"
               />
-            </section>
+            </XPanel>
           </div>
         </section>
 
@@ -109,7 +117,11 @@
     </template>
 
     <div v-else class="empty-state">
-      <p>眼前的事还没完全拢住，马上就接回上一截。</p>
+      <XAnnouncement
+        title="眼前的事还没完全拢住，马上就接回上一截。"
+        icon="scroll"
+        tone="stone"
+      />
     </div>
 
     <StoryNotificationStack v-if="notifications.length > 0" :notifications="notifications" />
@@ -139,6 +151,7 @@
 
     <div v-if="showGameplay && currentGameplayTrigger" class="gameplay-layer">
       <GameplayEmbed
+        :trigger="currentGameplayTrigger"
         :gameplay-type="currentGameplayTrigger.type"
         :target-id="currentGameplayTrigger.targetId ?? ''"
         :params="currentGameplayTrigger.params"
@@ -154,6 +167,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { XAnnouncement, XPanel } from '@xianxia/ui'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useStoryStore } from '@/story/storyStore'
@@ -396,59 +410,6 @@ const currentBeatLabel = computed(() => {
   return '眼前这条线动了'
 })
 
-function normalizeLeadSeed(text: string) {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/[。！？!?]$/u, '')
-    .replace(/^(此时|这时|那时|这一日|当夜|夜里|片刻后|不久后)/u, '')
-    .trim()
-}
-
-function compactCinematicLeadTitle(text: string) {
-  const seed = normalizeLeadSeed(text)
-  if (!seed) return ''
-
-  const mapped = seed
-    .replace(/(.+?)的(黄昏|暮色|夜色|晨光|晚风|山门|镇口|街口|雨幕|炉火|海崖|山道).*/u, '$1$2')
-    .replace(/(.+?)(比别处.+|显得.+|来得.+|还要.+|总是.+)$/u, '$1')
-    .replace(/(.+?)(忽然|已经|正|便|才|像是|仿佛).*/u, '$1')
-    .trim()
-
-  const clauses = mapped.split(/[，、；：]/u).map(item => item.trim()).filter(Boolean)
-  const candidate = clauses[0] ?? mapped
-  if (!candidate) return ''
-  return candidate.length > 10 ? `${candidate.slice(0, 10)}…` : candidate
-}
-
-function resolveSceneLeadTitle() {
-  const mapName = normalizeLeadSeed(currentNode.value?.map ?? '')
-  const illustrationAlt = normalizeLeadSeed(currentIllustration.value?.alt ?? '')
-
-  if (mapName) {
-    const title = compactCinematicLeadTitle(mapName)
-    if (title) return title
-  }
-
-  if (illustrationAlt) {
-    const title = compactCinematicLeadTitle(illustrationAlt)
-    if (title) return title
-  }
-
-  const firstSentence = perspectiveText.value
-    .replace(/\s+/g, ' ')
-    .split(/(?<=[。！？!?])/u)
-    .map(item => item.trim())
-    .find(Boolean)
-    ?? ''
-  const clauses = firstSentence.split(/[，、；：]/u).map(item => item.trim()).filter(Boolean)
-  for (const clause of clauses) {
-    const title = compactCinematicLeadTitle(clause)
-    if (title) return title
-  }
-
-  return '眼前这一幕'
-}
-
 const displayPageText = computed(() => {
   const formatted = formatReadableStoryPage(currentPageText.value, {
     preferCompact: isNarrativeScene.value,
@@ -513,9 +474,6 @@ const storyPanelHint = computed(() => (
 const headerPresenceLabel = computed(() => (
   ''
 ))
-const shouldCondenseHeader = computed(() => (
-  isShortNarrationPage.value && Boolean(currentIllustration.value)
-))
 const isCompactNarrationMoment = computed(() => {
   if (!isNarrativeScene.value) return false
   if (showChoices.value || hasNextPage.value) return false
@@ -541,46 +499,6 @@ const pauseFallbackText = computed(() => {
   if (store.currentPerspective === 'male') return '他先把这一截压住了。'
   return '这一截先记在这里。'
 })
-const currentSceneHint = computed(() => {
-  const displayHint = displayPageText.value
-    .split('\n')
-    .map(item => item.trim())
-    .filter(Boolean)
-    .find(item => item !== currentBeatLabel.value)
-    ?? ''
-  const normalizedDisplayHint = displayHint.replace(/[。！？!?]$/u, '').trim()
-  if (normalizedDisplayHint) {
-    return normalizedDisplayHint.length > 10
-      ? `${normalizedDisplayHint.slice(0, 10)}…`
-      : normalizedDisplayHint
-  }
-
-  const text = perspectiveText.value
-  const sentences = text
-    .replace(/\s+/g, ' ')
-    .split(/(?<=[。！？!?])/u)
-    .map(item => item.trim())
-    .filter(Boolean)
-
-  const followSentence = sentences[1]?.replace(/[。！？!?]$/u, '').trim()
-  if (followSentence) {
-    return followSentence.length > 10 ? `${followSentence.slice(0, 10)}…` : followSentence
-  }
-
-  const firstSentence = sentences[0]?.replace(/[。！？!?]$/u, '').trim() ?? ''
-  const clauses = firstSentence.split(/[，、；：]/u).map(item => item.trim()).filter(Boolean)
-  if (clauses.length > 1) {
-    const followClause = clauses[1] ?? ''
-    return followClause.length > 10 ? `${followClause.slice(0, 10)}…` : followClause
-  }
-
-  if ((currentNode.value?.content.npcDialogs?.length ?? 0) > 0) return '有人开口'
-  if (currentNode.value?.content.innerMonologue) return '念头压了上来'
-  if (currentNode.value?.content.gameplayTrigger) return '眼前就要动手'
-  if (hasNextPage.value) return '后头还有下文'
-  return '这事还没真正完'
-})
-
 const autoAdvanceLabel = computed(() => {
   if ((hasStoryPages.value && !pageComplete.value) || showGameplay.value) return ''
   if (showChoices.value) return ''
@@ -2457,11 +2375,15 @@ defineExpose({
 }
 
 .story-pause-card {
-  display: grid;
-  gap: 0;
   width: min(100%, 298px);
   max-width: min(100%, 298px);
-  padding: 6px 0 2px 12px;
+  min-height: 0;
+  border-radius: 14px;
+}
+
+.story-pause-card :deep(.x-panel__content) {
+  min-height: 0;
+  padding: 9px 12px;
 }
 
 .story-pause-copy {
@@ -2533,42 +2455,23 @@ defineExpose({
   z-index: 100;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(124, 150, 137, 0.24);
-  border-top-color: #9a6827;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  margin-top: 16px;
-  font-size: 13px;
-  color: rgba(49, 76, 70, 0.68);
+.loading-feedback {
+  width: min(360px, calc(100vw - 32px));
+  min-width: 0;
 }
 
 .inner-monologue {
-  display: grid;
-  gap: 2px;
-  padding: 2px 2px 1px 7px;
-  border: 0;
-  border-left: 2px solid rgba(182, 132, 55, 0.18);
-  border-radius: 0;
-  background: transparent;
+  min-height: 0;
+  border-radius: 14px;
   color: rgba(47, 72, 67, 0.76);
   font-style: italic;
-  position: relative;
-  overflow: hidden;
 }
 
-.inner-monologue::after {
-  display: none;
+.inner-monologue :deep(.x-panel__content) {
+  display: grid;
+  gap: 4px;
+  min-height: 0;
+  padding: 10px 12px;
 }
 
 .inner-monologue > span {
@@ -2595,13 +2498,8 @@ defineExpose({
   color: rgba(58, 82, 77, 0.62);
 }
 
-.empty-state p {
-  margin: 0;
-  max-width: 18ch;
-  font-size: 13px;
-  line-height: 1.6;
-  text-align: center;
-  text-wrap: pretty;
+.empty-state :deep(.x-announcement) {
+  width: min(420px, calc(100vw - 32px));
 }
 
 .gameplay-layer {

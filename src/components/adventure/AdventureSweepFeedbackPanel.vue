@@ -2,11 +2,18 @@
   <GameSurface
     tone="realm"
     padding="md"
-    eyebrow="历练回报"
-    title="最近扫荡"
-    :subtitle="feedback.result.summary"
+    compact
+    class="sweep-feedback-panel"
   >
     <div class="sweep-feedback">
+      <XAnnouncement
+        class="sweep-summary"
+        eyebrow="历练回报"
+        title="最近扫荡"
+        :message="feedback.result.summary"
+        icon="gift"
+        tone="gold"
+      />
       <div class="sweep-stat-row">
         <GameStatChip icon="修" label="修为" :value="feedback.result.cultivationGain" tone="gold" />
         <GameStatChip icon="石" label="灵石" :value="feedback.result.goldGain" tone="jade" />
@@ -22,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { XAnnouncement } from '@xianxia/ui'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { AdventureSweepFeedback } from '@/composables/useAdventureSweep'
@@ -35,12 +43,23 @@ defineProps<{
 .sweep-feedback {
   display: grid;
   gap: 12px;
+  min-width: 0;
+}
+
+.sweep-summary {
+  min-width: 0;
 }
 
 .sweep-stat-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
+}
+
+.sweep-stat-row :deep(.x-stat-chip) {
+  width: 100%;
+  min-width: 0;
 }
 
 .sweep-drops {
@@ -61,11 +80,17 @@ defineProps<{
   color: #315257;
   font-size: 12px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .sweep-stat-row {
     grid-template-columns: 1fr;
+  }
+
+  .sweep-drops {
+    min-width: 0;
+    padding: 10px;
   }
 }
 </style>

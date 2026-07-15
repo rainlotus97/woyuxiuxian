@@ -1,5 +1,3 @@
-import type { StorySection } from '@/types/storyChapter'
-
 export type Perspective = 'male' | 'female' | 'both'
 
 export interface StoryEvent {
@@ -136,17 +134,43 @@ export interface StorySessionState {
   termination?: StoryTermination
 }
 
+export type GameplayType =
+  | 'battle'
+  | 'collect'
+  | 'upgrade'
+  | 'explore'
+  | 'dialog'
+  | 'puzzle'
+  | 'custom'
+
 export interface GameplayTrigger {
-  type: string
-  targetId?: string
+  type: GameplayType
+  targetId: string
   params?: Record<string, unknown>
-  context: Record<string, unknown>
+  context?: Record<string, unknown>
+  continueNodeId?: string
+  outcomeNodeIds?: Partial<Record<'victory' | 'defeat' | 'fled' | 'success' | 'failure', string>>
+  completionCondition?: Prerequisite[]
+  onFailure?: 'retry' | 'skip' | 'gameover' | 'goto'
+  failureNodeId?: string
 }
 
 export interface GameplayResult {
   success: boolean
+  gameplayType: GameplayType
+  targetId: string
+  data?: Record<string, unknown>
+  duration?: number
   narrative?: string
   effects?: Effect[]
+}
+
+export interface GameplaySuspendState {
+  type: 'gameplay'
+  gameplayTrigger: GameplayTrigger
+  previousNodeId: string
+  suspendedAt: number
+  retryCount: number
 }
 
 export interface SideQuestDetail {
@@ -160,4 +184,5 @@ export interface SideQuestDetail {
   isAvailable: boolean
   isCompleted: boolean
   description?: string
+  rewards?: Effect[]
 }

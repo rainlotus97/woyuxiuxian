@@ -256,18 +256,20 @@
       </div>
     </div>
 
-    <!-- 伙伴详情弹窗 -->
-    <div v-if="selectedCompanionId" class="modal-overlay" @click.self="selectedCompanionId = null">
-      <div class="modal-content companion-detail-modal">
-        <template v-if="selectedCompanionDef && selectedOwned">
-          <div class="modal-header" :style="{ background: getQualityBg(selectedCompanionDef.quality) }">
-            <div class="detail-stars">
-              <span v-for="i in selectedOwned.stars" :key="i">★</span>
-            </div>
-            <button class="modal-close" @click="selectedCompanionId = null">×</button>
-          </div>
+    <XDialog
+      :model-value="Boolean(selectedCompanionId)"
+      :title="selectedCompanionDef?.name ?? '伙伴详情'"
+      :subtitle="selectedCompanionDef?.specialty ?? ''"
+      size="lg"
+      tone="gold"
+      @close="selectedCompanionId = null"
+    >
+      <template v-if="selectedCompanionDef && selectedOwned">
+        <div class="detail-stars" :style="{ color: getQualityColor(selectedCompanionDef.quality) }">
+          <span v-for="i in selectedOwned.stars" :key="i">★</span>
+        </div>
 
-          <div class="modal-body">
+        <div class="modal-body">
             <StoryCharacterPreviewCard
               v-if="selectedStoryProfile"
               :profile="selectedStoryProfile"
@@ -286,14 +288,6 @@
               :accent-color="getQualityColor(selectedCompanionDef.quality)"
               class="detail-story-card"
             />
-            <template v-else>
-              <div class="detail-icon">{{ selectedCompanionDef.icon }}</div>
-              <div class="detail-name">{{ selectedCompanionDef.name }}</div>
-              <div class="detail-quality" :style="{ color: getQualityColor(selectedCompanionDef.quality) }">
-                {{ selectedCompanionDef.quality }}
-              </div>
-            </template>
-
             <div class="detail-stats">
               <div class="stat-row">
                 <span>等级</span>
@@ -301,7 +295,7 @@
               </div>
               <div class="stat-row">
                 <span>好感度</span>
-                <span>❤️ {{ selectedOwned.bond }}/100</span>
+                <span>{{ selectedOwned.bond }}/100</span>
               </div>
               <div class="stat-row">
                 <span>专长</span>
@@ -323,7 +317,7 @@
               <h4>技能 ({{ selectedOwned.learnedSkills?.length || 0 }}/{{ selectedOwned.maxSkillSlots }})</h4>
               <div class="skills-list">
                 <div v-for="skillId in companionStore.getCompanionAllSkills(selectedOwned.definitionId)" :key="skillId" class="skill-item">
-                  <span class="skill-icon">✨</span>
+                  <GameIcon class="skill-icon" icon="spark" :size="16" />
                   <span class="skill-name">{{ getSkillName(skillId) }}</span>
                   <span v-if="!selectedCompanionDef.skills.includes(skillId)" class="skill-learned">学</span>
                 </div>
@@ -334,37 +328,37 @@
             </div>
 
             <div class="detail-actions">
-              <button
+              <GameActionButton
                 v-if="selectedOwned.fragments >= GACHA_CONFIG.fragmentsForStar && selectedOwned.stars < 5"
-                class="action-btn star-up"
+                tone="gold"
                 @click="handleStarUp"
               >
-                ⭐ 升星
-              </button>
-              <button
+                升星
+              </GameActionButton>
+              <GameActionButton
                 v-if="!selectedOwned.equipped"
-                class="action-btn equip"
+                tone="jade"
                 @click="handleEquipAndClose"
               >
-                ⚔️ 上阵
-              </button>
-              <button
+                上阵
+              </GameActionButton>
+              <GameActionButton
                 v-else
-                class="action-btn unequip"
+                tone="stone"
                 @click="handleUnequipAndClose"
               >
                 下阵
-              </button>
+              </GameActionButton>
             </div>
-          </div>
-        </template>
-      </div>
-    </div>
+        </div>
+      </template>
+    </XDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { XDialog } from '@xianxia/ui'
 import { useCompanionStore } from '@/stores/companionStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
@@ -374,6 +368,7 @@ import { useToast } from '@/composables/useToast'
 import { useNpcActivityInsight } from '@/composables/useNpcActivityInsight'
 import { useNpcInteraction } from '@/composables/useNpcInteraction'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import NpcActivityPanel from '@/components/companion/NpcActivityPanel.vue'
 import NpcBondCard from '@/components/companion/NpcBondCard.vue'
@@ -464,12 +459,6 @@ const selectedStoryProfile = computed(() => {
 // 获取品质颜色
 function getQualityColor(quality: string): string {
   return COMPANION_QUALITY_CONFIG[quality as keyof typeof COMPANION_QUALITY_CONFIG]?.color ?? '#9ca3af'
-}
-
-// 获取品质背景
-function getQualityBg(quality: string): string {
-  const color = getQualityColor(quality)
-  return `linear-gradient(135deg, ${color}33, ${color}11)`
 }
 
 // 获取技能名称
@@ -1280,20 +1269,6 @@ function handleObserveNpcActivity() {
 }
 
 /* 弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
 .modal-content {
   background:
     linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(233, 243, 238, 0.96));
@@ -1305,57 +1280,16 @@ function handleObserveNpcActivity() {
   overflow: hidden;
 }
 
-.modal-header {
-  position: relative;
-  min-height: 36px;
-  padding: 12px 16px 0;
-}
-
-.detail-icon {
-  font-size: 4rem;
-  text-align: center;
-}
-
 .detail-stars {
   font-size: 1rem;
   color: #fbbf24;
   margin-top: 4px;
 }
 
-.modal-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: var(--color-muted);
-  font-size: 1.125rem;
-  cursor: pointer;
-}
-
 .modal-body {
   max-height: min(80vh, 800px);
   padding: 14px 16px 18px;
   overflow-y: auto;
-}
-
-.detail-name {
-  font-size: 1.25rem;
-  color: #7a5324;
-  font-weight: 500;
-  text-align: center;
-}
-
-.detail-quality {
-  font-size: 0.875rem;
-  text-align: center;
-  margin-bottom: 12px;
 }
 
 .detail-stats {

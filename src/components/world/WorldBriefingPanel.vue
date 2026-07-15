@@ -7,49 +7,54 @@
     subtitle="眼前这件事之外，别的动静也在慢慢逼近。"
   >
     <div class="briefing-grid">
-      <article
+      <XActivityPanel
         v-for="item in items"
         :key="item.id"
         class="briefing-card"
-        :class="`tone-${item.tone}`"
+        :eyebrow="item.badge"
+        :title="item.title"
+        :description="item.summary"
+        :reward="item.meta"
+        :tone="resolveBriefingTone(item.tone)"
+        :interactive="false"
       >
-        <div class="briefing-head">
-          <span class="briefing-icon">{{ item.icon }}</span>
-          <div class="briefing-copy">
-            <span class="briefing-badge">{{ item.badge }}</span>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.summary }}</p>
-          </div>
-        </div>
-
-        <div class="briefing-footer">
-          <small>{{ item.meta }}</small>
+        <template #icon>
+          <GameIcon :icon="item.icon" :size="24" />
+        </template>
+        <template #action>
           <GameActionButton
             v-if="item.action"
             :tone="item.tone === 'mist' ? 'rose' : item.tone === 'gold' ? 'gold' : 'jade'"
             :disabled="item.action.disabled"
-            @click="$emit('action', item)"
+            @click="emit('action', item)"
           >
             {{ item.action.label }}
           </GameActionButton>
-        </div>
-      </article>
+        </template>
+      </XActivityPanel>
     </div>
   </GameSurface>
 </template>
 
 <script setup lang="ts">
+import { XActivityPanel } from '@xianxia/ui'
+import type { XTone } from '@xianxia/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
-import type { WorldBriefingItem } from '@/world/runtime/worldBriefingResolver'
+import type { WorldBriefingItem, WorldBriefingTone } from '@/world/runtime/worldBriefingResolver'
 
 defineProps<{
   items: WorldBriefingItem[]
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   action: [item: WorldBriefingItem]
 }>()
+
+function resolveBriefingTone(tone: WorldBriefingTone): XTone {
+  return tone === 'mist' ? 'stone' : tone
+}
 </script>
 
 <style scoped>
@@ -59,84 +64,60 @@ defineEmits<{
   gap: 10px;
 }
 
-.briefing-card {
-  display: grid;
-  gap: 10px;
+.briefing-card.x-activity-panel {
+  width: 100%;
   min-width: 0;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(104, 147, 142, 0.18);
-  background: rgba(255, 255, 255, 0.74);
+  min-height: 0;
+  padding: 13px;
 }
 
-.briefing-card.tone-gold {
-  border-color: rgba(194, 146, 66, 0.22);
-  background: rgba(255, 250, 238, 0.86);
+.briefing-card :deep(.x-activity-panel__body) {
+  padding-block: 8px;
 }
 
-.briefing-card.tone-mist {
-  border-color: rgba(126, 153, 181, 0.2);
-  background: rgba(247, 251, 255, 0.88);
+.briefing-card :deep(.x-activity-panel__copy small) {
+  -webkit-line-clamp: 3;
 }
 
-.briefing-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.briefing-icon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  font-size: 17px;
-}
-
-.briefing-copy {
-  display: grid;
-  gap: 4px;
+.briefing-card :deep(.x-activity-panel__footer) {
   min-width: 0;
 }
 
-.briefing-badge {
-  color: rgba(75, 100, 98, 0.72);
-  font-size: 11px;
+.briefing-card :deep(.x-activity-panel__reward) {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.briefing-copy strong {
-  color: #315257;
-  font-size: 13px;
-  line-height: 1.35;
+.briefing-card :deep(.x-activity-panel__action) {
+  min-width: 0;
+  max-width: 55%;
 }
 
-.briefing-copy p {
-  margin: 0;
-  color: rgba(53, 81, 83, 0.8);
-  font-size: 11px;
-  line-height: 1.55;
+.briefing-card :deep(.game-action-btn) {
+  min-height: 2.45rem;
+  padding-inline: 12px;
+  font-size: 0.78rem;
 }
 
-.briefing-footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
+@media (max-width: 480px) {
+  .briefing-card.x-activity-panel {
+    padding: 11px;
+  }
 
-.briefing-footer small {
-  color: rgba(73, 97, 95, 0.72);
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-@media (max-width: 860px) {
-  .briefing-footer {
-    flex-direction: column;
+  .briefing-card :deep(.x-activity-panel__footer) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    gap: 8px;
+  }
+
+  .briefing-card :deep(.x-activity-panel__action) {
+    width: 100%;
+    max-width: none;
+  }
+
+  .briefing-card :deep(.game-action-btn) {
+    width: 100%;
   }
 }
 </style>

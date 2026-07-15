@@ -24,6 +24,7 @@ const DEFAULT_ROLE_STYLES: Record<BattleActorRole, BattleFormationStyle> = {
   protagonist: { scaleMultiplier: 1.08, xOffset: 0, yOffset: 8, shadowWidthDelta: 8, shadowHeightDelta: 2 },
   companion: { scaleMultiplier: 0.96, xOffset: 0, yOffset: 0, shadowWidthDelta: -2, shadowHeightDelta: 0 },
   pet: { scaleMultiplier: 0.82, xOffset: 0, yOffset: 20, shadowWidthDelta: -16, shadowHeightDelta: -4 },
+  summon: { scaleMultiplier: 0.88, xOffset: 0, yOffset: 16, shadowWidthDelta: -12, shadowHeightDelta: -3 },
   enemy: { scaleMultiplier: 1, xOffset: 0, yOffset: 0, shadowWidthDelta: 0, shadowHeightDelta: 0 },
   elite: { scaleMultiplier: 1.04, xOffset: 0, yOffset: -4, shadowWidthDelta: 4, shadowHeightDelta: 1 },
   boss: { scaleMultiplier: 1.1, xOffset: 0, yOffset: -10, shadowWidthDelta: 12, shadowHeightDelta: 2 }
@@ -34,6 +35,7 @@ const ROLE_PRIORITY: Record<'ally' | 'enemy', Record<BattleActorRole, number>> =
     protagonist: 0,
     companion: 1,
     pet: 2,
+    summon: 3,
     enemy: 4,
     elite: 5,
     boss: 6
@@ -42,6 +44,7 @@ const ROLE_PRIORITY: Record<'ally' | 'enemy', Record<BattleActorRole, number>> =
     boss: 0,
     elite: 1,
     enemy: 2,
+    summon: 3,
     pet: 4,
     companion: 5,
     protagonist: 6
@@ -53,6 +56,7 @@ const DEFAULT_ROLE_SLOT_ORDER: Record<'ally' | 'enemy', Record<BattleActorRole, 
     protagonist: [0, -1, 1],
     companion: [0, -1, 1, -2, 2, -3, 3],
     pet: [1, -1, 2, -2, 3, -3, 4, -4],
+    summon: [1, -1, 2, -2, 3, -3, 4, -4],
     enemy: [0, -1, 1],
     elite: [0, -1, 1],
     boss: [0]
@@ -61,6 +65,7 @@ const DEFAULT_ROLE_SLOT_ORDER: Record<'ally' | 'enemy', Record<BattleActorRole, 
     boss: [0, -1, 1, -2, 2],
     elite: [0, -1, 1, -2, 2, -3, 3],
     enemy: [0, -1, 1, -2, 2, -3, 3, -4, 4],
+    summon: [1, -1, 2, -2, 3, -3, 4, -4],
     pet: [1, -1, 2, -2, 3, -3],
     companion: [0, -1, 1],
     protagonist: [0]

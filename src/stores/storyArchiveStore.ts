@@ -3,7 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed, toRaw } from 'vue'
-import type { StoryArchiveEntry, StoryChapter, Perspective } from '@/types/storyChapter'
+import type { StoryArchiveEntry, StoryChapter } from '@/types/storyChapter'
 
 const STORAGE_KEY = 'woyu-xiuxian-story-archive'
 

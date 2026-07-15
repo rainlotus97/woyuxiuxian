@@ -236,7 +236,7 @@
                 <strong>重置游戏</strong>
                 <small>会清空全部本地存档与缓存状态。</small>
               </div>
-              <button class="danger-button" type="button" @click="showResetConfirm = true">重置</button>
+              <GameActionButton tone="rose" @click="showResetConfirm = true">重置</GameActionButton>
             </div>
           </GameSurface>
         </div>
@@ -386,21 +386,18 @@
       </template>
     </div>
 
-    <Transition name="fade">
-      <div v-if="showResetConfirm" class="confirm-overlay" @click.self="showResetConfirm = false">
-        <GameSurface tone="gold" padding="lg" class="confirm-card">
-          <div class="confirm-copy">
-            <span>确认重置</span>
-            <strong>此操作不可撤销</strong>
-            <p>将清除所有本地存档、设置与缓存数据，请确认当前没有需要保留的进度。</p>
-          </div>
-          <div class="confirm-actions">
-            <ThemeHomeButton size="sm" block @click="showResetConfirm = false">取消</ThemeHomeButton>
-            <button class="danger-button large" type="button" @click="handleReset">确认重置</button>
-          </div>
-        </GameSurface>
-      </div>
-    </Transition>
+    <GameDialog
+      :visible="showResetConfirm"
+      title="此操作不可撤销"
+      eyebrow="确认重置"
+      @close="showResetConfirm = false"
+    >
+      <p class="confirm-dialog-copy">将清除所有本地存档、设置与缓存状态，请确认当前没有需要保留的进度。</p>
+      <template #footer>
+        <GameActionButton tone="stone" @click="showResetConfirm = false">取消</GameActionButton>
+        <GameActionButton tone="rose" @click="handleReset">确认重置</GameActionButton>
+      </template>
+    </GameDialog>
   </main>
 </template>
 
@@ -409,6 +406,8 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { FolderOpen, RefreshCw, Settings, Sparkles, Star, Volume2, VolumeX } from 'lucide-vue-next'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameDialog from '@/components/game-ui/GameDialog.vue'
 import ThemeHomeButton from '@/components/theme/homepage/ThemeHomeButton.vue'
 import ThemeHomeIconBadge from '@/components/theme/homepage/ThemeHomeIconBadge.vue'
 import ThemeHomePanelShell from '@/components/theme/homepage/ThemeHomePanelShell.vue'
@@ -526,6 +525,10 @@ onMounted(() => {
 <style scoped>
 .main-menu {
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
   padding:
@@ -547,7 +550,9 @@ onMounted(() => {
 }
 
 .menu-shell {
-  width: min(100%, var(--ui-phone-base-width));
+  width: 100%;
+  max-width: var(--ui-page-max-width);
+  min-width: 0;
   margin: 0 auto;
   display: grid;
   gap: var(--ui-page-gap);
@@ -831,24 +836,6 @@ onMounted(() => {
   align-items: center;
 }
 
-.danger-button {
-  min-width: 4.6rem;
-  min-height: 2.55rem;
-  padding: 0.62rem 1rem;
-  border: 1px solid rgba(195, 80, 80, 0.3);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 245, 243, 0.98), rgba(248, 223, 219, 0.92));
-  color: #b7524b;
-  font: inherit;
-  font-size: 0.84rem;
-  font-weight: 700;
-  box-shadow: 0 14px 26px rgba(195, 80, 80, 0.12);
-}
-
-.danger-button.large {
-  flex: 1;
-}
-
 .step-indicator {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1024,60 +1011,14 @@ onMounted(() => {
   color: rgba(67, 92, 90, 0.42);
 }
 
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  padding: 1.25rem;
-  background: rgba(42, 59, 62, 0.36);
-  backdrop-filter: blur(6px);
-}
-
-.confirm-card {
-  width: min(100%, 21rem);
-}
-
-.confirm-copy {
-  display: grid;
-  gap: 0.36rem;
-}
-
-.confirm-copy span {
-  color: rgba(183, 82, 75, 0.82);
-  font-size: 0.72rem;
-}
-
-.confirm-copy strong {
-  color: #b7524b;
-  font-size: 1.14rem;
-}
-
-.confirm-copy p {
+.confirm-dialog-copy {
   margin: 0;
   color: rgba(67, 92, 90, 0.76);
   font-size: 0.82rem;
   line-height: 1.6;
 }
 
-.confirm-actions {
-  display: grid;
-  gap: 0.65rem;
-  margin-top: 1rem;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-@media (min-width: 391px) {
+@media (min-width: 500px) {
   .home-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

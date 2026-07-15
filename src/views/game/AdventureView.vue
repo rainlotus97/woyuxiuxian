@@ -166,21 +166,6 @@
       </p>
     </div>
 
-    <div class="areas-list legacy-hidden" aria-hidden="true">
-      <AdventureAreaCard
-        v-for="area in []"
-        :key="area.id"
-        :area="area"
-        :access="getAreaAccess(area)"
-        :encounter="getAreaEncounterHint(area)"
-        :unlocked="isAreaUnlockedByPlayer(area)"
-        :stars="getAreaStars(area.id)"
-        :stamina="playerStore.stamina"
-        @challenge="handleChallenge"
-        @sweep="handleSweep"
-      />
-    </div>
-
     <GameDialog
       :visible="showBuyStaminaModal"
       title="购买体力"
@@ -834,10 +819,6 @@ onUnmounted(() => {
   font-size: 11px;
   line-height: 1.55;
   background: rgba(247, 252, 249, 0.74);
-}
-
-.legacy-hidden {
-  display: none;
 }
 
 .stamina-options {

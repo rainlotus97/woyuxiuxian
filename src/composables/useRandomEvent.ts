@@ -155,13 +155,6 @@ export function useRandomEvent() {
     )
   }
 
-  function getPrimaryNpcId(event: RandomEvent) {
-    const memoryNpcId = event.choices
-      .flatMap(choice => choice.memory ?? [])
-      .find(memory => memory.npcId)?.npcId
-    return memoryNpcId ?? event.npcHint ?? null
-  }
-
   function getRelationshipPressure(event: RandomEvent) {
     const npcId = event.choices
       .flatMap(choice => choice.memory ?? [])

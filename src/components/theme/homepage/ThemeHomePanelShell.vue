@@ -1,23 +1,16 @@
 <template>
-  <section class="theme-home-panel-shell">
-    <div class="panel-content">
-      <slot />
-    </div>
-  </section>
+  <XPanel class="theme-home-panel-shell" tone="gold">
+    <slot />
+  </XPanel>
 </template>
+
+<script setup lang="ts">
+import { XPanel } from '@xianxia/ui'
+</script>
 
 <style scoped>
 .theme-home-panel-shell {
-  position: relative;
   width: 100%;
-  aspect-ratio: 1672 / 941;
-  background:
-    center / 100% 100% no-repeat
-    url('@/assets/theme/generated/component-masters-homepage-v3-transparent/cultivation-panel-v1.png');
-}
-
-.panel-content {
-  position: absolute;
-  inset: 8.4% 5.2% 9.1%;
+  min-height: 0;
 }
 </style>

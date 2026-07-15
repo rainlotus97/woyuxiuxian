@@ -6,26 +6,47 @@
     subtitle="最近跨路由剧情战会保留完整结构化回放。"
   >
     <div v-if="records.length" class="replay-list">
-      <article
-        v-for="record in records"
-        :key="record.id"
-        class="replay-card"
-      >
-        <div class="replay-head">
-          <div>
-            <span>{{ record.resultLabel }}</span>
-            <strong>{{ record.title }}</strong>
-          </div>
-          <i>{{ record.turns || 1 }} 手</i>
-        </div>
-        <p>{{ record.subtitle }}</p>
+      <article v-for="record in records" :key="record.id" class="replay-record">
+        <XTaskEntry
+          :title="record.title"
+          :description="record.subtitle"
+          :tag="record.resultLabel"
+          :reward="`${record.turns || 1} 手`"
+          icon="sword"
+          :tone="resolveReplayTone(record.result)"
+          state="active"
+          @click="toggleReplay(record.id)"
+        />
+
         <div class="replay-meta">
-          <b>{{ record.eventCount }} 条战况</b>
-          <b>{{ record.majorEventCount }} 个关键节点</b>
+          <XStatChip
+            label="战况"
+            :value="record.eventCount"
+            suffix="条"
+            icon="scroll"
+            tone="stone"
+          />
+          <XStatChip
+            label="关键节点"
+            :value="record.majorEventCount"
+            suffix="个"
+            icon="spark"
+            tone="gold"
+          />
         </div>
-        <button class="replay-open" @click="toggleReplay(record.id)">
+
+        <XButton
+          class="replay-open"
+          :tone="resolveReplayTone(record.result)"
+          size-tone="sm"
+          @click="toggleReplay(record.id)"
+        >
+          <template #icon>
+            <XIcon :icon="selectedRecordId === record.id ? 'close' : 'chevron-right'" size="1rem" />
+          </template>
           {{ selectedRecordId === record.id ? '收起回放' : '查看回放' }}
-        </button>
+        </XButton>
+
         <ul v-if="record.highlights.length" class="highlight-list">
           <li v-for="highlight in record.highlights" :key="highlight">
             {{ highlight }}
@@ -34,25 +55,42 @@
       </article>
     </div>
 
-    <div v-else class="replay-empty">
-      <strong>尚无剧情战记录</strong>
-      <p>触发主线剧情战并返回故事页后，这里会显示战况摘要。</p>
-    </div>
+    <XAnnouncement
+      v-else
+      eyebrow="剧情战纪要"
+      title="尚无剧情战记录"
+      message="触发主线剧情战并返回故事页后，这里会显示战况摘要。"
+      icon="sword"
+      tone="stone"
+    />
 
-    <section v-if="viewerState" class="replay-viewer">
-      <div class="viewer-head">
-        <div>
-          <span>{{ viewerState.resultLabel }}</span>
-          <strong>{{ viewerState.title }}</strong>
-          <p>{{ viewerState.subtitle }}</p>
-        </div>
-        <button @click="selectedRecordId = null">×</button>
-      </div>
+    <XPanel v-if="viewerState" class="replay-viewer" tone="jade">
+      <XAnnouncement
+        class="viewer-summary"
+        :eyebrow="viewerState.resultLabel"
+        :title="viewerState.title"
+        :message="viewerState.subtitle"
+        icon="sword"
+        :tone="resolveResultLabelTone(viewerState.resultLabel)"
+      >
+        <template #action>
+          <XButton
+            class="viewer-close"
+            tone="stone"
+            size-tone="sm"
+            icon-only
+            aria-label="收起回放"
+            @click="selectedRecordId = null"
+          >
+            <template #icon><XIcon icon="close" size="0.9rem" /></template>
+          </XButton>
+        </template>
+      </XAnnouncement>
 
       <div class="viewer-stats">
-        <b>{{ viewerState.totalTurns || 1 }} 手</b>
-        <b>{{ viewerState.totalEvents }} 条事件</b>
-        <b>{{ viewerState.majorEventCount }} 个关键节点</b>
+        <XStatChip label="回合" :value="viewerState.totalTurns || 1" suffix="手" icon="mission" tone="jade" />
+        <XStatChip label="事件" :value="viewerState.totalEvents" suffix="条" icon="scroll" tone="stone" />
+        <XStatChip label="关键" :value="viewerState.majorEventCount" suffix="个" icon="spark" tone="gold" />
       </div>
 
       <div v-if="viewerState.actorNames.length" class="actor-strip">
@@ -62,36 +100,34 @@
       </div>
 
       <div class="turn-timeline">
-        <article
-          v-for="turn in viewerState.turns"
-          :key="turn.turn"
-          class="turn-block"
-        >
+        <section v-for="turn in viewerState.turns" :key="turn.turn" class="turn-block">
           <header>
             <strong>{{ turn.title }}</strong>
             <span>{{ turn.majorCount }} 关键</span>
           </header>
-          <ol>
-            <li
+          <div class="event-list">
+            <XTaskEntry
               v-for="event in turn.events"
               :key="event.id"
-              :class="`severity-${event.severity}`"
-            >
-              <i>{{ event.typeLabel }}</i>
-              <div>
-                <strong>{{ event.text }}</strong>
-                <p v-if="event.detailText">{{ event.detailText }}</p>
-              </div>
-            </li>
-          </ol>
-        </article>
+              :title="event.text"
+              :description="event.detailText ?? ''"
+              :tag="event.typeLabel"
+              :icon="event.severity === 'major' ? 'sword' : 'scroll'"
+              :tone="event.severity === 'major' ? 'gold' : 'stone'"
+              :state="event.severity === 'major' ? 'ready' : 'active'"
+              :interactive="false"
+            />
+          </div>
+        </section>
       </div>
-    </section>
+    </XPanel>
   </GameSurface>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { XAnnouncement, XButton, XIcon, XPanel, XStatChip, XTaskEntry } from '@xianxia/ui'
+import type { XTone } from '@xianxia/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import {
   getStoryBattleReplayRecord,
@@ -111,6 +147,18 @@ const viewerState = computed(() => {
   return record ? createStoryBattleReplayViewerState(record) : null
 })
 
+function resolveReplayTone(result: StoryBattleReplaySummary['result']): XTone {
+  if (result === 'victory') return 'jade'
+  if (result === 'defeat') return 'rose'
+  return 'stone'
+}
+
+function resolveResultLabelTone(label: string): XTone {
+  if (label === '胜利') return 'jade'
+  if (label === '败北') return 'rose'
+  return 'stone'
+}
+
 function toggleReplay(recordId: string) {
   selectedRecordId.value = selectedRecordId.value === recordId ? null : recordId
 }
@@ -119,192 +167,84 @@ function toggleReplay(recordId: string) {
 <style scoped>
 .replay-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.replay-card {
+.replay-record {
   display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(139, 103, 50, 0.18);
-  border-radius: 14px;
-  background:
-    linear-gradient(135deg, rgba(255, 253, 238, 0.96), rgba(235, 248, 236, 0.9)),
-    radial-gradient(circle at 100% 0%, rgba(210, 151, 68, 0.14), transparent 42%);
+  gap: 9px;
+  min-width: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(139, 103, 50, 0.14);
 }
 
-.replay-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+.replay-record:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
-.replay-head div {
-  display: grid;
-  gap: 4px;
-}
-
-.replay-head span,
-.replay-head i,
-.replay-meta b {
-  width: fit-content;
-  border-radius: 999px;
-  background: rgba(137, 105, 51, 0.1);
-  color: #7b5b26;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 800;
-  padding: 4px 8px;
-}
-
-.replay-head strong {
-  color: #5b4a25;
-  font-size: 14px;
-}
-
-.replay-card p,
-.replay-empty p {
-  margin: 0;
-  color: rgba(51, 76, 69, 0.72);
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.replay-meta {
+.replay-meta,
+.viewer-stats,
+.actor-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
 }
 
-.replay-open,
-.viewer-head button {
-  width: fit-content;
-  min-height: 34px;
-  border: 1px solid rgba(135, 103, 52, 0.2);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.66);
-  color: #735529;
-  font-family: var(--font-game);
-  font-size: 12px;
-  font-weight: 800;
-  padding: 0 12px;
+.replay-meta :deep(.x-stat-chip),
+.viewer-stats :deep(.x-stat-chip) {
+  min-width: 0;
 }
 
-.replay-open:hover,
-.viewer-head button:hover {
-  background: rgba(255, 250, 232, 0.95);
+.replay-open {
+  justify-self: start;
 }
 
 .highlight-list {
   display: grid;
   gap: 6px;
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.highlight-list li {
-  position: relative;
-  padding-left: 14px;
+  padding: 0 0 0 18px;
   color: rgba(49, 72, 68, 0.84);
   font-size: 12px;
   line-height: 1.6;
 }
 
-.highlight-list li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.65em;
-  width: 6px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #bb8235;
-}
-
-.replay-empty {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.56);
-}
-
-.replay-empty strong {
-  color: #587166;
-  font-size: 13px;
+.highlight-list li::marker {
+  color: #bb8235;
 }
 
 .replay-viewer {
-  display: grid;
-  gap: 12px;
+  width: 100%;
+  min-height: 0;
   margin-top: 14px;
-  padding: 14px;
-  border: 1px solid rgba(94, 138, 124, 0.2);
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(246, 255, 251, 0.94), rgba(255, 250, 232, 0.9)),
-    repeating-linear-gradient(90deg, rgba(82, 132, 116, 0.04) 0 1px, transparent 1px 16px);
 }
 
-.viewer-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.viewer-head div {
+.replay-viewer :deep(.x-panel__content) {
   display: grid;
-  gap: 5px;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
 }
 
-.viewer-head span {
-  width: fit-content;
-  border-radius: 999px;
-  background: rgba(91, 138, 122, 0.12);
-  color: #426e62;
-  font-size: 11px;
-  font-weight: 900;
-  padding: 4px 8px;
+.viewer-summary {
+  min-width: 0;
 }
 
-.viewer-head strong {
-  color: #315d55;
-  font-size: 16px;
+.viewer-close {
+  min-width: 2.7rem;
+  width: 2.7rem;
+  min-height: 2.7rem;
 }
 
-.viewer-head p {
-  margin: 0;
-  color: rgba(49, 78, 73, 0.7);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.viewer-head button {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  padding: 0;
-  font-size: 16px;
-}
-
-.viewer-stats,
-.actor-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.viewer-stats b,
 .actor-strip span {
+  padding: 5px 8px;
+  border: 1px solid rgba(104, 142, 128, 0.16);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.7);
   color: #5f725f;
   font-size: 11px;
   font-weight: 800;
-  padding: 5px 8px;
 }
 
 .turn-timeline {
@@ -315,13 +255,20 @@ function toggleReplay(recordId: string) {
   padding-right: 4px;
 }
 
-.turn-block {
+.turn-block,
+.event-list {
   display: grid;
   gap: 8px;
-  padding: 10px;
-  border: 1px solid rgba(104, 142, 128, 0.16);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.6);
+}
+
+.turn-block {
+  padding-top: 10px;
+  border-top: 1px solid rgba(104, 142, 128, 0.16);
+}
+
+.turn-block:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .turn-block header {
@@ -342,72 +289,36 @@ function toggleReplay(recordId: string) {
   font-weight: 800;
 }
 
-.turn-block ol {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.event-list :deep(.x-task-entry__description) {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.turn-block li {
-  display: grid;
+.event-list :deep(.x-task-entry) {
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: flex-start;
-  padding: 8px;
-  border-radius: 12px;
-  background: rgba(238, 248, 242, 0.78);
 }
 
-.turn-block li.severity-major {
-  background: rgba(255, 242, 207, 0.86);
-}
-
-.turn-block li i {
-  min-width: 38px;
-  border-radius: 999px;
-  background: rgba(57, 97, 88, 0.1);
-  color: #426d63;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 900;
-  line-height: 1;
-  padding: 6px 7px;
-  text-align: center;
-}
-
-.turn-block li.severity-major i {
-  background: rgba(178, 124, 47, 0.14);
-  color: #8a5a1f;
-}
-
-.turn-block li div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.turn-block li strong {
-  color: #355751;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.turn-block li p {
-  margin: 0;
-  color: rgba(55, 82, 76, 0.66);
-  font-size: 11px;
-  line-height: 1.5;
+.event-list :deep(.x-task-entry__end) {
+  display: none;
 }
 
 @media (max-width: 560px) {
-  .viewer-head {
-    align-items: stretch;
+  .replay-meta,
+  .viewer-stats {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
-  .turn-block li {
-    grid-template-columns: 1fr;
+  .replay-meta :deep(.x-stat-chip),
+  .viewer-stats :deep(.x-stat-chip) {
+    width: 100%;
+  }
+
+  .viewer-summary :deep(.x-announcement__actions) {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }
 </style>

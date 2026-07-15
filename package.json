@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
@@ -11,27 +12,29 @@
     "assets:validate": "node scripts/validate-assets.mjs",
     "runtime:validate": "node scripts/validate-runtime.mjs",
     "theme:image2": "node scripts/generate-theme-ui-image2.mjs",
-    "theme:matte": "python3 scripts/remove-image-matte.py"
+    "theme:matte": "python3 scripts/remove-image-matte.py",
+    "dev:ui": "vite --mode ui-local"
   },
   "dependencies": {
-    "vue": "^3.5.25",
-    "vue-router": "^5.0.3",
-    "pinia": "^3.0.4",
-    "phaser": "^4.1.0",
-    "tone": "^15.1.22",
+    "@xianxia/ui": "1.0.0",
     "crypto-js": "^4.2.0",
-    "lucide-vue-next": "^0.576.0"
+    "lucide-vue-next": "^0.576.0",
+    "phaser": "^4.1.0",
+    "pinia": "^3.0.4",
+    "tone": "^15.1.22",
+    "vue": "^3.5.25",
+    "vue-router": "^5.0.3"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
     "@types/crypto-js": "^4.2.2",
+    "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.8.1",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "3.4.19",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
-    "vue-tsc": "^3.1.5",
-    "tailwindcss": "3.4.19",
-    "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.8"
+    "vue-tsc": "^3.1.5"
   }
 }

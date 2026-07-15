@@ -3,43 +3,35 @@
     <div class="layout-backdrop"></div>
 
     <header class="top-shell">
-      <div class="hud-shell" :class="`tone-${sectAlertTone}`">
-        <div class="player-block">
-          <div class="avatar-orb" :class="getRealmClass">
-            <div class="avatar-orb-inner">
-              <span class="avatar-glyph">{{ realmIcon }}</span>
-            </div>
-          </div>
-          <div class="player-copy">
-            <strong>{{ sectStore.currentSect?.name ?? playerStore.name }}</strong>
-            <span class="realm-pill" :class="getRealmClass">{{ playerStore.name }} · {{ playerStore.realmInfo.fullName }}</span>
-            <small>{{ worldStore.currentTimeLabel }} · {{ weatherLabel }}</small>
-          </div>
-        </div>
+      <div class="hud-stack">
+        <XPlayerHud
+          class="player-hud"
+          :player-name="playerStore.name"
+          :realm="playerStore.realmInfo.fullName"
+          :level="playerStore.level"
+          :items="hudResourceItems"
+        >
+          <!-- @vue-ignore: published component declarations currently omit named slots -->
+          <template #avatar>
+            <XAvatarFrame
+              :alt="`${playerStore.name}的头像`"
+              size="2.9rem"
+              :tone="sectAlertTone"
+            >
+              <span class="avatar-glyph" :class="getRealmClass">{{ realmIcon }}</span>
+            </XAvatarFrame>
+          </template>
+        </XPlayerHud>
 
-        <div class="resource-row" aria-label="主资源状态">
-          <ThemeHomeResourcePill label="修为" :value="resourceCultivationDisplay" suffix="+">
-            <template #icon>
-              <GameIcon icon="修" :size="18" />
-            </template>
-          </ThemeHomeResourcePill>
-          <ThemeHomeResourcePill label="灵石" :value="playerStore.gold" suffix="+">
-            <template #icon>
-              <GameIcon icon="石" :size="18" />
-            </template>
-          </ThemeHomeResourcePill>
-          <ThemeHomeResourcePill label="异闻" :value="worldStore.visibleLogs.length" suffix="+">
-            <template #icon>
-              <GameIcon icon="闻" :size="18" />
-            </template>
-          </ThemeHomeResourcePill>
-        </div>
-
-        <p v-if="!isStoryOverlayVisible && !isCultivationRoute" class="world-summary">
-          <span>{{ currentSectionName }}</span>
-          {{ sectAlertSummary }}
-        </p>
-        <p v-if="!isStoryOverlayVisible && ambientPrompt && !isCultivationRoute" class="encounter-prompt">{{ ambientPrompt }}</p>
+        <XAnnouncement
+          v-if="!isStoryOverlayVisible"
+          class="hud-announcement"
+          :eyebrow="hudAnnouncementEyebrow"
+          :title="hudAnnouncementTitle"
+          :message="hudAnnouncementMessage"
+          :icon="hudAnnouncementIcon"
+          :tone="sectAlertTone"
+        />
       </div>
     </header>
 
@@ -68,57 +60,32 @@
               <strong>前往修仙界面</strong>
             </div>
             <button class="drawer-close" type="button" aria-label="收起菜单" @click="closeMenu">
-              <X :size="18" />
+              <XIcon icon="close" size="1.05rem" />
             </button>
           </div>
 
           <div class="menu-grid" @click.stop>
-            <RouterLink
+            <XTaskEntry
               v-for="item in menuItems"
               :key="item.path"
-              :to="item.path"
-              class="menu-card"
-              :class="{ active: isActive(item.path) }"
-              @click="handleMenuClick"
-            >
-              <span class="menu-icon"><component :is="item.icon" :size="20" /></span>
-              <div class="menu-copy">
-                <strong>{{ item.name }}</strong>
-                <small>{{ item.desc }}</small>
-              </div>
-            </RouterLink>
+              :title="item.name"
+              :description="item.desc"
+              :icon="item.icon"
+              :tag="isActive(item.path) ? '当前' : ''"
+              :tone="isActive(item.path) ? 'gold' : 'jade'"
+              state="active"
+              @click="handleMenuClick(item.path)"
+            />
           </div>
         </GameSurface>
       </Transition>
 
-      <nav class="tab-bar" aria-label="主循环导航">
-        <RouterLink
-          v-for="item in tabItems"
-          :key="item.path"
-          :to="item.path"
-          class="tab-item"
-          :class="{ active: isActive(item.path) }"
-        >
-          <ThemeHomeNavTab :label="item.shortName" :active="isActive(item.path)">
-            <template #icon>
-              <component :is="item.icon" :size="21" />
-            </template>
-          </ThemeHomeNavTab>
-        </RouterLink>
-
-        <button
-          class="tab-item tab-more"
-          :class="{ active: isMenuExpanded }"
-          type="button"
-          @click.stop="toggleMenu"
-        >
-          <ThemeHomeNavTab :label="isMenuExpanded ? '收起' : '更多'" :active="isMenuExpanded">
-            <template #icon>
-              <component :is="isMenuExpanded ? X : Grid3X3" :size="21" />
-            </template>
-          </ThemeHomeNavTab>
-        </button>
-      </nav>
+      <XTabBar
+        class="main-tab-bar"
+        :model-value="activeTabValue"
+        :items="tabBarItems"
+        @select="handleTabSelect"
+      />
     </footer>
 
     <AnnouncementModal />
@@ -164,21 +131,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  Grid3X3,
-  X
-} from 'lucide-vue-next'
-import GameIcon from '@/components/game-ui/GameIcon.vue'
+  XAnnouncement,
+  XAvatarFrame,
+  XIcon,
+  XPlayerHud,
+  XTabBar,
+  XTaskEntry,
+  type XIconName,
+  type XTone
+} from '@xianxia/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import StoryPlayer from '@/components/story/StoryPlayer.vue'
-import ThemeHomeNavTab from '@/components/theme/homepage/ThemeHomeNavTab.vue'
-import ThemeHomeResourcePill from '@/components/theme/homepage/ThemeHomeResourcePill.vue'
 import { sfxDiscovery, sfxStoryChoice, useAudio } from '@/composables/useAudio'
 import { useRandomEvent } from '@/composables/useRandomEvent'
 import { useStoryOverlay } from '@/composables/useStoryOverlay'
@@ -187,7 +157,7 @@ import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import { getSectById } from '@/types/sect'
-import { GAME_THEME_TOKENS, MAIN_NAV_ITEMS, resolveGameIconComponent, resolveRouteBgmType } from '@/game/theme/gameTheme'
+import { GAME_THEME_TOKENS, MAIN_NAV_ITEMS, resolveRouteBgmType } from '@/game/theme/gameTheme'
 import { resolveThemeCssVars } from '@/game/theme/themeAssetPack'
 
 interface MenuItem {
@@ -195,7 +165,36 @@ interface MenuItem {
   name: string
   shortName: string
   desc: string
-  icon: Component
+  icon: XIconName
+}
+
+interface HudResourceItem {
+  label: string
+  value: string | number
+  suffix?: string
+  icon?: XIconName
+  tone?: XTone
+}
+
+interface HudTabItem {
+  value: string
+  label: string
+  icon: XIconName
+  disabled?: boolean
+}
+
+const MORE_TAB_VALUE = '__more__'
+const NAV_ICON_BY_PATH: Record<string, XIconName> = {
+  '/game/cultivation': 'cultivation',
+  '/game/adventure': 'sword',
+  '/game/map': 'map',
+  '/game/sect': 'sect',
+  '/game/companion': 'jade',
+  '/game/skills': 'scroll',
+  '/game/inventory': 'backpack',
+  '/game/shop': 'spirit-stone',
+  '/game/profile': 'crown',
+  '/game/settings': 'settings'
 }
 
 const playerStore = usePlayerStore()
@@ -206,6 +205,7 @@ const randomEvent = useRandomEvent()
 const { bgmEnabled, switchBgm } = useAudio()
 const { isStoryOverlayVisible, isStandaloneStoryRoute, closeStoryOverlay } = useStoryOverlay()
 const route = useRoute()
+const router = useRouter()
 const isMenuExpanded = ref(false)
 let worldTickTimer: number | null = null
 
@@ -213,10 +213,26 @@ const WORLD_TICK_INTERVAL_MS = 60 * 1000
 
 const menuItems: MenuItem[] = MAIN_NAV_ITEMS.map(item => ({
   ...item,
-  icon: resolveGameIconComponent(item.icon)
+  icon: NAV_ICON_BY_PATH[item.path] ?? 'scroll'
 }))
 
 const tabItems = computed<MenuItem[]>(() => menuItems.slice(0, 5))
+const tabBarItems = computed<HudTabItem[]>(() => [
+  ...tabItems.value.map(item => ({
+    value: item.path,
+    label: item.shortName,
+    icon: item.icon
+  })),
+  {
+    value: MORE_TAB_VALUE,
+    label: isMenuExpanded.value ? '收起' : '更多',
+    icon: isMenuExpanded.value ? 'close' : 'settings'
+  }
+])
+const activeTabValue = computed(() => {
+  if (isMenuExpanded.value) return MORE_TAB_VALUE
+  return tabItems.value.some(item => item.path === route.path) ? route.path : MORE_TAB_VALUE
+})
 const themeCssVars = computed(() => resolveThemeCssVars())
 
 const currentSectionName = computed(() => {
@@ -311,9 +327,9 @@ const ambientPrompt = computed(() => {
   return currentPrompt.value
 })
 
-const sectAlertTone = computed<'jade' | 'gold' | 'mist'>(() => {
+const sectAlertTone = computed<XTone>(() => {
   if (playerStore.captivity.isCaptured || sectStore.worldCondition.status === 'collapsed') {
-    return 'mist'
+    return 'rose'
   }
   if (sectStore.activeWar || sectStore.worldCondition.status === 'rebuilding') {
     return 'gold'
@@ -331,6 +347,58 @@ const resourceCultivationDisplay = computed(() => {
     return `${Math.floor(cur / 1000)}k/${Math.floor(max / 1000)}k`
   }
   return `${formatAmount(cur)}/${formatAmount(max)}`
+})
+
+const hudResourceItems = computed<HudResourceItem[]>(() => [
+  {
+    label: '修为',
+    value: resourceCultivationDisplay.value,
+    suffix: '+',
+    icon: 'cultivation',
+    tone: 'jade'
+  },
+  {
+    label: '灵石',
+    value: playerStore.gold,
+    suffix: '+',
+    icon: 'spirit-stone',
+    tone: 'gold'
+  },
+  {
+    label: '异闻',
+    value: worldStore.visibleLogs.length,
+    suffix: '+',
+    icon: 'scroll',
+    tone: sectAlertTone.value
+  }
+])
+
+const hudAnnouncementEyebrow = computed(() => {
+  return `${currentSectionName.value} · ${worldStore.currentTimeLabel} · ${weatherLabel.value}`
+})
+
+const hudAnnouncementTitle = computed(() => {
+  return sectStore.currentSect?.name ?? (playerStore.captivity.isCaptured ? '身陷囹圄' : '行走修途')
+})
+
+const hudAnnouncementMessage = computed(() => {
+  if (isCultivationRoute.value || route.path === '/game/adventure') {
+    return ambientPrompt.value
+  }
+  return `${sectAlertSummary.value} ${currentPrompt.value}`
+})
+
+const hudAnnouncementIcon = computed<XIconName>(() => {
+  if (playerStore.captivity.isCaptured || sectStore.worldCondition.status === 'collapsed') {
+    return 'lock'
+  }
+  if (sectStore.activeWar || sectStore.worldCondition.status === 'rebuilding') {
+    return 'sect'
+  }
+  if (route.path === '/game/adventure' || route.path === '/game/map') {
+    return 'map'
+  }
+  return 'spark'
 })
 
 const realmIcon = computed(() => {
@@ -372,8 +440,23 @@ function toggleMenu() {
   isMenuExpanded.value = !isMenuExpanded.value
 }
 
-function handleMenuClick() {
+function handleMenuClick(path: string) {
   isMenuExpanded.value = false
+  if (route.path !== path) {
+    void router.push(path)
+  }
+}
+
+function handleTabSelect(item: HudTabItem) {
+  if (item.value === MORE_TAB_VALUE) {
+    toggleMenu()
+    return
+  }
+
+  isMenuExpanded.value = false
+  if (route.path !== item.value) {
+    void router.push(item.value)
+  }
 }
 
 function closeMenu() {
@@ -495,7 +578,7 @@ onUnmounted(() => {
 .game-layout.is-cultivation .layout-backdrop::before {
   background:
     linear-gradient(180deg, rgba(247, 252, 251, 0.16), rgba(243, 248, 247, 0.38) 22%, rgba(230, 240, 239, 0.78) 100%),
-    url('@/assets/theme/generated/homepage-v3-scenic-focus-clean.png') center top / cover no-repeat;
+    url('@/assets/theme/generated/main/bg-main-9x16-v1.png') center top / cover no-repeat;
   filter: saturate(0.96) blur(2px);
   transform: scale(1.05);
   opacity: 0.98;
@@ -536,20 +619,16 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.hud-shell,
+.hud-stack,
 .nav-drawer,
-.tab-bar {
+.main-tab-bar {
   margin: 0 auto;
 }
 
-.hud-shell {
+.hud-stack {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
-  padding: 0.1rem 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  gap: 0.36rem;
+  width: 100%;
   pointer-events: auto;
 }
 
@@ -558,147 +637,109 @@ onUnmounted(() => {
   padding-inline: 0.58rem;
 }
 
-.game-layout.is-cultivation .hud-shell {
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 0.26rem;
+.game-layout.is-cultivation .hud-stack {
+  gap: 0.24rem;
 }
 
-.game-layout.is-cultivation .player-block {
-  min-width: 0;
-  padding-top: 0.02rem;
-  gap: 0.56rem;
-}
-
-.game-layout.is-cultivation .resource-row {
-  align-self: start;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.2rem;
-  justify-content: stretch;
-}
-
-.hud-shell.tone-gold {
-  border-color: rgba(188, 141, 58, 0.28);
-  background: rgba(255, 250, 231, 0.84);
-}
-
-.hud-shell.tone-mist {
-  border-color: rgba(198, 121, 137, 0.22);
-  background: rgba(255, 248, 249, 0.84);
-}
-
-.player-block {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.avatar-orb {
-  flex: 0 0 auto;
-  position: relative;
-  width: 4.1rem;
-  height: 4.1rem;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 251, 238, 0.98), rgba(239, 248, 244, 0.94)),
-    radial-gradient(circle at top, rgba(255, 220, 146, 0.2), transparent 58%);
-  border: 1px solid rgba(205, 177, 116, 0.42);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
-    0 16px 28px rgba(88, 123, 116, 0.12);
-}
-
-.avatar-orb::before,
-.avatar-orb::after {
-  content: '';
-  position: absolute;
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.avatar-orb::before {
-  inset: 0.2rem;
-  border: 1px solid rgba(118, 181, 171, 0.34);
-}
-
-.avatar-orb::after {
-  right: 0.1rem;
-  top: 0.18rem;
-  width: 0.62rem;
-  height: 0.62rem;
-  background: linear-gradient(180deg, #f19a74, #dd7751);
-  box-shadow: 0 0 0 0.14rem rgba(255, 251, 247, 0.95);
-}
-
-.avatar-orb-inner {
-  width: 3.1rem;
-  height: 3.1rem;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(180deg, rgba(185, 226, 220, 0.9), rgba(120, 184, 176, 0.86));
-  border: 1px solid rgba(111, 164, 155, 0.3);
-  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.34);
-}
-
-.avatar-orb.realm-golden .avatar-orb-inner,
-.avatar-orb.realm-mahayana .avatar-orb-inner {
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(180deg, rgba(242, 220, 152, 0.92), rgba(209, 169, 82, 0.9));
-}
-
-.avatar-orb.realm-infant .avatar-orb-inner,
-.avatar-orb.realm-god .avatar-orb-inner {
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(180deg, rgba(206, 191, 242, 0.92), rgba(145, 120, 204, 0.9));
-}
-
-.avatar-orb.realm-tribulation .avatar-orb-inner {
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(180deg, rgba(178, 224, 233, 0.94), rgba(78, 164, 184, 0.9));
-}
-
-.avatar-orb.realm-foundation .avatar-orb-inner,
-.avatar-orb.realm-immortal .avatar-orb-inner {
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(180deg, rgba(194, 230, 193, 0.94), rgba(99, 176, 125, 0.9));
-}
-
-.player-copy {
-  display: grid;
-  gap: 0.18rem;
+.player-hud,
+.hud-announcement {
+  width: 100%;
   min-width: 0;
 }
 
-.player-copy strong {
+.player-hud :deep(.x-player-hud__identity) {
+  min-width: 0;
+  gap: 0.48rem;
+  padding: 0.44rem 0.62rem;
+}
+
+.player-hud :deep(.x-player-hud__avatar) {
+  width: 2.9rem;
+  height: 2.9rem;
+}
+
+.player-hud :deep(.x-player-hud__name) {
   overflow: hidden;
-  color: #4d4b45;
-  font-size: 1.35rem;
-  line-height: 1.15;
+}
+
+.player-hud :deep(.x-player-hud__name strong) {
+  font-size: 0.84rem;
+}
+
+.player-hud :deep(.x-player-hud__name span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-hud :deep(.x-player-hud__resources) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.22rem;
+  padding: 0.28rem;
+}
+
+.player-hud :deep(.x-player-hud__resource) {
+  min-height: 2.65rem;
+  gap: 0.28rem;
+  padding: 0.36rem 0.4rem;
+}
+
+.player-hud :deep(.x-player-hud__resource small) {
+  font-size: 0.56rem;
+}
+
+.player-hud :deep(.x-player-hud__resource strong) {
+  font-size: 0.76rem;
+}
+
+.hud-announcement {
+  gap: 0.58rem;
+  padding: 0.56rem 0.68rem;
+  border-radius: 0.82rem;
+}
+
+.hud-announcement :deep(.x-announcement__icon) {
+  width: 1.95rem;
+  height: 1.95rem;
+}
+
+.hud-announcement :deep(.x-announcement__copy) {
+  gap: 0.12rem;
+}
+
+.hud-announcement :deep(.x-announcement__eyebrow) {
+  overflow: hidden;
+  font-size: 0.58rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.player-copy small {
-  color: rgba(95, 104, 108, 0.76);
-  font-size: 0.78rem;
+.hud-announcement :deep(strong) {
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.realm-pill {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  color: #4c5960;
-  font-size: 0.96rem;
-  line-height: 1.2;
+.hud-announcement :deep(p) {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.66rem;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.game-layout.is-cultivation .hud-announcement :deep(p) {
+  -webkit-line-clamp: 1;
+}
+
+.avatar-glyph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.08rem;
+  font-weight: 700;
 }
 
 .realm-qi { color: #4d99c2; }
@@ -841,30 +882,6 @@ onUnmounted(() => {
   }
 }
 
-.resource-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  justify-content: end;
-  gap: 0.4rem;
-}
-
-.world-summary {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: rgba(74, 94, 97, 0.78);
-  font-size: 0.72rem;
-  line-height: 1.36;
-  text-align: right;
-}
-
-.encounter-prompt {
-  margin: -0.1rem 0 0;
-  color: rgba(95, 109, 91, 0.72);
-  font-size: 0.62rem;
-  line-height: 1.36;
-  text-align: right;
-}
-
 .main-shell {
   min-height: 0;
   overflow: auto;
@@ -904,7 +921,7 @@ onUnmounted(() => {
   z-index: 42;
 }
 
-.nav-shell .tab-bar,
+.nav-shell .main-tab-bar,
 .nav-shell .nav-drawer {
   pointer-events: auto;
 }
@@ -919,18 +936,18 @@ onUnmounted(() => {
   background:
     linear-gradient(180deg, rgba(248, 255, 245, 0.1), rgba(49, 82, 87, 0.14)),
     rgba(239, 249, 244, 0.2);
-  pointer-events: none;
+  pointer-events: auto;
   backdrop-filter: blur(1px);
+  cursor: pointer;
 }
 
 .nav-drawer {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-  margin-bottom: 10px;
-  width: 100%;
-  max-height: min(50vh, 430px);
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: calc(4.65rem + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  max-height: min(56vh, 430px);
   overflow: auto;
   border-radius: 14px;
   box-shadow: 0 24px 62px rgba(58, 85, 82, 0.22);
@@ -990,8 +1007,8 @@ onUnmounted(() => {
 }
 
 .drawer-close {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border-radius: 12px;
@@ -1004,141 +1021,75 @@ onUnmounted(() => {
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
-.menu-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  align-content: start;
-  min-height: 86px;
-  padding: 12px;
-  text-decoration: none;
-  border-radius: 10px;
-  border: 1px solid rgba(103, 149, 144, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 252, 0.94), rgba(241, 249, 244, 0.82)),
-    radial-gradient(circle at top, rgba(170, 232, 214, 0.15), transparent 62%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+.menu-grid :deep(.x-task-entry) {
+  min-height: 4.1rem;
+  gap: 0.68rem;
+  padding: 0.58rem 0.72rem;
+  border-radius: 0.92rem;
 }
 
-.menu-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 30px rgba(87, 126, 121, 0.14);
+.menu-grid :deep(.x-task-entry::before) {
+  border-radius: 0.68rem;
 }
 
-.menu-card.active {
-  border-color: rgba(188, 141, 58, 0.3);
-  background:
-    linear-gradient(180deg, rgba(255, 251, 236, 0.98), rgba(247, 240, 215, 0.88)),
-    radial-gradient(circle at top, rgba(255, 213, 112, 0.2), transparent 62%);
+.menu-grid :deep(.x-task-entry__icon) {
+  width: 2.25rem;
+  height: 2.25rem;
 }
 
-.menu-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #6d8f8d;
+.menu-grid :deep(.x-task-entry__description) {
+  white-space: normal;
 }
 
-.menu-copy {
-  display: grid;
-  gap: 4px;
-}
-
-.menu-copy strong {
-  color: #315257;
-  font-size: 14px;
-}
-
-.menu-copy small {
-  color: rgba(74, 97, 96, 0.7);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.tab-bar {
+.main-tab-bar {
   position: relative;
   z-index: 44;
-  min-height: 4.9rem;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  align-items: end;
-  gap: 0;
-  padding: 0.34rem 0.28rem 0.14rem;
-  border: 1px solid rgba(224, 205, 175, 0.78);
-  border-radius: 1.8rem 1.8rem 0 0;
-  background:
-    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(248, 247, 243, 0.92)),
-    radial-gradient(circle at top, rgba(255, 223, 147, 0.16), transparent 58%);
+  width: 100%;
+  min-height: 4.2rem;
+  gap: 0.12rem;
+  padding: 0.3rem 0.24rem;
   box-shadow: 0 -0.1rem 0 rgba(255, 255, 255, 0.8), 0 -0.5rem 2rem rgba(72, 98, 100, 0.1);
   backdrop-filter: blur(18px);
 }
 
-.game-layout.is-cultivation .tab-bar {
-  min-height: 4.35rem;
-  padding: 0.22rem 0.18rem 0.08rem;
-  border-radius: 1.55rem 1.55rem 0 0;
+.main-tab-bar :deep(.x-tab-bar__item) {
+  min-height: 3.35rem;
+  padding-inline: 0.08rem;
 }
 
-.tab-item {
-  min-width: 0;
-  display: block;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-decoration: none;
-  cursor: pointer;
-  touch-action: manipulation;
+.game-layout.is-cultivation .main-tab-bar {
+  min-height: 4rem;
+  padding-block: 0.24rem;
 }
 
-.tab-item + .tab-item {
-  position: relative;
-}
-
-.tab-item + .tab-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.85rem;
-  bottom: 0.75rem;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(208, 192, 162, 0.72), transparent);
-}
-
-.world-summary span {
-  display: inline-flex;
-  margin-right: 0.5rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(188, 141, 58, 0.24);
-  background: rgba(255, 248, 229, 0.72);
-  color: #8b6226;
-}
-
-.tab-more {
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-@media (max-width: 860px) {
-  .hud-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .resource-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
+@media (min-width: 380px) {
   .menu-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .menu-grid :deep(.x-task-entry) {
+    min-height: 3.95rem;
+    gap: 0.5rem;
+    padding-inline: 0.58rem;
+  }
+
+  .menu-grid :deep(.x-task-entry__description) {
+    display: none;
+  }
+}
+
+@media (min-width: 390px) {
+  .player-hud {
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  }
+
+  .player-hud :deep(.x-player-hud__identity) {
+    border-right: 1px solid rgba(101, 152, 145, 0.25);
+    border-bottom: 0;
   }
 }
 
@@ -1159,63 +1110,9 @@ onUnmounted(() => {
     padding-inline: 0.7rem;
   }
 
-  .hud-shell {
-    gap: 0.4rem;
-  }
-
-  .game-layout.is-cultivation .hud-shell {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.22rem;
-  }
-
-  .player-block {
-    gap: 0.65rem;
-  }
-
-  .player-copy {
-    gap: 0.12rem;
-  }
-
-  .player-copy strong {
-    font-size: 1.18rem;
-  }
-
-  .player-copy small {
-    font-size: 0.72rem;
-  }
-
-  .realm-pill {
-    font-size: 0.86rem;
-  }
-
-  .resource-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .game-layout.is-cultivation .player-copy strong {
-    font-size: 1.06rem;
-  }
-
   .game-layout.is-cultivation .top-shell {
     padding-top: calc(0.08rem + env(safe-area-inset-top, 0px));
     padding-inline: 0.5rem;
-  }
-
-  .game-layout.is-cultivation .player-block {
-    gap: 0.46rem;
-  }
-
-  .game-layout.is-cultivation .realm-pill {
-    font-size: 0.8rem;
-  }
-
-  .game-layout.is-cultivation .player-copy small {
-    font-size: 0.68rem;
-  }
-
-  .game-layout.is-cultivation .resource-row {
-    gap: 3px;
   }
 
   .game-layout.is-cultivation .nav-shell {
@@ -1223,50 +1120,30 @@ onUnmounted(() => {
     padding-bottom: calc(0.14rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .game-layout.is-cultivation .tab-bar {
-    min-height: 4.12rem;
-    padding: 0.18rem 0.12rem 0.05rem;
-    border-radius: 1.35rem 1.35rem 0 0;
-  }
-
-  .game-layout.is-cultivation .realm-pill {
-    font-size: 0.82rem;
-  }
-
-  .game-layout.is-cultivation .player-copy small {
-    font-size: 0.68rem;
-  }
-
-  .resource-row :deep(.theme-home-resource-pill) {
-    width: 100%;
-  }
-
-  .world-summary {
-    display: none;
-  }
-
   .nav-drawer {
     max-height: min(52vh, 420px);
   }
 
-  .nav-scrim {
-    inset: 0;
+  .main-tab-bar {
+    min-height: 4.05rem;
+    padding: 0.26rem 0.18rem;
   }
+}
 
-  .menu-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+@media (max-height: 700px) {
+  .hud-announcement :deep(p) {
+    -webkit-line-clamp: 1;
   }
+}
 
-  .menu-card {
-    min-height: 76px;
-    padding: 10px;
-  }
-
-  .tab-bar {
-    min-height: 4.55rem;
-    padding: 0.28rem 0.22rem 0.1rem;
-    border-radius: 1.55rem 1.55rem 0 0;
+@media (prefers-reduced-motion: reduce) {
+  .drawer-rise-enter-active,
+  .drawer-rise-leave-active,
+  .scrim-fade-enter-active,
+  .scrim-fade-leave-active,
+  .story-overlay-fade-enter-active,
+  .story-overlay-fade-leave-active {
+    transition-duration: 0.01ms;
   }
 }
 </style>

@@ -74,7 +74,7 @@ const handleNext = () => {
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(239, 248, 242, 0.86);
 }
 
 .item-icon-wrapper.quality-normal {
@@ -110,7 +110,8 @@ const handleNext = () => {
   position: absolute;
   bottom: 4px;
   right: 4px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(53, 92, 90, 0.86);
+  color: #f8fcf8;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -125,14 +126,14 @@ const handleNext = () => {
   margin: 0 0 8px 0;
 }
 
-.item-name.quality-normal { color: #e8e4d8; }
+.item-name.quality-normal { color: var(--xianxia-ink); }
 .item-name.quality-fine { color: #d4976a; }
 .item-name.quality-excellent { color: #a8c4d4; }
 .item-name.quality-supreme { color: #ffd700; }
 
 .item-desc {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: rgba(53, 87, 84, 0.72);
   margin: 0;
   max-width: 260px;
 }
@@ -140,6 +141,6 @@ const handleNext = () => {
 .item-counter {
   margin-top: 12px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: rgba(53, 87, 84, 0.64);
 }
 </style>

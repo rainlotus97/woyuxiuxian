@@ -62,6 +62,6 @@ watch(announcement, (val) => {
   font-size: 0.875rem;
   line-height: 1.8;
   margin-bottom: 8px;
-  color: #e8e4d8;
+  color: var(--xianxia-ink);
 }
 </style>

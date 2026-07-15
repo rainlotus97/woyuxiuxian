@@ -2,18 +2,21 @@
   <Teleport to="body">
     <div class="effect-feedback-container">
       <TransitionGroup name="feedback">
-        <div
+        <XAnnouncement
           v-for="feedback in activeFeedbacks"
           :key="feedback.id"
           class="effect-feedback"
           :class="[feedback.type, feedback.animating ? 'animating' : '']"
+          :title="feedback.text"
+          :icon="feedback.icon"
+          :tone="resolveFeedbackTone(feedback.type)"
         >
-          <span class="feedback-icon">{{ feedback.icon }}</span>
-          <span class="feedback-text">{{ feedback.text }}</span>
-          <span v-if="feedback.value" class="feedback-value" :class="feedback.valueClass">
-            {{ feedback.value }}
-          </span>
-        </div>
+          <template v-if="feedback.value" #action>
+            <span class="feedback-value" :class="feedback.valueClass">
+              {{ feedback.value }}
+            </span>
+          </template>
+        </XAnnouncement>
       </TransitionGroup>
     </div>
   </Teleport>
@@ -21,14 +24,17 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { XAnnouncement } from '@xianxia/ui'
+import type { XIconName, XTone } from '@xianxia/ui'
 import { storyEventBus } from '@/story/eventBus'
+import type { StoryBusEvent } from '@/story/eventBus'
 import { describeStoryCharacterTarget } from '@/story/runtime/storyCharacterRegistry'
-import type { StoryEvent, Effect, EffectType } from '@/story/types'
+import type { Effect, EffectType } from '@/story/types'
 
 interface FeedbackItem {
   id: string
   type: string
-  icon: string
+  icon: XIconName
   text: string
   value?: string
   valueClass?: string
@@ -37,6 +43,8 @@ interface FeedbackItem {
 
 const activeFeedbacks = ref<FeedbackItem[]>([])
 let unsubscribe: (() => void) | null = null
+const animationFrames = new Set<number>()
+const removalTimers = new Set<number>()
 
 onMounted(() => {
   // 订阅效果执行事件
@@ -44,10 +52,14 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (unsubscribe) unsubscribe()
+  unsubscribe?.()
+  animationFrames.forEach(frame => window.cancelAnimationFrame(frame))
+  animationFrames.clear()
+  removalTimers.forEach(timer => window.clearTimeout(timer))
+  removalTimers.clear()
 })
 
-function handleEffectEvent(event: StoryEvent<{ effect: Effect; context: unknown }>) {
+function handleEffectEvent(event: StoryBusEvent<{ effect: Effect; context: unknown }>) {
   const effect = event.data.effect
   const feedback = createFeedback(effect)
   if (feedback) {
@@ -63,7 +75,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     gain_item: () => ({
       id,
       type: 'success',
-      icon: '📦',
+      icon: 'gift',
       text: '获得道具',
       value: effect.target || '',
       valueClass: 'positive',
@@ -73,7 +85,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     lose_item: () => ({
       id,
       type: 'warning',
-      icon: '📤',
+      icon: 'backpack',
       text: '失去道具',
       value: effect.target || '',
       valueClass: 'negative',
@@ -83,7 +95,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     gain_clue: () => ({
       id,
       type: 'info',
-      icon: '🔍',
+      icon: 'scroll',
       text: '获得线索',
       value: effect.target || '',
       valueClass: 'positive',
@@ -93,7 +105,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     unlock_clue: () => ({
       id,
       type: 'info',
-      icon: '🔓',
+      icon: 'lock',
       text: '解锁线索',
       value: effect.target || '',
       valueClass: 'positive',
@@ -103,7 +115,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     favor_up: () => ({
       id,
       type: 'success',
-      icon: '❤️',
+      icon: 'jade',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}好感`,
       value: `+${effect.value || 1}`,
       valueClass: 'positive',
@@ -113,7 +125,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     favor_down: () => ({
       id,
       type: 'warning',
-      icon: '💔',
+      icon: 'jade',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}好感`,
       value: `-${effect.value || 1}`,
       valueClass: 'negative',
@@ -123,7 +135,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     hatred_up: () => ({
       id,
       type: 'warning',
-      icon: '🗡️',
+      icon: 'sword',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}仇恨`,
       value: `+${effect.value || 1}`,
       valueClass: 'negative',
@@ -133,7 +145,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     hatred_down: () => ({
       id,
       type: 'info',
-      icon: '🕊️',
+      icon: 'jade',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}仇恨`,
       value: `-${effect.value || 1}`,
       valueClass: 'positive',
@@ -143,7 +155,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     debt_up: () => ({
       id,
       type: 'success',
-      icon: '🎁',
+      icon: 'gift',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}恩情`,
       value: `+${effect.value || 1}`,
       valueClass: 'positive',
@@ -153,7 +165,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     debt_down: () => ({
       id,
       type: 'info',
-      icon: '📜',
+      icon: 'scroll',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}恩情`,
       value: `-${effect.value || 1}`,
       valueClass: 'neutral',
@@ -163,7 +175,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     fear_up: () => ({
       id,
       type: 'warning',
-      icon: '👁️',
+      icon: 'armor',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}畏惧`,
       value: `+${effect.value || 1}`,
       valueClass: 'negative',
@@ -173,7 +185,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     fear_down: () => ({
       id,
       type: 'info',
-      icon: '🌤️',
+      icon: 'spark',
       text: `${effect.target ? describeStoryCharacterTarget(effect.target) : ''}畏惧`,
       value: `-${effect.value || 1}`,
       valueClass: 'positive',
@@ -183,7 +195,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     route: () => ({
       id,
       type: 'info',
-      icon: '🛤️',
+      icon: 'map',
       text: '进入路线',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -193,7 +205,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     realm: () => ({
       id,
       type: 'success',
-      icon: '⬆️',
+      icon: 'cultivation',
       text: '境界提升',
       value: effect.target || '',
       valueClass: 'positive',
@@ -203,7 +215,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     ability: () => ({
       id,
       type: 'success',
-      icon: '✨',
+      icon: 'spark',
       text: '解锁能力',
       value: effect.target || '',
       valueClass: 'positive',
@@ -213,7 +225,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     ending: () => ({
       id,
       type: 'legendary',
-      icon: '🏆',
+      icon: 'crown',
       text: '达成结局',
       value: effect.target || '',
       valueClass: 'legendary',
@@ -223,7 +235,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     trigger_event: () => ({
       id,
       type: 'info',
-      icon: '⚡',
+      icon: 'mission',
       text: '触发事件',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -233,7 +245,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     set_var: () => ({
       id,
       type: 'info',
-      icon: '🔧',
+      icon: 'settings',
       text: '变量设置',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -243,7 +255,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     unlock_feature: () => ({
       id,
       type: 'success',
-      icon: '🔓',
+      icon: 'lock',
       text: '解锁功能',
       value: effect.target || '',
       valueClass: 'positive',
@@ -253,7 +265,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     unlock_npc: () => ({
       id,
       type: 'success',
-      icon: '🧑',
+      icon: 'crown',
       text: '结识人物',
       value: effect.target ? describeStoryCharacterTarget(effect.target) : '',
       valueClass: 'positive',
@@ -263,7 +275,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     unlock_companion: () => ({
       id,
       type: 'success',
-      icon: '🤝',
+      icon: 'jade',
       text: '解锁伙伴',
       value: effect.target ? describeStoryCharacterTarget(effect.target) : '',
       valueClass: 'positive',
@@ -273,7 +285,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     sect_reputation: () => ({
       id,
       type: 'info',
-      icon: '🏯',
+      icon: 'sect',
       text: '宗门声望',
       value: `${Number(effect.value || 0) >= 0 ? '+' : ''}${effect.value || 0}`,
       valueClass: Number(effect.value || 0) >= 0 ? 'positive' : 'negative',
@@ -283,7 +295,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     unlock_map: () => ({
       id,
       type: 'success',
-      icon: '🗺️',
+      icon: 'map',
       text: '开放地图',
       value: effect.target || '',
       valueClass: 'positive',
@@ -293,7 +305,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     world_flag: () => ({
       id,
       type: 'info',
-      icon: '🌌',
+      icon: 'spark',
       text: '世界标记',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -303,7 +315,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     story_battle: () => ({
       id,
       type: 'warning',
-      icon: '⚔️',
+      icon: 'sword',
       text: '剧情战',
       value: effect.target || '',
       valueClass: 'negative',
@@ -313,7 +325,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     branch_flag: () => ({
       id,
       type: 'info',
-      icon: '🌿',
+      icon: 'mission',
       text: '分支标记',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -323,7 +335,7 @@ function createFeedback(effect: Effect): FeedbackItem | null {
     info: () => ({
       id,
       type: 'info',
-      icon: '💡',
+      icon: 'scroll',
       text: '得知',
       value: effect.target || '',
       valueClass: 'neutral',
@@ -339,25 +351,36 @@ function showFeedback(feedback: FeedbackItem) {
   activeFeedbacks.value.push(feedback)
 
   // 触发动画
-  requestAnimationFrame(() => {
+  const animationFrame = window.requestAnimationFrame(() => {
     const item = activeFeedbacks.value.find(f => f.id === feedback.id)
     if (item) {
       item.animating = true
     }
+    animationFrames.delete(animationFrame)
   })
+  animationFrames.add(animationFrame)
 
   // 自动移除
-  setTimeout(() => {
+  const removalTimer = window.setTimeout(() => {
     const index = activeFeedbacks.value.findIndex(f => f.id === feedback.id)
     if (index !== -1) {
       activeFeedbacks.value.splice(index, 1)
     }
+    removalTimers.delete(removalTimer)
   }, 3000)
+  removalTimers.add(removalTimer)
+}
+
+function resolveFeedbackTone(type: string): XTone {
+  if (type === 'success') return 'jade'
+  if (type === 'warning') return 'rose'
+  if (type === 'legendary') return 'gold'
+  return 'stone'
 }
 
 // 暴露给外部使用的API
 defineExpose({
-  showCustomFeedback: (type: string, icon: string, text: string, value?: string, valueClass?: string) => {
+  showCustomFeedback: (type: string, icon: XIconName, text: string, value?: string, valueClass?: string) => {
     const feedback: FeedbackItem = {
       id: `feedback_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       type,
@@ -381,25 +404,24 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: min(calc(100vw - 32px), 420px);
   gap: 8px;
   z-index: 300;
   pointer-events: none;
 }
 
 .effect-feedback {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  min-width: 0;
   animation: feedback-in 0.3s ease-out;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .effect-feedback.animating {
   animation: feedback-in 0.3s ease-out, feedback-pop 0.5s ease-out 0.3s;
+}
+
+.effect-feedback :deep(.x-announcement__copy strong) {
+  overflow-wrap: anywhere;
 }
 
 @keyframes feedback-in {
@@ -419,57 +441,20 @@ defineExpose({
   100% { transform: scale(1); }
 }
 
-/* 类型样式 */
-.effect-feedback.success {
-  border-color: rgba(74, 222, 128, 0.4);
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
-}
-
-.effect-feedback.warning {
-  border-color: rgba(251, 191, 36, 0.4);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
-}
-
-.effect-feedback.info {
-  border-color: rgba(56, 189, 248, 0.4);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
-}
-
-.effect-feedback.legendary {
-  border-color: rgba(255, 215, 0, 0.6);
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%);
-  animation: feedback-in 0.3s ease-out, legendary-glow 1s ease-in-out infinite;
-}
-
-@keyframes legendary-glow {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-  }
-  50% {
-    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
-  }
-}
-
-.feedback-icon {
-  font-size: 20px;
-}
-
-.feedback-text {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-}
-
 .feedback-value {
-  font-weight: bold;
-  font-size: 14px;
+  max-width: 10rem;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.feedback-value.positive { color: #4ade80; }
-.feedback-value.negative { color: #f87171; }
-.feedback-value.neutral { color: #e8e8e8; }
+.feedback-value.positive { color: #4b8075; }
+.feedback-value.negative { color: #9a6170; }
+.feedback-value.neutral { color: #5c7a82; }
 .feedback-value.legendary {
-  color: #ffd700;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  color: #9b6e24;
 }
 
 /* TransitionGroup 动画 */
@@ -493,5 +478,16 @@ defineExpose({
 
 .feedback-move {
   transition: transform 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .effect-feedback,
+  .effect-feedback.animating,
+  .feedback-enter-active,
+  .feedback-leave-active,
+  .feedback-move {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

@@ -367,9 +367,9 @@ export class BattleScene extends Phaser.Scene {
     const add = this.getRenderableFactory()
     if (!add || !this.isActorAlive(target)) return
     const sourceUnit = this.latestUnits.get(command.actorId)
-    const effectConfig = (command.type === 'skill' && command.skillId
+    const effectConfig = command.type === 'skill' && command.skillId
       ? getEffectForElement(this.resolveSkillElement(command.skillId, sourceUnit?.element ?? '金'))
-      : ELEMENT_EFFECTS.slash) ?? ELEMENT_EFFECTS.slash
+      : ELEMENT_EFFECTS.slash
     this.cameras.main.shake(command.type === 'skill' ? 190 : 110, command.type === 'skill' ? 0.008 : 0.004)
     target.sprite.play(`${target.sprite.texture.key}_hit`)
     target.sprite.setTint(0xffffff)

@@ -4,15 +4,21 @@
       <span>{{ label }}</span>
       <strong>{{ valueText }}</strong>
     </div>
-    <div class="progress-track">
-      <i class="progress-fill" :class="`tone-${tone}`" :style="{ width: `${clampedPercent}%` }"></i>
-    </div>
+    <XProgressBar
+      class="progress-kernel"
+      :value="boundedValue"
+      :max="safeMax"
+      :show-value="false"
+      :tone="progressTone"
+    />
     <small v-if="hint">{{ hint }}</small>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { XProgressBar } from '@xianxia/ui'
+import type { XTone } from '@xianxia/ui'
 
 const props = withDefaults(defineProps<{
   label: string
@@ -25,11 +31,13 @@ const props = withDefaults(defineProps<{
   tone: 'gold'
 })
 
-const clampedPercent = computed(() => {
-  if (props.max <= 0) return 0
-  return Math.max(0, Math.min(100, (props.current / props.max) * 100))
-})
-
+const safeMax = computed(() => Math.max(0, props.max))
+const boundedValue = computed(() => (
+  safeMax.value > 0
+    ? Math.max(0, Math.min(props.current, safeMax.value))
+    : 0
+))
+const progressTone = computed<XTone>(() => props.tone === 'sky' ? 'stone' : props.tone)
 const valueText = computed(() => `${formatAmount(props.current)}/${formatAmount(props.max)}`)
 
 function formatAmount(value: number) {
@@ -42,6 +50,7 @@ function formatAmount(value: number) {
 .progress-shell {
   display: grid;
   gap: 7px;
+  min-width: 0;
 }
 
 .progress-labels {
@@ -60,36 +69,15 @@ function formatAmount(value: number) {
 .progress-labels strong {
   color: #315257;
   font-size: 13px;
+  white-space: nowrap;
 }
 
-.progress-track {
+.progress-kernel :deep(.x-progress__track) {
   height: 10px;
-  border-radius: 999px;
-  background: rgba(111, 136, 133, 0.16);
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(53, 76, 74, 0.18);
 }
 
-.progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  transition: width 0.28s ease;
-}
-
-.tone-gold {
-  background: linear-gradient(90deg, #f4b34f, #ffd989);
-}
-
-.tone-jade {
-  background: linear-gradient(90deg, #4bc1aa, #a2e7cf);
-}
-
-.tone-rose {
-  background: linear-gradient(90deg, #e67a90, #f6b0b8);
-}
-
-.tone-sky {
-  background: linear-gradient(90deg, #71b7df, #b7e4ff);
+.progress-shell small {
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 </style>

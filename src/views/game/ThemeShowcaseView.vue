@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
   height: 100dvh;
   background:
     linear-gradient(180deg, rgba(247, 251, 248, 0.96), rgba(226, 238, 234, 0.92)),
-    url('@/assets/theme/generated/homepage-v3-scenic-focus-clean.png') center top / cover no-repeat;
+    url('@/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png') center top / cover no-repeat;
   overflow: hidden;
 }
 
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
   gap: 0.62rem;
   background:
     linear-gradient(180deg, rgba(252, 253, 248, 0.9), rgba(243, 247, 243, 0.82)),
-    url('@/assets/theme/generated/homepage-v3-scenic-focus-clean.png') center top / cover no-repeat;
+    url('@/assets/theme/generated/styleboards/homepage-template-style-v3-fresh-bg.png') center top / cover no-repeat;
 }
 
 .hero-backdrop {

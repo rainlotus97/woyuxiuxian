@@ -4,5 +4,5 @@
 export function stub(): void {}
 
 export function registerDefaultGameplayHandlers(handlers: unknown): void {
-  /* stub - story runtime not yet implemented */
+  void handlers
 }

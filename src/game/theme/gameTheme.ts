@@ -15,7 +15,6 @@ import {
   Clipboard,
   Coins,
   Compass,
-  Crown,
   Crosshair,
   Diamond,
   Droplets,

@@ -1,83 +1,122 @@
 <template>
   <Transition name="slide-in">
-    <div v-if="visible && availableQuests.length > 0" class="side-quest-panel">
-      <div class="panel-header">
-        <span class="title">📋 可触发支线</span>
-        <span class="count">{{ availableQuests.length }}</span>
-      </div>
+    <XPanel
+      v-if="visible && availableQuests.length > 0"
+      class="side-quest-panel"
+      tone="gold"
+      @click.stop
+    >
+      <header class="panel-header">
+        <span class="panel-title">
+          <XIcon icon="mission" size="1.1rem" />
+          可触发支线
+        </span>
+        <span class="panel-actions">
+          <span class="quest-count">{{ availableQuests.length }}</span>
+          <XButton
+            class="panel-close"
+            tone="stone"
+            size-tone="sm"
+            icon-only
+            aria-label="关闭支线面板"
+            @click="emit('close')"
+          >
+            <template #icon><XIcon icon="close" size="0.9rem" /></template>
+          </XButton>
+        </span>
+      </header>
 
       <div class="quest-list">
-        <div
+        <XTaskEntry
           v-for="quest in availableQuests"
           :key="quest.id"
-          class="quest-item"
-          :class="{ completed: quest.isCompleted }"
+          class="quest-entry"
+          :title="quest.name"
+          :description="quest.characterName"
+          :tag="triggerTypeLabel(quest.triggerType)"
+          :icon="resolveQuestIcon(quest.triggerType)"
+          :tone="resolveQuestTone(quest.triggerType)"
+          :state="quest.isCompleted ? 'done' : 'active'"
           @click="selectQuest(quest)"
-        >
-          <div class="quest-icon">
-            {{ quest.isCompleted ? '✓' : '!' }}
-          </div>
-          <div class="quest-info">
-            <span class="quest-name">{{ quest.name }}</span>
-            <span class="quest-character">{{ quest.characterName }}</span>
-          </div>
-          <div class="quest-trigger-type" :class="quest.triggerType">
-            {{ triggerTypeLabel(quest.triggerType) }}
-          </div>
-        </div>
+        />
       </div>
-
-      <!-- 支线详情弹窗 -->
-      <Teleport to="body">
-        <Transition name="fade">
-          <div v-if="selectedQuest" class="quest-detail-overlay" @click="closeDetail">
-            <div class="quest-detail" @click.stop>
-              <h3>{{ selectedQuest.name }}</h3>
-              <p class="character">角色: {{ selectedQuest.characterName }}</p>
-
-              <div class="prerequisites" v-if="selectedQuest.prerequisites.length > 0">
-                <h4>前置条件</h4>
-                <ul>
-                  <li v-for="(pre, idx) in formatPrerequisites()" :key="idx">
-                    {{ pre }}
-                  </li>
-                </ul>
-              </div>
-
-              <div class="rewards" v-if="selectedQuest.rewards && selectedQuest.rewards.length > 0">
-                <h4>奖励</h4>
-                <ul>
-                  <li v-for="(reward, idx) in formatRewards(selectedQuest.rewards)" :key="idx">
-                    {{ reward }}
-                  </li>
-                </ul>
-              </div>
-
-              <div class="actions">
-                <button
-                  v-if="!selectedQuest.isCompleted"
-                  class="btn primary"
-                  @click="triggerQuest(selectedQuest)"
-                >
-                  触发支线
-                </button>
-                <span v-else class="completed-badge">✓ 已完成</span>
-                <button class="btn secondary" @click="closeDetail">关闭</button>
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </Teleport>
-    </div>
+    </XPanel>
   </Transition>
+
+  <XDialog
+    :model-value="Boolean(selectedQuest)"
+    :title="selectedQuest?.name ?? '支线详情'"
+    :subtitle="selectedQuest ? `角色: ${selectedQuest.characterName}` : ''"
+    eyebrow="人物线"
+    tone="gold"
+    size="sm"
+    @update:model-value="handleDialogVisible"
+    @close="closeDetail"
+  >
+    <div v-if="selectedQuest" class="quest-detail">
+      <section v-if="selectedQuest.prerequisites.length > 0" class="detail-section">
+        <h3>
+          <XIcon icon="lock" size="1rem" />
+          前置条件
+        </h3>
+        <div class="prerequisite-list">
+          <XTaskEntry
+            v-for="(prerequisite, index) in formatPrerequisites()"
+            :key="`${selectedQuest.id}-${index}`"
+            :title="prerequisite"
+            tag="前置"
+            icon="lock"
+            tone="stone"
+            state="done"
+            :interactive="false"
+          />
+        </div>
+      </section>
+
+      <XAnnouncement
+        v-else
+        eyebrow="前置条件"
+        title="此线已可触发"
+        message="现在就可以接下这段人物因果。"
+        icon="spark"
+        tone="jade"
+      />
+    </div>
+
+    <template #footer>
+      <XStatChip
+        v-if="selectedQuest?.isCompleted"
+        label="当前状态"
+        value="已完成"
+        icon="spark"
+        tone="jade"
+      />
+      <XButton
+        v-else-if="selectedQuest"
+        tone="gold"
+        size-tone="sm"
+        @click="triggerQuest(selectedQuest)"
+      >
+        <template #icon><XIcon icon="mission" size="1rem" /></template>
+        触发支线
+      </XButton>
+      <XButton tone="stone" size-tone="sm" @click="closeDetail">
+        <template #icon><XIcon icon="close" size="1rem" /></template>
+        关闭
+      </XButton>
+    </template>
+  </XDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { XAnnouncement, XButton, XDialog, XIcon, XPanel, XStatChip, XTaskEntry } from '@xianxia/ui'
+import type { XIconName, XTone } from '@xianxia/ui'
 import { useStoryStore } from '@/story/storyStore'
-import type { SideQuestDetail, Effect, TriggerType } from '@/story/types'
+import type { SideQuestInfo } from '@/story/storyStore'
+import type { TriggerType } from '@/story/types'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
 }>()
 
@@ -87,57 +126,44 @@ const emit = defineEmits<{
 }>()
 
 const store = useStoryStore()
-const selectedQuest = ref<SideQuestDetail | null>(null)
+const selectedQuest = ref<SideQuestInfo | null>(null)
 
-// 获取可用支线任务
-const availableQuests = computed(() => {
-  // 从 store 获取可用的支线任务
-  return store.availableSideQuests || []
-})
+const availableQuests = computed(() => store.availableSideQuests || [])
 
 function triggerTypeLabel(type: TriggerType): string {
   const labels: Record<TriggerType, string> = {
-    must: '强制',
-    prob: '概率',
-    loop: '周目',
-    favor: '好感',
-    item: '物品'
+    auto: '自动',
+    realm: '境界',
+    npc_interaction: '人物',
+    encounter: '邂逅',
+    sect_join: '入宗',
+    choice_flag: '选择'
   }
-  return labels[type] || type
+  return labels[type]
 }
 
-function formatPrerequisites() {
+function resolveQuestIcon(type: TriggerType): XIconName {
+  if (type === 'realm') return 'cultivation'
+  if (type === 'npc_interaction') return 'jade'
+  if (type === 'encounter') return 'spark'
+  if (type === 'sect_join') return 'sect'
+  if (type === 'choice_flag') return 'scroll'
+  return 'mission'
+}
+
+function resolveQuestTone(type: TriggerType): XTone {
+  if (type === 'realm' || type === 'choice_flag') return 'gold'
+  if (type === 'npc_interaction' || type === 'encounter') return 'rose'
+  if (type === 'sect_join') return 'jade'
+  return 'stone'
+}
+
+function formatPrerequisites(): string[] {
   if (!selectedQuest.value) return []
   return store.formatPrerequisiteSummary(selectedQuest.value.prerequisites)
 }
 
-function formatRewards(rewards: Effect[]): string[] {
-  return rewards.map(effect => {
-    switch (effect.type) {
-      case 'gain_item':
-        return `获得: ${effect.target}`
-      case 'gain_clue':
-      case 'unlock_clue':
-        return `解锁线索: ${effect.target}`
-      case 'favor_up':
-        return `${effect.target} 好感 +${effect.value || 1}`
-      case 'ability':
-        return `解锁能力: ${effect.target}`
-      case 'route':
-        return `进入路线: ${effect.target}`
-      case 'realm':
-        return `境界: ${effect.target}`
-      case 'ending':
-        return `解锁结局: ${effect.target}`
-      case 'info':
-        return `得知: ${effect.target}`
-      default:
-        return effect.target || '未知奖励'
-    }
-  })
-}
-
-function selectQuest(quest: SideQuestDetail) {
+function selectQuest(quest: SideQuestInfo) {
   selectedQuest.value = quest
 }
 
@@ -145,258 +171,148 @@ function closeDetail() {
   selectedQuest.value = null
 }
 
-function triggerQuest(quest: SideQuestDetail) {
+function handleDialogVisible(visible: boolean) {
+  if (!visible) closeDetail()
+}
+
+function triggerQuest(quest: SideQuestInfo) {
   emit('trigger', quest.id)
   closeDetail()
 }
+
+watch(() => props.visible, visible => {
+  if (!visible) closeDetail()
+})
 </script>
 
 <style scoped>
 .side-quest-panel {
   position: fixed;
-  right: 20px;
   top: 100px;
-  width: 280px;
-  background: rgba(0, 0, 0, 0.85);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  overflow: hidden;
+  right: 20px;
   z-index: 100;
+  width: min(320px, calc(100vw - 32px));
+  min-height: 0;
+  max-height: min(68vh, 560px);
+}
+
+.side-quest-panel :deep(.x-panel__content) {
+  min-height: 0;
+  padding: 0;
 }
 
 .panel-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(255, 215, 0, 0.1);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 10px 16px;
+  border-bottom: 1px solid rgba(193, 151, 70, 0.2);
+  background: rgba(255, 251, 237, 0.76);
 }
 
-.panel-header .title {
-  color: #ffd700;
-  font-weight: bold;
+.panel-title,
+.panel-actions {
+  display: inline-flex;
+  align-items: center;
+}
+
+.panel-title {
+  gap: 7px;
+  min-width: 0;
+  color: #8d6427;
   font-size: 14px;
+  font-weight: 800;
 }
 
-.panel-header .count {
-  background: #ffd700;
-  color: #1a1a2e;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: bold;
+.panel-actions {
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.quest-count {
+  min-width: 24px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(226, 182, 83, 0.18);
+  color: #9b6e24;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.panel-close {
+  min-width: 2.7rem;
+  width: 2.7rem;
+  min-height: 2.7rem;
 }
 
 .quest-list {
-  max-height: 300px;
+  display: grid;
+  gap: 8px;
+  max-height: calc(min(68vh, 560px) - 64px);
   overflow-y: auto;
+  padding: 10px;
 }
 
-.quest-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.quest-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.quest-item.completed {
-  opacity: 0.6;
-}
-
-.quest-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(255, 215, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffd700;
-  margin-right: 12px;
-  font-size: 14px;
-}
-
-.quest-item.completed .quest-icon {
-  background: rgba(74, 222, 128, 0.2);
-  color: #4ade80;
-}
-
-.quest-info {
-  flex: 1;
+.quest-entry {
   min-width: 0;
 }
 
-.quest-name {
-  display: block;
-  color: #e8e8e8;
-  font-size: 14px;
-  white-space: nowrap;
+.quest-entry :deep(.x-task-entry__description) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.quest-character {
-  display: block;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
+.quest-detail,
+.detail-section,
+.prerequisite-list {
+  display: grid;
+  gap: 10px;
 }
 
-.quest-trigger-type {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.quest-trigger-type.must { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
-.quest-trigger-type.prob { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.quest-trigger-type.loop { background: rgba(168, 139, 250, 0.2); color: #a78bfa; }
-.quest-trigger-type.favor { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
-.quest-trigger-type.item { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
-
-/* 详情弹窗 */
-.quest-detail-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+.detail-section h3 {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-
-.quest-detail {
-  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
-  border-radius: 16px;
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.quest-detail h3 {
-  color: #ffd700;
-  margin: 0 0 8px 0;
-  font-size: 18px;
-}
-
-.quest-detail .character {
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0 0 16px 0;
-  font-size: 14px;
-}
-
-.prerequisites h4,
-.rewards h4 {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  margin: 0 0 8px 0;
-}
-
-.prerequisites ul,
-.rewards ul {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 16px 0;
-}
-
-.prerequisites li,
-.rewards li {
-  color: rgba(255, 255, 255, 0.6);
+  gap: 7px;
+  margin: 0;
+  color: #5d756f;
   font-size: 13px;
-  padding: 4px 0;
-  padding-left: 16px;
-  position: relative;
 }
 
-.prerequisites li::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: #ffd700;
+.prerequisite-list :deep(.x-task-entry) {
+  min-height: 4rem;
 }
 
-.rewards li::before {
-  content: '★';
-  position: absolute;
-  left: 0;
-  color: #ffd700;
-  font-size: 10px;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.btn {
-  flex: 1;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn.primary {
-  background: rgba(255, 215, 0, 0.2);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  color: #ffd700;
-}
-
-.btn.primary:hover {
-  background: rgba(255, 215, 0, 0.3);
-}
-
-.btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #e8e8e8;
-}
-
-.btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.completed-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(74, 222, 128, 0.2);
-  color: #4ade80;
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 14px;
-}
-
-/* 动画 */
 .slide-in-enter-active,
 .slide-in-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.22s ease, opacity 0.22s ease;
 }
 
 .slide-in-enter-from,
 .slide-in-leave-to {
-  transform: translateX(100%);
+  transform: translateX(24px);
   opacity: 0;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s;
+@media (max-width: 640px) {
+  .side-quest-panel {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(52vh, 440px);
+  }
+
+  .quest-list {
+    max-height: calc(min(52vh, 440px) - 64px);
+  }
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-enter-active,
+  .slide-in-leave-active {
+    transition: none;
+  }
 }
 </style>

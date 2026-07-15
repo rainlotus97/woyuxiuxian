@@ -5,13 +5,13 @@
         <span class="quick-action-icon">
           <Settings :size="17" />
         </span>
-        <span>活动</span>
+        <span>设置</span>
       </button>
       <button type="button" class="quick-action" @click="router.push('/game/inventory')">
         <span class="quick-action-icon">
           <Backpack :size="17" />
         </span>
-        <span>福利</span>
+        <span>背包</span>
       </button>
       <button type="button" class="quick-action" @click="openStoryOverlay">
         <span class="quick-action-icon">
@@ -21,80 +21,47 @@
       </button>
     </section>
 
-    <GameSurface
-      tone="gold"
-      padding="lg"
-      eyebrow="修炼主位"
-      title="今日修行"
-      :subtitle="`当前节奏：${worldStore.getIdleModeLabel(worldStore.idleMode)}`"
-      class="cultivation-hero"
-    >
-      <div class="hero-grid">
-        <div class="hero-main">
-          <div class="progress-orb" :style="{ '--progress-angle': `${cultivationProgressPercent * 3.6}deg` }">
-            <div class="progress-orb-inner">
-              <span>{{ playerStore.realmInfo.fullName }}</span>
-              <strong>{{ cultivationProgressPercent }}%</strong>
-              <small>{{ worldStore.currentTimeLabel }}</small>
-            </div>
-          </div>
+    <section class="cultivation-core" aria-label="今日修炼">
+      <XCultivationPanel
+        class="cultivation-panel"
+        eyebrow="今日修行"
+        title="修炼主位"
+        :realm="playerStore.realmInfo.fullName"
+        :current="playerStore.cultivation"
+        :max="playerStore.maxCultivation"
+        :progress="cultivationProgressPercent"
+        :progress-label="playerStore.realmInfo.fullName"
+        :timer="worldStore.currentTimeLabel"
+        :efficiency="cultivationRateLabel"
+        :next-breakthrough="nextBreakthroughLabel"
+        :metrics="cultivationMetrics"
+        :tone="cultivationTone"
+      />
 
-          <div class="hero-main-copy">
-            <div class="hero-value-row">
-              <div>
-                <span>当前修为</span>
-                <strong>{{ playerStore.cultivation }}/{{ playerStore.maxCultivation }}</strong>
-              </div>
-              <div>
-                <span>修炼效率</span>
-                <strong>{{ cultivationRateLabel }}</strong>
-              </div>
-            </div>
-            <div class="hero-note-list">
-              <p>下次突破：{{ playerStore.nextRealm ?? '暂无下一境界' }}</p>
-              <p>修炼增益：{{ panelBenefitHint }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-side">
-          <div class="hero-side-card">
-            <span>离线积累</span>
-            <strong>{{ offlineGains > 0 ? `+${offlineGains}` : '暂无' }}</strong>
-            <small>{{ offlineGains > 0 ? '可立即领取修为' : '离线收益已结算' }}</small>
-          </div>
-          <div class="hero-side-card">
-            <span>辅助修行</span>
-            <strong>丹药 / 机缘</strong>
-            <small>服药、机缘和推演都在这里调度</small>
-          </div>
-        </div>
+      <div class="cultivation-actions">
+        <XButton
+          :tone="playerStore.isIdling ? 'stone' : 'jade'"
+          size-tone="sm"
+          block
+          :disabled="playerStore.captivity.isCaptured"
+          @click="handlePrimaryCultivationAction"
+        >
+          {{ heroPrimaryActionLabel }}
+        </XButton>
+        <XButton
+          tone="gold"
+          size-tone="sm"
+          block
+          :disabled="offlineGains <= 0"
+          @click="claimOfflineGains"
+        >
+          领取离线修为
+        </XButton>
+        <XButton tone="stone" size-tone="sm" block @click="router.push('/game/inventory')">
+          服药调息
+        </XButton>
       </div>
-
-      <template #footer>
-        <div class="hero-footer">
-          <GameActionButton
-            tone="jade"
-            block
-            :disabled="playerStore.captivity.isCaptured"
-            @click="handlePrimaryCultivationAction"
-          >
-            {{ heroPrimaryActionLabel }}
-          </GameActionButton>
-          <GameActionButton
-            tone="gold"
-            block
-            :disabled="offlineGains <= 0"
-            @click="claimOfflineGains"
-          >
-            领取离线修为
-          </GameActionButton>
-          <GameActionButton tone="stone" block @click="router.push('/game/inventory')">
-            服药调息
-          </GameActionButton>
-        </div>
-      </template>
-    </GameSurface>
+    </section>
 
     <section class="entry-grid" aria-label="首页功能分区">
       <GameSurface tone="jade" padding="md" compact clickable @click="router.push('/game/adventure')">
@@ -186,8 +153,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { XButton, XCultivationPanel, type XCultivationMetric, type XTone } from '@xianxia/ui'
 import { Backpack, BookOpen, Compass, Landmark, Mail, Map, Orbit, Settings, Swords } from 'lucide-vue-next'
-import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'
 import { useStoryOverlay } from '@/composables/useStoryOverlay'
@@ -227,7 +194,7 @@ function formatCultivationRate(value: number) {
 
 const panelBenefitHint = computed(() => {
   if (playerStore.isMaxRealm && playerStore.realmLevel === 9) return '已满'
-  if (playerStore.canBreakthrough) return `成率 ${formatPercent(playerStore.breakthroughPreview.successRate)}`
+  if (playerStore.canBreakthrough) return `成功率 ${formatPercent(playerStore.breakthroughPreview.successRate)}`
   if (playerStore.nextRealm) return `下境 ${playerStore.nextRealm}`
   return `每秒 +${formatCultivationRate(playerStore.cultivationPerSecond)}`
 })
@@ -244,6 +211,33 @@ const cultivationProgressPercent = computed(() => {
 })
 
 const cultivationRateLabel = computed(() => `${formatCultivationRate(playerStore.cultivationPerSecond)}/秒`)
+
+const nextBreakthroughLabel = computed(() => {
+  if (playerStore.isMaxRealm && playerStore.realmLevel === 9) return '已至当前极境'
+  if (playerStore.canBreakthrough) return `成功率 ${formatPercent(playerStore.breakthroughPreview.successRate)}`
+  return playerStore.nextRealm ?? '暂无下一境界'
+})
+
+const cultivationTone = computed<XTone>(() => {
+  if (playerStore.captivity.isCaptured) return 'rose'
+  if (playerStore.canBreakthrough) return 'gold'
+  return 'jade'
+})
+
+const cultivationMetrics = computed<XCultivationMetric[]>(() => [
+  {
+    label: '修炼增益',
+    value: panelBenefitHint.value,
+    icon: 'spark',
+    tone: playerStore.canBreakthrough ? 'gold' : 'jade'
+  },
+  {
+    label: '离线积累',
+    value: offlineGains.value > 0 ? `+${offlineGains.value}` : '已结算',
+    icon: 'cultivation',
+    tone: offlineGains.value > 0 ? 'gold' : 'stone'
+  }
+])
 
 const heroPrimaryActionLabel = computed(() => (playerStore.isIdling ? '停止修炼' : '开始修炼'))
 
@@ -377,7 +371,8 @@ function handlePlayerFortune() {
 .cultivation-home {
   display: grid;
   gap: 0.72rem;
-  padding: 0.08rem 0 calc(6rem + env(safe-area-inset-bottom, 0px));
+  min-width: 0;
+  padding: 0.08rem 0 max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
 .quick-actions {
@@ -411,126 +406,94 @@ function handlePlayerFortune() {
   color: #6f9d95;
 }
 
-.cultivation-hero {
-  overflow: hidden;
+.cultivation-core {
+  display: grid;
+  gap: 0.52rem;
+  min-width: 0;
 }
 
-.hero-grid {
-  display: grid;
-  gap: 1rem;
+.cultivation-panel {
+  min-width: 0;
 }
 
-.hero-main {
-  display: grid;
-  grid-template-columns: 7.4rem minmax(0, 1fr);
-  gap: 0.9rem;
+.cultivation-panel :deep(.x-cultivation-panel__body) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.72rem;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__summary) {
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
+  column-gap: 0.5rem;
+  padding-inline: 0.25rem;
 }
 
-.progress-orb {
-  position: relative;
-  width: 7.4rem;
-  aspect-ratio: 1;
+.cultivation-panel :deep(.x-cultivation-panel__summary-icon) {
+  grid-row: span 2;
+  margin: 0;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__summary > strong) {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__divider),
+.cultivation-panel :deep(.x-cultivation-panel__summary-row) {
+  grid-column: 1 / -1;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__ring-wrap) {
+  min-height: 13.6rem;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__details) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__figure-slot) {
+  background: url('@/assets/theme/generated/meditation-core-clean-v2.png') center / contain no-repeat;
+  image-rendering: auto;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__figure) {
+  opacity: 0;
+}
+
+.cultivation-panel :deep(.x-cultivation-panel__action) {
+  display: none;
+}
+
+.cultivation-actions {
   display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background:
-    conic-gradient(from 180deg, #78b8b0 0deg, #78b8b0 var(--progress-angle), rgba(120, 184, 176, 0.14) 0deg),
-    radial-gradient(circle at center, rgba(255, 253, 244, 0.98) 0 58%, transparent 59%),
-    linear-gradient(180deg, rgba(241, 250, 246, 0.96), rgba(255, 251, 238, 0.92));
-  box-shadow:
-    inset 0 0 0 1px rgba(121, 165, 155, 0.22),
-    0 18px 34px rgba(88, 123, 116, 0.14);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem;
+  width: 100%;
 }
 
-.progress-orb::before {
-  content: '';
-  position: absolute;
-  inset: 0.42rem;
-  border-radius: 999px;
-  border: 1px solid rgba(218, 185, 115, 0.34);
+.cultivation-actions :deep(.x-button) {
+  width: 100%;
+  min-width: 0;
 }
 
-.progress-orb-inner {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  gap: 0.18rem;
-  text-align: center;
+.cultivation-actions :deep(.x-button:first-child) {
+  grid-column: 1 / -1;
 }
 
-.progress-orb-inner span,
-.hero-value-row span,
-.hero-side-card span {
-  color: rgba(94, 104, 99, 0.74);
-  font-size: 0.72rem;
-}
-
-.progress-orb-inner strong {
-  color: #4d4138;
-  font-family: var(--font-game);
-  font-size: 1.78rem;
-  line-height: 1;
-}
-
-.progress-orb-inner small,
-.hero-side-card small,
 .entry-card small {
   color: rgba(94, 104, 99, 0.68);
   font-size: 0.68rem;
   line-height: 1.45;
 }
 
-.hero-main-copy {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.hero-value-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.hero-value-row strong,
-.hero-side-card strong {
-  display: block;
-  margin-top: 0.14rem;
-  color: #325154;
-  font-size: 1rem;
-}
-
-.hero-note-list {
-  display: grid;
-  gap: 0.34rem;
-}
-
-.hero-note-list p,
 .entry-card p,
 .pulse-text {
   margin: 0;
   color: rgba(82, 94, 89, 0.8);
   font-size: 0.78rem;
   line-height: 1.56;
-}
-
-.hero-side {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.hero-side-card {
-  padding: 0.82rem 0.88rem;
-  border-radius: 16px;
-  border: 1px solid rgba(121, 165, 155, 0.16);
-  background: rgba(255, 255, 252, 0.68);
-}
-
-.hero-footer {
-  display: grid;
-  gap: 0.55rem;
 }
 
 .entry-grid {
@@ -592,20 +555,13 @@ function handlePlayerFortune() {
 }
 
 @media (max-width: 390px) {
-  .hero-main {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .hero-main-copy,
-  .hero-side {
-    width: 100%;
-  }
-
-  .hero-value-row,
-  .hero-side,
+  .cultivation-actions,
   .entry-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cultivation-actions :deep(.x-button:first-child) {
+    grid-column: auto;
   }
 }
 </style>

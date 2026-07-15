@@ -11,36 +11,22 @@
         </div>
 
         <div class="task-list">
-          <div v-for="task in dailyTasks" :key="task.id" class="task-card">
-            <div class="task-head">
-              <div class="task-copy">
-                <strong>{{ task.name }}</strong>
-                <small>{{ getTaskRequirementLabel(task) }}</small>
-              </div>
-              <span class="reward-label">{{ getTaskRewardLabel(task) }}</span>
-            </div>
-
-            <GameProgressBar
-              label="进度"
-              :current="task.progress"
-              :max="task.requirements.count"
-              :hint="task.description"
-              tone="jade"
-            />
-
-            <div class="task-actions">
-              <GameActionButton
-                v-if="task.completed && !task.claimed"
-                icon="🎁"
-                tone="gold"
-                @click="$emit('claim-task', task.id)"
-              >
-                领取奖励
-              </GameActionButton>
-              <span v-else-if="task.claimed" class="task-status success">已领取</span>
-              <span v-else class="task-status">进行中 · {{ Math.round(getTaskProgressPercent(task)) }}%</span>
-            </div>
-          </div>
+          <XTaskEntry
+            v-for="task in dailyTasks"
+            :key="task.id"
+            class="task-entry"
+            :title="task.name"
+            :description="getTaskDescription(task)"
+            :tag="getTaskTag(task)"
+            :reward="getTaskRewardLabel(task)"
+            :progress="task.progress"
+            :progress-max="task.requirements.count"
+            :state="getTaskState(task)"
+            :interactive="task.completed && !task.claimed"
+            icon="mission"
+            tone="jade"
+            @click="handleTaskClick(task)"
+          />
         </div>
       </section>
 
@@ -54,36 +40,22 @@
         </div>
 
         <div class="task-list">
-          <div v-for="task in weeklyTasks" :key="task.id" class="task-card">
-            <div class="task-head">
-              <div class="task-copy">
-                <strong>{{ task.name }}</strong>
-                <small>{{ getTaskRequirementLabel(task) }}</small>
-              </div>
-              <span class="reward-label">{{ getTaskRewardLabel(task) }}</span>
-            </div>
-
-            <GameProgressBar
-              label="进度"
-              :current="task.progress"
-              :max="task.requirements.count"
-              :hint="task.description"
-              tone="gold"
-            />
-
-            <div class="task-actions">
-              <GameActionButton
-                v-if="task.completed && !task.claimed"
-                icon="🎁"
-                tone="gold"
-                @click="$emit('claim-task', task.id)"
-              >
-                领取奖励
-              </GameActionButton>
-              <span v-else-if="task.claimed" class="task-status success">已领取</span>
-              <span v-else class="task-status">进行中 · {{ Math.round(getTaskProgressPercent(task)) }}%</span>
-            </div>
-          </div>
+          <XTaskEntry
+            v-for="task in weeklyTasks"
+            :key="task.id"
+            class="task-entry"
+            :title="task.name"
+            :description="getTaskDescription(task)"
+            :tag="getTaskTag(task)"
+            :reward="getTaskRewardLabel(task)"
+            :progress="task.progress"
+            :progress-max="task.requirements.count"
+            :state="getTaskState(task)"
+            :interactive="task.completed && !task.claimed"
+            icon="crown"
+            tone="gold"
+            @click="handleTaskClick(task)"
+          />
         </div>
       </section>
 
@@ -111,8 +83,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { XTaskEntry } from '@xianxia/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
-import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { SectTask } from '@/types/sect'
 import { getTaskProgressPercent, getTaskRequirementLabel, getTaskRewardLabel } from './sectUi'
@@ -125,13 +97,33 @@ const props = defineProps<{
   canClaimSalary: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'claim-task': [taskId: string]
   'claim-salary': []
 }>()
 
 const claimedDaily = computed(() => props.dailyTasks.filter(task => task.claimed).length)
 const claimedWeekly = computed(() => props.weeklyTasks.filter(task => task.claimed).length)
+
+function getTaskState(task: SectTask): 'active' | 'ready' | 'done' {
+  if (task.claimed) return 'done'
+  if (task.completed) return 'ready'
+  return 'active'
+}
+
+function getTaskTag(task: SectTask) {
+  if (task.claimed) return '已领取'
+  if (task.completed) return '可领取'
+  return `${Math.round(getTaskProgressPercent(task))}%`
+}
+
+function getTaskDescription(task: SectTask) {
+  return `${getTaskRequirementLabel(task)} · ${task.description}`
+}
+
+function handleTaskClick(task: SectTask) {
+  if (task.completed && !task.claimed) emit('claim-task', task.id)
+}
 </script>
 
 <style scoped>
@@ -143,7 +135,6 @@ const claimedWeekly = computed(() => props.weeklyTasks.filter(task => task.claim
 }
 
 .group-head,
-.task-head,
 .salary-card {
   display: flex;
   align-items: center;
@@ -152,47 +143,37 @@ const claimedWeekly = computed(() => props.weeklyTasks.filter(task => task.claim
 }
 
 .group-head strong,
-.task-copy strong,
 .salary-copy strong {
   color: #315257;
   font-size: 15px;
 }
 
 .group-eyebrow,
-.task-copy small,
-.salary-copy small,
-.task-status {
+.salary-copy small {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
 }
 
-.group-count,
-.reward-label {
+.group-count {
   color: #8b6226;
   font-size: 11px;
 }
 
-.task-card {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.66);
-  border: 1px solid rgba(103, 149, 144, 0.16);
+.task-entry {
+  min-width: 0;
 }
 
-.task-copy {
-  display: grid;
-  gap: 4px;
+.task-entry :deep(.x-task-entry__description) {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.task-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.task-status.success {
-  color: #4caa73;
+.task-entry :deep(.x-task-entry__reward) {
+  overflow: hidden;
+  max-width: min(32vw, 11rem);
+  text-overflow: ellipsis;
 }
 
 .salary-card {
@@ -206,10 +187,38 @@ const claimedWeekly = computed(() => props.weeklyTasks.filter(task => task.claim
 
 @media (max-width: 720px) {
   .group-head,
-  .task-head,
   .salary-card {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .task-entry :deep(.x-task-entry__end) {
+    min-width: 0;
+    max-width: 7rem;
+  }
+
+  .task-entry :deep(.x-task-entry__reward) {
+    max-width: 7rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .task-entry.x-task-entry {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .task-entry :deep(.x-task-entry__icon) {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .task-entry :deep(.x-task-entry__end) {
+    max-width: 5.5rem;
+  }
+
+  .task-entry :deep(.x-task-entry__reward) {
+    max-width: 5.5rem;
   }
 }
 </style>

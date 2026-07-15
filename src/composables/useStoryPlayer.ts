@@ -2,7 +2,7 @@
  * 故事播放器 — 控制故事章节的播放、选择、效果写入
  */
 import { ref, computed } from 'vue'
-import type { StoryChapter, StorySection, ChapterTrigger, Perspective } from '@/types/storyChapter'
+import type { StoryChapter, StorySection } from '@/types/storyChapter'
 import type { ChoiceEffect } from '@/types/storyChapter'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useStoryArchiveStore } from '@/stores/storyArchiveStore'
@@ -88,12 +88,12 @@ export function useStoryPlayer() {
       switch (effect.type) {
         case 'npc_favor':
           if (effect.npcId && effect.value) {
-            worldStore.updateNpcFavor(effect.npcId, effect.value)
+            worldStore.applyStoryRelationshipChange(effect.npcId, { favorDelta: effect.value })
           }
           break
         case 'npc_hatred':
           if (effect.npcId && effect.value) {
-            worldStore.updateNpcHatred(effect.npcId, effect.value)
+            worldStore.applyStoryRelationshipChange(effect.npcId, { hatredDelta: effect.value })
           }
           break
         case 'npc_unlock':
@@ -131,7 +131,7 @@ export function useStoryPlayer() {
          break
         case 'ending_point':
           if (effect.endingKey && effect.endingValue) {
-            worldStore.addEndingPoint(effect.endingKey, effect.endingValue)
+            worldStore.addWorldFlag(`ending:${effect.endingKey}:${effect.endingValue}`)
           }
           break
       }

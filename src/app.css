@@ -496,3 +496,39 @@ input[type='number'] {
     font-size: 1.25rem;
   }
 }
+
+/* xianxia-ui integration tokens and rendering fixes */
+:root {
+  --font-game: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  --xianxia-ink: #355c5a;
+  --xianxia-jade: #4b8075;
+  --xianxia-gold: #9b6e24;
+  --xianxia-line: rgba(116, 164, 153, 0.28);
+}
+
+/* The library uses a brush-font fallback; keep the app's reading font consistent. */
+.x-button.x-button,
+.x-card__title.x-card__title,
+.x-cultivation-panel h3 {
+  font-family: var(--font-game);
+}
+
+/* The old global pixel-art rule made portraits and scene art visibly jagged. */
+.x-avatar-frame img,
+.x-activity-panel img,
+.x-card img,
+.x-cultivation-panel img {
+  image-rendering: auto;
+}
+
+/* Keep library controls usable in narrow action rows. */
+.x-button.x-button--sm {
+  min-width: 7.5rem;
+}
+
+@media (max-width: 24rem) {
+  .x-button.x-button--sm {
+    min-width: 6.4rem;
+    padding-inline: 0.72rem;
+  }
+}
