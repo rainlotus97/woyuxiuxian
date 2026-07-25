@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, useSlots } from 'vue'
-import { XCard } from '@xianxia/ui'
+import { XCard } from '@rainlotus97/ui'
 
 const props = withDefaults(defineProps<{
   eyebrow?: string | null

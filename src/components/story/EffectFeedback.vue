@@ -24,8 +24,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { XAnnouncement } from '@xianxia/ui'
-import type { XIconName, XTone } from '@xianxia/ui'
+import { XAnnouncement } from '@rainlotus97/ui'
+import type { XIconName, XTone } from '@rainlotus97/ui'
 import { storyEventBus } from '@/story/eventBus'
 import type { StoryBusEvent } from '@/story/eventBus'
 import { describeStoryCharacterTarget } from '@/story/runtime/storyCharacterRegistry'

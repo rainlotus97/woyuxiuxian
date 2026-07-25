@@ -37,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { XActivityPanel } from '@xianxia/ui'
-import type { XTone } from '@xianxia/ui'
+import { XActivityPanel } from '@rainlotus97/ui'
+import type { XTone } from '@rainlotus97/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'

@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { XPanel } from '@xianxia/ui'
+import { XPanel } from '@rainlotus97/ui'
 </script>
 
 <style scoped>

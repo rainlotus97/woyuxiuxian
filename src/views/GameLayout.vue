@@ -142,7 +142,7 @@ import {
   XTaskEntry,
   type XIconName,
   type XTone
-} from '@xianxia/ui'
+} from '@rainlotus97/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'

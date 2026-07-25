@@ -167,7 +167,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { XAnnouncement, XPanel } from '@xianxia/ui'
+import { XAnnouncement, XPanel } from '@rainlotus97/ui'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useStoryStore } from '@/story/storyStore'

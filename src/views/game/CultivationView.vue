@@ -153,7 +153,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { XButton, XCultivationPanel, type XCultivationMetric, type XTone } from '@xianxia/ui'
+import { XButton, XCultivationPanel, type XCultivationMetric, type XTone } from '@rainlotus97/ui'
 import { Backpack, BookOpen, Compass, Landmark, Mail, Map, Orbit, Settings, Swords } from 'lucide-vue-next'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useToast } from '@/composables/useToast'

@@ -81,8 +81,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { XAnnouncement, XButton, XCard, XIcon, XPanel, XStatChip } from '@xianxia/ui'
-import type { XIconName, XTone } from '@xianxia/ui'
+import { XAnnouncement, XButton, XCard, XIcon, XPanel, XStatChip } from '@rainlotus97/ui'
+import type { XIconName, XTone } from '@rainlotus97/ui'
 import { gameplayBridge } from '@/story/gameplayBridge'
 import type { GameplayResult, GameplayTrigger, GameplayType } from '@/story/types'
 

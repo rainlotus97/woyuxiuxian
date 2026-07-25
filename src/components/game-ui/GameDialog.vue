@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { XDialog } from '@xianxia/ui'
+import { XDialog } from '@rainlotus97/ui'
 
 defineProps<{
   visible: boolean

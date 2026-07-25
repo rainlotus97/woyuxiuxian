@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XAvatarFrame } from '@xianxia/ui'
+import { XAvatarFrame } from '@rainlotus97/ui'
 
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'

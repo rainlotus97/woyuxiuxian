@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { XActivityPanel, XIcon } from '@xianxia/ui'
+import { XActivityPanel, XIcon } from '@rainlotus97/ui'
 
 withDefaults(defineProps<{
   eyebrow: string

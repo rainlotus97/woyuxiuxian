@@ -1,9 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import XianxiaUI from '@xianxia/ui'
+import XianxiaUI from '@rainlotus97/ui'
 import router from '@/router'
 import App from './App.vue'
-import '@xianxia/ui/style.css'
+import '@rainlotus97/ui/style.css'
 import './app.css'
 
 const app = createApp(App)

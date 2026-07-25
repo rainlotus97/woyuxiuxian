@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': resolve(__dirname, 'src'),
         ...(useLocalXianxiaUI ? {
-          '@xianxia/ui/style.css': resolve(uiRoot, 'src/styles/global.css'),
-          '@xianxia/ui': resolve(uiRoot, 'src/index.ts')
+          '@rainlotus97/ui/style.css': resolve(uiRoot, 'src/styles/global.css'),
+          '@rainlotus97/ui': resolve(uiRoot, 'src/index.ts')
         } : {})
       }
     },

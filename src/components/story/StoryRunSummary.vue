@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XIcon, XStatChip } from '@xianxia/ui'
-import type { XIconName, XTone } from '@xianxia/ui'
+import { XIcon, XStatChip } from '@rainlotus97/ui'
+import type { XIconName, XTone } from '@rainlotus97/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { StoryBattleReplaySummary } from '@/story/runtime/storyBattleReplayArchive'
 

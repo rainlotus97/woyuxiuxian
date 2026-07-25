@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { XButton } from '@xianxia/ui'
+import { XButton } from '@rainlotus97/ui'
 import { sfxClick } from '@/composables/useAudio'
 import type { Component } from 'vue'
 

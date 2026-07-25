@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { XStatChip } from '@xianxia/ui'
+import { XStatChip } from '@rainlotus97/ui'
 import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 withDefaults(defineProps<{

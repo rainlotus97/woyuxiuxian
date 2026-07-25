@@ -110,8 +110,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { XAnnouncement, XButton, XDialog, XIcon, XPanel, XStatChip, XTaskEntry } from '@xianxia/ui'
-import type { XIconName, XTone } from '@xianxia/ui'
+import { XAnnouncement, XButton, XDialog, XIcon, XPanel, XStatChip, XTaskEntry } from '@rainlotus97/ui'
+import type { XIconName, XTone } from '@rainlotus97/ui'
 import { useStoryStore } from '@/story/storyStore'
 import type { SideQuestInfo } from '@/story/storyStore'
 import type { TriggerType } from '@/story/types'

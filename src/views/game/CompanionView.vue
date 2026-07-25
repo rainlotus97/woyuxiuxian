@@ -358,7 +358,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { XDialog } from '@xianxia/ui'
+import { XDialog } from '@rainlotus97/ui'
 import { useCompanionStore } from '@/stores/companionStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'

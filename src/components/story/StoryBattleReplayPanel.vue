@@ -126,8 +126,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { XAnnouncement, XButton, XIcon, XPanel, XStatChip, XTaskEntry } from '@xianxia/ui'
-import type { XTone } from '@xianxia/ui'
+import { XAnnouncement, XButton, XIcon, XPanel, XStatChip, XTaskEntry } from '@rainlotus97/ui'
+import type { XTone } from '@rainlotus97/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import {
   getStoryBattleReplayRecord,

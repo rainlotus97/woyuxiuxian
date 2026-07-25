@@ -27,8 +27,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XIcon } from '@xianxia/ui'
-import type { XIconName } from '@xianxia/ui'
+import { XIcon } from '@rainlotus97/ui'
+import type { XIconName } from '@rainlotus97/ui'
 import { resolveGameIconComponent, hasGameIcon } from '@/game/theme/gameTheme'
 
 const props = withDefaults(defineProps<{

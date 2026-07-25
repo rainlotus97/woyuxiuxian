@@ -16,7 +16,7 @@
     "dev:ui": "vite --mode ui-local"
   },
   "dependencies": {
-    "@xianxia/ui": "1.0.0",
+    "@rainlotus97/ui": "1.0.0",
     "crypto-js": "^4.2.0",
     "lucide-vue-next": "^0.576.0",
     "phaser": "^4.1.0",

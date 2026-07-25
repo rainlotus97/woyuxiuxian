@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XTaskEntry } from '@xianxia/ui'
+import { XTaskEntry } from '@rainlotus97/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { SectTask } from '@/types/sect'

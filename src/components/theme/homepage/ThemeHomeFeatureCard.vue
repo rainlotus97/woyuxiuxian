@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { XCard, XIcon } from '@xianxia/ui'
+import { XCard, XIcon } from '@rainlotus97/ui'
 
 defineProps<{
   title: string

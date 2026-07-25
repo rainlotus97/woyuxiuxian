@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { XButton } from '@xianxia/ui'
+import { XButton } from '@rainlotus97/ui'
 import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 withDefaults(defineProps<{

@@ -27,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-import { XTaskEntry } from '@xianxia/ui'
-import type { XIconName, XTone } from '@xianxia/ui'
+import { XTaskEntry } from '@rainlotus97/ui'
+import type { XIconName, XTone } from '@rainlotus97/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { NpcActivityInsightItem } from '@/world/runtime/npcActivityInsightResolver'
 

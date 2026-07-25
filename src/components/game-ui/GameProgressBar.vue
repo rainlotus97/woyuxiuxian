@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XProgressBar } from '@xianxia/ui'
-import type { XTone } from '@xianxia/ui'
+import { XProgressBar } from '@rainlotus97/ui'
+import type { XTone } from '@rainlotus97/ui'
 
 const props = withDefaults(defineProps<{
   label: string

@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@xianxia/ui':
+      '@rainlotus97/ui':
         specifier: 1.0.0
         version: 1.0.0(vue@3.5.39(typescript@5.9.3))
       crypto-js:
@@ -296,6 +296,11 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@rainlotus97/ui@1.0.0':
+    resolution: {integrity: sha512-r/kuhOvoBuQbOvUc+Dd8ruhWO0Wz5FYhvoA/54qhJuzvBZSF3jU/7dlq0q2kA/yg9cS7QjvyVMR3OPT4+aapNA==}
+    peerDependencies:
+      vue: ^3.4.0
+
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
@@ -534,11 +539,6 @@ packages:
         optional: true
       vue:
         optional: true
-
-  '@xianxia/ui@1.0.0':
-    resolution: {integrity: sha512-OOiCnqkhgxMl0Zxbaz4BWtD583s4wX3s58JcZ93sHgdBKXVQTg8z622tL8089xn1FtxMtDHLwGURwuXKtxndQQ==}
-    peerDependencies:
-      vue: ^3.4.0
 
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
@@ -1304,6 +1304,10 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
+  '@rainlotus97/ui@1.0.0(vue@3.5.39(typescript@5.9.3))':
+    dependencies:
+      vue: 3.5.39(typescript@5.9.3)
+
   '@rolldown/pluginutils@1.0.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
@@ -1517,10 +1521,6 @@ snapshots:
   '@vue/tsconfig@0.8.1(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3))':
     optionalDependencies:
       typescript: 5.9.3
-      vue: 3.5.39(typescript@5.9.3)
-
-  '@xianxia/ui@1.0.0(vue@3.5.39(typescript@5.9.3))':
-    dependencies:
       vue: 3.5.39(typescript@5.9.3)
 
   acorn@8.17.0: {}

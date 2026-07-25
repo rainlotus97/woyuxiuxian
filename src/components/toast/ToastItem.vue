@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XAnnouncement, type XIconName, type XTone } from '@xianxia/ui'
+import { XAnnouncement, type XIconName, type XTone } from '@rainlotus97/ui'
 import type { ToastItem } from '@/composables/useToast'
 
 const props = defineProps<{

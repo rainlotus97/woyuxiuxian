@@ -262,7 +262,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { XAvatarFrame } from '@xianxia/ui'
+import { XAvatarFrame } from '@rainlotus97/ui'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'

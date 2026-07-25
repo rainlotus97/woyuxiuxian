@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { XAnnouncement } from '@xianxia/ui'
+import { XAnnouncement } from '@rainlotus97/ui'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { AdventureSweepFeedback } from '@/composables/useAdventureSweep'
