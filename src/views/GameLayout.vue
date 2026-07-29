@@ -16,7 +16,7 @@
             class="player-hud"
             :player-name="playerStore.name"
             :realm="playerStore.realmInfo.fullName"
-            :level="playerStore.level"
+            :level="playerStore.realmLevel"
             :items="hudResourceItems"
           >
             <!-- @vue-ignore: published component declarations currently omit named slots -->
