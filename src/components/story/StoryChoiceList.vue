@@ -144,6 +144,7 @@ function resolveChoiceText(choice: StoryChoice) {
 .choice-text {
   line-height: 1.42;
   text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
 
 .choice-tail {

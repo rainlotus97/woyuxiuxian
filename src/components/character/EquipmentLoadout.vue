@@ -24,11 +24,11 @@
       >
         <span class="slot-label">{{ slot.label }}</span>
         <template v-if="slot.equipment">
-          <b>{{ slot.equipment.icon }}</b>
+          <ItemArt :icon="slot.equipment.icon" :label="slot.equipment.name" tone="gold" size="2.15rem" :icon-size="18" />
           <strong>{{ slot.equipment.name }}</strong>
         </template>
         <template v-else>
-          <b>空</b>
+          <ItemArt icon="lock" label="空装备槽" tone="stone" size="2.15rem" :icon-size="16" />
           <strong>未装备</strong>
         </template>
         <em>{{ slot.candidates.length }} 件可换</em>
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import type { CharacterStatItem, EquipmentSlotState } from '@/composables/useCharacterLoadout'
+import ItemArt from '@/components/game-ui/ItemArt.vue'
 import type { LoadoutProgressSummary } from '@/composables/useCharacterLoadout'
 import type { EquipmentSlot } from '@/types/equipment'
 

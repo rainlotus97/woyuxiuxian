@@ -3,7 +3,7 @@
     <div class="overview-grid">
       <div class="sect-hero">
         <div class="sect-head">
-          <div class="sect-icon">{{ sect.icon }}</div>
+          <GameIcon class="sect-icon" :icon="sect.icon" :size="38" />
           <div class="sect-copy">
             <span class="sect-pill">{{ worldStatusLabel }}</span>
             <strong>{{ sect.name }}</strong>
@@ -21,7 +21,7 @@
             <GameActionButton
               v-for="choice in activeEvent.choices"
               :key="choice.id"
-              icon="⚑"
+              icon="flag"
               tone="gold"
               @click="$emit('event-choice', choice.id)"
             >
@@ -33,7 +33,7 @@
 
       <div class="sect-stats">
         <GameStatChip icon="Star" label="贡献" :value="contribution" tone="gold" />
-        <GameStatChip icon="🏅" label="声望" :value="reputation" tone="jade" />
+        <GameStatChip icon="reputation" label="声望" :value="reputation" tone="jade" />
         <GameStatChip icon="Coins" label="日俸" :value="`${salary} 灵石`" tone="gold" />
       </div>
     </div>
@@ -59,7 +59,7 @@
       <div class="footer-actions">
         <GameActionButton
           v-if="canPromote && nextPositionName"
-          icon="📈"
+          icon="progress"
           tone="gold"
           @click="$emit('promote')"
         >
@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
@@ -129,6 +130,7 @@ const salary = computed(() => props.salary)
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
 }
 
 .sect-icon {
@@ -143,6 +145,7 @@ const salary = computed(() => props.salary)
 
 .sect-copy {
   gap: 4px;
+  min-width: 0;
 }
 
 .sect-pill {
@@ -159,11 +162,13 @@ const salary = computed(() => props.salary)
 .sect-copy strong {
   color: #315257;
   font-size: 20px;
+  overflow-wrap: anywhere;
 }
 
 .sect-copy small {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .sect-hero p,
@@ -207,6 +212,16 @@ const salary = computed(() => props.salary)
 }
 
 @media (max-width: 900px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sect-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container game-stage (max-width: 900px) {
   .overview-grid {
     grid-template-columns: 1fr;
   }

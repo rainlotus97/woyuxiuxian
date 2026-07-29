@@ -1,8 +1,8 @@
 <template>
   <div class="recruit-panel">
     <GameSurface tone="mist" padding="lg" eyebrow="宗门归属" title="尚未拜入宗门" subtitle="攻占区域、推进剧情与世界事件后，可解锁更多宗门选择。">
-      <div class="empty-hero">
-        <div class="empty-icon">🏛️</div>
+      <div class="empty-hero" data-ui-empty-state="sect">
+        <GameIcon class="empty-icon" icon="landmark" :size="38" />
         <p>当前尚无正式师承。你可以先通过地图与历练扩大接触面，再决定投向哪方势力。</p>
       </div>
     </GameSurface>
@@ -18,7 +18,7 @@
           @click="$emit('join', candidate.sect.id)"
         >
           <div class="sect-leading">
-            <div class="sect-icon">{{ candidate.sect.icon }}</div>
+            <GameIcon class="sect-icon" :icon="candidate.sect.icon" :size="26" />
             <div class="sect-copy">
               <strong>{{ candidate.sect.name }}</strong>
               <small>{{ candidate.areaName }} · {{ candidate.sect.specialty }}</small>
@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { SectJoinCandidate } from '@/sect/runtime/sectMembershipResolver'
 
@@ -97,6 +98,7 @@ defineEmits<{
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .sect-icon {
@@ -119,11 +121,13 @@ defineEmits<{
 .sect-copy strong {
   color: #315257;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .sect-copy small {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .join-badge {
@@ -147,6 +151,18 @@ defineEmits<{
 }
 
 @media (max-width: 720px) {
+  .sect-leading {
+    align-items: flex-start;
+  }
+
+  .join-badge {
+    max-width: 92px;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@container game-stage (max-width: 720px) {
   .sect-leading {
     align-items: flex-start;
   }

@@ -1,5 +1,6 @@
-import type { IdleMode, PlayerJourneyEntry, WorldClock } from '@/types/world'
+import type { IdleMode, PlayerJourneyEntry, WorldClock, WorldWeather } from '@/types/world'
 import { formatWorldTime } from '@/types/world'
+import type { TravelResult } from '@/types/worldEvent'
 
 export type IdleJourneyEvent = 'start' | 'stop'
 
@@ -14,6 +15,7 @@ export interface IdleJourneyInput {
 }
 
 export type IdleJourneyResult = Omit<PlayerJourneyEntry, 'id' | 'tick' | 'timeLabel' | 'mode'>
+export type TravelJourneyResult = IdleJourneyResult
 
 const MODE_LABELS: Record<IdleMode, string> = {
   cultivate: '闭关修炼',
@@ -30,6 +32,22 @@ const MODE_TAGS: Record<IdleMode, string[]> = {
   gatherHerbs: ['herb', 'gather'],
   trainSkill: ['skill', 'training']
 }
+
+const WEATHER_LABELS: Record<WorldWeather, string> = {
+  clear: '天朗气清',
+  rain: '灵雨细落',
+  storm: '雷暴压境',
+  flood: '洪水漫野',
+  fire: '火潮蔓延',
+  mist: '雾锁山河'
+}
+
+const ROUTE_RISK_LABELS = {
+  safe: '安稳',
+  watch: '需戒备',
+  danger: '危险',
+  chaos: '混乱'
+} as const
 
 function formatElapsed(seconds: number | null | undefined) {
   if (!seconds || seconds <= 0) return '片刻'
@@ -77,5 +95,47 @@ export function resolveIdleJourney(input: IdleJourneyInput): IdleJourneyResult {
     text: `${formatWorldTime(input.clock)}，你${placeLine}安排${modeLabel}。${gainLine}`,
     rewards: [{ type: 'flag', label: '挂机开始', value: modeLabel }],
     tags: [...tags, 'start']
+  }
+}
+
+export interface TravelJourneyInput {
+  clock: WorldClock
+  travel: TravelResult
+  fromAreaName?: string | null
+  toAreaName?: string | null
+}
+
+export function resolveTravelJourney(input: TravelJourneyInput): TravelJourneyResult {
+  const { travel } = input
+  const from = input.fromAreaName || travel.fromAreaId || '出发地'
+  const to = input.toAreaName || travel.destinationName || travel.destinationId
+  const riskLabel = ROUTE_RISK_LABELS[travel.routeRisk ?? 'watch']
+  const weatherLabel = WEATHER_LABELS[travel.weather]
+  const modifierLabel = travel.weatherModifier?.label ?? `${weatherLabel}：按基础路线结算`
+  const title = travel.status === 'arrived'
+    ? '赶路抵达'
+    : travel.status === 'interrupted'
+      ? '赶路中断'
+      : '赶路受阻'
+  const severity = travel.status === 'interrupted' && (travel.routeRisk === 'danger' || travel.routeRisk === 'chaos')
+    ? 'major'
+    : 'normal'
+  const locationId = travel.status === 'arrived'
+    ? travel.destinationId
+    : travel.fromAreaId ?? undefined
+  const timeLine = travel.ticksSpent > 0 ? `耗时${travel.ticksSpent}个时辰，消耗${travel.staminaSpent}点体力` : '没有消耗体力'
+
+  return {
+    severity,
+    title,
+    text: `${formatWorldTime(input.clock)}，你从${from}前往${to}，${timeLine}。路线${riskLabel}，${modifierLabel}。${travel.message}`,
+    areaId: locationId,
+    rewards: [],
+    tags: [
+      'travel',
+      `travel-${travel.status}`,
+      `route-${travel.routeRisk ?? 'watch'}`,
+      `weather-${travel.weather}`
+    ]
   }
 }

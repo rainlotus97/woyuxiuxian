@@ -1,6 +1,6 @@
-import type { SkillDefinition } from '@/types/skill'
+import type { ResolvedSkillDefinition, SkillDefinition, SkillRequirements } from '@/types/skill'
 
-export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
+const RAW_SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
   basic_sword: {
     id: 'basic_sword',
     name: '基础剑法',
@@ -600,3 +600,28 @@ export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
     unlockRealm: '筑基'
   }
 }
+
+function normalizeSkillDefinition(definition: SkillDefinition): ResolvedSkillDefinition {
+  const requirements: SkillRequirements = {
+    skillIds: [...(definition.requirements?.skillIds ?? definition.prerequisites ?? [])],
+    ...(definition.requirements?.realm
+      ? { realm: definition.requirements.realm }
+      : definition.unlockRealm
+        ? { realm: definition.unlockRealm as SkillRequirements['realm'] }
+        : {})
+  }
+
+  return {
+    ...definition,
+    rarity: definition.rarity ?? (definition.tier >= 4 ? 'legendary' : definition.tier === 3 ? 'epic' : definition.tier === 2 ? 'rare' : 'common'),
+    requirements,
+    // Keep the old aliases populated for existing stores and saved content.
+    prerequisites: [...requirements.skillIds],
+    unlockRealm: requirements.realm,
+    affiliation: definition.affiliation ?? { organizationKind: 'independent' }
+  }
+}
+
+export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = Object.fromEntries(
+  Object.entries(RAW_SKILL_DEFINITIONS).map(([id, definition]) => [id, normalizeSkillDefinition({ ...definition, id })])
+) as Record<string, SkillDefinition>

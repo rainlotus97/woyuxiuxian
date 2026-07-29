@@ -1,161 +1,113 @@
 <template>
   <div class="map-view">
-    <GameSurface
-      tone="mist"
-      padding="lg"
-      eyebrow="天下舆图"
-      :title="mapStore.currentRealm"
-      :subtitle="mapStore.currentRealmConfig.description"
-    >
-      <div class="realm-hero">
-        <div class="date-stack">
-          <span class="date-pill"><Calendar :size="14" /> {{ worldDateLabel }}</span>
-          <span class="season-pill">{{ getSeasonIcon(worldSeason) }} {{ seasonEffectLabel }}</span>
-        </div>
+    <section class="map-hero-strip">
+      <div class="map-hero-title">
+        <span class="section-eyebrow">天下舆图</span>
+        <h1>{{ mapStore.currentRealm }}</h1>
+        <p>{{ mapStore.currentRealmConfig.description }}</p>
+      </div>
+      <div class="map-hero-stats">
+        <span><GameIcon icon="mission" :size="14" /> {{ worldDateLabel }}</span>
+        <span><GameIcon :icon="getSeasonIcon(worldSeason)" :size="14" /> {{ worldSeason }}</span>
+        <strong>{{ mapStore.conqueredCountInCurrentRealm }}/{{ mapStore.currentRealmAreas.length }} 已开路</strong>
+      </div>
+    </section>
 
-        <div class="hero-stats">
-          <GameStatChip icon="Mountain" label="已征服" :value="`${mapStore.conqueredCountInCurrentRealm}/${mapStore.currentRealmAreas.length}`" tone="gold" />
-          <GameStatChip icon="Compass" label="当前界域" :value="mapStore.currentRealm" tone="jade" />
-          <GameStatChip icon="Scroll" label="世界异闻" :value="worldStore.visibleLogs.length" tone="rose" />
+    <nav class="realm-switcher" aria-label="切换界域">
+      <button
+        v-for="realm in WORLD_REALMS"
+        :key="realm"
+        type="button"
+        :class="{ active: mapStore.currentRealm === realm, locked: !mapStore.realmUnlockStatus[realm] }"
+        :disabled="!mapStore.realmUnlockStatus[realm]"
+        @click="handleRealmSelect(realm)"
+      >
+        <GameIcon :icon="WORLD_REALM_CONFIGS[realm].icon" :size="17" />
+        <span>{{ realm }}</span>
+      </button>
+    </nav>
+
+    <section class="map-board-shell" aria-label="节点式地图">
+      <div class="map-board">
+        <canvas ref="terrainCanvas" class="terrain-canvas" aria-hidden="true"></canvas>
+        <div class="map-route-layer">
+          <button
+            v-for="(area, index) in mapStore.currentRealmAreas"
+            :key="area.id"
+            type="button"
+            class="map-node"
+            :class="{
+              locked: !isAreaUnlocked(area),
+              conquered: mapStore.isAreaConquered(area.id),
+              selected: focusedArea?.id === area.id,
+              destination: currentAreaId === area.id
+            }"
+            :style="nodeStyle(area, index)"
+            :aria-label="`${area.name}${isAreaUnlocked(area) ? '' : '，未解锁'}`"
+            @click="handleAreaClick(area)"
+          >
+            <span class="map-node-orb"><GameIcon :icon="area.icon" :size="18" /></span>
+            <span class="map-node-copy">
+              <b>{{ area.name }}</b>
+              <small>{{ getAreaEncounter(area.id)?.statusText ?? (isAreaUnlocked(area) ? '可抵达' : '未解锁') }}</small>
+            </span>
+          </button>
+
+          <div class="player-map-marker" :style="playerMarkerStyle" aria-label="玩家当前位置">
+            <span><GameIcon :icon="playerMarkerIcon" :size="15" /></span>
+            <small>你</small>
+          </div>
         </div>
       </div>
-    </GameSurface>
+      <div class="map-board-footer">
+        <span><GameIcon icon="compass" :size="14" /> {{ currentAreaName }}</span>
+        <span>{{ worldStore.weather === 'clear' ? '天色清明' : getWeatherLabel(worldStore.weather) }}</span>
+      </div>
+    </section>
 
-    <WorldBriefingPanel :items="worldBriefings" @action="handleWorldBriefingAction" />
-
-    <div class="top-grid">
-      <GameSurface
-        tone="gold"
-        padding="md"
-        eyebrow="界门切换"
-        title="四界巡览"
-        subtitle="不同界域承载不同宗门、资源与风险。"
-      >
-        <div class="realm-tabs">
+    <section class="map-destination" :class="{ empty: !focusedArea }">
+      <template v-if="focusedArea">
+        <div class="destination-copy">
+          <div class="destination-icon"><GameIcon :icon="focusedArea.icon" :size="21" /></div>
+          <div>
+            <span>当前选中</span>
+            <strong>{{ focusedArea.name }}</strong>
+            <small>{{ getAreaAccess(focusedArea.id).entryReason }}</small>
+          </div>
+        </div>
+        <div class="destination-actions">
+          <button type="button" class="destination-detail" @click="openAreaDetails(focusedArea)">详情</button>
           <button
-            v-for="realm in WORLD_REALMS"
-            :key="realm"
-            class="realm-tab"
-            :class="{ active: mapStore.currentRealm === realm, locked: !mapStore.realmUnlockStatus[realm] }"
-            @click="handleRealmSelect(realm)"
+            type="button"
+            class="destination-travel"
+            :disabled="!canTravelToSelected"
+            @click="travelToSelected"
           >
-            <span class="realm-icon">{{ WORLD_REALM_CONFIGS[realm].icon }}</span>
-            <span class="realm-name">{{ realm }}</span>
+            <GameIcon icon="map" :size="15" />
+            {{ travelButtonLabel }}
           </button>
         </div>
-      </GameSurface>
-
-      <GameSurface
-        tone="realm"
-        padding="md"
-        eyebrow="天地风闻"
-        title="近期世界事件"
-        subtitle="世界不会停下。宗门、天气与 NPC 都在推动局势。"
-      >
-        <div class="world-log-list">
-          <div v-for="log in recentWorldLogs" :key="log.entry.id" class="world-log-item">
-            <strong>{{ log.entry.title }}</strong>
-            <p>{{ log.entry.text }}</p>
-            <small v-if="log.repeatHint" class="world-log-repeat">{{ log.repeatHint }}</small>
-            <div class="world-log-context">
-              <span v-for="badge in log.badges" :key="`${badge.tone}-${badge.label}`" :class="`context-${badge.tone}`">
-                {{ badge.label }}
-              </span>
-            </div>
-            <small>{{ log.entry.timeLabel }}</small>
-          </div>
-        </div>
-      </GameSurface>
-    </div>
-
-    <GameSurface
-      v-if="areaAnomalies.length > 0"
-      tone="gold"
-      padding="md"
-      eyebrow="区域异动"
-      title="灾害与机缘"
-      subtitle="地图上的压力、遗迹与灵脉异动会持续反馈到世界循环。"
-    >
-      <div class="anomaly-strip">
-        <div v-for="anomaly in areaAnomalies" :key="anomaly.id" class="anomaly-item" :class="`severity-${anomaly.severity}`">
-          <div class="anomaly-head">
-            <strong>{{ getAnomalyIcon(anomaly.type) }} {{ anomaly.title }}</strong>
-            <span>{{ anomaly.timeLabel }}</span>
-          </div>
-          <p>{{ anomaly.text }}</p>
-          <small>{{ anomaly.riskHint }}</small>
-        </div>
+      </template>
+      <div v-else class="destination-empty">
+        <GameIcon icon="map" :size="18" />
+        <span>点选一个节点查看路径、宗门和当前异动。</span>
       </div>
-    </GameSurface>
+    </section>
 
-    <div class="section-header">
-      <div>
-        <span class="section-eyebrow">区域图册</span>
-        <h2>{{ mapStore.currentRealm }}地势</h2>
+    <section v-if="areaAnomalies.length || recentWorldLogs.length" class="map-brief-strip">
+      <div v-if="areaAnomalies[0]" class="map-brief-item warning">
+        <GameIcon :icon="getAnomalyIcon(areaAnomalies[0].type)" :size="17" />
+        <div><strong>{{ areaAnomalies[0].title }}</strong><span>{{ areaAnomalies[0].riskHint }}</span></div>
       </div>
-      <span class="section-note">{{ mapStore.currentRealmAreas.length }} 个区域</span>
-    </div>
-
-    <div class="areas-grid">
-      <GameSurface
-        v-for="area in mapStore.currentRealmAreas"
-        :key="area.id"
-        class="area-card"
-        :class="{
-          locked: !isAreaUnlocked(area),
-          conquered: mapStore.isAreaConquered(area.id)
-        }"
-        :tone="mapStore.isAreaConquered(area.id) ? 'realm' : 'jade'"
-        padding="lg"
-        clickable
-        compact
-        @click="handleAreaClick(area)"
-      >
-        <div class="area-header">
-          <div class="area-icon">{{ area.icon }}</div>
-          <div class="area-copy">
-            <strong>{{ area.name }}</strong>
-            <small>{{ area.requiredRealm }}{{ area.requiredRealmLevel }}层</small>
-          </div>
-        </div>
-
-        <div class="area-status-row">
-          <span v-if="mapStore.isAreaConquered(area.id)" class="status conquered">✓ 已征服</span>
-          <span v-else-if="isAreaUnlocked(area)" class="status available">可挑战</span>
-          <span v-else class="status locked"><Lock :size="14" /> 未解锁</span>
-
-          <span v-if="area.sects.length > 0" class="sect-count">宗门 {{ area.sects.length }}</span>
-        </div>
-
-        <div v-if="getAreaEncounter(area.id)" class="area-risk-panel">
-          <span
-            class="risk-badge"
-            :style="{ color: getAreaEncounter(area.id)?.riskColor, borderColor: `${getAreaEncounter(area.id)?.riskColor}55` }"
-          >
-            {{ getAreaEncounter(area.id)?.statusText }}
-          </span>
-          <p>{{ getAreaEncounter(area.id)?.encounterNote }}</p>
-          <small v-if="getAreaEncounter(area.id)?.anomalyRiskHint">
-            {{ getAreaEncounter(area.id)?.anomalyRiskHint }}
-          </small>
-        </div>
-
-        <div class="area-access-row" :class="`state-${getAreaAccess(area.id).entryState}`">
-          <span class="access-badge">{{ getAreaAccess(area.id).entryLabel }}</span>
-          <p>{{ getAreaAccess(area.id).entryReason }}</p>
-          <small v-if="getAreaAccess(area.id).warnings[0]">{{ getAreaAccess(area.id).warnings[0] }}</small>
-        </div>
-
-        <div class="area-access-meta">
-          <span class="access-pill">⚡ {{ getAreaAccess(area.id).staminaCost }}</span>
-          <span class="access-pill">{{ getAreaAccess(area.id).entryLabel }}</span>
-        </div>
-
-        <div class="resource-tags">
-          <span v-for="resource in area.resources.slice(0, 3)" :key="resource" class="resource-tag">{{ resource }}</span>
-        </div>
-      </GameSurface>
-    </div>
+      <div v-else-if="recentWorldLogs[0]" class="map-brief-item">
+        <GameIcon icon="scroll" :size="17" />
+        <div><strong>{{ recentWorldLogs[0].entry.title }}</strong><span>{{ recentWorldLogs[0].entry.timeLabel }}</span></div>
+      </div>
+      <button type="button" class="map-log-link" @click="openWorldHistory">
+        <span>查看世界记录</span>
+        <GameIcon icon="chevron-right" :size="15" />
+      </button>
+    </section>
 
     <GameDialog
       :visible="Boolean(selectedArea)"
@@ -165,7 +117,7 @@
     >
       <template v-if="selectedArea">
         <div class="detail-head">
-          <div class="detail-icon">{{ selectedArea.icon }}</div>
+          <GameIcon class="detail-icon" :icon="selectedArea.icon" :size="42" />
           <p class="detail-desc">{{ selectedArea.description }}</p>
         </div>
 
@@ -188,7 +140,7 @@
           <GameSurface tone="mist" padding="md" compact>
             <div class="detail-section">
               <span class="detail-label">行动消耗</span>
-              <strong>⚡ {{ getAreaAccess(selectedArea.id).staminaCost }}</strong>
+              <strong><GameIcon icon="thunder" :size="14" /> {{ getAreaAccess(selectedArea.id).staminaCost }}</strong>
               <small>{{ getAreaAccess(selectedArea.id).entryReason }}</small>
             </div>
           </GameSurface>
@@ -249,7 +201,7 @@
       <template #footer>
         <GameActionButton
           v-if="selectedArea && isAreaUnlocked(selectedArea) && !mapStore.isAreaConquered(selectedArea.id) && !getAreaAccess(selectedArea.id).challengeAllowed"
-          icon="⛔"
+          icon="close"
           tone="stone"
           disabled
         >
@@ -257,7 +209,7 @@
         </GameActionButton>
         <GameActionButton
           v-else-if="selectedArea && isAreaUnlocked(selectedArea) && !mapStore.isAreaConquered(selectedArea.id)"
-          icon="⚔️"
+          icon="sword"
           tone="jade"
           :disabled="playerStore.stamina < getAreaAccess(selectedArea.id).staminaCost"
           @click="handleChallenge(selectedArea)"
@@ -286,24 +238,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
-import GameStatChip from '@/components/game-ui/GameStatChip.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import MapAreaActionPanel from '@/components/map/MapAreaActionPanel.vue'
 import MapExplorationPanel from '@/components/map/MapExplorationPanel.vue'
-import WorldBriefingPanel from '@/components/world/WorldBriefingPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { useMapAreaAction } from '@/composables/useMapAreaAction'
 import { useMapExploration } from '@/composables/useMapExploration'
-import { useWorldBriefingActions } from '@/composables/useWorldBriefingActions'
-import { useWorldBriefings } from '@/composables/useWorldBriefings'
 import type { MapAreaActionKind } from '@/map/runtime/mapAreaActionResolver'
 import { resolveAreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveMapAreaAdventureAreaId, resolveMapAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
-import { isMapAreaUnlocked } from '@/map/runtime/mapAreaUnlockResolver'
+import { resolveMapAreaUnlock } from '@/map/runtime/mapAreaUnlockResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
@@ -312,6 +261,7 @@ import { getAreaById as getAdventureAreaById } from '@/types/adventure'
 import { WORLD_REALMS, WORLD_REALM_CONFIGS, type MapArea } from '@/types/map'
 import { getSectById } from '@/types/sect'
 import { getAnomalyIcon } from '@/components/world/worldUi'
+import { useStoryStore } from '@/story/storyStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -319,8 +269,8 @@ const mapStore = useMapStore()
 const playerStore = usePlayerStore()
 const sectStore = useSectStore()
 const worldStore = useWorldStore()
+const storyStore = useStoryStore()
 const { warning, success } = useToast()
-const { handleWorldBriefingAction } = useWorldBriefingActions()
 const {
   lastFeedback: lastAreaActionFeedback,
   getActionOptions: getAreaActionOptions,
@@ -333,48 +283,30 @@ const {
 } = useMapExploration()
 
 const selectedArea = ref<MapArea | null>(null)
+const focusedArea = ref<MapArea | null>(null)
+const terrainCanvas = ref<HTMLCanvasElement | null>(null)
+
+const AREA_POSITIONS: Record<string, { x: number; y: number }> = {
+  qingyun_mountain: { x: 18, y: 54 },
+  azure_valley: { x: 39, y: 68 },
+  cloud_peak: { x: 42, y: 24 },
+  flame_city: { x: 61, y: 72 },
+  thunder_plains: { x: 80, y: 51 },
+  sky_temple: { x: 76, y: 20 },
+  hundred_beast_forest: { x: 22, y: 52 },
+  fox_den: { x: 52, y: 28 },
+  dragon_pool: { x: 79, y: 45 },
+  phoenix_nest: { x: 66, y: 77 },
+  demon_city: { x: 38, y: 78 },
+  blood_marsh: { x: 83, y: 70 },
+  dark_forest: { x: 20, y: 26 },
+  demon_palace: { x: 61, y: 22 },
+  ghost_city: { x: 42, y: 56 },
+  abyss: { x: 76, y: 32 }
+}
 
 const recentWorldLogs = computed(() => worldStore.visibleLogViews.slice(0, 3))
 const areaAnomalies = computed(() => worldStore.activeAreaAnomalies.slice(0, 3))
-const areaRiskWeight = {
-  safe: 0,
-  watch: 1,
-  danger: 2,
-  chaos: 3
-}
-const hotspotAreaBriefing = computed(() => {
-  const area = mapStore.currentRealmAreas
-    .map(item => ({
-      area: item,
-      encounter: getAreaEncounter(item.id)
-    }))
-    .filter(item => item.encounter && item.encounter.riskLevel !== 'safe')
-    .sort((a, b) => {
-      const aScore = a.encounter ? areaRiskWeight[a.encounter.riskLevel] + (a.encounter.contested ? 0.5 : 0) : 0
-      const bScore = b.encounter ? areaRiskWeight[b.encounter.riskLevel] + (b.encounter.contested ? 0.5 : 0) : 0
-      return bScore - aScore
-    })[0]
-
-  if (!area?.encounter) return null
-  return {
-    name: area.area.name,
-    riskLevel: area.encounter.riskLevel,
-    contested: area.encounter.contested,
-    anomalyTitle: area.encounter.anomalyTitle
-  }
-})
-const latestMapLogBriefing = computed(() => recentWorldLogs.value[0]
-  ? {
-      title: recentWorldLogs.value[0].entry.title,
-      severity: recentWorldLogs.value[0].entry.severity,
-      timeLabel: recentWorldLogs.value[0].entry.timeLabel
-    }
-  : null
-)
-const { worldBriefings } = useWorldBriefings({
-  hotspotArea: hotspotAreaBriefing,
-  latestLog: latestMapLogBriefing
-})
 const worldSeason = computed(() => {
   const month = worldStore.clock.month
   if (month <= 3) return '春'
@@ -383,15 +315,6 @@ const worldSeason = computed(() => {
   return '冬'
 })
 const worldDateLabel = computed(() => `第${worldStore.clock.year}年 ${worldStore.clock.month}月${worldStore.clock.day}日 ${worldSeason.value}`)
-const seasonEffectLabel = computed(() => {
-  const labels: Record<string, string> = {
-    春: '万物复苏，修炼效率提升10%',
-    夏: '阳气旺盛，体力恢复提升15%',
-    秋: '天高气爽，修炼效率提升15%',
-    冬: '冬藏时节，宜静心修炼'
-  }
-  return labels[worldSeason.value] ?? '天机流转'
-})
 
 const areaEncounterLookup = computed(() => {
   const entries: Record<string, ReturnType<typeof resolveMapAreaEncounter>> = {}
@@ -445,20 +368,29 @@ function createFallbackAreaAccess() {
 
 function getSeasonIcon(season: string): string {
   const icons: Record<string, string> = {
-    春: 'Spring',
-    夏: '☀️',
-    秋: 'Autumn',
-    冬: '❄️'
+    春: 'herb',
+    夏: 'fire',
+    秋: 'spark',
+    冬: 'cloud'
   }
-  return icons[season] || 'Sunny'
+  return icons[season] || 'spark'
 }
 
 function isAreaUnlocked(area: MapArea): boolean {
-  return isMapAreaUnlocked({
+  return resolveMapAreaUnlock({
     area,
     playerRealm: playerStore.realm,
-    playerRealmLevel: playerStore.realmLevel
-  })
+    playerRealmLevel: playerStore.realmLevel,
+    conqueredAreaIds: mapStore.conqueredAreas,
+    knownAreaIds: mapStore.conqueredAreas,
+    eventIds: worldStore.logs.map(log => log.id),
+    worldFlags: worldStore.worldFlags,
+    completedStoryNodeIds: [...storyStore.completedNodes],
+    currentStoryNodeId: storyStore.currentNodeId,
+    storyClueIds: [...storyStore.unlockedClues],
+    unlockedSectIds: sectStore.unlockedSects,
+    joinedSectId: sectStore.joinedSectId
+  }).unlocked
 }
 
 function syncSelectedAreaFromRoute(areaId: unknown) {
@@ -469,6 +401,7 @@ function syncSelectedAreaFromRoute(areaId: unknown) {
   if (mapStore.currentRealm !== area.realm) {
     mapStore.switchRealm(area.realm)
   }
+  focusedArea.value = area
   selectedArea.value = area
 }
 
@@ -493,17 +426,169 @@ function getAreaAccess(areaId: string) {
   return areaAccessLookup.value[areaId] ?? createFallbackAreaAccess()
 }
 
+const currentAreaId = computed(() => {
+  const savedAreaId = worldStore.playerAreaId
+  if (savedAreaId && mapStore.currentRealmAreas.some(area => area.id === savedAreaId)) return savedAreaId
+  return mapStore.currentRealmAreas.find(area => isAreaUnlocked(area))?.id
+    ?? mapStore.currentRealmAreas[0]?.id
+    ?? null
+})
+
+const currentAreaName = computed(() => {
+  const area = currentAreaId.value ? mapStore.getAreaInfo(currentAreaId.value) : null
+  return area?.name ?? '尚未落脚'
+})
+
+const playerMarkerIcon = computed(() => {
+  if (mapStore.currentRealm === '妖界') return 'beast'
+  if (mapStore.currentRealm === '魔界') return 'void'
+  if (mapStore.currentRealm === '仙界') return 'cloud'
+  return 'cultivation'
+})
+
+const playerMarkerStyle = computed(() => {
+  const area = currentAreaId.value ? mapStore.getAreaInfo(currentAreaId.value) : null
+  const position = area ? resolveAreaPosition(area, 0) : { x: 50, y: 50 }
+  return {
+    left: `${position.x}%`,
+    top: `${position.y}%`
+  }
+})
+
+const canTravelToSelected = computed(() => {
+  const target = focusedArea.value
+  const fromId = currentAreaId.value
+  if (!target || !fromId || target.id === fromId) return false
+  if (!isAreaUnlocked(target) || playerStore.captivity.isCaptured) return false
+  return mapStore.getAreaInfo(fromId)?.adjacentAreas.includes(target.id) ?? false
+})
+
+const travelButtonLabel = computed(() => {
+  if (!focusedArea.value) return '选择节点'
+  if (focusedArea.value.id === currentAreaId.value) return '已在此处'
+  if (!isAreaUnlocked(focusedArea.value)) return '未解锁'
+  if (!canTravelToSelected.value) return '需先开路'
+  return '赶往此处'
+})
+
+function resolveAreaPosition(area: MapArea, index: number) {
+  return AREA_POSITIONS[area.id] ?? {
+    x: 16 + ((index * 29) % 68),
+    y: 22 + ((index * 37) % 54)
+  }
+}
+
+function nodeStyle(area: MapArea, index: number) {
+  const position = resolveAreaPosition(area, index)
+  return { left: `${position.x}%`, top: `${position.y}%` }
+}
+
+function getWeatherLabel(weather: string) {
+  const labels: Record<string, string> = {
+    rain: '灵雨落山', storm: '雷暴压境', flood: '水患漫路', fire: '火潮蔓延', mist: '雾锁山河'
+  }
+  return labels[weather] ?? '天象平稳'
+}
+
+function drawMapTerrain() {
+  const canvas = terrainCanvas.value
+  if (!canvas) return
+  const width = Math.max(1, canvas.clientWidth)
+  const height = Math.max(1, canvas.clientHeight)
+  const ratio = Math.min(window.devicePixelRatio || 1, 2)
+  canvas.width = Math.round(width * ratio)
+  canvas.height = Math.round(height * ratio)
+  const context = canvas.getContext('2d')
+  if (!context) return
+  context.setTransform(ratio, 0, 0, ratio, 0, 0)
+  context.clearRect(0, 0, width, height)
+
+  const terrain = context.createLinearGradient(0, 0, width, height)
+  terrain.addColorStop(0, '#d9eee0')
+  terrain.addColorStop(1, '#c4ded5')
+  context.fillStyle = terrain
+  context.fillRect(0, 0, width, height)
+
+  context.fillStyle = 'rgba(105, 170, 164, 0.16)'
+  context.beginPath()
+  context.moveTo(width * 0.04, height * 0.84)
+  context.bezierCurveTo(width * 0.2, height * 0.68, width * 0.26, height * 0.86, width * 0.42, height * 0.72)
+  context.bezierCurveTo(width * 0.58, height * 0.58, width * 0.72, height * 0.8, width * 1.02, height * 0.62)
+  context.lineTo(width * 1.02, height * 1.02)
+  context.lineTo(width * 0.04, height * 1.02)
+  context.closePath()
+  context.fill()
+
+  context.fillStyle = 'rgba(72, 119, 99, 0.17)'
+  for (const [x, y, size] of [[0.18, 0.2, 0.13], [0.58, 0.16, 0.11], [0.84, 0.36, 0.16], [0.5, 0.82, 0.12]]) {
+    context.beginPath()
+    context.moveTo(width * x, height * (y + size))
+    context.lineTo(width * (x + size * 0.38), height * y)
+    context.lineTo(width * (x + size), height * (y + size))
+    context.closePath()
+    context.fill()
+  }
+
+  const areas = mapStore.currentRealmAreas
+  const indexById = new Map(areas.map((area, index) => [area.id, index]))
+  context.lineWidth = 2
+  context.setLineDash([5, 6])
+  for (const area of areas) {
+    const from = resolveAreaPosition(area, indexById.get(area.id) ?? 0)
+    for (const adjacentId of area.adjacentAreas) {
+      const adjacent = areas.find(item => item.id === adjacentId)
+      if (!adjacent || (indexById.get(adjacentId) ?? 0) < (indexById.get(area.id) ?? 0)) continue
+      const to = resolveAreaPosition(adjacent, indexById.get(adjacent.id) ?? 0)
+      context.strokeStyle = 'rgba(74, 124, 108, 0.46)'
+      context.beginPath()
+      context.moveTo(width * from.x / 100, height * from.y / 100)
+      context.lineTo(width * to.x / 100, height * to.y / 100)
+      context.stroke()
+    }
+  }
+  context.setLineDash([])
+}
+
 function handleRealmSelect(realm: string) {
   if (mapStore.realmUnlockStatus[realm as keyof typeof mapStore.realmUnlockStatus]) {
+    focusedArea.value = null
+    selectedArea.value = null
     mapStore.switchRealm(realm as '人界' | '妖界' | '魔界' | '仙界')
   }
 }
 
 function handleAreaClick(area: MapArea) {
+  focusedArea.value = area
+}
+
+function openAreaDetails(area: MapArea) {
+  focusedArea.value = area
   selectedArea.value = area
 }
 
+function travelToSelected() {
+  const target = focusedArea.value
+  const fromId = currentAreaId.value
+  if (!target || !fromId || !canTravelToSelected.value) return
+  const result = worldStore.travelTo({ fromAreaId: fromId, toAreaId: target.id })
+  const travel = result.travel
+  if (!travel) return
+  if (travel.status === 'arrived') {
+    success(`已抵达${target.name}`)
+    return
+  }
+  warning(travel.message)
+}
+
+function openWorldHistory() {
+  window.dispatchEvent(new CustomEvent('open-world-drawer'))
+}
+
 function handleAreaAction(area: MapArea, kind: MapAreaActionKind) {
+  if (!isAreaUnlocked(area)) {
+    warning(`尚未找到前往${area.name}的有效路径`)
+    return
+  }
   const result = applyAreaAction(area, kind)
   if (!result.success) {
     warning(result.message)
@@ -519,6 +604,10 @@ function handleSelectedAreaAction(kind: MapAreaActionKind) {
 
 function handleSelectedAreaExplore(pointId: string) {
   if (!selectedArea.value) return
+  if (!isAreaUnlocked(selectedArea.value)) {
+    warning(`尚未找到前往${selectedArea.value.name}的有效路径`)
+    return
+  }
   const result = explorePoint(selectedArea.value, pointId)
   if (!result.success) {
     warning(result.reason)
@@ -550,6 +639,20 @@ function handleChallenge(area: MapArea) {
   })
   selectedArea.value = null
 }
+
+onMounted(() => {
+  drawMapTerrain()
+  window.addEventListener('resize', drawMapTerrain)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', drawMapTerrain)
+})
+
+watch(
+  () => mapStore.currentRealm,
+  () => requestAnimationFrame(drawMapTerrain)
+)
 </script>
 
 <style scoped>
@@ -798,6 +901,7 @@ function handleChallenge(area: MapArea) {
   display: flex;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .area-icon {
@@ -808,11 +912,14 @@ function handleChallenge(area: MapArea) {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
   font-size: 24px;
+  flex: 0 0 auto;
 }
 
 .area-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .area-copy strong {
@@ -1054,6 +1161,499 @@ function handleChallenge(area: MapArea) {
   .areas-grid,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@container game-stage (max-width: 920px) {
+  .realm-hero,
+  .top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .anomaly-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    justify-content: flex-start;
+  }
+
+  .areas-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container game-stage (max-width: 640px) {
+  .realm-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .areas-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The map is a single viewport object. Details and actions stay in the node dialog. */
+.map-view {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 0.52rem;
+  padding: 0.12rem 0 0.2rem;
+  overflow: hidden;
+}
+
+.map-hero-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.68rem 0.78rem;
+  border: 1px solid rgba(92, 145, 127, 0.18);
+  border-radius: 0.95rem;
+  background: rgba(248, 255, 249, 0.78);
+}
+
+.map-hero-title {
+  min-width: 0;
+}
+
+.map-hero-title h1 {
+  margin: 0.12rem 0 0.16rem;
+  color: #315d58;
+  font-size: clamp(1.15rem, 5vw, 1.45rem);
+  line-height: 1.1;
+}
+
+.map-hero-title p {
+  max-width: 18rem;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(67, 99, 94, 0.72);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-hero-stats {
+  display: grid;
+  justify-items: end;
+  gap: 0.32rem;
+  flex: 0 0 auto;
+  color: rgba(67, 99, 94, 0.7);
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.map-hero-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  white-space: nowrap;
+}
+
+.map-hero-stats strong {
+  color: #9b6e24;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.realm-switcher {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.32rem;
+}
+
+.realm-switcher button {
+  display: grid;
+  place-items: center;
+  gap: 0.18rem;
+  min-height: 2.65rem;
+  padding: 0.28rem 0.12rem;
+  border: 1px solid rgba(86, 139, 122, 0.16);
+  border-radius: 0.72rem;
+  background: rgba(250, 255, 249, 0.72);
+  color: #547e74;
+  font-family: var(--font-game);
+  font-size: 0.66rem;
+}
+
+.realm-switcher button.active {
+  border-color: rgba(155, 110, 36, 0.35);
+  background: rgba(255, 249, 231, 0.92);
+  color: #8b6326;
+}
+
+.realm-switcher button.locked {
+  opacity: 0.42;
+}
+
+.map-board-shell {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(74, 127, 110, 0.24);
+  border-radius: 1rem;
+  background: rgba(214, 236, 221, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.map-board {
+  position: relative;
+  min-height: 16rem;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.terrain-canvas,
+.map-route-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.terrain-canvas {
+  display: block;
+}
+
+.map-route-layer {
+  pointer-events: none;
+}
+
+.map-node {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 2.15rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.28rem;
+  width: 6.7rem;
+  min-height: 2.25rem;
+  padding: 0.22rem 0.3rem 0.22rem 0.22rem;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(66, 119, 104, 0.24);
+  border-radius: 0.78rem;
+  background: rgba(247, 255, 247, 0.9);
+  color: #3d6b61;
+  font-family: var(--font-game);
+  text-align: left;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 0.35rem 1rem rgba(58, 106, 86, 0.11);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.map-node:active {
+  transform: translate(-50%, -50%) scale(0.97);
+}
+
+.map-node:hover,
+.map-node.selected {
+  transform: translate(-50%, -50%) translateY(-0.1rem);
+  border-color: rgba(155, 110, 36, 0.52);
+  background: rgba(255, 249, 231, 0.97);
+}
+
+.map-node.destination {
+  border-color: rgba(66, 143, 111, 0.58);
+}
+
+.map-node.locked {
+  opacity: 0.48;
+  filter: saturate(0.55);
+}
+
+.map-node-orb {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(215, 240, 222, 0.96);
+  color: #528d7c;
+}
+
+.map-node.conquered .map-node-orb {
+  background: rgba(255, 239, 194, 0.96);
+  color: #a87824;
+}
+
+.map-node-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.map-node-copy b,
+.map-node-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-node-copy b {
+  color: #3e6b62;
+  font-size: 0.68rem;
+}
+
+.map-node-copy small {
+  color: rgba(67, 99, 94, 0.66);
+  font-size: 0.57rem;
+}
+
+.player-map-marker {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 0.08rem;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  transition: left 520ms cubic-bezier(0.2, 0.8, 0.2, 1), top 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.player-map-marker > span {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #fffaf0;
+  border-radius: 50%;
+  background: #4e9480;
+  color: #fffaf0;
+  box-shadow: 0 0 0 3px rgba(78, 148, 128, 0.2), 0 0.36rem 0.7rem rgba(47, 93, 76, 0.2);
+}
+
+.player-map-marker small {
+  padding: 0.08rem 0.25rem;
+  border-radius: 999px;
+  background: rgba(255, 252, 236, 0.9);
+  color: #876125;
+  font-size: 0.56rem;
+}
+
+.map-board-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 2.2rem;
+  padding: 0 0.7rem;
+  border-top: 1px solid rgba(74, 127, 110, 0.16);
+  background: rgba(248, 255, 248, 0.74);
+  color: rgba(67, 99, 94, 0.76);
+  font-size: 0.64rem;
+}
+
+.map-board-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.map-board-footer span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-destination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-height: 3.65rem;
+  padding: 0.48rem 0.58rem;
+  border: 1px solid rgba(155, 110, 36, 0.22);
+  border-radius: 0.88rem;
+  background: rgba(255, 251, 239, 0.88);
+}
+
+.map-destination.empty {
+  justify-content: flex-start;
+  border-color: rgba(83, 134, 119, 0.16);
+  background: rgba(248, 255, 249, 0.76);
+}
+
+.destination-copy {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.destination-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 0.72rem;
+  background: rgba(237, 248, 239, 0.95);
+  color: #528c79;
+}
+
+.destination-copy > div:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.destination-copy span,
+.destination-copy small {
+  color: rgba(73, 97, 95, 0.64);
+  font-size: 0.59rem;
+}
+
+.destination-copy strong {
+  overflow: hidden;
+  color: #3e6a61;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-copy small {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.destination-detail,
+.destination-travel,
+.map-log-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.24rem;
+  min-height: 2.25rem;
+  padding: 0 0.55rem;
+  border-radius: 0.62rem;
+  font-family: var(--font-game);
+  font-size: 0.64rem;
+  cursor: pointer;
+}
+
+.destination-detail {
+  border: 1px solid rgba(83, 134, 119, 0.18);
+  background: rgba(242, 251, 244, 0.9);
+  color: #4b7a70;
+}
+
+.destination-travel {
+  border: 1px solid rgba(155, 110, 36, 0.34);
+  background: rgba(255, 240, 193, 0.9);
+  color: #815c25;
+}
+
+.destination-travel:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+.destination-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: rgba(73, 97, 95, 0.7);
+  font-size: 0.7rem;
+}
+
+.map-brief-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.55rem;
+  padding: 0.34rem 0.55rem;
+  border: 1px solid rgba(83, 134, 119, 0.15);
+  border-radius: 0.78rem;
+  background: rgba(248, 255, 249, 0.74);
+}
+
+.map-brief-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.42rem;
+  color: #4d8677;
+}
+
+.map-brief-item.warning {
+  color: #a87329;
+}
+
+.map-brief-item > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.06rem;
+}
+
+.map-brief-item strong,
+.map-brief-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-brief-item strong {
+  color: #416f66;
+  font-size: 0.68rem;
+}
+
+.map-brief-item span {
+  max-width: 12rem;
+  color: rgba(73, 97, 95, 0.64);
+  font-size: 0.58rem;
+}
+
+.map-log-link {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  border: 1px solid rgba(155, 110, 36, 0.22);
+  background: rgba(255, 250, 232, 0.82);
+  color: #8a6328;
+}
+
+@media (max-width: 350px) {
+  .map-node {
+    width: 6rem;
+  }
+
+  .map-node-copy b {
+    font-size: 0.62rem;
+  }
+
+  .map-destination {
+    align-items: stretch;
+  }
+
+  .destination-copy small {
+    max-width: 8rem;
+  }
+
+  .destination-actions {
+    flex-direction: column;
   }
 }
 </style>

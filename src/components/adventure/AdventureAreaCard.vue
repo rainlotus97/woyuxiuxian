@@ -60,8 +60,8 @@
       </div>
 
       <div class="meta-chips">
-        <GameStatChip icon="⚡" label="体力" :value="access.staminaCost" tone="gold" />
-        <GameStatChip icon="🌊" label="波次" :value="`${difficultyWaves}波`" tone="jade" />
+        <GameStatChip icon="thunder" label="体力" :value="access.staminaCost" tone="gold" />
+        <GameStatChip icon="cloud" label="波次" :value="`${difficultyWaves}波`" tone="jade" />
       </div>
     </div>
 
@@ -73,7 +73,7 @@
       <div class="area-actions">
         <GameActionButton
           v-if="!unlocked"
-          icon="🔒"
+          icon="lock"
           tone="stone"
           block
           disabled
@@ -83,7 +83,7 @@
 
         <GameActionButton
           v-else-if="!access.challengeAllowed"
-          icon="⛔"
+          icon="close"
           tone="stone"
           block
           disabled
@@ -114,7 +114,7 @@
             挑战
           </GameActionButton>
           <GameActionButton
-            icon="🔄"
+            icon="progress"
             tone="gold"
             block
             :disabled="stamina < access.sweepCost || !access.sweepAllowed"
@@ -248,11 +248,13 @@ const fieldLine = computed(() => {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
   font-size: 20px;
+  flex: 0 0 auto;
 }
 
 .area-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .area-copy strong {

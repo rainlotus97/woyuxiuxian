@@ -56,7 +56,9 @@ const showPanelHead = computed(() => {
 <style scoped>
 .story-text-panel {
   position: relative;
-  min-height: 120px;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
   padding: 8px 12px 10px;
   border: 0;
   border-radius: 22px;
@@ -71,7 +73,7 @@ const showPanelHead = computed(() => {
 }
 
 .story-text-panel.short-text {
-  min-height: 72px;
+  min-height: 0;
 }
 
 .story-panel-head {
@@ -154,7 +156,7 @@ const showPanelHead = computed(() => {
 .story-main-text {
   position: relative;
   min-width: 0;
-  min-height: 5.8em;
+  min-height: 0;
   box-sizing: border-box;
   color: rgba(46, 71, 66, 0.92);
   color: var(--theme-story-text, rgba(46, 71, 66, 0.92));
@@ -168,7 +170,8 @@ const showPanelHead = computed(() => {
   text-wrap: wrap;
   padding: 2px 4px 0 10px;
   font-weight: 540;
-  overflow: hidden;
+  max-height: min(42vh, 360px);
+  overflow: auto;
   text-wrap: pretty;
 }
 
@@ -205,13 +208,13 @@ const showPanelHead = computed(() => {
 
 @media (max-width: 560px) {
   .story-text-panel {
-    min-height: 112px;
+    min-height: 0;
     padding: 7px 10px 9px;
     border-radius: 18px;
   }
 
   .story-text-panel.short-text {
-    min-height: 68px;
+    min-height: 0;
   }
 
   .moment-hint {
@@ -224,7 +227,7 @@ const showPanelHead = computed(() => {
   }
 
   .story-main-text {
-    min-height: 5.5em;
+    min-height: 0;
     font-size: 15px;
     line-height: 1.64;
     padding-left: 10px;

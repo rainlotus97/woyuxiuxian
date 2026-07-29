@@ -15,6 +15,7 @@ import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { rollReward, type AreaDefinition } from '@/types/adventure'
+import type { DropNamingKind } from '@/game/battle/config/dropNaming'
 
 export interface AdventureSweepFeedback {
   result: AdventureSweepResolution
@@ -51,9 +52,22 @@ export function useAdventureSweep() {
     playerStore.addGold(result.goldGain)
 
     const dropMessages: string[] = []
+    const namingKind: DropNamingKind = encounter?.anomaly
+      ? 'event'
+      : worldStore.weather !== 'clear'
+        ? 'weather'
+        : encounter
+          ? 'region'
+          : 'normal'
     const inventoryItems = createInventoryItemsFromDrops(result.drops, {
       idPrefix: `sweep_drop_${area.id}`,
-      serial: Date.now()
+      serial: Date.now(),
+      rewardContext: {
+        kind: namingKind,
+        weather: worldStore.weather,
+        regionName: area.name,
+        eventName: encounter?.anomalyTitle
+      }
     })
     for (const item of inventoryItems) {
       const added = playerStore.addToInventory(item)

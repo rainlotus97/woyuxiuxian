@@ -144,61 +144,12 @@ function resolveContentMark(emotion?: string) {
 }
 
 function formatReadableDialogText(text: string) {
-  const cleaned = text
+  return text
     .replace(/\r/g, '')
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
     .join('\n')
-
-  if (!cleaned || cleaned.includes('\n')) return cleaned
-
-  const maxCharsPerLine = 18
-  const protectedLeadPattern = /^(翌日|次日|当夜|当天夜里|第二天一早|第二天|第三天夜里|第三天|第七天入暮时|第七天|天亮时|黄昏压下来时|黄昏时|那天入暮时)[，。].+/u
-  if (protectedLeadPattern.test(cleaned) && cleaned.replace(/\s+/g, '').length <= maxCharsPerLine + 12) {
-    return cleaned
-  }
-
-  const clauses = cleaned
-    .split(/(?<=[，、；：。！？!?])/u)
-    .map(line => line.trim())
-    .filter(Boolean)
-
-  const lines: string[] = []
-  let current = ''
-
-  clauses.forEach(clause => {
-    const candidate = `${current}${clause}`.trim()
-    if (!current || candidate.replace(/\s+/g, '').length <= maxCharsPerLine) {
-      current = candidate
-      return
-    }
-
-    lines.push(current.trim())
-    current = clause
-  })
-
-  if (current.trim()) {
-    lines.push(current.trim())
-  }
-
-  const merged = lines.reduce<string[]>((result, line) => {
-    const previous = result[result.length - 1]
-    if (
-      previous
-      && previous.replace(/\s+/g, '').length <= 8
-      && (previous.replace(/\s+/g, '').length + line.replace(/\s+/g, '').length) <= maxCharsPerLine + 2
-      && !/[。！？!?]$/u.test(previous)
-    ) {
-      result[result.length - 1] = `${previous}${line}`
-      return result
-    }
-
-    result.push(line)
-    return result
-  }, [])
-
-  return merged.slice(0, 5).join('\n')
 }
 </script>
 
@@ -209,6 +160,7 @@ function formatReadableDialogText(text: string) {
   align-items: end;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
   min-height: clamp(198px, 28vh, 272px);
   padding: 0;
   border: 0;
@@ -481,7 +433,9 @@ function formatReadableDialogText(text: string) {
   overflow-wrap: break-word;
   word-break: normal;
   overflow-wrap: anywhere;
-  overflow: hidden;
+  max-height: min(28vh, 240px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog-content :deep(.text),

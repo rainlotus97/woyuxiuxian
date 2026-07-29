@@ -98,7 +98,7 @@
           :class="[`tone-${task.tone}`, `state-${task.readiness.state}`, { active: task.active }]"
           @click="$emit('task', task.id)"
         >
-          <span class="task-icon">{{ task.icon }}</span>
+          <GameIcon class="task-icon" :icon="task.icon" :size="20" />
           <span class="task-copy">
             <small>{{ task.label }}</small>
             <strong>{{ task.title }}</strong>
@@ -115,6 +115,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import type {
   MainLoopReadinessKey,
   MainLoopReadinessSummary

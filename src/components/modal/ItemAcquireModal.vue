@@ -8,7 +8,7 @@
       <!-- 物品图标区域 -->
       <div class="item-icon-wrapper" :class="`quality-${currentItem.quality || 'normal'}`">
         <div class="item-icon">
-          {{ currentItem.icon || '丹' }}
+          <GameIcon :icon="currentItem.icon || 'pill'" :size="30" />
         </div>
         <div v-if="currentItem.quantity > 1" class="item-quantity">
           x{{ currentItem.quantity }}
@@ -44,6 +44,7 @@ import { useModal } from '@/composables/useModal'
 import { sfxItem } from '@/composables/useAudio'
 import BaseModal from './BaseModal.vue'
 import GameButton from '@/components/common/GameButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 const { acquiredItems: items, currentItemIndex: currentIndex, currentItem, isLastItem, nextItem, closeItemAcquire } = useModal()
 

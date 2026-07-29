@@ -53,9 +53,10 @@ import {
   resolvePlayerCaptivityEscape,
   resolvePlayerCaptivityTick
 } from '@/world/runtime/playerCaptivityResolver'
-import { resolvePlayerJourney } from '@/world/runtime/playerJourneyResolver'
+import { resolvePlayerJourney, resolvePlayerTravel } from '@/world/runtime/playerJourneyResolver'
 import { toSkillProgressInput } from '@/character/runtime/characterSkillProgressResolver'
-import { getAreaById } from '@/types/map'
+import { ALL_AREAS, getAreaById } from '@/types/map'
+import { resolveMapAreaUnlock, type MapAreaUnlockResult } from '@/map/runtime/mapAreaUnlockResolver'
 import { getSectById } from '@/types/sect'
 import type {
   WorldRuntimeAftermathResult,
@@ -63,6 +64,16 @@ import type {
   WorldRuntimeNpcPatch,
   WorldRuntimeRelationshipDelta
 } from '@/world/runtime/worldRuntimeTypes'
+import type {
+  WorldEffect,
+  WorldEffectSource,
+  WorldEffectTransaction,
+  WorldJournalEntry,
+  WorldNotification,
+  WorldTickResult,
+  WorldUnlock
+} from '@/types/worldEvent'
+import { worldEventBus } from '@/world/runtime/worldEventBus'
 import { usePlayerStore } from './playerStore'
 import { usePetStore } from './petStore'
 import { useMapStore } from './mapStore'
@@ -101,6 +112,16 @@ interface WorldState {
   areaAnomalies: WorldAreaAnomaly[]
   unlockedNpcIds: string[]
   worldFlags: string[]
+  effectTransactions: WorldEffectTransaction[]
+  playerAreaId: string | null
+}
+
+interface WorldUnlockSnapshot {
+  realms: Set<string>
+  areas: Set<string>
+  playerAreas: Set<string>
+  sects: Set<string>
+  npcs: Set<string>
 }
 
 function normalizeLoadedPlayerJourneys(journeys: PlayerJourneyEntry[]) {
@@ -157,7 +178,9 @@ function getDefaultWorldState(): WorldState {
     npcStories: [],
     areaAnomalies: [],
     unlockedNpcIds: createDefaultUnlockedNpcIds(npcDefinitions),
-    worldFlags: []
+    worldFlags: [],
+    effectTransactions: [],
+    playerAreaId: null
   }
 }
 
@@ -200,7 +223,11 @@ export const useWorldStore = defineStore('world', () => {
         npcStories: parsed.npcStories ?? defaults.npcStories,
         areaAnomalies: parsed.areaAnomalies ?? defaults.areaAnomalies,
         unlockedNpcIds: parsed.unlockedNpcIds ?? defaults.unlockedNpcIds,
-        worldFlags: parsed.worldFlags ?? defaults.worldFlags
+        worldFlags: parsed.worldFlags ?? defaults.worldFlags,
+        effectTransactions: Array.isArray(parsed.effectTransactions)
+          ? parsed.effectTransactions
+          : defaults.effectTransactions,
+        playerAreaId: typeof parsed.playerAreaId === 'string' ? parsed.playerAreaId : defaults.playerAreaId
       }
     } else {
       initialData = getDefaultWorldState()
@@ -221,10 +248,16 @@ export const useWorldStore = defineStore('world', () => {
   const areaAnomalies = ref<WorldAreaAnomaly[]>([...initialData.areaAnomalies])
   const unlockedNpcIds = ref<string[]>([...initialData.unlockedNpcIds])
   const worldFlags = ref<string[]>([...initialData.worldFlags])
+  const effectTransactions = ref<WorldEffectTransaction[]>([...initialData.effectTransactions])
+  const playerAreaId = ref<string | null>(initialData.playerAreaId)
+  const worldNotifications = ref<WorldNotification[]>([])
+  const lastWorldTickResult = ref<WorldTickResult | null>(null)
+  let observedUnlockState: WorldUnlockSnapshot | null = null
 
   const currentTimeLabel = computed(() => formatWorldTime(clock.value))
   const visibleLogs = computed(() => getVisibleWorldLogs(logs.value, 12))
   const recentPlayerJourneys = computed(() => playerJourneys.value.slice(0, 6))
+  const recentEffectTransactions = computed(() => effectTransactions.value.slice(0, 12))
   const importantNpcStories = computed(() => npcStories.value.slice(0, 6))
   const visibleLogViews = computed(() => visibleLogs.value.map(log => resolveWorldLogContextView(log, {
     npcDefinitions: npcDefinitions.value,
@@ -274,7 +307,9 @@ export const useWorldStore = defineStore('world', () => {
       npcStories: toRaw(npcStories.value),
       areaAnomalies: toRaw(areaAnomalies.value),
       unlockedNpcIds: toRaw(unlockedNpcIds.value),
-      worldFlags: toRaw(worldFlags.value)
+      worldFlags: toRaw(worldFlags.value),
+      effectTransactions: toRaw(effectTransactions.value),
+      playerAreaId: playerAreaId.value
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
@@ -289,7 +324,7 @@ export const useWorldStore = defineStore('world', () => {
     const ticks = Math.min(MAX_OFFLINE_TICKS, Math.floor(elapsed / TICK_MS))
     if (ticks <= 0) return 0
     for (let i = 0; i < ticks; i++) {
-      advanceTick(false)
+      advanceTick(false, false)
     }
     clock.value.lastSimulatedAt = Date.now()
     if (ticks >= 3) {
@@ -298,13 +333,464 @@ export const useWorldStore = defineStore('world', () => {
     return ticks
   }
 
-  function advanceTick(updateTimestamp = true) {
+  function advanceTick(updateTimestamp = true, publishResult = true): WorldTickResult {
+    const mapStore = useMapStore()
+    const sectStore = useSectStore()
+    const playerStore = usePlayerStore()
+    const previousWeather = weather.value
+    const previousLogIds = new Set(logs.value.map(log => log.id))
+    const previousUnlockState = observedUnlockState ?? readWorldUnlockSnapshot(mapStore, sectStore, playerStore)
     advanceClock(updateTimestamp)
-    resolveWeather()
+    const weatherChange = resolveWeather()
     resolveWorldSystems()
     resolvePlayerAction()
     resolveNpcActions()
     resolveNarrativeWorldPulse()
+
+    const unlocks = resolveNewWorldUnlocks(previousUnlockState)
+    for (const unlock of unlocks) {
+      addLog(
+        'world',
+        'major',
+        unlock.title,
+        unlock.reason,
+        unlock.kind === 'npc' ? [unlock.targetId] : [],
+        ['unlock', `unlock-${unlock.kind}`],
+        unlock.kind === 'area' ? unlock.targetId : undefined
+      )
+    }
+
+    const newLogs = logs.value.filter(log => !previousLogIds.has(log.id))
+    const journals: WorldJournalEntry[] = newLogs.map(log => createWorldJournalEntry(log, weatherChange.effects))
+    const transactions = journals
+      .filter(journal => journal.effects.length > 0)
+      .map(journal => persistEffectTransaction(createTransactionFromJournal(journal)))
+    const unlockNotifications: WorldNotification[] = unlocks.map(unlock => ({
+      id: `notice-${unlock.id}`,
+      kind: 'unlock',
+      title: unlock.title,
+      message: `${unlock.reason} 来源：${unlock.source.label}「${unlock.source.id}」。`,
+      severity: 'major',
+      sourceEventId: unlock.sourceEventId,
+      source: unlock.source,
+      createdAtTick: clock.value.totalTicks,
+      read: false,
+      route: unlock.route
+    }))
+    const logNotifications = newLogs
+      .filter(log => log.severity !== 'minor' || log.tags.some(tag => ['weather', 'unlock', 'story', 'anomaly'].includes(tag)))
+      .filter(log => !log.tags.includes('unlock'))
+      .slice(0, 8)
+      .map(log => ({
+        id: `notice-${log.id}`,
+        kind: log.scope === 'weather'
+          ? 'weather' as const
+          : log.tags.includes('unlock') || log.tags.includes('unlock-npc')
+            ? 'unlock' as const
+            : log.scope === 'npc'
+              ? 'story' as const
+              : 'encounter' as const,
+        title: log.title,
+        message: log.text,
+        severity: log.severity,
+        sourceEventId: log.id,
+        createdAtTick: log.tick,
+        read: false
+      }))
+    const notifications = [...unlockNotifications, ...logNotifications].slice(0, 8)
+    const result: WorldTickResult = {
+      tickId: `world-tick-${clock.value.totalTicks}-${Date.now()}`,
+      tick: clock.value.totalTicks,
+      mode: idleMode.value,
+      weatherChange: previousWeather !== weather.value
+        ? { ...weatherChange, effects: weatherChange.effects }
+        : undefined,
+      effects: weatherChange.effects,
+      transactions,
+      journals,
+      unlocks,
+      notifications
+    }
+    if (notifications.length) {
+      worldNotifications.value = [...notifications, ...worldNotifications.value].slice(0, 24)
+    }
+    lastWorldTickResult.value = result
+    observedUnlockState = readWorldUnlockSnapshot(mapStore, sectStore, playerStore)
+    if (publishResult) worldEventBus.publish(result)
+    return result
+  }
+
+  function travelTo(input: { fromAreaId: string; toAreaId: string }): WorldTickResult {
+    const mapStore = useMapStore()
+    const playerStore = usePlayerStore()
+    const fromArea = getAreaById(input.fromAreaId)
+    const toArea = getAreaById(input.toAreaId)
+    const fromState = mapStore.getAreaState(input.fromAreaId)
+    const toState = mapStore.getAreaState(input.toAreaId)
+
+    playerStore.recoverStamina()
+    const resolution = resolvePlayerTravel({
+      clock: clock.value,
+      weather: weather.value,
+      fromAreaId: input.fromAreaId,
+      toAreaId: input.toAreaId,
+      fromAreaName: fromArea?.name ?? null,
+      toAreaName: toArea?.name ?? null,
+      routeRisk: fromState?.riskLevel ?? toState?.riskLevel ?? toArea?.defaultRiskLevel ?? fromArea?.defaultRiskLevel,
+      hasAnomaly: areaAnomalies.value.some(anomaly => anomaly.areaId === input.fromAreaId || anomaly.areaId === input.toAreaId),
+      stamina: playerStore.stamina
+    })
+
+    if (resolution.travel.status !== 'blocked' && resolution.travel.staminaSpent > 0) {
+      playerStore.consumeStamina(resolution.travel.staminaSpent)
+    }
+
+    if (resolution.travel.status !== 'blocked' && resolution.travel.ticksSpent > 0) {
+      for (let index = 0; index < resolution.travel.ticksSpent; index++) {
+        advanceClock(index === resolution.travel.ticksSpent - 1)
+      }
+    }
+
+    if (resolution.travel.status === 'arrived') {
+      playerAreaId.value = resolution.travel.destinationId
+    }
+
+    recordPlayerJourney(
+      resolution.journey.severity,
+      resolution.journey.title,
+      resolution.journey.text,
+      resolution.journey.rewards,
+      resolution.journey.areaId,
+      resolution.journey.tags
+    )
+
+    const log = logs.value.find(entry => (
+      entry.tick === clock.value.totalTicks
+      && entry.title === resolution.journey.title
+      && entry.text === resolution.journey.text
+    ))
+    const journal = log
+      ? {
+          ...createWorldJournalEntry(log, []),
+          effects: [...resolution.travel.effects],
+          tags: [...new Set([...log.tags, 'travel'])]
+        }
+      : null
+    const transaction = journal
+      ? persistEffectTransaction({
+          ...createTransactionFromJournal(journal),
+          source: 'travel',
+          sourceId: `travel:${input.fromAreaId}:${input.toAreaId}:${clock.value.totalTicks}`,
+          effects: journal.effects
+        })
+      : null
+    const notifications: WorldNotification[] = resolution.travel.interruption
+      ? [{
+          id: `notice-${resolution.travel.interruption.id}`,
+          kind: 'encounter',
+          title: resolution.travel.interruption.title,
+          message: resolution.travel.interruption.text,
+          severity: resolution.travel.interruption.severity,
+          sourceEventId: resolution.travel.interruption.id,
+          createdAtTick: clock.value.totalTicks,
+          read: false
+        }]
+      : []
+    const result: WorldTickResult = {
+      tickId: `travel-${clock.value.totalTicks}-${Date.now()}`,
+      tick: clock.value.totalTicks,
+      mode: idleMode.value,
+      travel: resolution.travel,
+      effects: [...resolution.travel.effects],
+      transactions: transaction ? [transaction] : [],
+      journals: journal ? [journal] : [],
+      unlocks: [],
+      notifications
+    }
+    if (notifications.length) {
+      worldNotifications.value = [...notifications, ...worldNotifications.value].slice(0, 24)
+    }
+    lastWorldTickResult.value = result
+    worldEventBus.publish(result)
+    saveToStorage()
+    return result
+  }
+
+  function readWorldUnlockSnapshot(
+    mapStore = useMapStore(),
+    sectStore = useSectStore(),
+    playerStore = usePlayerStore()
+  ): WorldUnlockSnapshot {
+    const areaUnlocks = resolveWorldAreaUnlocks(mapStore, sectStore, playerStore)
+    return {
+      realms: new Set<string>(mapStore.unlockedRealms),
+      areas: new Set<string>([
+        ...mapStore.conqueredAreas,
+        ...[...areaUnlocks.entries()].filter(([, result]) => result.unlocked).map(([areaId]) => areaId)
+      ]),
+      playerAreas: new Set<string>(playerStore.areaProgress.filter(progress => progress.unlocked).map(progress => progress.areaId)),
+      sects: new Set<string>(sectStore.unlockedSects),
+      npcs: new Set<string>(unlockedNpcIds.value)
+    }
+  }
+
+  function resolveWorldAreaUnlocks(
+    mapStore = useMapStore(),
+    sectStore = useSectStore(),
+    playerStore = usePlayerStore()
+  ): Map<string, MapAreaUnlockResult> {
+    const knownAreaIds = new Set<string>(mapStore.conqueredAreas)
+    playerStore.areaProgress
+      .filter(progress => progress.unlocked && ALL_AREAS.some(area => area.id === progress.areaId))
+      .forEach(progress => knownAreaIds.add(progress.areaId))
+
+    const eventIds = logs.value
+      .filter(log => log.mapId && (log.tags.includes('unlock') || log.tags.includes('area-unlock') || log.tags.includes('event')))
+      .map(log => log.id)
+    const storyNodeIds = worldFlags.value
+      .filter(flag => flag.startsWith('story_node:'))
+      .map(flag => flag.slice('story_node:'.length))
+    const storyClueIds = worldFlags.value
+      .filter(flag => flag.startsWith('story_map_unlock:'))
+      .map(flag => flag.slice('story_map_unlock:'.length))
+    const results = new Map<string, MapAreaUnlockResult>()
+
+    for (const area of ALL_AREAS) {
+      results.set(area.id, resolveMapAreaUnlock({
+        area,
+        playerRealm: playerStore.realm,
+        playerRealmLevel: playerStore.realmLevel,
+        conqueredAreaIds: mapStore.conqueredAreas,
+        knownAreaIds: [...knownAreaIds],
+        eventIds,
+        worldFlags: worldFlags.value,
+        completedStoryNodeIds: storyNodeIds,
+        storyClueIds,
+        unlockedSectIds: sectStore.unlockedSects,
+        joinedSectId: sectStore.joinedSectId
+      }))
+    }
+
+    return results
+  }
+
+  function createWorldJournalEntry(log: WorldLogEntry, weatherEffects: WorldEffect[]): WorldJournalEntry {
+    return {
+      id: log.id,
+      tick: log.tick,
+      actorIds: log.actorIds,
+      locationId: log.mapId,
+      type: resolveJournalType(log),
+      severity: log.severity,
+      title: log.title,
+      summary: log.text,
+      effects: resolveJournalEffects(log, weatherEffects),
+      tags: log.tags
+    }
+  }
+
+  function resolveJournalType(log: WorldLogEntry): WorldJournalEntry['type'] {
+    if (log.scope === 'weather') return 'weather'
+    if (log.scope === 'npc') return 'story'
+    if (log.scope === 'sect') return 'sect'
+    if (log.tags.includes('battle')) return 'battle'
+    if (log.tags.includes('travel')) return 'travel'
+    if (log.tags.includes('unlock')) return 'unlock'
+    return 'cultivation'
+  }
+
+  function resolveNewWorldUnlocks(previous: WorldUnlockSnapshot): WorldUnlock[] {
+    const mapStore = useMapStore()
+    const sectStore = useSectStore()
+    const playerStore = usePlayerStore()
+    const areaUnlocks = resolveWorldAreaUnlocks(mapStore, sectStore, playerStore)
+    const sourcePrefix = `world-tick-${clock.value.totalTicks}`
+    const unlocks: WorldUnlock[] = []
+    const seen = new Set<string>()
+
+    const pushUnlock = (unlock: Omit<WorldUnlock, 'id' | 'sourceEventId' | 'source'> & { source?: WorldUnlock['source'] }) => {
+      if (seen.has(`${unlock.kind}:${unlock.targetId}`)) return
+      seen.add(`${unlock.kind}:${unlock.targetId}`)
+      const source = unlock.source ?? {
+        kind: unlock.kind === 'sect' ? 'sect' as const : 'event' as const,
+        id: unlock.targetId,
+        label: unlock.kind === 'sect' ? '宗门势力' : '世界事件',
+        reason: unlock.reason
+      }
+      unlocks.push({
+        ...unlock,
+        source,
+        id: `${sourcePrefix}-${unlock.kind}-${unlock.targetId}`,
+        sourceEventId: `${sourcePrefix}-${unlock.kind}-${unlock.targetId}`
+      })
+    }
+
+    for (const realm of mapStore.unlockedRealms) {
+      if (previous.realms.has(realm)) continue
+      pushUnlock({
+        kind: 'area',
+        targetId: realm,
+        title: `解锁${realm}界域`,
+        reason: `你的境界与经历已经达到条件，${realm}的区域与宗门开始对你开放。`,
+        source: {
+          kind: 'realm',
+          id: realm,
+          label: '境界门槛',
+          reason: `${realm}界域的境界门槛已满足。`
+        },
+        route: '/game/map'
+      })
+    }
+
+    for (const [areaId, unlockResult] of areaUnlocks) {
+      if (!unlockResult.unlocked || previous.areas.has(areaId) || previous.playerAreas.has(areaId)) continue
+      const area = getAreaById(areaId)
+      const source = unlockResult.primarySource
+      if (!area || !source) continue
+      pushUnlock({
+        kind: 'area',
+        targetId: area.id,
+        title: `开放${area.name}`,
+        reason: `${area.name}已纳入你的行程。${source.reason}`,
+        source,
+        route: '/game/map'
+      })
+    }
+
+    for (const sectId of sectStore.unlockedSects) {
+      if (previous.sects.has(sectId)) continue
+      const sect = getSectById(sectId)
+      if (!sect) continue
+      pushUnlock({
+        kind: 'sect',
+        targetId: sect.id,
+        title: `发现宗门：${sect.name}`,
+        reason: `${sect.name}的山门与修行体系已进入你的世界记录，之后可以前往查看入门条件。`,
+        source: {
+          kind: 'conquest',
+          id: sect.areaId,
+          label: '征服记录',
+          reason: `宗门所在区域${sect.areaId}已进入你的征服记录。`
+        },
+        route: '/game/sect'
+      })
+    }
+
+    for (const npcId of unlockedNpcIds.value) {
+      if (previous.npcs.has(npcId)) continue
+      const definition = npcDefinitions.value.find(item => item.id === npcId)
+      if (!definition) continue
+      pushUnlock({
+        kind: 'npc',
+        targetId: npcId,
+        title: `人物入命：${definition.name}`,
+        reason: `${definition.name}正式进入你的命运轨迹，后续行动会留下可回看的经历。`,
+        source: {
+          kind: 'story',
+          id: npcId,
+          label: '主线节点',
+          reason: `${definition.name}已经被故事与世界事件带入你的命运轨迹。`
+        },
+        route: '/game/companion'
+      })
+    }
+
+    return unlocks
+  }
+
+  function resolveJournalEffects(log: WorldLogEntry, weatherEffects: WorldEffect[]): WorldEffect[] {
+    if (log.scope === 'weather') return weatherEffects
+    const journey = playerJourneys.value.find(entry => (
+      entry.tick === log.tick && entry.title === log.title && entry.text === log.text
+    ))
+    if (!journey) return []
+    return journey.rewards.map(reward => {
+      if (reward.type === 'cultivation') return { type: 'cultivation' as const, value: reward.value, label: reward.label, reason: log.title }
+      if (reward.type === 'gold') return { type: 'gold' as const, value: reward.value, label: reward.label, reason: log.title }
+      if (reward.type === 'item') return { type: 'item' as const, value: reward.value, label: reward.label, reason: log.title }
+      if (reward.type === 'skill_exp') return { type: 'skill' as const, value: reward.value, label: reward.label, reason: log.title }
+      if (reward.type === 'contribution' || reward.type === 'reputation') return { type: 'sect' as const, value: reward.value, label: reward.label, reason: log.title }
+      if (reward.type === 'flag') return { type: 'flag' as const, value: reward.value, label: reward.label, reason: log.title }
+      return { type: 'relationship' as const, value: reward.value, label: reward.label, reason: log.title }
+    })
+  }
+
+  function resolveEffectSource(tags: string[]): WorldEffectSource {
+    if (tags.includes('battle')) return 'battle'
+    if (tags.includes('story-choice') || tags.includes('story')) return 'story_choice'
+    if (tags.includes('encounter') || tags.includes('story-encounter')) return 'random_event'
+    if (tags.includes('travel')) return 'travel'
+    if (tags.includes('sect')) return 'sect'
+    if (tags.includes('map') || tags.includes('explore')) return 'map'
+    if (tags.includes('npc') || tags.includes('relationship')) return 'npc'
+    if (tags.includes('weather')) return 'weather'
+    if (tags.includes('idle') || tags.includes('cultivation')) return 'idle'
+    return 'manual'
+  }
+
+  function createTransactionFromJournal(journal: WorldJournalEntry): Omit<WorldEffectTransaction, 'id'> {
+    const effects = journal.effects.length > 0
+      ? journal.effects
+      : [{
+          type: 'outcome' as const,
+          targetId: journal.id,
+          value: journal.title,
+          label: '结果',
+          reason: journal.summary
+        }]
+    return {
+      tick: journal.tick,
+      timeLabel: currentTimeLabel.value,
+      source: resolveEffectSource(journal.tags),
+      sourceId: journal.id,
+      title: journal.title,
+      summary: journal.summary,
+      actorIds: [...journal.actorIds],
+      locationId: journal.locationId,
+      effects,
+      tags: [...journal.tags, 'effect-transaction']
+    }
+  }
+
+  function persistEffectTransaction(input: Omit<WorldEffectTransaction, 'id'>): WorldEffectTransaction {
+    const transaction: WorldEffectTransaction = {
+      ...input,
+      id: `effect-${input.tick}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }
+    effectTransactions.value.unshift(transaction)
+    if (effectTransactions.value.length > 120) {
+      effectTransactions.value = effectTransactions.value.slice(0, 120)
+    }
+    return transaction
+  }
+
+  function recordWorldEffectTransaction(input: {
+    source: WorldEffectSource
+    sourceId?: string
+    title: string
+    summary: string
+    effects: WorldEffect[]
+    actorIds?: string[]
+    locationId?: string
+    tags?: string[]
+  }) {
+    const transaction = persistEffectTransaction({
+      tick: clock.value.totalTicks,
+      timeLabel: currentTimeLabel.value,
+      source: input.source,
+      sourceId: input.sourceId ?? `tick-${clock.value.totalTicks}`,
+      title: input.title,
+      summary: input.summary,
+      actorIds: input.actorIds ?? ['player'],
+      locationId: input.locationId,
+      effects: input.effects.length > 0
+        ? input.effects
+        : [{ type: 'outcome', value: input.title, label: '结果', reason: input.summary }],
+      tags: [...new Set([...(input.tags ?? []), 'effect-transaction'])]
+    })
+    saveToStorage()
+    worldEventBus.emit('world:effect-transaction', transaction)
+    return transaction
   }
 
   function resolveWorldSystems() {
@@ -395,7 +881,7 @@ export const useWorldStore = defineStore('world', () => {
     }
   }
 
-  function resolveWeather() {
+  function resolveWeather(): { previous: WorldWeather; current: WorldWeather; effects: WorldEffect[] } {
     const roll = seededWorldRoll(clock.value.totalTicks, clock.value.day, 'weather')
     const previous = weather.value
     if (roll > 0.985) weather.value = 'fire'
@@ -404,6 +890,18 @@ export const useWorldStore = defineStore('world', () => {
     else if (roll > 0.75) weather.value = 'rain'
     else if (roll < 0.08) weather.value = 'mist'
     else weather.value = 'clear'
+
+    const effects: WorldEffect[] = weather.value === 'rain'
+      ? [{ type: 'weather', value: 'rain', label: '灵雨：修炼与药园收益提高' }]
+      : weather.value === 'storm'
+        ? [{ type: 'weather', value: 'storm', label: '雷暴：雷系技能与雷属性事件增强' }]
+        : weather.value === 'flood'
+          ? [{ type: 'weather', value: 'flood', label: '洪水：部分路线受阻，水域事件增加' }]
+          : weather.value === 'fire'
+            ? [{ type: 'weather', value: 'fire', label: '火潮：火系技能与火属性掉落增强' }]
+            : weather.value === 'mist'
+              ? [{ type: 'weather', value: 'mist', label: '浓雾：赶路更慢，但隐藏奇遇更容易出现' }]
+              : []
 
     if (weather.value !== previous && weather.value !== 'clear') {
       const weatherText: Record<WorldWeather, string> = {
@@ -416,6 +914,13 @@ export const useWorldStore = defineStore('world', () => {
       }
       addLog('weather', weather.value === 'fire' || weather.value === 'flood' ? 'major' : 'normal', '天象变化', weatherText[weather.value], [], ['weather'])
     }
+    return { previous, current: weather.value, effects }
+  }
+
+  function consumeWorldNotifications() {
+    const pending = worldNotifications.value.filter(notification => !notification.read)
+    worldNotifications.value = worldNotifications.value.map(notification => ({ ...notification, read: true }))
+    return pending
   }
 
   function resolvePlayerAction() {
@@ -741,6 +1246,10 @@ export const useWorldStore = defineStore('world', () => {
     rewards: PlayerJourneyEntry['rewards']
     areaId?: string
     tags?: string[]
+    effects?: WorldEffect[]
+    source?: WorldEffectSource
+    sourceId?: string
+    relatedNpcIds?: string[]
   }) {
     recordPlayerJourney(
       input.severity,
@@ -750,6 +1259,47 @@ export const useWorldStore = defineStore('world', () => {
       input.areaId,
       input.tags ?? []
     )
+
+    const journey = playerJourneys.value[0]
+    const log = journey
+      ? logs.value.find(entry => entry.tick === journey.tick && entry.title === journey.title && entry.text === journey.text)
+      : null
+    if (!journey || !log) return
+
+    const journal = createWorldJournalEntry(log, [])
+    if (input.effects?.length) journal.effects = [...input.effects]
+    const transactionBase = createTransactionFromJournal(journal)
+    const transaction = persistEffectTransaction({
+      ...transactionBase,
+      source: input.source ?? transactionBase.source,
+      sourceId: input.sourceId ?? transactionBase.sourceId,
+      effects: journal.effects
+    })
+    for (const npcId of input.relatedNpcIds ?? []) {
+      const definition = npcDefinitions.value.find(item => item.id === npcId)
+      if (!definition) continue
+      appendNpcStory(
+        npcId,
+        input.title,
+        input.text,
+        input.severity,
+        input.areaId,
+        [...new Set([...(input.tags ?? []), 'player-choice', 'npc-echo'])]
+      )
+    }
+    const result: WorldTickResult = {
+      tickId: `journal-${log.id}`,
+      tick: log.tick,
+      mode: journey.mode,
+      effects: journal.effects,
+      transactions: [transaction],
+      journals: [journal],
+      unlocks: [],
+      notifications: []
+    }
+    lastWorldTickResult.value = result
+    worldEventBus.publish(result)
+    saveToStorage()
   }
 
   function appendNpcStory(
@@ -781,6 +1331,7 @@ export const useWorldStore = defineStore('world', () => {
   function getPlayerFocusMapId() {
     const mapStore = useMapStore()
     const sectStore = useSectStore()
+    if (playerAreaId.value && getAreaById(playerAreaId.value)) return playerAreaId.value
     if (idleMode.value === 'sectDuty') {
       return sectStore.currentSect?.areaId ?? activeAreaAnomalies.value[0]?.areaId ?? mapStore.currentRealmAreas[0]?.id ?? null
     }
@@ -1120,6 +1671,7 @@ export const useWorldStore = defineStore('world', () => {
     clock,
     idleMode,
     weather,
+    playerAreaId,
     npcDefinitions,
     npcStates,
     logs,
@@ -1128,11 +1680,15 @@ export const useWorldStore = defineStore('world', () => {
     areaAnomalies,
     unlockedNpcIds,
     worldFlags,
+    worldNotifications,
+    lastWorldTickResult,
+    effectTransactions,
     lastCaptivityEscapeTick,
     currentTimeLabel,
     visibleLogs,
     visibleLogViews,
     recentPlayerJourneys,
+    recentEffectTransactions,
     importantNpcStories,
     importantNpcStoryViews,
     activeAreaAnomalies,
@@ -1142,6 +1698,8 @@ export const useWorldStore = defineStore('world', () => {
     setIdleMode,
     simulateOffline,
     advanceTick,
+    travelTo,
+    consumeWorldNotifications,
     getIdleModeLabel,
     unlockNpc,
     isNpcUnlocked,
@@ -1156,6 +1714,7 @@ export const useWorldStore = defineStore('world', () => {
     interactWithNpc,
     recordMerchantTradeEvent,
     recordManualPlayerJourney,
+    recordWorldEffectTransaction,
     addWorldFlag,
     hasWorldFlag
   }

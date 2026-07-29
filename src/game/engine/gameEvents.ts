@@ -6,14 +6,14 @@ interface ScopedBattleEvent {
   battleInstanceId: string
 }
 
-export interface BattleSceneCommand {
+export interface BattleRenderCommand {
   type: 'attack' | 'skill'
   actorId: string
   targetIds: string[]
   skillId?: string
 }
 
-export interface BattleSceneHit {
+export interface BattleRenderHit {
   actorId: string
   targetId: string
   amount: number
@@ -21,12 +21,12 @@ export interface BattleSceneHit {
   isHeal?: boolean
 }
 
-export interface BattleSceneEnded {
+export interface BattleRenderEnded {
   battleInstanceId: string
   result: 'victory' | 'defeat' | 'fled'
 }
 
-export interface BattleSceneReady extends ScopedBattleEvent {
+export interface BattleRenderReady extends ScopedBattleEvent {
   sceneKey: string
 }
 
@@ -34,30 +34,30 @@ export interface BattleArenaThemeChanged extends ScopedBattleEvent {
   arenaId: string
 }
 
-export interface BattleSceneSnapshotChanged extends ScopedBattleEvent {
+export interface BattleRenderSnapshotChanged extends ScopedBattleEvent {
   snapshot: BattleRuntimeSnapshot
 }
 
-export interface BattleSceneCommandRequested extends ScopedBattleEvent {
-  command: BattleSceneCommand
+export interface BattleRenderCommandRequested extends ScopedBattleEvent {
+  command: BattleRenderCommand
 }
 
-export interface BattleSceneDamageNumberRequested extends ScopedBattleEvent {
-  hit: BattleSceneHit
+export interface BattleRenderDamageNumberRequested extends ScopedBattleEvent {
+  hit: BattleRenderHit
 }
 
-export interface BattleSceneHitResolved extends ScopedBattleEvent {
-  hit: BattleSceneHit
+export interface BattleRenderHitResolved extends ScopedBattleEvent {
+  hit: BattleRenderHit
 }
 
 export interface GameEvents {
-  'battle:scene-ready': BattleSceneReady
+  'battle:scene-ready': BattleRenderReady
   'battle:arena-theme': BattleArenaThemeChanged
-  'battle:snapshot': BattleSceneSnapshotChanged
-  'battle:play-command': BattleSceneCommandRequested
-  'battle:damage-number': BattleSceneDamageNumberRequested
-  'battle:hit': BattleSceneHitResolved
-  'battle:ended': BattleSceneEnded
+  'battle:snapshot': BattleRenderSnapshotChanged
+  'battle:play-command': BattleRenderCommandRequested
+  'battle:damage-number': BattleRenderDamageNumberRequested
+  'battle:hit': BattleRenderHitResolved
+  'battle:ended': BattleRenderEnded
   'asset:preload-progress': { loaded: number; total: number }
 }
 
@@ -109,11 +109,11 @@ export function getActiveBattleInstanceId() {
   return activeBattleInstanceId
 }
 
-export function markBattleSceneReady(battleInstanceId: string | null) {
+export function markBattleRendererReady(battleInstanceId: string | null) {
   readyBattleInstanceId = battleInstanceId
 }
 
-export function clearBattleSceneReady(battleInstanceId: string | null) {
+export function clearBattleRendererReady(battleInstanceId: string | null) {
   if (readyBattleInstanceId === battleInstanceId) {
     readyBattleInstanceId = null
   }
@@ -123,6 +123,6 @@ export function isActiveBattleInstance(battleInstanceId: string | null) {
   return Boolean(battleInstanceId && activeBattleInstanceId === battleInstanceId)
 }
 
-export function isBattleSceneReady(battleInstanceId: string) {
+export function isBattleRendererReady(battleInstanceId: string) {
   return readyBattleInstanceId === battleInstanceId
 }

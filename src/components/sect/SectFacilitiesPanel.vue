@@ -1,14 +1,15 @@
 <template>
   <GameSurface tone="mist" padding="md" eyebrow="山门经营" title="宗门设施" subtitle="设施等级决定炼丹、药园与后续养成系统的深度。">
-    <div class="facility-list">
+    <div class="facility-list" data-ui-list="sect-facilities">
       <div
         v-for="facility in facilities"
         :key="facility.id"
         class="facility-card"
+        data-ui-card="sect-facility"
         :class="{ locked: positionLevel < facility.unlockPosition }"
       >
         <div class="facility-leading">
-          <div class="facility-icon">{{ facility.icon }}</div>
+          <GameIcon class="facility-icon" :icon="facility.icon" :size="26" />
           <div class="facility-copy">
             <strong>{{ facility.name }}</strong>
             <small>Lv.{{ getLevel(facility.id) }}/{{ facility.maxLevel }} · {{ facility.description }}</small>
@@ -23,7 +24,7 @@
         <div class="facility-actions">
           <GameActionButton
             v-if="canUseFacility(facility.id)"
-            icon="🧪"
+            icon="alchemy"
             tone="jade"
             @click="$emit('use-facility', facility.id)"
           >
@@ -31,7 +32,7 @@
           </GameActionButton>
           <GameActionButton
             v-if="positionLevel >= facility.unlockPosition && getLevel(facility.id) < facility.maxLevel"
-            icon="⬆️"
+            icon="progress"
             tone="gold"
             @click="$emit('upgrade-facility', facility.id)"
           >
@@ -45,6 +46,7 @@
 
 <script setup lang="ts">
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { SectFacility } from '@/types/sect'
 
@@ -89,6 +91,7 @@ defineEmits<{
 
 .facility-leading {
   justify-content: space-between;
+  min-width: 0;
 }
 
 .facility-icon {
@@ -104,6 +107,7 @@ defineEmits<{
 
 .facility-copy {
   flex: 1;
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
@@ -118,6 +122,7 @@ defineEmits<{
 .effect-note {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .facility-meta {

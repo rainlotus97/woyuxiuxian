@@ -4,6 +4,8 @@
       <button
         v-for="filter in filters"
         :key="filter.id"
+        :data-ui-filter="filter.id"
+        :data-ui-filter-count="filter.count"
         :class="{ active: activeFilter === filter.id }"
         @click="$emit('update:activeFilter', filter.id)"
       >
@@ -12,15 +14,16 @@
       </button>
     </div>
 
-    <div class="inventory-grid">
+    <div class="inventory-grid" data-ui-list="inventory">
       <button
         v-for="item in items"
         :key="item.id"
         class="item-slot"
+        data-ui-card="inventory-item"
         :class="`quality-${item.quality}`"
         @click="$emit('select', item)"
       >
-        <span>{{ item.icon }}</span>
+        <ItemArt :icon="item.iconKey || item.icon" :art-key="item.artKey" :label="item.name" :tone="item.quality === 'legendary' ? 'gold' : 'jade'" size="3.2rem" />
         <b>{{ item.name }}</b>
         <em v-if="item.quantity > 1">{{ item.quantity }}</em>
       </button>
@@ -28,12 +31,13 @@
         v-for="index in visibleEmptySlots"
         :key="`empty-${index}`"
         class="item-slot empty"
+        data-ui-card="inventory-empty-slot"
       >
-        <span>空</span>
+        <ItemArt icon="lock" label="空背包格" tone="stone" size="2.25rem" :icon-size="15" />
       </div>
     </div>
 
-    <div v-if="!items.length" class="inventory-empty">
+    <div v-if="!items.length" class="inventory-empty" data-ui-empty-state="inventory">
       <strong>{{ activeFilter === 'all' ? '包裹暂空' : '该分类暂无物品' }}</strong>
       <p>{{ activeFilter === 'all' ? '历险、坊市、宗门俸禄和剧情奖励都会把物品放入这里。' : '切换到全部，或通过历险和坊市补充对应物品。' }}</p>
     </div>
@@ -42,6 +46,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import ItemArt from '@/components/game-ui/ItemArt.vue'
 import type { InventoryItem } from '@/stores/playerStore'
 import type { InventoryFilter } from '@/composables/useCharacterLoadout'
 
@@ -116,7 +121,7 @@ const visibleEmptySlots = computed(() => Math.min(props.emptySlots, 8))
   font-family: var(--font-game);
 }
 
-.item-slot span {
+.item-slot :deep(.item-art-fallback) {
   color: #8b6326;
   font-size: 24px;
   font-weight: 800;

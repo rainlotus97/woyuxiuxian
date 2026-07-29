@@ -1,39 +1,120 @@
 <template>
-  <div class="game-layout" :class="{ 'is-cultivation': isCultivationRoute }" :style="themeCssVars">
+  <div
+    class="game-layout"
+    :class="[
+      { 'is-cultivation': isCultivationRoute },
+      `layout-${layoutMode}`
+    ]"
+    :style="themeCssVars"
+  >
     <div class="layout-backdrop"></div>
 
-    <header class="top-shell">
+    <header v-if="showHud" class="top-shell">
       <div class="hud-stack">
-        <XPlayerHud
-          class="player-hud"
-          :player-name="playerStore.name"
-          :realm="playerStore.realmInfo.fullName"
-          :level="playerStore.level"
-          :items="hudResourceItems"
-        >
-          <!-- @vue-ignore: published component declarations currently omit named slots -->
-          <template #avatar>
-            <XAvatarFrame
-              :alt="`${playerStore.name}的头像`"
-              size="2.9rem"
-              :tone="sectAlertTone"
-            >
-              <span class="avatar-glyph" :class="getRealmClass">{{ realmIcon }}</span>
-            </XAvatarFrame>
-          </template>
-        </XPlayerHud>
+        <div class="hud-row">
+          <XPlayerHud
+            class="player-hud"
+            :player-name="playerStore.name"
+            :realm="playerStore.realmInfo.fullName"
+            :level="playerStore.level"
+            :items="hudResourceItems"
+          >
+            <!-- @vue-ignore: published component declarations currently omit named slots -->
+            <template #avatar>
+              <button
+                type="button"
+                class="avatar-trigger"
+                aria-label="打开人物与系统菜单"
+                title="人物与系统菜单"
+                @click="toggleSystemMenu"
+              >
+                <XAvatarFrame
+                  :alt="`${playerStore.name}的头像`"
+                  size="2.9rem"
+                  :tone="sectAlertTone"
+                >
+                  <GameIcon class="avatar-glyph" :icon="realmIcon" :size="22" :class="getRealmClass" />
+                </XAvatarFrame>
+                <b v-if="unreadWorldCount > 0" class="avatar-trigger__badge">
+                  {{ unreadWorldCount > 9 ? '9+' : unreadWorldCount }}
+                </b>
+              </button>
+            </template>
+          </XPlayerHud>
+        </div>
 
-        <XAnnouncement
-          v-if="!isStoryOverlayVisible"
-          class="hud-announcement"
-          :eyebrow="hudAnnouncementEyebrow"
-          :title="hudAnnouncementTitle"
-          :message="hudAnnouncementMessage"
-          :icon="hudAnnouncementIcon"
-          :tone="sectAlertTone"
-        />
+        <div class="hud-announcement-slot" aria-live="polite">
+          <Transition name="ticker-rise">
+            <button
+              v-if="showAnnouncement && !isStoryOverlayVisible"
+              type="button"
+              class="hud-announcement announcement-ticker"
+              :aria-label="`查看世界消息：${hudAnnouncementTitle}`"
+              @click="openWorldDrawer"
+            >
+              <span class="announcement-ticker__icon" aria-hidden="true">
+                <GameIcon :icon="hudAnnouncementIcon" :size="15" />
+              </span>
+              <span class="announcement-ticker__viewport">
+                <span class="announcement-ticker__line">
+                  <strong>{{ hudAnnouncementTitle }}</strong>
+                  <span>{{ hudAnnouncementMessage }}</span>
+                </span>
+              </span>
+              <GameIcon class="announcement-ticker__arrow" icon="chevron-right" :size="14" aria-hidden="true" />
+            </button>
+          </Transition>
+          <span
+            v-if="!showAnnouncement || isStoryOverlayVisible"
+            class="hud-time-strip"
+            aria-label="当前修仙历与天气"
+          >
+            <GameIcon icon="clock" :size="13" />
+            <span>{{ worldStore.currentTimeLabel }}</span>
+            <i aria-hidden="true">·</i>
+            <span>{{ weatherLabel }}</span>
+          </span>
+        </div>
       </div>
+
     </header>
+
+    <Transition name="system-menu-rise">
+      <div v-if="systemMenuOpen" class="system-menu" aria-label="系统菜单">
+        <div class="system-menu-head">
+          <div>
+            <span>行囊与设置</span>
+            <strong>{{ playerStore.name }}</strong>
+          </div>
+          <button type="button" aria-label="关闭系统菜单" @click="closeSystemMenu">
+            <GameIcon icon="close" :size="16" />
+          </button>
+        </div>
+        <div class="system-menu-grid">
+          <button type="button" @click="openWorldDrawer">
+            <GameIcon icon="globe" :size="17" />
+            <span>世界记录</span>
+            <b v-if="unreadWorldCount > 0">{{ unreadWorldCount }}</b>
+          </button>
+          <button type="button" @click="goToRoute('/game/profile')">
+            <GameIcon icon="companion" :size="17" />
+            <span>角色面板</span>
+          </button>
+          <button type="button" @click="goToRoute('/game/settings')">
+            <GameIcon icon="settings" :size="17" />
+            <span>设置</span>
+          </button>
+          <button type="button" @click="toggleBgmFromMenu">
+            <GameIcon :icon="bgmEnabled ? 'Volume2' : 'VolumeX'" :size="17" />
+            <span>{{ bgmEnabled ? '关闭音乐' : '开启音乐' }}</span>
+          </button>
+          <button type="button" @click="goToRoute('/')">
+            <GameIcon icon="LogOut" :size="17" />
+            <span>返回标题</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <main class="main-shell">
       <div class="content-stage">
@@ -41,52 +122,61 @@
       </div>
     </main>
 
-    <Transition name="scrim-fade">
+    <Transition v-if="showTabs" name="scrim-fade">
       <button
-        v-if="isMenuExpanded"
+        v-if="worldDrawerOpen || systemMenuOpen"
         type="button"
-        class="nav-scrim"
-        aria-label="收起功能菜单"
-        @click="closeMenu"
+        class="shell-scrim"
+        aria-label="关闭浮层"
+        @click="closeOverlays"
       ></button>
     </Transition>
 
-    <footer class="nav-shell" :class="{ expanded: isMenuExpanded }">
-      <Transition name="drawer-rise">
-        <GameSurface v-if="isMenuExpanded" class="nav-drawer" tone="jade" padding="md">
-          <div class="nav-header">
-            <div class="nav-copy">
-              <span class="nav-eyebrow">功能总览</span>
-              <strong>前往修仙界面</strong>
+    <Transition name="drawer-left">
+      <aside v-if="worldDrawerOpen" class="world-drawer" aria-label="世界记录">
+        <div class="world-drawer-head">
+          <div>
+            <span>世界记录</span>
+            <strong>天地仍在运转</strong>
+          </div>
+          <button type="button" aria-label="关闭世界记录" @click="closeWorldDrawer">
+            <GameIcon icon="close" :size="18" />
+          </button>
+        </div>
+        <div class="world-drawer-summary">
+          <span><GameIcon icon="clock" :size="14" /> {{ worldStore.currentTimeLabel }}</span>
+          <span><GameIcon :icon="hudAnnouncementIcon" :size="14" /> {{ weatherLabel }}</span>
+        </div>
+        <div v-if="worldDrawerItems.length" class="world-drawer-list">
+          <article v-for="item in worldDrawerItems" :key="item.id" class="world-drawer-item" :class="`severity-${item.severity}`">
+            <div>
+              <GameIcon :icon="item.icon" :size="16" />
+              <strong>{{ item.title }}</strong>
             </div>
-            <button class="drawer-close" type="button" aria-label="收起菜单" @click="closeMenu">
-              <XIcon icon="close" size="1.05rem" />
-            </button>
-          </div>
+            <p>{{ item.message }}</p>
+            <small>{{ item.timeLabel }}</small>
+          </article>
+        </div>
+        <div v-else class="world-drawer-empty">
+          <GameIcon icon="moon" :size="24" />
+          <strong>暂时没有新的世界消息</strong>
+          <span>挂机、赶路或推进时辰后，这里会留下世界的回声。</span>
+        </div>
+        <button type="button" class="world-history-button" @click="goToRoute('/game/cultivation')">
+          <span>回到修炼主位</span>
+          <GameIcon icon="chevron-right" :size="15" />
+        </button>
+      </aside>
+    </Transition>
 
-          <div class="menu-grid" @click.stop>
-            <XTaskEntry
-              v-for="item in menuItems"
-              :key="item.path"
-              :title="item.name"
-              :description="item.desc"
-              :icon="item.icon"
-              :tag="isActive(item.path) ? '当前' : ''"
-              :tone="isActive(item.path) ? 'gold' : 'jade'"
-              state="active"
-              @click="handleMenuClick(item.path)"
-            />
-          </div>
-        </GameSurface>
-      </Transition>
-
+    <footer v-if="showTabs" class="nav-shell">
       <XTabBar
         class="main-tab-bar"
         :model-value="activeTabValue"
         :items="tabBarItems"
         @select="handleTabSelect"
       />
-    </footer>
+  </footer>
 
     <AnnouncementModal />
     <ItemAcquireModal />
@@ -134,16 +224,14 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  XAnnouncement,
   XAvatarFrame,
-  XIcon,
   XPlayerHud,
   XTabBar,
-  XTaskEntry,
   type XIconName,
   type XTone
 } from '@rainlotus97/ui'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import AnnouncementModal from '@/components/modal/AnnouncementModal.vue'
 import ItemAcquireModal from '@/components/modal/ItemAcquireModal.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
@@ -157,8 +245,10 @@ import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import { getSectById } from '@/types/sect'
+import { formatWorldTimeAtTick } from '@/types/world'
 import { GAME_THEME_TOKENS, MAIN_NAV_ITEMS, resolveRouteBgmType } from '@/game/theme/gameTheme'
 import { resolveThemeCssVars } from '@/game/theme/themeAssetPack'
+import { getWorldWeatherProfile } from '@/world/runtime/weatherCatalog'
 
 interface MenuItem {
   path: string
@@ -183,7 +273,8 @@ interface HudTabItem {
   disabled?: boolean
 }
 
-const MORE_TAB_VALUE = '__more__'
+type LayoutMode = 'normal' | 'half-immersive' | 'immersive' | 'battle'
+
 const NAV_ICON_BY_PATH: Record<string, XIconName> = {
   '/game/cultivation': 'cultivation',
   '/game/adventure': 'sword',
@@ -202,12 +293,15 @@ const sectStore = useSectStore()
 const storyStore = useStoryStore()
 const worldStore = useWorldStore()
 const randomEvent = useRandomEvent()
-const { bgmEnabled, switchBgm } = useAudio()
+const { bgmEnabled, switchBgm, setBgmEnabled } = useAudio()
 const { isStoryOverlayVisible, isStandaloneStoryRoute, closeStoryOverlay } = useStoryOverlay()
 const route = useRoute()
 const router = useRouter()
-const isMenuExpanded = ref(false)
+const worldDrawerOpen = ref(false)
+const systemMenuOpen = ref(false)
+const announcementVisible = ref(false)
 let worldTickTimer: number | null = null
+let announcementDismissTimer: number | null = null
 
 const WORLD_TICK_INTERVAL_MS = 60 * 1000
 
@@ -216,41 +310,78 @@ const menuItems: MenuItem[] = MAIN_NAV_ITEMS.map(item => ({
   icon: NAV_ICON_BY_PATH[item.path] ?? 'scroll'
 }))
 
-const tabItems = computed<MenuItem[]>(() => menuItems.slice(0, 5))
+const primaryTabPaths = ['/game/cultivation', '/game/map', '/game/shop', '/game/profile']
+const tabItems = computed<MenuItem[]>(() => primaryTabPaths
+  .map(path => menuItems.find(item => item.path === path))
+  .filter((item): item is MenuItem => Boolean(item)))
 const tabBarItems = computed<HudTabItem[]>(() => [
   ...tabItems.value.map(item => ({
     value: item.path,
     label: item.shortName,
     icon: item.icon
-  })),
-  {
-    value: MORE_TAB_VALUE,
-    label: isMenuExpanded.value ? '收起' : '更多',
-    icon: isMenuExpanded.value ? 'close' : 'settings'
-  }
+  }))
 ])
+const layoutMode = computed<LayoutMode>(() => {
+  const routeMode = route.meta.layoutMode
+  return routeMode === 'half-immersive' || routeMode === 'immersive' || routeMode === 'battle'
+    ? routeMode
+    : 'normal'
+})
+const showHud = computed(() => layoutMode.value === 'normal' || layoutMode.value === 'half-immersive')
+const showTabs = computed(() => layoutMode.value === 'normal')
+const latestWorldNotification = computed(() => worldStore.worldNotifications.find(notification => !notification.read) ?? null)
+const unreadWorldCount = computed(() => worldStore.worldNotifications.filter(notification => !notification.read).length)
+const showAnnouncement = computed(() => (
+  (layoutMode.value === 'normal' || layoutMode.value === 'half-immersive')
+  && announcementVisible.value
+  && Boolean(latestWorldNotification.value)
+))
 const activeTabValue = computed(() => {
-  if (isMenuExpanded.value) return MORE_TAB_VALUE
-  return tabItems.value.some(item => item.path === route.path) ? route.path : MORE_TAB_VALUE
+  if (route.path === '/game/adventure' || route.path === '/game/sect') return '/game/map'
+  if (['/game/inventory', '/game/skills', '/game/companion'].includes(route.path)) return '/game/profile'
+  return tabItems.value.some(item => item.path === route.path) ? route.path : '/game/cultivation'
 })
 const themeCssVars = computed(() => resolveThemeCssVars())
 
-const currentSectionName = computed(() => {
-  return menuItems.find(item => item.path === route.path)?.name ?? '修途'
-})
+watch(
+  () => latestWorldNotification.value?.id,
+  notificationId => {
+    if (announcementDismissTimer) {
+      window.clearTimeout(announcementDismissTimer)
+      announcementDismissTimer = null
+    }
+
+    announcementVisible.value = Boolean(notificationId)
+    if (!notificationId) return
+
+    announcementDismissTimer = window.setTimeout(() => {
+      announcementVisible.value = false
+      announcementDismissTimer = null
+    }, 6800)
+  },
+  { immediate: true }
+)
+
+const worldDrawerItems = computed(() => worldStore.worldNotifications.slice(0, 8).map(notification => ({
+  ...notification,
+  icon: notification.kind === 'weather'
+    ? 'cloud'
+    : notification.kind === 'battle'
+      ? 'sword'
+      : notification.kind === 'unlock'
+        ? 'map'
+        : notification.kind === 'reward'
+          ? 'gift'
+          : notification.kind === 'story'
+            ? 'scroll'
+            : 'spark',
+  timeLabel: formatWorldTimeAtTick(notification.createdAtTick)
+})))
 
 const isCultivationRoute = computed(() => route.path === '/game/cultivation')
 
 const weatherLabel = computed(() => {
-  const labels: Record<typeof worldStore.weather, string> = {
-    clear: '天朗气清',
-    rain: '灵雨细落',
-    storm: '雷暴压境',
-    flood: '洪水漫野',
-    fire: '火势蔓延',
-    mist: '雾锁山河'
-  }
-  return labels[worldStore.weather]
+  return getWorldWeatherProfile(worldStore.weather).label
 })
 
 watch(isStoryOverlayVisible, visible => {
@@ -373,19 +504,12 @@ const hudResourceItems = computed<HudResourceItem[]>(() => [
   }
 ])
 
-const hudAnnouncementEyebrow = computed(() => {
-  return `${currentSectionName.value} · ${worldStore.currentTimeLabel} · ${weatherLabel.value}`
-})
-
 const hudAnnouncementTitle = computed(() => {
-  return sectStore.currentSect?.name ?? (playerStore.captivity.isCaptured ? '身陷囹圄' : '行走修途')
+  return latestWorldNotification.value?.title ?? ''
 })
 
 const hudAnnouncementMessage = computed(() => {
-  if (isCultivationRoute.value || route.path === '/game/adventure') {
-    return ambientPrompt.value
-  }
-  return `${sectAlertSummary.value} ${currentPrompt.value}`
+  return latestWorldNotification.value?.message ?? ''
 })
 
 const hudAnnouncementIcon = computed<XIconName>(() => {
@@ -403,14 +527,14 @@ const hudAnnouncementIcon = computed<XIconName>(() => {
 
 const realmIcon = computed(() => {
   const realm = playerStore.realm
-  if (realm.includes('炼气')) return '气'
-  if (realm.includes('筑基')) return '筑'
-  if (realm.includes('金丹')) return '丹'
-  if (realm.includes('元婴')) return '婴'
-  if (realm.includes('化神')) return '神'
-  if (realm.includes('渡劫')) return '劫'
-  if (realm.includes('大乘')) return '乘'
-  return '仙'
+  if (realm.includes('炼气')) return 'cultivation'
+  if (realm.includes('筑基')) return 'armor'
+  if (realm.includes('金丹')) return 'spirit-stone'
+  if (realm.includes('元婴')) return 'companion'
+  if (realm.includes('化神')) return 'star'
+  if (realm.includes('渡劫')) return 'thunder'
+  if (realm.includes('大乘')) return 'sword'
+  return 'spark'
 })
 
 const getRealmClass = computed(() => {
@@ -432,35 +556,46 @@ const getRealmClass = computed(() => {
   return ''
 })
 
-function isActive(path: string) {
-  return route.path === path
-}
-
-function toggleMenu() {
-  isMenuExpanded.value = !isMenuExpanded.value
-}
-
-function handleMenuClick(path: string) {
-  isMenuExpanded.value = false
-  if (route.path !== path) {
-    void router.push(path)
-  }
-}
-
 function handleTabSelect(item: HudTabItem) {
-  if (item.value === MORE_TAB_VALUE) {
-    toggleMenu()
-    return
-  }
-
-  isMenuExpanded.value = false
-  if (route.path !== item.value) {
-    void router.push(item.value)
-  }
+  goToRoute(item.value)
 }
 
-function closeMenu() {
-  isMenuExpanded.value = false
+function goToRoute(path: string) {
+  closeOverlays()
+  if (route.path !== path) void router.push(path)
+}
+
+function openWorldDrawer() {
+  systemMenuOpen.value = false
+  worldDrawerOpen.value = true
+  worldStore.consumeWorldNotifications()
+}
+
+function handleOpenWorldDrawer() {
+  openWorldDrawer()
+}
+
+function closeWorldDrawer() {
+  worldDrawerOpen.value = false
+}
+
+function toggleSystemMenu() {
+  worldDrawerOpen.value = false
+  systemMenuOpen.value = !systemMenuOpen.value
+}
+
+function closeSystemMenu() {
+  systemMenuOpen.value = false
+}
+
+function closeOverlays() {
+  worldDrawerOpen.value = false
+  systemMenuOpen.value = false
+}
+
+function toggleBgmFromMenu() {
+  setBgmEnabled(!bgmEnabled.value)
+  if (bgmEnabled.value) switchBgm(resolveRouteBgmType(route.fullPath))
 }
 
 function handleCloseStoryOverlay() {
@@ -504,6 +639,7 @@ function syncRouteBgm(path: string) {
 }
 
 onMounted(() => {
+  window.addEventListener('open-world-drawer', handleOpenWorldDrawer)
   startWorldClock()
   syncRouteBgm(route.fullPath)
   void ensureStoryOverlayReady()
@@ -512,7 +648,7 @@ onMounted(() => {
 watch(
   () => route.fullPath,
   path => {
-    isMenuExpanded.value = false
+    closeOverlays()
     syncRouteBgm(path)
     void ensureStoryOverlayReady()
   }
@@ -528,9 +664,14 @@ watch(
 )
 
 onUnmounted(() => {
+  window.removeEventListener('open-world-drawer', handleOpenWorldDrawer)
   if (worldTickTimer) {
     clearInterval(worldTickTimer)
     worldTickTimer = null
+  }
+  if (announcementDismissTimer) {
+    clearTimeout(announcementDismissTimer)
+    announcementDismissTimer = null
   }
 })
 </script>
@@ -551,6 +692,24 @@ onUnmounted(() => {
   background:
     v-bind('GAME_THEME_TOKENS.surfaceBackdrop');
   color: #315257;
+}
+
+.game-layout.layout-immersive {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.game-layout.layout-half-immersive {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.layout-immersive .main-shell {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.layout-immersive .content-stage {
+  height: 100%;
 }
 
 .layout-backdrop {
@@ -576,11 +735,11 @@ onUnmounted(() => {
 }
 
 .game-layout.is-cultivation .layout-backdrop::before {
+  inset: -2.5%;
   background:
     linear-gradient(180deg, rgba(247, 252, 251, 0.16), rgba(243, 248, 247, 0.38) 22%, rgba(230, 240, 239, 0.78) 100%),
     url('@/assets/theme/generated/main/bg-main-9x16-v1.png') center top / cover no-repeat;
   filter: saturate(0.96) blur(2px);
-  transform: scale(1.05);
   opacity: 0.98;
 }
 
@@ -678,9 +837,16 @@ onUnmounted(() => {
 }
 
 .player-hud :deep(.x-player-hud__resource) {
+  min-width: 0;
   min-height: 2.65rem;
   gap: 0.28rem;
   padding: 0.36rem 0.4rem;
+  overflow: hidden;
+}
+
+.player-hud :deep(.x-player-hud__resource > span:last-child) {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .player-hud :deep(.x-player-hud__resource small) {
@@ -688,49 +854,114 @@ onUnmounted(() => {
 }
 
 .player-hud :deep(.x-player-hud__resource strong) {
-  font-size: 0.76rem;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-hud :deep(.x-player-hud__resource strong em) {
+  display: none;
 }
 
 .hud-announcement {
-  gap: 0.58rem;
-  padding: 0.56rem 0.68rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.hud-announcement-slot {
+  display: grid;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 2.25rem;
+  min-height: 2.25rem;
+}
+
+.hud-time-strip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 0;
+  color: rgba(72, 108, 101, 0.66);
+  font-size: 0.62rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hud-time-strip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-time-strip i {
+  color: rgba(155, 110, 36, 0.56);
+  font-style: normal;
+}
+
+.announcement-ticker {
+  display: grid;
+  grid-template-columns: 1.9rem minmax(0, 1fr) 1.2rem;
+  align-items: center;
+  gap: 0.48rem;
+  height: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0 0.58rem;
+  border: 1px solid rgba(101, 152, 145, 0.2);
   border-radius: 0.82rem;
-}
-
-.hud-announcement :deep(.x-announcement__icon) {
-  width: 1.95rem;
-  height: 1.95rem;
-}
-
-.hud-announcement :deep(.x-announcement__copy) {
-  gap: 0.12rem;
-}
-
-.hud-announcement :deep(.x-announcement__eyebrow) {
+  background: rgba(248, 255, 250, 0.84);
+  color: #3e6f66;
+  text-align: left;
+  cursor: pointer;
   overflow: hidden;
-  font-size: 0.58rem;
-  text-overflow: ellipsis;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.announcement-ticker:active {
+  transform: scale(0.99);
+}
+
+.announcement-ticker__icon {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  background: rgba(226, 244, 235, 0.88);
+  color: #4d897a;
+}
+
+.announcement-ticker__viewport {
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
 }
 
-.hud-announcement :deep(strong) {
-  overflow: hidden;
-  font-size: 0.8rem;
-  text-overflow: ellipsis;
+.announcement-ticker__line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: max-content;
+  font-size: 0.68rem;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.hud-announcement :deep(p) {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 0.66rem;
-  line-height: 1.38;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+.announcement-ticker__line strong {
+  color: #93682a;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
-.game-layout.is-cultivation .hud-announcement :deep(p) {
-  -webkit-line-clamp: 1;
+.announcement-ticker__line span {
+  color: rgba(65, 99, 94, 0.78);
+}
+
+.announcement-ticker__arrow {
+  color: #7b9e93;
 }
 
 .avatar-glyph {
@@ -738,8 +969,6 @@ onUnmounted(() => {
   place-items: center;
   width: 100%;
   height: 100%;
-  font-size: 1.08rem;
-  font-weight: 700;
 }
 
 .realm-qi { color: #4d99c2; }
@@ -903,6 +1132,7 @@ onUnmounted(() => {
   margin: 0 auto;
   position: relative;
   z-index: 1;
+  container: game-stage / inline-size;
 }
 
 .nav-shell {
@@ -910,11 +1140,6 @@ onUnmounted(() => {
   z-index: 18;
   padding: 0 0.8rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
-}
-
-.game-layout.is-cultivation .nav-shell {
-  padding-inline: 0.56rem;
-  padding-bottom: calc(0.22rem + env(safe-area-inset-bottom, 0px));
 }
 
 .nav-shell.expanded {
@@ -1061,11 +1286,6 @@ onUnmounted(() => {
   padding-inline: 0.08rem;
 }
 
-.game-layout.is-cultivation .main-tab-bar {
-  min-height: 4rem;
-  padding-block: 0.24rem;
-}
-
 @media (min-width: 380px) {
   .menu-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1115,24 +1335,31 @@ onUnmounted(() => {
     padding-inline: 0.5rem;
   }
 
-  .game-layout.is-cultivation .nav-shell {
-    padding-inline: 0.46rem;
-    padding-bottom: calc(0.14rem + env(safe-area-inset-bottom, 0px));
-  }
-
   .nav-drawer {
     max-height: min(52vh, 420px);
   }
 
-  .main-tab-bar {
-    min-height: 4.05rem;
-    padding: 0.26rem 0.18rem;
-  }
 }
 
-@media (max-height: 700px) {
-  .hud-announcement :deep(p) {
-    -webkit-line-clamp: 1;
+@media (min-width: 900px) {
+  .game-layout {
+    max-width: 1180px;
+  }
+
+  .top-shell {
+    padding-inline: 1.15rem;
+  }
+
+  .main-shell {
+    padding: 10px 18px 14px;
+  }
+
+  .game-layout.is-cultivation .main-shell {
+    padding: 8px 16px 12px;
+  }
+
+  .nav-shell {
+    padding-inline: 1.15rem;
   }
 }
 
@@ -1143,6 +1370,452 @@ onUnmounted(() => {
   .scrim-fade-leave-active,
   .story-overlay-fade-enter-active,
   .story-overlay-fade-leave-active {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* Mobile shell: the viewport is the frame; secondary content opens in panels. */
+.game-layout {
+  width: min(100%, 430px);
+  max-width: 430px;
+  min-width: 320px;
+  margin: 0 auto;
+  --mobile-tab-height: 4.2rem;
+  --mobile-nav-height: calc(var(--mobile-tab-height) + 0.55rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, #f7fcf8 0%, #edf6f0 54%, #e5f0ea 100%);
+}
+
+.layout-backdrop,
+.layout-backdrop::after {
+  background-image: none !important;
+  display: block;
+}
+
+.layout-backdrop::before {
+  background: none !important;
+  opacity: 0 !important;
+}
+
+.game-layout.is-cultivation .layout-backdrop::before {
+  display: block;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(247, 252, 251, 0.14), rgba(243, 248, 247, 0.34) 34%, rgba(230, 240, 239, 0.82) 100%),
+    url('@/assets/theme/generated/main/bg-main-9x16-v1.png') center top / cover no-repeat !important;
+  filter: saturate(0.94);
+  opacity: 0.72 !important;
+}
+
+.main-shell {
+  min-height: 0;
+  overflow: hidden !important;
+  padding: 6px 8px var(--mobile-nav-height);
+  overscroll-behavior: none;
+}
+
+.game-layout.is-cultivation .main-shell {
+  padding: 6px 8px var(--mobile-nav-height);
+}
+
+.content-stage {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content-stage > * {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.nav-shell {
+  position: fixed;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  width: min(100vw, 430px);
+  height: var(--mobile-nav-height);
+  min-height: var(--mobile-nav-height);
+  max-height: var(--mobile-nav-height);
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  padding-inline: 0.75rem;
+  padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
+}
+
+.game-layout.is-cultivation .top-shell {
+  padding-top: calc(0.55rem + env(safe-area-inset-top, 0px));
+  padding-inline: 0.7rem;
+}
+
+.game-layout.is-cultivation .hud-stack {
+  gap: 0.36rem;
+}
+
+.main-tab-bar {
+  box-sizing: border-box;
+  height: var(--mobile-tab-height);
+  min-height: var(--mobile-tab-height);
+  max-height: var(--mobile-tab-height);
+  padding: 0.3rem 0.24rem;
+  align-items: stretch;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.main-tab-bar :deep(.x-tab-bar__item) {
+  height: 100%;
+  min-height: 0;
+  padding: 0.26rem 0.08rem;
+}
+
+.hud-row {
+  position: relative;
+  min-width: 0;
+}
+
+.player-hud {
+  padding-right: 0;
+}
+
+.avatar-trigger {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.avatar-trigger:active {
+  transform: scale(0.97);
+}
+
+.avatar-trigger__badge {
+  position: absolute;
+  top: -0.22rem;
+  right: -0.26rem;
+  display: grid;
+  place-items: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding-inline: 0.18rem;
+  border-radius: 999px;
+  background: #c87869;
+  color: #fffaf6;
+  font: 700 0.58rem/1 var(--font-reading-sans), sans-serif;
+}
+
+.player-hud :deep(.x-player-hud__identity) {
+  min-width: 10rem;
+}
+
+.player-hud :deep(.x-player-hud__resource) {
+  justify-content: flex-start;
+  gap: 0.28rem;
+  padding-inline: 0.4rem;
+}
+
+.player-hud :deep(.x-player-hud__resource small) {
+  display: block;
+  font-size: 0.56rem;
+}
+
+.player-hud :deep(.x-player-hud__resource strong) {
+  font-size: 0.68rem;
+}
+
+.player-hud :deep(.x-player-hud__resource > span) {
+  place-items: start;
+}
+
+.player-hud :deep(.x-player-hud__resource strong em) {
+  display: none;
+}
+
+.player-hud :deep(.x-player-hud__resource) {
+  overflow: hidden;
+}
+
+.player-hud :deep(.x-player-hud__resource strong),
+.player-hud :deep(.x-player-hud__resource small) {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-hud :deep(.x-player-hud__resources) {
+  min-width: 0;
+}
+
+.avatar-trigger .avatar-glyph {
+  pointer-events: none;
+}
+
+.system-menu button:active,
+.world-drawer-head button:active,
+.world-history-button:active {
+  transform: scale(0.97);
+}
+
+.system-menu {
+  position: fixed;
+  top: calc(4.65rem + env(safe-area-inset-top, 0px));
+  right: max(0.75rem, calc((100vw - 430px) / 2 + 0.75rem));
+  z-index: 60;
+  width: min(17rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 7rem);
+  padding: 0.82rem;
+  border: 1px solid rgba(82, 136, 120, 0.2);
+  border-radius: 1rem;
+  background: rgba(250, 255, 249, 0.97);
+  box-shadow: 0 18px 40px rgba(68, 104, 96, 0.2);
+  overflow: auto;
+  pointer-events: auto;
+}
+
+.system-menu-head,
+.world-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.system-menu-head > div,
+.world-drawer-head > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.system-menu-head span,
+.world-drawer-head span {
+  color: rgba(72, 108, 101, 0.68);
+  font-size: 0.68rem;
+}
+
+.system-menu-head strong,
+.world-drawer-head strong {
+  color: #315d58;
+  font-size: 1rem;
+}
+
+.system-menu-head button,
+.world-drawer-head button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(82, 136, 120, 0.18);
+  border-radius: 0.62rem;
+  background: rgba(237, 247, 239, 0.82);
+  color: #527e74;
+  cursor: pointer;
+}
+
+.system-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.system-menu-grid button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.8rem;
+  padding: 0.45rem 0.52rem;
+  border: 1px solid rgba(82, 136, 120, 0.15);
+  border-radius: 0.68rem;
+  background: rgba(244, 251, 245, 0.88);
+  color: #416d65;
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shell-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  border: 0;
+  background: rgba(39, 66, 61, 0.16);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+.world-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(22rem, calc(100% - 2rem));
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-right: 1px solid rgba(75, 128, 117, 0.24);
+  background: rgba(248, 253, 248, 0.98);
+  box-shadow: 18px 0 42px rgba(57, 93, 84, 0.18);
+}
+
+.world-drawer-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  margin-top: 1rem;
+}
+
+.world-drawer-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 1.8rem;
+  padding: 0 0.55rem;
+  border: 1px solid rgba(83, 134, 119, 0.15);
+  border-radius: 999px;
+  background: rgba(232, 245, 235, 0.78);
+  color: #4c766e;
+  font-size: 0.68rem;
+}
+
+.world-drawer-list {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 0;
+  margin-top: 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.world-drawer-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.72rem;
+  border-left: 3px solid #74a995;
+  border-radius: 0.72rem;
+  background: rgba(237, 247, 239, 0.8);
+}
+
+.world-drawer-item.severity-major,
+.world-drawer-item.severity-legendary {
+  border-left-color: #be7d63;
+  background: rgba(255, 244, 233, 0.84);
+}
+
+.world-drawer-item > div {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #477970;
+}
+
+.world-drawer-item strong {
+  color: #365f59;
+  font-size: 0.84rem;
+}
+
+.world-drawer-item p {
+  margin: 0;
+  color: rgba(64, 91, 86, 0.82);
+  font-size: 0.76rem;
+  line-height: 1.52;
+}
+
+.world-drawer-item small {
+  color: rgba(79, 112, 105, 0.58);
+  font-size: 0.62rem;
+}
+
+.world-drawer-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.48rem;
+  margin: auto 0;
+  padding: 1.5rem 1rem;
+  color: rgba(72, 108, 101, 0.58);
+  text-align: center;
+}
+
+.world-drawer-empty strong {
+  color: #4d766e;
+  font-size: 0.86rem;
+}
+
+.world-drawer-empty span {
+  max-width: 14rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.world-history-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.8rem;
+  margin-top: auto;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(155, 110, 36, 0.28);
+  border-radius: 0.72rem;
+  background: rgba(255, 250, 232, 0.9);
+  color: #8b6326;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .announcement-ticker__line {
+    animation: announcement-ticker-pan 10s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes announcement-ticker-pan {
+  0%, 24% { transform: translateX(0); }
+  76%, 100% { transform: translateX(-18%); }
+}
+
+.drawer-left-enter-active,
+.drawer-left-leave-active,
+.system-menu-rise-enter-active,
+.system-menu-rise-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.drawer-left-enter-from,
+.drawer-left-leave-to {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.system-menu-rise-enter-from,
+.system-menu-rise-leave-to {
+  opacity: 0;
+  transform: translateY(-0.4rem);
+}
+
+.ticker-rise-enter-active,
+.ticker-rise-leave-active {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.ticker-rise-enter-from,
+.ticker-rise-leave-to {
+  opacity: 0;
+  transform: translateY(-0.28rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-ticker__line {
+    animation: none;
+  }
+
+  .drawer-left-enter-active,
+  .drawer-left-leave-active,
+  .system-menu-rise-enter-active,
+  .system-menu-rise-leave-active {
     transition-duration: 0.01ms;
   }
 }

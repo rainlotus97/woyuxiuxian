@@ -5,7 +5,7 @@
         <GameSurface tone="mist" padding="md" compact>
           <div class="facility-head">
             <div class="facility-leading">
-              <div class="facility-icon">{{ facility.icon }}</div>
+              <GameIcon class="facility-icon" :icon="facility.icon" :size="28" />
               <div class="facility-copy">
                 <strong>{{ facility.name }}</strong>
                 <small>Lv.{{ facilityLevel }}/{{ facility.maxLevel }}</small>
@@ -33,7 +33,7 @@
             >
               <div class="recipe-head">
                 <div class="recipe-leading">
-                  <span class="recipe-icon">{{ recipe.icon }}</span>
+                  <GameIcon class="recipe-icon" :icon="recipe.icon" :size="20" />
                   <div class="recipe-copy">
                     <strong>{{ recipe.name }}</strong>
                     <small>{{ getQualityLabel(recipe.quality) }}</small>
@@ -55,7 +55,7 @@
 
               <div class="surface-actions">
                 <GameActionButton
-                  icon="🧪"
+                  icon="alchemy"
                   tone="gold"
                   :disabled="!canCraft(recipe)"
                   @click="handleCraft(recipe)"
@@ -91,7 +91,7 @@
                 <div class="surface-actions">
                   <GameActionButton
                     v-if="isReady(slot)"
-                    icon="🌿"
+                    icon="herb"
                     tone="gold"
                     @click="handleHarvest(index)"
                   >
@@ -99,7 +99,7 @@
                   </GameActionButton>
                   <GameActionButton
                     v-else
-                    icon="⚡"
+                    icon="thunder"
                     tone="jade"
                     @click="handleAccelerate(index)"
                   >
@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="surface-actions">
-                  <GameActionButton icon="🌱" tone="jade" @click="showSeedSelector(index)">
+                  <GameActionButton icon="herb" tone="jade" @click="showSeedSelector(index)">
                     种植
                   </GameActionButton>
                 </div>
@@ -137,7 +137,7 @@
                 @click="handlePlant(seed)"
               >
                 <div class="seed-leading">
-                  <span class="seed-icon">{{ seed.icon }}</span>
+                  <GameIcon class="seed-icon" :icon="seed.icon" :size="20" />
                   <div class="seed-copy">
                     <strong>{{ seed.name }}</strong>
                     <small>{{ seed.growTime }} 分钟</small>
@@ -162,7 +162,7 @@
     <template #footer>
       <GameActionButton
         v-if="canUpgrade"
-        icon="⬆️"
+        icon="progress"
         tone="gold"
         @click="handleUpgrade"
       >
@@ -176,6 +176,7 @@
 import { computed, ref } from 'vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import { useSectStore } from '@/stores/sectStore'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -382,6 +383,12 @@ function close() {
   gap: 12px;
 }
 
+.facility-leading,
+.recipe-leading,
+.seed-leading {
+  min-width: 0;
+}
+
 .facility-head,
 .recipe-head {
   justify-content: space-between;
@@ -406,6 +413,13 @@ function close() {
 .section-copy {
   display: grid;
   gap: 4px;
+}
+
+.facility-copy,
+.recipe-copy,
+.seed-copy {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .facility-copy strong,

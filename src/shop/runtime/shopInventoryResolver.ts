@@ -633,6 +633,8 @@ export function shopItemToInventoryItem(item: ShopInventoryItem, quantity = 1) {
     equipmentId: definition.equipmentId,
     name: definition.name,
     icon: definition.icon,
+    artKey: definition.artKey,
+    iconKey: definition.iconKey,
     type: definition.type,
     quality: definition.quality,
     quantity,

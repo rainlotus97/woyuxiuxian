@@ -6,11 +6,12 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "vue-tsc --noEmit --pretty false --skipLibCheck && vite build",
     "preview": "vite preview",
     "story:validate": "node scripts/validate-story.mjs",
     "assets:validate": "node scripts/validate-assets.mjs",
     "runtime:validate": "node scripts/validate-runtime.mjs",
+    "ui:regression": "node scripts/validate-ui-regression.mjs",
     "theme:image2": "node scripts/generate-theme-ui-image2.mjs",
     "theme:matte": "python3 scripts/remove-image-matte.py",
     "dev:ui": "vite --mode ui-local"
@@ -19,7 +20,6 @@
     "@rainlotus97/ui": "1.0.0",
     "crypto-js": "^4.2.0",
     "lucide-vue-next": "^0.576.0",
-    "phaser": "^4.1.0",
     "pinia": "^3.0.4",
     "tone": "^15.1.22",
     "vue": "^3.5.25",

@@ -62,109 +62,169 @@
       />
     </GameSurface>
 
+    <GameSurface
+      class="travel-panel"
+      tone="jade"
+      padding="md"
+      eyebrow="独立行动"
+      title="赶路"
+      :subtitle="travelSubtitle"
+    >
+      <div class="travel-route">
+        <div class="travel-place">
+          <GameIcon icon="map" :size="18" />
+          <div>
+            <span>出发地</span>
+            <strong>{{ travelOriginArea?.name || '当前落脚处' }}</strong>
+          </div>
+        </div>
+        <span class="travel-arrow" aria-hidden="true">→</span>
+        <label class="travel-destination">
+          <span>目的地</span>
+          <select v-model="travelDestinationId" :disabled="travelTargets.length === 0">
+            <option v-if="travelTargets.length === 0" value="">暂无已知相邻路线</option>
+            <option v-for="area in travelTargets" :key="area.id" :value="area.id">{{ area.name }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="travel-facts">
+        <div>
+          <span>路线风险</span>
+          <strong :class="`travel-risk-${travelPreview?.routeRisk || 'watch'}`">{{ travelRiskLabel }}</strong>
+        </div>
+        <div>
+          <span>预计耗时</span>
+          <strong>{{ travelPreview ? `${travelPreview.ticksSpent} 个时辰` : '待选路线' }}</strong>
+        </div>
+        <div>
+          <span>体力消耗</span>
+          <strong>{{ travelPreview?.staminaSpent ? `${travelPreview.staminaSpent} 点` : '按路线结算' }}</strong>
+        </div>
+        <div>
+          <span>天气修正</span>
+          <strong>{{ travelPreview?.weatherModifier?.label || weatherLabel }}</strong>
+        </div>
+      </div>
+
+      <div class="travel-footer">
+        <p>{{ lastTravelResult?.travel?.message || travelPreview?.message || '先在地图上找到一条相邻的已知路线。' }}</p>
+        <GameActionButton
+          icon="map"
+          tone="jade"
+          :disabled="!travelOriginArea || !travelDestinationId || !travelPreview || travelPreview.status === 'blocked'"
+          @click="handleTravel"
+        >
+          开始赶路
+        </GameActionButton>
+      </div>
+    </GameSurface>
+
     <AdventureSweepFeedbackPanel
       v-if="lastSweepFeedback"
       :feedback="lastSweepFeedback"
     />
 
-    <div class="section-header compact-section-header">
-      <div class="section-title-stack">
-        <span class="section-eyebrow">今日行路</span>
-        <h2>先往哪边撞</h2>
-      </div>
-      <button type="button" class="section-flow-chip" @click="focusRecommendedArea">
-        先撞推荐那一处
-      </button>
-    </div>
-
-    <div class="area-section">
-      <div class="area-section-head">
-        <strong>优先推荐</strong>
-        <span>先撞 {{ featuredAreas.length }} 处</span>
-      </div>
-      <div class="areas-list featured">
-        <AdventureAreaCard
-          v-for="area in featuredAreas"
-          :key="area.id"
-          :area="area"
-          :access="getAreaAccess(area)"
-          :encounter="getAreaEncounterHint(area)"
-          :unlocked="isAreaUnlockedByPlayer(area)"
-          :stars="getAreaStars(area.id)"
-          :stamina="playerStore.stamina"
-          @challenge="handleChallenge"
-          @sweep="handleSweep"
-        />
-      </div>
-    </div>
-
-    <div v-if="highRiskAreas.length" class="area-section">
-      <div class="area-section-head">
-        <strong>风头正紧</strong>
-        <span>先盯这 {{ highRiskAreas.length }} 处</span>
-      </div>
-      <div class="areas-list">
-        <AdventureAreaCard
-          v-for="area in highRiskAreas"
-          :key="area.id"
-          :area="area"
-          :access="getAreaAccess(area)"
-          :encounter="getAreaEncounterHint(area)"
-          :unlocked="isAreaUnlockedByPlayer(area)"
-          :stars="getAreaStars(area.id)"
-          :stamina="playerStore.stamina"
-          @challenge="handleChallenge"
-          @sweep="handleSweep"
-        />
-      </div>
-    </div>
-
-    <div v-if="clearedAreas.length" class="area-section">
-      <div class="area-section-head">
-        <strong>已打通，可扫荡</strong>
-        <span>顺手拿资源先看 {{ clearedAreas.length }} 处</span>
-      </div>
-      <div class="areas-list">
-        <AdventureAreaCard
-          v-for="area in clearedAreas"
-          :key="area.id"
-          :area="area"
-          :access="getAreaAccess(area)"
-          :encounter="getAreaEncounterHint(area)"
-          :unlocked="isAreaUnlockedByPlayer(area)"
-          :stars="getAreaStars(area.id)"
-          :stamina="playerStore.stamina"
-          @challenge="handleChallenge"
-          @sweep="handleSweep"
-        />
-      </div>
-    </div>
-
-    <div class="area-section">
-      <div class="area-section-head">
-        <strong>{{ showAllAreas ? '其余地界' : '剩下那些路' }}</strong>
-        <button type="button" class="section-toggle" @click="showAllAreas = !showAllAreas">
-          {{ showAllAreas ? '先收起' : `再看剩余 ${overflowAreas.length} 处` }}
+    <section class="adventure-area-drawer" aria-label="历练区域列表">
+      <div class="section-header compact-section-header">
+        <div class="section-title-stack">
+          <span class="section-eyebrow">今日行路</span>
+          <h2>先往哪边撞</h2>
+        </div>
+        <button type="button" class="section-flow-chip" @click="focusRecommendedArea">
+          先撞推荐那一处
         </button>
       </div>
-      <div v-if="showAllAreas" class="areas-list">
-        <AdventureAreaCard
-          v-for="area in overflowAreas"
-          :key="area.id"
-          :area="area"
-          :access="getAreaAccess(area)"
-          :encounter="getAreaEncounterHint(area)"
-          :unlocked="isAreaUnlockedByPlayer(area)"
-          :stars="getAreaStars(area.id)"
-          :stamina="playerStore.stamina"
-          @challenge="handleChallenge"
-          @sweep="handleSweep"
-        />
+
+      <div class="area-section">
+        <div class="area-section-head">
+          <strong>优先推荐</strong>
+          <span>先撞 {{ featuredAreas.length }} 处</span>
+        </div>
+        <div class="areas-list featured">
+          <AdventureAreaCard
+            v-for="area in featuredAreas"
+            :key="area.id"
+            :area="area"
+            :access="getAreaAccess(area)"
+            :encounter="getAreaEncounterHint(area)"
+            :unlocked="isAreaUnlockedByPlayer(area)"
+            :stars="getAreaStars(area.id)"
+            :stamina="playerStore.stamina"
+            @challenge="handleChallenge"
+            @sweep="handleSweep"
+          />
+        </div>
       </div>
-      <p v-else class="section-collapsed-note">
-        其余 {{ overflowAreas.length }} 处地界先放着，别让长列表把眼前这桩事盖住。
-      </p>
-    </div>
+
+      <div v-if="highRiskAreas.length" class="area-section">
+        <div class="area-section-head">
+          <strong>风头正紧</strong>
+          <span>先盯这 {{ highRiskAreas.length }} 处</span>
+        </div>
+        <div class="areas-list">
+          <AdventureAreaCard
+            v-for="area in highRiskAreas"
+            :key="area.id"
+            :area="area"
+            :access="getAreaAccess(area)"
+            :encounter="getAreaEncounterHint(area)"
+            :unlocked="isAreaUnlockedByPlayer(area)"
+            :stars="getAreaStars(area.id)"
+            :stamina="playerStore.stamina"
+            @challenge="handleChallenge"
+            @sweep="handleSweep"
+          />
+        </div>
+      </div>
+
+      <div v-if="clearedAreas.length" class="area-section">
+        <div class="area-section-head">
+          <strong>已打通，可扫荡</strong>
+          <span>顺手拿资源先看 {{ clearedAreas.length }} 处</span>
+        </div>
+        <div class="areas-list">
+          <AdventureAreaCard
+            v-for="area in clearedAreas"
+            :key="area.id"
+            :area="area"
+            :access="getAreaAccess(area)"
+            :encounter="getAreaEncounterHint(area)"
+            :unlocked="isAreaUnlockedByPlayer(area)"
+            :stars="getAreaStars(area.id)"
+            :stamina="playerStore.stamina"
+            @challenge="handleChallenge"
+            @sweep="handleSweep"
+          />
+        </div>
+      </div>
+
+      <div class="area-section">
+        <div class="area-section-head">
+          <strong>{{ showAllAreas ? '其余地界' : '剩下那些路' }}</strong>
+          <button type="button" class="section-toggle" @click="showAllAreas = !showAllAreas">
+            {{ showAllAreas ? '先收起' : `再看剩余 ${overflowAreas.length} 处` }}
+          </button>
+        </div>
+        <div v-if="showAllAreas" class="areas-list">
+          <AdventureAreaCard
+            v-for="area in overflowAreas"
+            :key="area.id"
+            :area="area"
+            :access="getAreaAccess(area)"
+            :encounter="getAreaEncounterHint(area)"
+            :unlocked="isAreaUnlockedByPlayer(area)"
+            :stars="getAreaStars(area.id)"
+            :stamina="playerStore.stamina"
+            @challenge="handleChallenge"
+            @sweep="handleSweep"
+          />
+        </div>
+        <p v-else class="section-collapsed-note">
+          其余 {{ overflowAreas.length }} 处地界先放着，别让长列表把眼前这桩事盖住。
+        </p>
+      </div>
+    </section>
 
     <GameDialog
       :visible="showBuyStaminaModal"
@@ -181,7 +241,7 @@
           @click="handleBuyStamina(option)"
         >
           <div class="option-amount">
-            <span class="option-icon">⚡</span>
+            <GameIcon class="option-icon" icon="thunder" :size="18" />
             <strong>+{{ option.amount }}</strong>
           </div>
           <div class="option-cost">
@@ -197,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AdventureAreaCard from '@/components/adventure/AdventureAreaCard.vue'
 import AdventureSweepFeedbackPanel from '@/components/adventure/AdventureSweepFeedbackPanel.vue'
@@ -214,12 +274,17 @@ import { useToast } from '@/composables/useToast'
 import { useAdventureSweep } from '@/composables/useAdventureSweep'
 import { resolveAreaGameplayAccess, type AreaGameplayAccess } from '@/map/runtime/mapAreaAccessResolver'
 import { resolveAdventureAreaEncounter } from '@/map/runtime/mapAreaEncounterResolver'
+import { resolveMapAreaUnlock } from '@/map/runtime/mapAreaUnlockResolver'
 import { useMapStore } from '@/stores/mapStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
 import { useStoryStore } from '@/story/storyStore'
 import { resolveStoryEventCard } from '@/story/runtime/storyEventCardResolver'
+import { getWorldWeatherProfile } from '@/world/runtime/weatherCatalog'
+import { resolvePlayerTravel } from '@/world/runtime/playerJourneyResolver'
+import type { WorldTickResult } from '@/types/worldEvent'
+import type { MapArea } from '@/types/map'
 import {
   AREAS,
   isAreaUnlocked,
@@ -239,6 +304,8 @@ const { openStoryOverlay: openGlobalStoryOverlay } = useStoryOverlay()
 
 const showBuyStaminaModal = ref(false)
 const showAllAreas = ref(false)
+const travelDestinationId = ref('')
+const lastTravelResult = ref<WorldTickResult | null>(null)
 
 const staminaBuyOptions = [
   { amount: 20, cost: 50 },
@@ -250,16 +317,64 @@ let recoverTimer: number | null = null
 
 const areas = AREAS
 
-const weatherLabel = computed(() => {
-  const labels = {
-    clear: '天朗气清',
-    rain: '细雨浸山',
-    storm: '雷雨压境',
-    flood: '洪水漫野',
-    fire: '火势蔓延',
-    mist: '雾锁荒林'
+const travelOriginArea = computed<MapArea | null>(() => {
+  const savedArea = worldStore.playerAreaId ? mapStore.getAreaInfo(worldStore.playerAreaId) : null
+  if (savedArea && isMapAreaUnlocked(savedArea)) return savedArea
+
+  const sectArea = sectStore.currentSect?.areaId ? mapStore.getAreaInfo(sectStore.currentSect.areaId) : null
+  if (sectArea && isMapAreaUnlocked(sectArea)) return sectArea
+
+  return mapStore.currentRealmAreas.find(area => isMapAreaUnlocked(area)) ?? mapStore.currentRealmAreas[0] ?? null
+})
+
+const travelTargets = computed<MapArea[]>(() => {
+  const origin = travelOriginArea.value
+  if (!origin) return []
+  return origin.adjacentAreas
+    .map(areaId => mapStore.getAreaInfo(areaId))
+    .filter((area): area is MapArea => Boolean(area && isMapAreaUnlocked(area)))
+    .slice(0, 4)
+})
+
+watch(travelTargets, targets => {
+  if (!targets.some(area => area.id === travelDestinationId.value)) {
+    travelDestinationId.value = targets[0]?.id ?? ''
   }
-  return labels[worldStore.weather]
+}, { immediate: true })
+
+const weatherLabel = computed(() => {
+  return getWorldWeatherProfile(worldStore.weather).label
+})
+
+const travelPreview = computed(() => {
+  const origin = travelOriginArea.value
+  const destination = travelTargets.value.find(area => area.id === travelDestinationId.value)
+  if (!origin || !destination) return null
+
+  const originState = mapStore.getAreaState(origin.id)
+  const destinationState = mapStore.getAreaState(destination.id)
+  return resolvePlayerTravel({
+    clock: worldStore.clock,
+    weather: worldStore.weather,
+    fromAreaId: origin.id,
+    toAreaId: destination.id,
+    fromAreaName: origin.name,
+    toAreaName: destination.name,
+    routeRisk: originState?.riskLevel ?? destinationState?.riskLevel ?? destination.defaultRiskLevel,
+    hasAnomaly: worldStore.activeAreaAnomalies.some(anomaly => anomaly.areaId === origin.id || anomaly.areaId === destination.id),
+    stamina: playerStore.stamina
+  }).travel
+})
+
+const travelRiskLabel = computed(() => {
+  const labels = { safe: '安稳', watch: '需戒备', danger: '危险', chaos: '混乱' } as const
+  return labels[travelPreview.value?.routeRisk || 'watch']
+})
+
+const travelSubtitle = computed(() => {
+  if (!travelTargets.value.length) return '当前没有已知相邻路线，先去地图寻找新的落脚点。'
+  if (travelPreview.value?.status === 'blocked') return travelPreview.value.message
+  return `当前天象：${weatherLabel.value}。抵达会推进世界时间，途中可能触发中断。`
 })
 
 const heroSummary = computed(() => {
@@ -352,13 +467,18 @@ const encounterThrottleSummary = computed(() => {
     ? '今日奇遇已满'
     : `今日奇遇 ${status.dailyCount}/${status.dailyLimit}`
   const story = status.isStoryDailyBlocked
-    ? '命线相关今日已露过脸'
-    : `命线相关 ${status.storyCount}/${status.storyLimit}`
+    ? '命线奇遇今日已露过脸'
+    : `命线奇遇 ${status.storyCount}/${status.storyLimit}`
   return `${base} · ${story}`
 })
 
 const encounterThrottleDetail = computed(() => {
   const status = encounterStatus.value
+  if (storyStore.currentNodeId) {
+    return status.isStoryDailyBlocked
+      ? '命线剧情正在推进，今日关联奇遇额度已用尽。'
+      : '命线剧情正在推进，路上奇遇仍会另行触发。'
+  }
   if (status.memoryHighlights.length > 0) {
     return `路上还记着：${status.memoryHighlights.join('、')}`
   }
@@ -422,7 +542,23 @@ function createFallbackAreaAccess(area: AreaDefinition): AreaGameplayAccess {
 }
 
 function isAreaUnlockedByPlayer(area: AreaDefinition): boolean {
-  return isAreaUnlocked(area, playerStore.realm, playerStore.realmLevel)
+  const encounter = getAreaEncounterHint(area)
+  if (!encounter) return isAreaUnlocked(area, playerStore.realm, playerStore.realmLevel)
+
+  return resolveMapAreaUnlock({
+    area: encounter.mapArea,
+    playerRealm: playerStore.realm,
+    playerRealmLevel: playerStore.realmLevel,
+    conqueredAreaIds: mapStore.conqueredAreas,
+    knownAreaIds: mapStore.conqueredAreas,
+    eventIds: worldStore.logs.map(log => log.id),
+    worldFlags: worldStore.worldFlags,
+    completedStoryNodeIds: [...storyStore.completedNodes],
+    currentStoryNodeId: storyStore.currentNodeId,
+    storyClueIds: [...storyStore.unlockedClues],
+    unlockedSectIds: sectStore.unlockedSects,
+    joinedSectId: sectStore.joinedSectId
+  }).unlocked
 }
 
 function getAreaStars(areaId: string): number {
@@ -431,6 +567,10 @@ function getAreaStars(areaId: string): number {
 }
 
 function handleChallenge(area: AreaDefinition) {
+  if (!isAreaUnlockedByPlayer(area)) {
+    warning(`尚未找到前往${area.name}的有效路径`)
+    return
+  }
   const access = getAreaAccess(area)
   if (!access.challengeAllowed) {
     warning(access.entryReason)
@@ -464,6 +604,10 @@ async function openStoryOverlay() {
 }
 
 function handleSweep(area: AreaDefinition) {
+  if (!isAreaUnlockedByPlayer(area)) {
+    warning(`尚未找到前往${area.name}的有效路径`)
+    return
+  }
   const access = getAreaAccess(area)
   const encounter = getAreaEncounterHint(area)
   const result = applySweep(area, access, encounter)
@@ -497,6 +641,40 @@ function getAreaAccess(area: AreaDefinition) {
   return areaAccessLookup.value[area.id] ?? createFallbackAreaAccess(area)
 }
 
+function isMapAreaUnlocked(area: MapArea): boolean {
+  return resolveMapAreaUnlock({
+    area,
+    playerRealm: playerStore.realm,
+    playerRealmLevel: playerStore.realmLevel,
+    conqueredAreaIds: mapStore.conqueredAreas,
+    knownAreaIds: mapStore.conqueredAreas,
+    eventIds: worldStore.logs.map(log => log.id),
+    worldFlags: worldStore.worldFlags,
+    completedStoryNodeIds: [...storyStore.completedNodes],
+    currentStoryNodeId: storyStore.currentNodeId,
+    storyClueIds: [...storyStore.unlockedClues],
+    unlockedSectIds: sectStore.unlockedSects,
+    joinedSectId: sectStore.joinedSectId
+  }).unlocked
+}
+
+function handleTravel() {
+  const origin = travelOriginArea.value
+  if (!origin || !travelDestinationId.value) return
+
+  const result = worldStore.travelTo({ fromAreaId: origin.id, toAreaId: travelDestinationId.value })
+  lastTravelResult.value = result
+  if (!result.travel) return
+
+  if (result.travel.status === 'arrived') {
+    success(`${result.travel.destinationName}已抵达，耗时${result.travel.ticksSpent}个时辰。`)
+  } else if (result.travel.status === 'interrupted') {
+    warning(result.travel.message)
+  } else {
+    warning(result.travel.message)
+  }
+}
+
 onMounted(() => {
   recoverTimer = window.setInterval(() => {
     playerStore.recoverStamina()
@@ -512,9 +690,31 @@ onUnmounted(() => {
 
 <style scoped>
 .adventure-view {
-  display: grid;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  padding-bottom: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.adventure-view > :not(.adventure-area-drawer) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.adventure-area-drawer {
+  min-height: 0;
+  flex: 0 0 auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow: visible;
+  padding: 1px 2px 12px;
 }
 
 .hero-grid {
@@ -631,6 +831,142 @@ onUnmounted(() => {
 .story-embedded-surface :deep(.event-rail),
 .story-embedded-surface :deep(.event-foot) {
   padding-left: 0;
+}
+
+.travel-panel {
+  container: travel-panel / inline-size;
+}
+
+.travel-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.travel-place,
+.travel-destination {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid rgba(104, 150, 145, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #416360;
+}
+
+.travel-place > svg,
+.travel-destination > svg {
+  color: #6c9f91;
+}
+
+.travel-place div,
+.travel-destination {
+  min-width: 0;
+}
+
+.travel-place span,
+.travel-destination span {
+  display: block;
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 10px;
+}
+
+.travel-place strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #35595b;
+  font-family: var(--font-game);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.travel-destination {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.travel-destination select {
+  width: 100%;
+  min-width: 0;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #35595b;
+  font-family: var(--font-game);
+  font-size: 14px;
+}
+
+.travel-destination select:disabled {
+  color: rgba(73, 97, 95, 0.58);
+}
+
+.travel-arrow {
+  padding-bottom: 15px;
+  color: #a9803b;
+  font-size: 20px;
+}
+
+.travel-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.travel-facts > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  border-top: 1px solid rgba(104, 150, 145, 0.18);
+}
+
+.travel-facts span {
+  color: rgba(73, 97, 95, 0.68);
+  font-size: 10px;
+}
+
+.travel-facts strong {
+  overflow: hidden;
+  color: #416360;
+  font-family: var(--font-game);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.travel-risk-safe { color: #4a9873 !important; }
+.travel-risk-watch { color: #a4772d !important; }
+.travel-risk-danger,
+.travel-risk-chaos { color: #b65c4d !important; }
+
+.travel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.travel-footer p {
+  min-width: 0;
+  margin: 0;
+  color: rgba(57, 83, 83, 0.76);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.travel-footer :deep(.game-action-button) {
+  flex: 0 0 auto;
 }
 
 .story-embedded-surface :deep(.event-copy strong) {
@@ -870,6 +1206,42 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
+@container game-stage (max-width: 880px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container game-stage (max-width: 640px) {
+  .travel-route {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .travel-arrow {
+    justify-self: center;
+    padding: 0;
+    transform: rotate(90deg);
+  }
+
+  .travel-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .travel-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .travel-footer :deep(.game-action-button) {
+    width: 100%;
+  }
+}
+
 @media (max-width: 880px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -918,6 +1290,30 @@ onUnmounted(() => {
 
   .hero-stats {
     grid-template-columns: 1fr;
+  }
+
+  .travel-route {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .travel-arrow {
+    justify-self: center;
+    padding: 0;
+    transform: rotate(90deg);
+  }
+
+  .travel-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .travel-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .travel-footer :deep(.game-action-button) {
+    width: 100%;
   }
 
   .section-header {

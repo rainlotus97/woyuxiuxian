@@ -16,7 +16,7 @@
       </div>
       <div class="event-copy">
         <small v-if="showFocusLabel" class="event-focus">{{ data.focusLabel }}</small>
-        <strong>{{ data.headline }}</strong>
+        <strong>{{ displayHeadline }}</strong>
         <div class="event-hook">
           <p class="lead">{{ displayHookLine }}</p>
           <p v-if="showDetailLine" class="muted">{{ data.detailLine }}</p>
@@ -97,6 +97,14 @@ const displayHookLine = computed(() => {
     .trim()
 
   return stripped || hook
+})
+const displayHeadline = computed(() => {
+  const headline = props.data.headline.trim()
+  const location = props.data.locationLabel.trim()
+  if (!props.compact || !location || !headline.startsWith(location)) return headline
+
+  const stripped = headline.slice(location.length).replace(/^[，、；：\s]+/u, '').trim()
+  return stripped || headline
 })
 const compactToplineText = computed(() => (
   props.data.locationLabel || props.data.focusLabel || props.data.eventTypeLabel

@@ -1,0 +1,121 @@
+{
+  "model": "gpt-image-2",
+  "quality": "high",
+  "matteColor": "#00FF00",
+  "board": {
+    "id": "icon-family-board-v1",
+    "size": "1536x1024",
+    "output": "src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png",
+    "prompt": "Create a focused visual style board for a Chinese xianxia game icon family. Show a tidy grid of twelve standalone icons with no labels and no text: mountain peak, ancient sect gate, sword seal, thunder mark, cloud, herb sprig, beast mask, skull sigil, star, void spiral, spirit stone, and mission scroll. The icons share one restrained visual language: muted teal lacquer, ivory parchment, aged gold linework, quiet ink-like painted texture, crisp silhouettes, slightly weathered but readable at 20 to 32 pixels. Each icon is centered in an equal square cell with generous spacing. No UI panels, no buttons, no characters, no scenery, no watermark."
+  },
+  "assets": [
+    {
+      "id": "icon-mountain-v1",
+      "key": "mountain",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/mountain-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/mountain-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone mountain peak sigil for a Chinese xianxia game UI. Strong centered silhouette, muted teal and aged gold, ivory highlight, crisp edges, simple enough to remain legible at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-sect-v1",
+      "key": "sect",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/sect-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/sect-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone ancient sect gate and roof sigil for a Chinese xianxia game UI. Symmetrical, calm, readable silhouette, muted teal lacquer and aged gold, ivory center, no text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-sword-v1",
+      "key": "sword",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/sword-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/sword-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone stylized xianxia sword seal. One centered blade and restrained crossing seal lines, muted teal, ivory, and aged gold, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-thunder-v1",
+      "key": "thunder",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/thunder-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/thunder-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone angular thunder talisman mark for a Chinese xianxia game UI. Compact zig-zag energy seal, muted teal and aged gold with a small ivory highlight, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-cloud-v1",
+      "key": "cloud",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/cloud-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/cloud-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone three-ridge xianxia cloud seal. Elegant compact silhouette, muted teal and ivory with restrained aged gold contour, readable at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-herb-v1",
+      "key": "herb",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/herb-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/herb-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone alchemical herb sprig sigil for a Chinese xianxia game UI. Two or three clear leaves and a short stem, muted teal and jade, tiny aged gold accent, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-beast-v1",
+      "key": "beast",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/beast-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/beast-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone abstract beast mask sigil for a Chinese xianxia game UI. Suggest horns and a calm animal gaze without a detailed face, muted teal, ivory, and aged gold, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-skull-v1",
+      "key": "skull",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/skull-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/skull-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone ominous skull sigil for a Chinese xianxia game UI. Abstract ritual mask rather than a realistic human skull, compact and readable, muted ink teal with aged gold crack accents, no gore, no text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-star-v1",
+      "key": "star",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/star-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/star-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone eight-point celestial star seal for a Chinese xianxia game UI. Quiet centered geometry, muted teal and ivory with restrained aged gold, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-void-v1",
+      "key": "void",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/void-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/void-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone restrained void spiral seal for a Chinese xianxia game UI. One clean inward spiral with a small broken ring, muted ink teal and aged gold, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-spirit-stone-v1",
+      "key": "spirit-stone",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/spirit-stone-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/spirit-stone-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone faceted spirit stone talisman for a Chinese xianxia game UI. Low-poly painted jade shard with an ivory core and restrained aged gold contour, compact silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    },
+    {
+      "id": "icon-mission-v1",
+      "key": "mission",
+      "size": "1024x1024",
+      "output": "src/assets/theme/generated/icons/matte/mission-v1-matte.png",
+      "transparentOutput": "src/assets/theme/generated/icons/transparent/mission-v1.png",
+      "references": ["src/assets/theme/generated/icons/styleboards/icon-family-board-v1.png"],
+      "prompt": "Using the exact icon language from the reference board, create one standalone folded mission scroll seal for a Chinese xianxia game UI. Compact scroll silhouette with one quiet knot, muted teal parchment and aged gold edge, crisp silhouette at 24 pixels. No text, no frame, no badge, no scenery. Put the single icon on a perfectly flat solid #00FF00 chroma-key background with no shadow, texture, gradient, or lighting variation outside the icon."
+    }
+  ]
+}

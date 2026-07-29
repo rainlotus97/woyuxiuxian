@@ -37,7 +37,7 @@ export const SEEDS: SeedDefinition[] = [
   {
     id: 'seed_spirit_grass',
     name: '灵草种子',
-    icon: '🌱',
+    icon: 'herb',
     quality: 'common',
     description: '生长30分钟���可收获灵草',
     growTime: 30,
@@ -45,7 +45,7 @@ export const SEEDS: SeedDefinition[] = [
     harvest: {
       itemId: 'herb_spirit_grass',
       itemName: '灵草',
-      icon: '🌿',
+      icon: 'herb',
       minQuantity: 2,
       maxQuantity: 5
     },
@@ -54,7 +54,7 @@ export const SEEDS: SeedDefinition[] = [
   {
     id: 'seed_spirit_flower',
     name: '灵花种子',
-    icon: '🌸',
+    icon: 'herb',
     quality: 'fine',
     description: '生长2小时后可收获灵花',
     growTime: 120,
@@ -62,7 +62,7 @@ export const SEEDS: SeedDefinition[] = [
     harvest: {
       itemId: 'herb_spirit_flower',
       itemName: '灵花',
-      icon: '🌺',
+      icon: 'herb',
       minQuantity: 1,
       maxQuantity: 3
     },
@@ -71,7 +71,7 @@ export const SEEDS: SeedDefinition[] = [
   {
     id: 'seed_immortal_grass',
     name: '仙草种子',
-    icon: '✨',
+    icon: 'spark',
     quality: 'rare',
     description: '生长8小时后可收获仙草',
     growTime: 480,
@@ -79,7 +79,7 @@ export const SEEDS: SeedDefinition[] = [
     harvest: {
       itemId: 'herb_immortal_grass',
       itemName: '仙草',
-      icon: '🌟',
+      icon: 'spark',
       minQuantity: 1,
       maxQuantity: 2
     },

@@ -14,7 +14,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'misty_forest',
     name: '迷雾森林',
-    icon: '🌲',
+    icon: 'herb',
     description: '常年笼罩在迷雾中的古老森林，据说栖息着各种低阶妖兽。',
     requiredRealm: '炼气',
     requiredRealmLevel: 1,
@@ -24,10 +24,10 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['slime', 'wild_wolf', 'forest_spider'],
     waves: 3,
     drops: [
-      { id: 'herb_grass', name: '灵草', icon: '🌿', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.6, description: '常见的灵草，可用于炼丹' },
-      { id: 'wolf_fang', name: '狼牙', icon: '🦷', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '野狼的牙齿，可用于锻造' },
-      { id: 'spider_silk', name: '蛛丝', icon: '🕸️', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '坚韧的蛛丝，制作装备的材料' },
-      { id: 'wooden_sword', name: '新手木剑', icon: '🗡️', type: 'equipment', quality: 'common', minQuantity: 1, maxQuantity: 1, dropRate: 0.1, description: '普通的木剑' }
+      { id: 'herb_grass', name: '灵草', icon: 'herb', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.6, description: '常见的灵草，可用于炼丹' },
+      { id: 'wolf_fang', name: '狼牙', icon: 'beast', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '野狼的牙齿，可用于锻造' },
+      { id: 'spider_silk', name: '蛛丝', icon: 'beast', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '坚韧的蛛丝，制作装备的材料' },
+      { id: 'wooden_sword', name: '新手木剑', icon: 'sword', type: 'equipment', quality: 'common', minQuantity: 1, maxQuantity: 1, dropRate: 0.1, description: '普通的木剑' }
     ],
     expReward: { min: 10, max: 20 },
     goldReward: { min: 5, max: 15 },
@@ -36,7 +36,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'dark_cave',
     name: '幽暗洞穴',
-    icon: '🕳️',
+    icon: 'void',
     description: '深邃的地下洞穴系统，黑暗中潜伏着危险的生物。',
     requiredRealm: '炼气',
     requiredRealmLevel: 4,
@@ -46,11 +46,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['cave_bat', 'rock_golem', 'shadow_snake'],
     waves: 3,
     drops: [
-      { id: 'iron_ore', name: '铁矿石', icon: '🪨', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '普通的铁矿石' },
-      { id: 'bat_wing', name: '蝙蝠翅膀', icon: '🦇', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '可用于炼制飞行丹药' },
-      { id: 'golem_core', name: '魔像核心', icon: '💎', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.2, description: '蕴含土属性能量的核心' },
-      { id: 'shadow_essence', name: '暗影精华', icon: '🌑', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '稀有的暗属性材料' },
-      { id: 'iron_sword', name: '铁剑', icon: '⚔️', type: 'equipment', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.05, description: '精炼的铁剑' }
+      { id: 'iron_ore', name: '铁矿石', icon: 'spirit-stone', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '普通的铁矿石' },
+      { id: 'bat_wing', name: '蝙蝠翅膀', icon: 'beast', type: 'material', quality: 'common', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '可用于炼制飞行丹药' },
+      { id: 'golem_core', name: '魔像核心', icon: 'spirit-stone', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.2, description: '蕴含土属性能量的核心' },
+      { id: 'shadow_essence', name: '暗影精华', icon: 'moon', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '稀有的暗属性材料' },
+      { id: 'iron_sword', name: '铁剑', icon: 'sword', type: 'equipment', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.05, description: '精炼的铁剑' }
     ],
     expReward: { min: 25, max: 45 },
     goldReward: { min: 15, max: 30 },
@@ -59,7 +59,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'barren_desert',
     name: '荒芜沙漠',
-    icon: '🏜️',
+    icon: 'mountain',
     description: '无尽的黄沙之下，掩埋着古老的遗迹和可怕的沙兽。',
     requiredRealm: '筑基',
     requiredRealmLevel: 1,
@@ -69,11 +69,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['sand_worm', 'desert_scorpion', 'mummy_warrior'],
     waves: 3,
     drops: [
-      { id: 'sand_crystal', name: '沙晶', icon: '🔶', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.5, description: '沙漠中形成的晶体' },
-      { id: 'scorpion_tail', name: '蝎尾', icon: '🦂', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '带有剧毒的蝎尾' },
-      { id: 'ancient_relic', name: '古老遗物', icon: '🏺', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.15, description: '沙漠遗迹中的古老物品' },
-      { id: 'mummy_bandage', name: '绷带残片', icon: '🩹', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '古老的绷带，可用于制作' },
-      { id: 'desert_boots', name: '沙漠靴', icon: '👢', type: 'equipment', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '适合在沙漠中行走的靴子' }
+      { id: 'sand_crystal', name: '沙晶', icon: 'spirit-stone', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.5, description: '沙漠中形成的晶体' },
+      { id: 'scorpion_tail', name: '蝎尾', icon: 'beast', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '带有剧毒的蝎尾' },
+      { id: 'ancient_relic', name: '古老遗物', icon: 'landmark', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.15, description: '沙漠遗迹中的古老物品' },
+      { id: 'mummy_bandage', name: '绷带残片', icon: 'armor', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '古老的绷带，可用于制作' },
+      { id: 'desert_boots', name: '沙漠靴', icon: 'armor', type: 'equipment', quality: 'fine', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '适合在沙漠中行走的靴子' }
     ],
     expReward: { min: 50, max: 80 },
     goldReward: { min: 30, max: 50 },
@@ -82,7 +82,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'frozen_tundra',
     name: '冰封雪原',
-    icon: '❄️',
+    icon: 'cloud',
     description: '永恒的冰雪之地，只有最强大的修仙者才能在此生存。',
     requiredRealm: '筑基',
     requiredRealmLevel: 5,
@@ -92,11 +92,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['ice_wolf', 'frost_giant', 'snow_demon'],
     waves: 3,
     drops: [
-      { id: 'ice_crystal', name: '冰晶', icon: '💠', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '纯净的冰晶' },
-      { id: 'frost_essence', name: '寒霜精华', icon: '🧊', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '蕴含寒冰之力的精华' },
-      { id: 'wolf_pelt', name: '冰狼皮', icon: '🐺', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '保暖的冰狼皮毛' },
-      { id: 'frozen_heart', name: '冰封之心', icon: '💙', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.05, description: '传说中的冰系至宝' },
-      { id: 'frost_armor', name: '寒霜护甲', icon: '🛡️', type: 'equipment', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.06, description: '蕴含寒冰之力的护甲' }
+      { id: 'ice_crystal', name: '冰晶', icon: 'spirit-stone', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '纯净的冰晶' },
+      { id: 'frost_essence', name: '寒霜精华', icon: 'cloud', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '蕴含寒冰之力的精华' },
+      { id: 'wolf_pelt', name: '冰狼皮', icon: 'beast', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '保暖的冰狼皮毛' },
+      { id: 'frozen_heart', name: '冰封之心', icon: 'spirit-stone', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.05, description: '传说中的冰系至宝' },
+      { id: 'frost_armor', name: '寒霜护甲', icon: 'armor', type: 'equipment', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.06, description: '蕴含寒冰之力的护甲' }
     ],
     expReward: { min: 80, max: 120 },
     goldReward: { min: 50, max: 80 },
@@ -105,7 +105,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'lava_volcano',
     name: '熔岩火山',
-    icon: '🌋',
+    icon: 'fire',
     description: '炽热的熔岩在火山口翻滚，火属性妖兽在此肆虐。',
     requiredRealm: '金丹',
     requiredRealmLevel: 1,
@@ -115,11 +115,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['fire_elemental', 'lava_golem', 'phoenix_chick'],
     waves: 3,
     drops: [
-      { id: 'fire_stone', name: '火灵石', icon: '🔴', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '蕴含火属性灵气的石头' },
-      { id: 'lava_core', name: '熔岩核心', icon: '🟠', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '凝固的熔岩精华' },
-      { id: 'phoenix_feather', name: '凤凰羽毛', icon: '🪶', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.1, description: '传说中的凤凰掉落的羽毛' },
-      { id: 'volcanic_ash', name: '火山灰', icon: '⚫', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '可用于炼丹的火山灰' },
-      { id: 'flame_sword', name: '烈焰剑', icon: '🔥', type: 'equipment', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.04, description: '蕴含烈焰之力的宝剑' }
+      { id: 'fire_stone', name: '火灵石', icon: 'fire', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 2, dropRate: 0.4, description: '蕴含火属性灵气的石头' },
+      { id: 'lava_core', name: '熔岩核心', icon: 'fire', type: 'material', quality: 'rare', minQuantity: 1, maxQuantity: 1, dropRate: 0.3, description: '凝固的熔岩精华' },
+      { id: 'phoenix_feather', name: '凤凰羽毛', icon: 'beast', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.1, description: '传说中的凤凰掉落的羽毛' },
+      { id: 'volcanic_ash', name: '火山灰', icon: 'fire', type: 'material', quality: 'fine', minQuantity: 1, maxQuantity: 3, dropRate: 0.5, description: '可用于炼丹的火山灰' },
+      { id: 'flame_sword', name: '烈焰剑', icon: 'fire', type: 'equipment', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.04, description: '蕴含烈焰之力的宝剑' }
     ],
     expReward: { min: 150, max: 220 },
     goldReward: { min: 80, max: 120 },
@@ -128,7 +128,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'immortal_ruins',
     name: '仙界遗迹',
-    icon: '🏛️',
+    icon: 'landmark',
     description: '上古仙人留下的遗迹，藏有无尽宝藏，却也危机四伏。',
     requiredRealm: '金丹',
     requiredRealmLevel: 5,
@@ -138,11 +138,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['ancient_guardian', 'spirit_wraith', 'celestial_beast'],
     waves: 3,
     drops: [
-      { id: 'celestial_jade', name: '天界玉', icon: '💚', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.3, description: '来自仙界的玉石' },
-      { id: 'spirit_essence', name: '灵魄精华', icon: '👻', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '纯净的灵魄凝聚物' },
-      { id: 'immortal_dust', name: '仙尘', icon: '✨', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '仙人留下的神尘' },
-      { id: 'ancient_scroll', name: '古老卷轴', icon: '📜', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.15, description: '记载着古老功法的卷轴' },
-      { id: 'celestial_blade', name: '天界之刃', icon: '⚔️', type: 'equipment', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.02, description: '传说中天界遗落的神器' }
+      { id: 'celestial_jade', name: '天界玉', icon: 'spirit-stone', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.3, description: '来自仙界的玉石' },
+      { id: 'spirit_essence', name: '灵魄精华', icon: 'spark', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.25, description: '纯净的灵魄凝聚物' },
+      { id: 'immortal_dust', name: '仙尘', icon: 'spark', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '仙人留下的神尘' },
+      { id: 'ancient_scroll', name: '古老卷轴', icon: 'mission', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.15, description: '记载着古老功法的卷轴' },
+      { id: 'celestial_blade', name: '天界之刃', icon: 'sword', type: 'equipment', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.02, description: '传说中天界遗落的神器' }
     ],
     expReward: { min: 300, max: 500 },
     goldReward: { min: 150, max: 250 },
@@ -151,7 +151,7 @@ export const AREAS: AreaDefinition[] = [
   {
     id: 'abyss_depths',
     name: '深渊之底',
-    icon: '🌀',
+    icon: 'void',
     description: '连接魔界的裂隙，最危险的禁地之一。',
     requiredRealm: '元婴',
     requiredRealmLevel: 1,
@@ -161,11 +161,11 @@ export const AREAS: AreaDefinition[] = [
     enemies: ['demon_lord', 'void_walker', 'chaos_serpent'],
     waves: 3,
     drops: [
-      { id: 'demon_blood', name: '魔血', icon: '🩸', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.35, description: '蕴含魔气的血液' },
-      { id: 'void_crystal', name: '虚空晶', icon: '💜', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.12, description: '从虚空中凝聚的晶体' },
-      { id: 'chaos_essence', name: '混沌精华', icon: '🔮', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '混沌之力凝聚的精华' },
-      { id: 'demon_soul', name: '魔魂', icon: '😈', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.2, description: '被捕获的魔族灵魂' },
-      { id: 'abyss_crown', name: '深渊之冠', icon: '👑', type: 'equipment', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.015, description: '魔界之王的遗物' }
+      { id: 'demon_blood', name: '魔血', icon: 'skull', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 2, dropRate: 0.35, description: '蕴含魔气的血液' },
+      { id: 'void_crystal', name: '虚空晶', icon: 'void', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.12, description: '从虚空中凝聚的晶体' },
+      { id: 'chaos_essence', name: '混沌精华', icon: 'void', type: 'material', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.08, description: '混沌之力凝聚的精华' },
+      { id: 'demon_soul', name: '魔魂', icon: 'skull', type: 'material', quality: 'epic', minQuantity: 1, maxQuantity: 1, dropRate: 0.2, description: '被捕获的魔族灵魂' },
+      { id: 'abyss_crown', name: '深渊之冠', icon: 'reputation', type: 'equipment', quality: 'legendary', minQuantity: 1, maxQuantity: 1, dropRate: 0.015, description: '魔界之王的遗物' }
     ],
     expReward: { min: 500, max: 800 },
     goldReward: { min: 300, max: 500 },

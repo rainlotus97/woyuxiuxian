@@ -1,12 +1,11 @@
 import type { Element, Quality, Realm, UnitStats } from './unit'
+import type { ContentDefinition, DefinitionSkillRefs } from './definition'
 
 export type PetSpecies = 'fox' | 'wolf' | 'bird' | 'dragon' | 'tortoise'
 export type PetTemperament = 'fierce' | 'gentle' | 'cunning' | 'steady' | 'wild'
 export type PetTrait = 'fighter' | 'guardian' | 'swift' | 'support' | 'lucky'
 
-export interface PetDefinition {
-  id: string
-  name: string
+export interface PetDefinition extends ContentDefinition, DefinitionSkillRefs {
   icon: string
   species: PetSpecies
   realm: Realm
@@ -46,11 +45,21 @@ export interface OwnedPet {
   equipped: boolean
 }
 
-export const PET_DEFINITIONS: PetDefinition[] = [
+function normalizePetDefinition(definition: PetDefinition): PetDefinition {
+  const skillIds = [...new Set(definition.skillIds ?? definition.skills ?? [])]
+  return {
+    ...definition,
+    skillIds,
+    skills: [...skillIds],
+    affiliation: definition.affiliation ?? { organizationKind: 'independent' }
+  }
+}
+
+const RAW_PET_DEFINITIONS: PetDefinition[] = [
   {
     id: 'pet_cloud_fox',
     name: '踏云灵狐',
-    icon: '🦊',
+    icon: 'beast',
     species: 'fox',
     realm: '炼气',
     realmLevel: 5,
@@ -80,7 +89,7 @@ export const PET_DEFINITIONS: PetDefinition[] = [
   {
     id: 'pet_ironback_wolf',
     name: '铁脊苍狼',
-    icon: '🐺',
+    icon: 'beast',
     species: 'wolf',
     realm: '炼气',
     realmLevel: 7,
@@ -105,12 +114,13 @@ export const PET_DEFINITIONS: PetDefinition[] = [
       defense: 4,
       speed: 1
     },
-    skills: ['basic_sword', 'shield']
+    skills: ['basic_sword', 'shield'],
+    affiliation: { organizationId: 'beast_king_mountain', organizationKind: 'sect' }
   },
   {
     id: 'pet_mist_crane',
     name: '雾羽灵鹤',
-    icon: '🪽',
+    icon: 'beast',
     species: 'bird',
     realm: '筑基',
     realmLevel: 2,
@@ -138,6 +148,8 @@ export const PET_DEFINITIONS: PetDefinition[] = [
     skills: ['heal', 'shield']
   }
 ]
+
+export const PET_DEFINITIONS: PetDefinition[] = RAW_PET_DEFINITIONS.map(normalizePetDefinition)
 
 export function getPetDefinitionById(id: string): PetDefinition | undefined {
   return PET_DEFINITIONS.find(def => def.id === id)

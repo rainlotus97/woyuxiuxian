@@ -1,5 +1,6 @@
 import type { WorldRealm } from '@/types/map'
-import type { Element, UnitStats } from '@/types/unit'
+import type { Element, StatusEffectType, UnitStats } from '@/types/unit'
+import type { ContentDefinition, DefinitionSkillRefs } from './definition'
 
 
 // ====== 伙伴品质 ======
@@ -19,10 +20,22 @@ export const COMPANION_QUALITY_CONFIG: Record<CompanionQuality, { baseStatMult: 
 // 伙伴专长
 export type CompanionSpecialty = '战斗' | '炼丹' | '锻造' | '符箓' | '阵法' | '探索' | '辅助'
 
-// 伙伴定义
-export interface CompanionDefinition {
+export type CompanionRelationshipSkillKind = 'heal' | 'shield' | 'control' | 'buff' | 'summon'
+
+export interface CompanionRelationshipSkill {
   id: string
   name: string
+  kind: CompanionRelationshipSkillKind
+  icon: string
+  bondRequired: number
+  value: number
+  duration?: number
+  statusType?: Extract<StatusEffectType, 'buff_atk' | 'buff_def' | 'buff_spd'>
+  description: string
+}
+
+// 伙伴定义
+export interface CompanionDefinition extends ContentDefinition, DefinitionSkillRefs {
   icon: string
   quality: CompanionQuality
   realm: WorldRealm         // 来源界域
@@ -40,6 +53,7 @@ export interface CompanionDefinition {
   element: Element
   // 技能
   skills: string[]
+  relationshipSkills: CompanionRelationshipSkill[]
   // 背景故事
   backstory: string
   // 喜欢的礼物类型
@@ -113,7 +127,18 @@ export const GACHA_CONFIG = {
   }
 } as const
 
-export const COMPANIONS: CompanionDefinition[] = [
+function normalizeCompanionDefinition(definition: CompanionDefinition): CompanionDefinition {
+  const skillIds = [...new Set(definition.skillIds ?? definition.skills ?? [])]
+  return {
+    ...definition,
+    skillIds,
+    skills: [...skillIds],
+    relationshipSkills: [...(definition.relationshipSkills ?? [])],
+    affiliation: definition.affiliation ?? { organizationKind: 'independent' }
+  }
+}
+
+const RAW_COMPANIONS: CompanionDefinition[] = [
   {
     id: 'companion_bai_ruoli',
     name: '白若璃',
@@ -131,7 +156,29 @@ export const COMPANIONS: CompanionDefinition[] = [
       critDamage: 1.55
     },
     element: '木',
-    skills: [],
+    skills: ['heal'],
+    relationshipSkills: [
+      {
+        id: 'bai_ruoli_healing_breath',
+        name: '回春息',
+        kind: 'heal',
+        icon: 'heal',
+        bondRequired: 0,
+        value: 18,
+        description: '以药息稳住主角气血，恢复最大气血的 18%。'
+      },
+      {
+        id: 'bai_ruoli_jade_guard',
+        name: '玉脉护身',
+        kind: 'shield',
+        icon: 'armor',
+        bondRequired: 35,
+        value: 14,
+        duration: 3,
+        description: '结成玉脉护持，获得相当于最大气血 14% 的护盾，持续 3 回合。'
+      }
+    ],
+    affiliation: { organizationId: 'medicine_valley', organizationKind: 'sect' },
     backstory: '药王谷真传，擅药理、晓人心。她会先替你稳住伤势，再慢慢把宗门、药脉和人情债一并带进命里。'
   },
   {
@@ -151,7 +198,30 @@ export const COMPANIONS: CompanionDefinition[] = [
       critDamage: 1.68
     },
     element: '水',
-    skills: [],
+    skills: ['basic_sword', 'sword_qi'],
+    relationshipSkills: [
+      {
+        id: 'lin_qinghan_frost_lock',
+        name: '霜意定势',
+        kind: 'control',
+        icon: 'ice',
+        bondRequired: 0,
+        value: 1,
+        description: '压住眼前一处危险，使下一次世界推进更偏向可控结果。'
+      },
+      {
+        id: 'lin_qinghan_sword_intent',
+        name: '同锋剑意',
+        kind: 'buff',
+        icon: 'sword',
+        bondRequired: 45,
+        value: 0.12,
+        duration: 3,
+        statusType: 'buff_atk',
+        description: '以同锋剑意提振攻势，攻击提高 12%，持续 3 回合。'
+      }
+    ],
+    affiliation: { organizationId: 'qingyun_sect', organizationKind: 'sect' },
     backstory: '青云山剑阁真传，剑意清寒。若被她认作同路之人，她的剑会替你挡很多本该落在身上的杀机。'
   },
   {
@@ -171,10 +241,36 @@ export const COMPANIONS: CompanionDefinition[] = [
       critDamage: 1.8
     },
     element: '雷',
-    skills: [],
+    skills: ['shadow_strike', 'critical_eye'],
+    relationshipSkills: [
+      {
+        id: 'ye_wuhen_shadow_double',
+        name: '影替',
+        kind: 'summon',
+        icon: 'beast',
+        bondRequired: 0,
+        value: 1,
+        duration: 1,
+        description: '召来一道影替同行，记录一次额外援手并降低下一次赶路的失手风险。'
+      },
+      {
+        id: 'ye_wuhen_silent_step',
+        name: '无声步',
+        kind: 'buff',
+        icon: 'wind',
+        bondRequired: 40,
+        value: 0.15,
+        duration: 3,
+        statusType: 'buff_spd',
+        description: '借影遁提升身法，速度提高 15%，持续 3 回合。'
+      }
+    ],
+    affiliation: { organizationKind: 'independent' },
     backstory: '影城来客，行踪极轻，话也极少。他更像一道会在关键时刻从暗处伸来的影子，先帮你过局，再慢慢谈代价。'
   }
 ]
+
+export const COMPANIONS: CompanionDefinition[] = RAW_COMPANIONS.map(normalizeCompanionDefinition)
 
 // ====== 工具函数 ======
 

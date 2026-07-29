@@ -20,7 +20,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
   abyss_guard: {
     id: 'abyss_guard',
     name: '深渊魔侍',
-    icon: '👺',
+    icon: 'skull',
     element: '火',
     realm: '金丹',
     realmLevel: 3,
@@ -45,7 +45,7 @@ export const SUMMON_DEFINITIONS: Record<string, SummonDefinition> = {
   spirit_sword: {
     id: 'spirit_sword',
     name: '灵剑化身',
-    icon: '🗡️',
+    icon: 'sword',
     element: '金',
     realm: '筑基',
     realmLevel: 5,

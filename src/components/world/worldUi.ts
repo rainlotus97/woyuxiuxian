@@ -55,12 +55,12 @@ export function formatJourneyRewards(rewards?: Array<{ label: string; value: num
 
 export function getAnomalyIcon(type: WorldAreaAnomaly['type']) {
   const icons: Record<WorldAreaAnomaly['type'], string> = {
-    flood: '🌊',
-    fire: '🔥',
-    beast_tide: '🐾',
-    ruins: '🏛️',
-    spiritual_vein: '✨',
-    bandit: '🗡️'
+    flood: 'cloud',
+    fire: 'fire',
+    beast_tide: 'beast',
+    ruins: 'landmark',
+    spiritual_vein: 'spark',
+    bandit: 'sword'
   }
   return icons[type]
 }

@@ -15,7 +15,7 @@ import { ELEMENT_COLORS, QUALITY_COLORS, REALM_ORDER } from '@/types/unit'
 import type { CharacterProgressionSource } from '@/character/runtime/characterProgressionResolver'
 import { resolveInventorySchemaSummary } from '@/character/runtime/inventorySchemaSummaryResolver'
 
-export type CharacterPanelTab = 'overview' | 'inventory' | 'skills'
+export type CharacterPanelTab = 'overview' | 'inventory' | 'skills' | 'companions'
 export type InventoryFilter = 'all' | InventoryItem['type']
 
 export interface CharacterStatItem {

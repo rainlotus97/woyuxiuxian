@@ -12,7 +12,7 @@
           <strong>{{ faction }}</strong>
         </span>
         <span class="story-profile-fallback-crest" :style="{ background: accentBg }">
-          <i>{{ icon }}</i>
+          <GameIcon class="story-profile-fallback-crest-icon" :icon="icon" :size="42" />
           <em>{{ quality }}</em>
         </span>
         <span class="story-profile-fallback-copy">
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 const props = defineProps<{
   name: string
@@ -136,7 +137,7 @@ const accentBg = computed(() => {
   background: radial-gradient(circle at top, rgba(235, 244, 239, 0.88), rgba(222, 233, 229, 0.92));
 }
 
-.story-profile-fallback-crest i {
+.story-profile-fallback-crest-icon {
   color: #7b5223;
   font-size: 54px;
   font-style: normal;

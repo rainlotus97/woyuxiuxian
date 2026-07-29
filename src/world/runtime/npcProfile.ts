@@ -153,6 +153,8 @@ export const DEFAULT_PROFILE_EXTENSIONS: Pick<NpcDefinition['profile'], 'bloodli
   factionStance: 'neutral'
 }
 
+const DEFAULT_NPC_AFFILIATION = { organizationKind: 'independent' } as const
+
 export function getRootGradeLabel(grade: RootGrade) {
   return ROOT_GRADE_LABELS[grade]
 }
@@ -186,8 +188,17 @@ export function getGrowthFlawLabel(flaw: GrowthFlaw) {
 }
 
 export function normalizeNpcDefinitionProfile(definition: NpcDefinition): NpcDefinition {
+  const affiliation = definition.affiliation ?? (definition.sectId
+    ? { organizationId: definition.sectId, organizationKind: 'sect' as const }
+    : DEFAULT_NPC_AFFILIATION)
+  const skillIds = [...new Set(definition.skillIds ?? definition.skills ?? [])]
+
   return {
     ...definition,
+    sectId: definition.sectId ?? (affiliation.organizationKind === 'sect' ? affiliation.organizationId : undefined),
+    affiliation: { ...affiliation },
+    skillIds,
+    skills: [...skillIds],
     aptitude: {
       ...DEFAULT_APTITUDE_EXTENSIONS,
       ...definition.aptitude,

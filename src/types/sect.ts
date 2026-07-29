@@ -1,5 +1,6 @@
 import type { WorldRealm } from '@/types/map'
 import type { Realm } from '@/types/unit'
+import type { ContentDefinition, DefinitionSkillRefs } from './definition'
 
 export type { WorldRealm } from '@/types/map'
 export type { Realm } from '@/types/unit'
@@ -54,7 +55,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'alchemy_furnace',
     name: '炼丹炉',
-    icon: '🔥',
+    icon: 'fire',
     type: 'alchemy',
     level: 1,
     maxLevel: 5,
@@ -69,7 +70,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'weapon_forge',
     name: '锻造坊',
-    icon: '⚒️',
+    icon: 'forge',
     type: 'forge',
     level: 1,
     maxLevel: 5,
@@ -84,7 +85,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'medicine_garden',
     name: '药园',
-    icon: '🌿',
+    icon: 'herb',
     type: 'medicine_garden',
     level: 1,
     maxLevel: 5,
@@ -99,7 +100,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'library',
     name: '藏经阁',
-    icon: '📚',
+    icon: 'book',
     type: 'library',
     level: 1,
     maxLevel: 5,
@@ -114,7 +115,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'training_ground',
     name: '演武场',
-    icon: '⚔️',
+    icon: 'sword',
     type: 'training',
     level: 1,
     maxLevel: 5,
@@ -129,7 +130,7 @@ export const SECT_FACILITIES: SectFacility[] = [
   {
     id: 'treasury',
     name: '宝库',
-    icon: '💎',
+    icon: 'spirit-stone',
     type: 'treasury',
     level: 1,
     maxLevel: 5,
@@ -246,7 +247,7 @@ export interface SectEvent {
 }
 
 // 宗门定义
-export interface SectDefinition {
+export interface SectDefinition extends ContentDefinition, DefinitionSkillRefs {
   id: string
   name: string
   icon: string
@@ -271,12 +272,34 @@ export interface SectDefinition {
   background: string
 }
 
+const SECT_SKILL_IDS: Record<SectSpecialty, string[]> = {
+  炼丹: ['heal', 'team_heal'],
+  锻造: ['basic_sword', 'iron_skin'],
+  符箓: ['fireball', 'ancient_curse'],
+  阵法: ['shield', 'ancient_seal'],
+  御兽: ['basic_sword', 'shield'],
+  剑修: ['basic_sword', 'sword_qi'],
+  体修: ['basic_sword', 'iron_skin'],
+  魔修: ['shadow_strike', 'hellfire']
+}
+
+export function normalizeSectDefinition(definition: SectDefinition): SectDefinition {
+  return {
+    ...definition,
+    skillIds: [...new Set(definition.skillIds ?? SECT_SKILL_IDS[definition.specialty] ?? [])],
+    affiliation: definition.affiliation ?? {
+      organizationId: definition.id,
+      organizationKind: 'sect'
+    }
+  }
+}
+
 // 人界宗门
 export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'qingyun_sect',
     name: '青云宗',
-    icon: '🏔️',
+    icon: 'mountain',
     realm: '人界',
     areaId: 'qingyun_mountain',
     description: '人界第一正道宗门，以剑道闻名天下。',
@@ -294,7 +317,7 @@ export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'medicine_valley',
     name: '药王谷',
-    icon: '💊',
+    icon: 'alchemy',
     realm: '人界',
     areaId: 'azure_valley',
     description: '以炼丹术著称的宗门，天下丹药半出药王谷。',
@@ -312,7 +335,7 @@ export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'forge_sect',
     name: '铸剑门',
-    icon: '⚒️',
+    icon: 'forge',
     realm: '人界',
     areaId: 'flame_city',
     description: '锻造圣地，无数名剑诞生于此。',
@@ -330,7 +353,7 @@ export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'cloud_palace',
     name: '云霄宫',
-    icon: '☁️',
+    icon: 'cloud',
     realm: '人界',
     areaId: 'cloud_peak',
     description: '坐落于云霄峰上的神秘宗门，精通法术。',
@@ -348,7 +371,7 @@ export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'thunder_sect',
     name: '雷音阁',
-    icon: '⚡',
+    icon: 'thunder',
     realm: '人界',
     areaId: 'thunder_plains',
     description: '雷修圣地，掌控雷霆之力。',
@@ -366,7 +389,7 @@ export const HUMAN_SECTS: SectDefinition[] = [
   {
     id: 'sky_temple_sect',
     name: '天机阁',
-    icon: '🔮',
+    icon: 'formation',
     realm: '人界',
     areaId: 'sky_temple',
     description: '精通卜算之术的神秘宗门，能窥探天机。',
@@ -388,7 +411,7 @@ export const DEMON_SECTS: SectDefinition[] = [
   {
     id: 'beast_king_mountain',
     name: '兽王山',
-    icon: '🦁',
+    icon: 'beast',
     realm: '妖界',
     areaId: 'hundred_beast_forest',
     description: '万妖之王建立的势力，妖界最强势力之一。',
@@ -406,7 +429,7 @@ export const DEMON_SECTS: SectDefinition[] = [
   {
     id: 'fox_clan',
     name: '青丘狐族',
-    icon: '🦊',
+    icon: 'beast',
     realm: '妖界',
     areaId: 'fox_den',
     description: '九尾狐族的领地，美丽而神秘。',
@@ -424,7 +447,7 @@ export const DEMON_SECTS: SectDefinition[] = [
   {
     id: 'dragon_palace',
     name: '龙宫',
-    icon: '🐉',
+    icon: 'beast',
     realm: '妖界',
     areaId: 'dragon_pool',
     description: '龙族的领地，妖界最强种族。',
@@ -442,7 +465,7 @@ export const DEMON_SECTS: SectDefinition[] = [
   {
     id: 'phoenix_clan',
     name: '凤凰一族',
-    icon: '🦅',
+    icon: 'beast',
     realm: '妖界',
     areaId: 'phoenix_nest',
     description: '凤凰一族的圣地，火焰永不熄灭。',
@@ -464,7 +487,7 @@ export const DEVIL_SECTS: SectDefinition[] = [
   {
     id: 'blood_sect',
     name: '血魔宗',
-    icon: '🩸',
+    icon: 'skull',
     realm: '魔界',
     areaId: 'blood_sea',
     description: '修炼血道的魔宗，以血为力。',
@@ -482,7 +505,7 @@ export const DEVIL_SECTS: SectDefinition[] = [
   {
     id: 'shadow_guild',
     name: '影盟',
-    icon: '🌑',
+    icon: 'moon',
     realm: '魔界',
     areaId: 'shadow_city',
     description: '暗杀者的组织，潜伏于黑暗之中。',
@@ -500,7 +523,7 @@ export const DEVIL_SECTS: SectDefinition[] = [
   {
     id: 'chaos_temple',
     name: '混沌殿',
-    icon: '🌀',
+    icon: 'void',
     realm: '魔界',
     areaId: 'chaos_abyss',
     description: '修炼混沌之道的宗门，追求混沌大道。',
@@ -522,7 +545,7 @@ export const IMMORTAL_SECTS: SectDefinition[] = [
   {
     id: 'heavenly_court',
     name: '天庭',
-    icon: '🏛️',
+    icon: 'landmark',
     realm: '仙界',
     areaId: 'jade_palace',
     description: '仙界最高权力机构，统御三界。',
@@ -540,7 +563,7 @@ export const IMMORTAL_SECTS: SectDefinition[] = [
   {
     id: 'star_sect',
     name: '星辰宗',
-    icon: '✨',
+    icon: 'spark',
     realm: '仙界',
     areaId: 'star_sea',
     description: '修炼星辰之力的宗门，掌控星辰之力。',
@@ -558,7 +581,7 @@ export const IMMORTAL_SECTS: SectDefinition[] = [
   {
     id: 'void_sect',
     name: '虚空宗',
-    icon: '🌀',
+    icon: 'void',
     realm: '仙界',
     areaId: 'void_temple',
     description: '修炼虚空之道的宗门，追求大道至理。',
@@ -581,7 +604,7 @@ export const ALL_SECTS: SectDefinition[] = [
   ...DEMON_SECTS,
   ...DEVIL_SECTS,
   ...IMMORTAL_SECTS
-]
+].map(normalizeSectDefinition)
 
 // ====== 工具函数 ======
 

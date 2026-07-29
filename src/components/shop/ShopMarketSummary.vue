@@ -1,112 +1,112 @@
 <template>
-  <div class="market-summary">
-    <div class="wallet-strip">
-      <div>
-        <span>灵石</span>
-        <strong>{{ gold }}</strong>
-      </div>
-      <div>
-        <span>贡献</span>
-        <strong>{{ contribution }}</strong>
-      </div>
+  <section class="market-brief" aria-label="坊市货架概况">
+    <div class="market-brief-stat">
+      <span>当前货架</span>
+      <strong>{{ visibleCount }}/{{ totalCount }} 件</strong>
     </div>
-
-    <div class="market-pulse">
-      <div>
-        <span>在售</span>
-        <strong>{{ visibleCount }}/{{ totalCount }}</strong>
-      </div>
-      <div>
-        <span>换货</span>
-        <strong>{{ nextRefreshHint }}</strong>
-      </div>
+    <div class="market-brief-stat">
+      <span>下次换货</span>
+      <strong>{{ nextRefreshHint }}</strong>
     </div>
-
-    <div class="market-tags">
-      <span v-for="tag in visibleTags" :key="tag">{{ tag }}</span>
-      <span v-if="!visibleTags.length">散修市价</span>
-    </div>
-  </div>
+    <button
+      type="button"
+      class="market-brief-detail"
+      aria-label="查看本轮市况"
+      title="查看本轮市况"
+      @click="$emit('details')"
+    >
+      <GameIcon icon="scroll" :size="16" />
+      <span>市况</span>
+    </button>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 
-const props = defineProps<{
-  gold: number
-  contribution: number
+defineProps<{
   totalCount: number
   visibleCount: number
   nextRefreshHint: string
-  tags: string[]
 }>()
 
-const visibleTags = computed(() => props.tags.slice(0, 4))
+defineEmits<{
+  details: []
+}>()
 </script>
 
 <style scoped>
-.market-summary {
+.market-brief {
   display: grid;
-  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
-  gap: 10px;
-  align-items: stretch;
-}
-
-.wallet-strip,
-.market-pulse,
-.market-tags {
-  border: 1px solid rgba(189, 141, 58, 0.2);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.wallet-strip,
-.market-pulse {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
-}
-
-.wallet-strip div,
-.market-pulse div {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
   min-width: 0;
+  padding: 0.35rem 0.42rem;
+  border: 1px solid rgba(123, 153, 145, 0.18);
+  border-radius: 0.78rem;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.market-brief-stat {
   display: grid;
-  gap: 4px;
+  min-width: 0;
+  gap: 0.12rem;
+  padding: 0.24rem 0.48rem;
+  border-right: 1px solid rgba(123, 153, 145, 0.14);
 }
 
-.wallet-strip span,
-.market-pulse span {
-  color: rgba(95, 80, 54, 0.68);
-  font-size: 11px;
+.market-brief-stat span {
+  color: rgba(73, 97, 95, 0.62);
+  font-size: 0.58rem;
 }
 
-.wallet-strip strong,
-.market-pulse strong {
+.market-brief-stat strong {
+  min-width: 0;
+  overflow: hidden;
   color: #80602e;
-  font-size: 16px;
+  font-size: 0.72rem;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.market-tags {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
+.market-brief-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  min-height: 2.1rem;
+  padding: 0 0.52rem;
+  border: 1px solid rgba(123, 153, 145, 0.22);
+  border-radius: 0.62rem;
+  background: rgba(237, 247, 239, 0.78);
+  color: #4d8175;
+  font-family: var(--font-game);
+  font-size: 0.66rem;
+  cursor: pointer;
 }
 
-.market-tags span {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(255, 249, 226, 0.78);
-  color: #80602e;
-  font-size: 11px;
+.market-brief-detail:active {
+  transform: translateY(1px);
 }
 
-@media (max-width: 720px) {
-  .market-summary {
-    grid-template-columns: 1fr;
+@container game-stage (max-width: 350px) {
+  .market-brief {
+    gap: 0.28rem;
+  }
+
+  .market-brief-stat {
+    padding-inline: 0.3rem;
+  }
+
+  .market-brief-detail {
+    padding-inline: 0.4rem;
+  }
+
+  .market-brief-detail span {
+    display: none;
   }
 }
 </style>

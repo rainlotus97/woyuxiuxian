@@ -17,7 +17,7 @@
         @click="ending.unlocked && $emit('select', ending)"
       >
         <div class="ending-icon">
-          {{ getEndingIcon(ending.type) }}
+          <GameIcon :icon="getEndingIcon(ending.type)" :size="32" />
         </div>
         <div class="ending-info">
           <h3 class="ending-name">
@@ -40,6 +40,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useStoryStore } from '@/story/storyStore'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 defineEmits<{
   close: []
@@ -58,11 +59,11 @@ const progressPercent = computed(() =>
 
 function getEndingIcon(type: string): string {
   const icons: Record<string, string> = {
-    normal: '📖',
-    hidden: '⭐',
-    true: '👑'
+    normal: 'book',
+    hidden: 'star',
+    true: 'reputation'
   }
-  return icons[type] || '📖'
+  return icons[type] || 'book'
 }
 
 function getTypeLabel(type: string): string {

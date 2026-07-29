@@ -6,6 +6,7 @@ type Subdivision = '1m' | '1n' | '1n.' | `${2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 type ToneModule = typeof ToneNs
 let T: ToneModule | null = null
 let toneStarted = false
+let audioGestureReady = false
 
 const loadTone = async (): Promise<ToneModule> => {
   if (!T) {
@@ -16,11 +17,23 @@ const loadTone = async (): Promise<ToneModule> => {
 
 const ensureToneStarted = async (): Promise<ToneModule> => {
   const Tone = await loadTone()
-  if (!toneStarted) {
+  if (!toneStarted && audioGestureReady) {
     await Tone.start()
     toneStarted = true
   }
   return Tone
+}
+
+const markAudioGesture = (): void => {
+  audioGestureReady = true
+  if (T && !toneStarted) {
+    void ensureToneStarted()
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', markAudioGesture, { once: true, capture: true })
+  window.addEventListener('keydown', markAudioGesture, { once: true, capture: true })
 }
 
 // ====== 本地存储键名 ======
@@ -70,8 +83,12 @@ const playSfx = (options: SfxOptions): void => {
 
   // 自动初始化 Tone.js（用户交互后才能启动 AudioContext）
   if (!T) {
-    void ensureToneStarted()
+    void loadTone()
     // Tone.js 尚未初始化，跳过本次播放（用户需要再次点击）
+    return
+  }
+  if (!toneStarted) {
+    void ensureToneStarted()
     return
   }
 
@@ -105,6 +122,10 @@ const playChord = (freqs: number[], duration: number, type: WaveType = 'sine', v
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
+    void loadTone()
+    return
+  }
+  if (!toneStarted) {
     void ensureToneStarted()
     return
   }
@@ -128,6 +149,10 @@ const playGlissando = (startFreq: number, endFreq: number, duration: number, typ
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
+    void loadTone()
+    return
+  }
+  if (!toneStarted) {
     void ensureToneStarted()
     return
   }
@@ -155,6 +180,10 @@ const playNoise = (duration: number, type: 'white' | 'pink' | 'brown' = 'brown',
   if (!sfxEnabled.value || document.hidden) return
 
   if (!T) {
+    void loadTone()
+    return
+  }
+  if (!toneStarted) {
     void ensureToneStarted()
     return
   }
@@ -2428,6 +2457,12 @@ const playBgmLoop = async (type: BgmType): Promise<void> => {
   try {
     Tone = await ensureToneStarted()
   } catch {
+    bgmPlaying = false
+    currentBgmType.value = null
+    return
+  }
+
+  if (!toneStarted) {
     bgmPlaying = false
     currentBgmType.value = null
     return

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watchEffect, toRaw } from 'vue'
 import type {
   CompanionDefinition,
+  CompanionRelationshipSkill,
   OwnedCompanion,
   GachaResult
 } from '@/types/companion'
@@ -402,6 +403,24 @@ export const useCompanionStore = defineStore('companion', () => {
     return [...new Set([...nativeSkills, ...learnedSkills])]
   }
 
+  function getRelationshipSkills(companionId: string): CompanionRelationshipSkill[] {
+    return getCompanionById(companionId)?.relationshipSkills ?? []
+  }
+
+  function activateRelationshipSkill(companionId: string, skillId: string): {
+    success: boolean
+    message: string
+    skill?: CompanionRelationshipSkill
+  } {
+    const companion = ownedCompanions.value.find(item => item.definitionId === companionId)
+    const skill = getRelationshipSkills(companionId).find(item => item.id === skillId)
+    if (!companion || !skill) return { success: false, message: '关系技能不存在' }
+    if (companion.bond < skill.bondRequired) {
+      return { success: false, message: `好感度达到${skill.bondRequired}后解锁` }
+    }
+    return { success: true, message: `${skill.name}已施展`, skill }
+  }
+
   // 扩展技能槽（通过升星）
   function expandSkillSlots(companionId: string): boolean {
     const companion = ownedCompanions.value.find(c => c.definitionId === companionId)
@@ -451,6 +470,8 @@ export const useCompanionStore = defineStore('companion', () => {
     learnSkill,
     forgetSkill,
     getCompanionAllSkills,
+    getRelationshipSkills,
+    activateRelationshipSkill,
     expandSkillSlots,
     saveToStorage
   }

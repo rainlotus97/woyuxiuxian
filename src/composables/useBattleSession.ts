@@ -23,12 +23,12 @@ import {
 } from '@/composables/useAudio'
 import {
   createBattleInstanceId,
-  clearBattleSceneReady,
+  clearBattleRendererReady,
   gameEvents,
   getActiveBattleInstanceId,
-  isBattleSceneReady,
+  isBattleRendererReady,
   setActiveBattleInstanceId,
-  type BattleSceneCommand
+  type BattleRenderCommand
 } from '@/game/engine/gameEvents'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useCompanionStore } from '@/stores/companionStore'
@@ -53,12 +53,15 @@ import { getSkillById } from '@/types/skill'
 import { getAreaById, rollReward, type AreaDefinition } from '@/types/adventure'
 import { getManualTargetType, getSelectableTargets, type SelectableBattleTarget } from '@/game/battle/targeting'
 import { resolveBattleBgmType } from '@/game/theme/gameTheme'
+import { getWorldWeatherProfile } from '@/world/runtime/weatherCatalog'
 import { buildCompanionBattleUnit, buildPetBattleUnit } from '@/game/battle/allyRosterFactory'
 import {
   resolveBattleSkillProgression,
   toSkillProgressInput
 } from '@/character/runtime/characterSkillProgressResolver'
 import { createInventoryItemsFromDrops } from '@/character/runtime/inventoryDropResolver'
+import type { DropNamingKind } from '@/game/battle/config/dropNaming'
+import type { InventoryItem } from '@/stores/playerStore'
 import { resolveBattleJourney, type BattleJourneyDrop } from '@/game/battle/battleJourneyResolver'
 import {
   completeRouteGameplaySession,
@@ -84,8 +87,13 @@ interface BattleTargetOption {
   id: string
   name: string
   icon: string
+  markerText?: string
   portraitKey?: string
   side: 'ally' | 'enemy'
+  avatarUrl?: string
+  currentHp: number
+  maxHp: number
+  statusEffects: BattleRuntimeUnit['statusEffects']
 }
 
 export function useBattleSession() {
@@ -108,6 +116,7 @@ export function useBattleSession() {
   const autoBattle = ref(localStorage.getItem('autoBattle') === 'true')
   const battleSpeed = ref<1 | 2 | 3>(localStorage.getItem('battleSpeed') === '3' ? 3 : localStorage.getItem('battleSpeed') === '2' ? 2 : 1)
   const pendingRewards = ref({ cultivation: 0, gold: 0 })
+  const battleDropItems = ref<InventoryItem[]>([])
 
   let frameId = 0
   let lastFrame = 0
@@ -131,8 +140,9 @@ export function useBattleSession() {
   const playerSkills = computed<BattleSkillOption[]>(() => {
     const actor = playerActor.value
     if (!actor || !battleRuntime.value) return []
+    const maxActiveSkills = actor.type === 'protagonist' ? 5 : 4
     return battleRuntime.value.getActorSkills(actor.id)
-      .slice(0, 4)
+      .slice(0, maxActiveSkills)
       .map(skill => ({
         id: skill.id,
         name: skill.name,
@@ -165,13 +175,21 @@ export function useBattleSession() {
       selectedSkillId.value ? 'skill' : 'attack',
       activeSkill.value
     )
-    return options.map(option => ({
-      id: option.id,
-      name: option.name,
-      icon: option.icon,
-      portraitKey: option.portraitKey,
-      side: option.side
-    }))
+    return options.map(option => {
+      const unit = runtime.units.find(item => item.id === option.id)
+      return {
+        id: option.id,
+        name: option.name,
+        icon: option.icon,
+        markerText: option.markerText,
+        portraitKey: option.portraitKey,
+        avatarUrl: option.avatarUrl,
+        side: option.side,
+        currentHp: unit?.stats.currentHp ?? 0,
+        maxHp: unit?.stats.maxHp ?? 1,
+        statusEffects: unit?.statusEffects ?? []
+      }
+    })
   })
   const resultLabel = computed(() => {
     const result = runtimeSnapshot.value?.result
@@ -181,16 +199,12 @@ export function useBattleSession() {
     return '战斗中'
   })
   const battleVisualReady = computed(() => sceneReady.value && Boolean(runtimeSnapshot.value))
+  const battleDrops = computed<BattleJourneyDrop[]>(() => battleDropItems.value.map(item => ({
+    name: item.name,
+    quantity: item.quantity
+  })))
   const weatherLabel = computed(() => {
-    const labels = {
-      clear: '天色清朗',
-      rain: '细雨',
-      storm: '雷雨',
-      flood: '洪水',
-      fire: '火灾',
-      mist: '雾起'
-    }
-    return labels[worldStore.weather]
+    return getWorldWeatherProfile(worldStore.weather).label
   })
   const currentActorName = computed(() => cleanName(playerActor.value?.name || '等待出手'))
   const activeMapEncounter = computed(() => {
@@ -272,7 +286,7 @@ export function useBattleSession() {
     battleRunId++
     battleInstanceId = createBattleInstanceId()
     lastFrame = 0
-    clearBattleSceneReady(battleInstanceId)
+    clearBattleRendererReady(battleInstanceId)
     setActiveBattleInstanceId(battleInstanceId)
   }
 
@@ -352,13 +366,40 @@ export function useBattleSession() {
     refreshSnapshot()
     selectedSkillId.value = null
     selectedTargetId.value = battleRuntime.value.aliveEnemies[0]?.id ?? null
+    battleDropItems.value = prepareBattleDropItems()
     pendingRewards.value = calculateRewards()
+  }
+
+  function prepareBattleDropItems() {
+    if (!currentArea.value) return []
+    const drops = resolveEncounterDrops(currentArea.value.drops, activeMapEncounter.value)
+    const namingKind: DropNamingKind = activeRouteGameplaySession.value
+      ? 'story'
+      : battleRuntime.value?.units.some(unit => unit.side === 'enemy' && unit.battleRole === 'boss')
+        ? 'boss'
+        : activeMapEncounter.value?.anomaly
+          ? 'event'
+          : worldStore.weather !== 'clear'
+            ? 'weather'
+            : activeMapEncounter.value
+              ? 'region'
+              : 'normal'
+    return createInventoryItemsFromDrops(drops, {
+      idPrefix: `battle_drop_${currentArea.value.id}`,
+      serial: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      rewardContext: {
+        kind: namingKind,
+        weather: worldStore.weather,
+        regionName: activeMapEncounter.value?.mapArea.name,
+        eventName: activeMapEncounter.value?.anomalyTitle
+      }
+    })
   }
 
   function refreshSnapshot() {
     if (disposed) return
     runtimeSnapshot.value = battleRuntime.value?.snapshot() ?? null
-    if (runtimeSnapshot.value && sceneReady.value && isBattleSceneReady(battleInstanceId)) {
+    if (runtimeSnapshot.value && sceneReady.value && isBattleRendererReady(battleInstanceId)) {
       gameEvents.emit('battle:snapshot', { snapshot: runtimeSnapshot.value, battleInstanceId })
     }
   }
@@ -373,7 +414,7 @@ export function useBattleSession() {
       runtime.tick(delta, battleSpeed.value)
       const turnContext = runtime.consumePendingTurnContext()
       for (const hit of turnContext.hits) {
-        if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
+        if (sceneReady.value && isBattleRendererReady(battleInstanceId)) {
           gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
@@ -388,7 +429,7 @@ export function useBattleSession() {
       } else if (runtime.result === 'defeat') {
         sfxDefeat()
       }
-      if (isBattleSceneReady(battleInstanceId)) {
+      if (isBattleRendererReady(battleInstanceId)) {
         gameEvents.emit('battle:ended', { result: runtime.result || 'defeat', battleInstanceId })
       }
       refreshSnapshot()
@@ -439,7 +480,7 @@ export function useBattleSession() {
     refreshSnapshot()
   }
 
-  function executeCommand(command: BattleSceneCommand) {
+  function executeCommand(command: BattleRenderCommand) {
     const runtime = battleRuntime.value
     if (!runtime || executing || disposed) return
     executing = true
@@ -453,7 +494,7 @@ export function useBattleSession() {
       usedPlayerSkillIds.add(resolved.skill.id)
     }
     playResolvedCommandSfx(runtime, resolved)
-    if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
+    if (sceneReady.value && isBattleRendererReady(battleInstanceId)) {
       gameEvents.emit('battle:play-command', { command: resolved.command, battleInstanceId })
     }
     const timer = window.setTimeout(() => {
@@ -464,7 +505,7 @@ export function useBattleSession() {
       }
       for (const hit of resolved.displayHits) {
         playHitSfx(runtime, hit)
-        if (sceneReady.value && isBattleSceneReady(battleInstanceId)) {
+        if (sceneReady.value && isBattleRendererReady(battleInstanceId)) {
           gameEvents.emit('battle:damage-number', { hit, battleInstanceId })
         }
       }
@@ -488,7 +529,7 @@ export function useBattleSession() {
         battleStarted = true
         startLoopTimer = window.setTimeout(() => {
           startLoopTimer = 0
-          if (disposed || !sceneReady.value || !isBattleSceneReady(battleInstanceId)) return
+          if (disposed || !sceneReady.value || !isBattleRendererReady(battleInstanceId)) return
           refreshSnapshot()
           frameId = requestAnimationFrame(loop)
         }, 0)
@@ -501,7 +542,7 @@ export function useBattleSession() {
       !disposed
       && battleInstanceId
       && getActiveBattleInstanceId() === battleInstanceId
-      && isBattleSceneReady(battleInstanceId)
+      && isBattleRendererReady(battleInstanceId)
     ) {
       sceneReady.value = true
       const arenaId = getBattleArenaIdForArea(currentArea.value?.id, currentArea.value?.difficulty ?? null)
@@ -510,7 +551,7 @@ export function useBattleSession() {
         battleStarted = true
         startLoopTimer = window.setTimeout(() => {
           startLoopTimer = 0
-          if (disposed || !sceneReady.value || !isBattleSceneReady(battleInstanceId)) return
+          if (disposed || !sceneReady.value || !isBattleRendererReady(battleInstanceId)) return
           refreshSnapshot()
           frameId = requestAnimationFrame(loop)
         }, 0)
@@ -543,6 +584,7 @@ export function useBattleSession() {
     unsubSceneReady?.()
     unsubSceneReady = null
     battleRuntime.value = null
+    battleDropItems.value = []
   }
 
   function cycleAuto() {
@@ -632,14 +674,18 @@ export function useBattleSession() {
       if (currentArea.value) {
         sectStore.updateTaskProgress('battle', 'monster')
         sectStore.updateTaskProgress('explore', currentArea.value.id)
-        const drops = resolveEncounterDrops(currentArea.value.drops, activeMapEncounter.value)
-        const inventoryItems = createInventoryItemsFromDrops(drops, {
-          idPrefix: `battle_drop_${currentArea.value.id}`,
-          serial: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-        })
-        for (const item of inventoryItems) {
-          playerStore.addToInventory(item)
-          battleDrops.push({ name: item.name, quantity: item.quantity })
+        for (const item of battleDropItems.value) {
+          const accepted = playerStore.addToInventory(item)
+          if (!accepted) playerStore.addPendingReward(item)
+          battleDrops.push({
+            name: item.name,
+            quantity: item.quantity,
+            status: accepted ? 'claimed' : 'pending'
+          })
+        }
+        const pendingDropCount = battleDrops.filter(drop => drop.status === 'pending').length
+        if (pendingDropCount > 0) {
+          warning(`背包已满，${pendingDropCount}种战利品已转入待领取奖励。`)
         }
         playerStore.clearArea(currentArea.value.id, 0, 3)
       }
@@ -795,6 +841,7 @@ export function useBattleSession() {
     runtimeSnapshot,
     targetHint,
     targetOptions,
+    battleDrops,
     selectedTargetId,
     selectedSkillId,
     areaStatusLabel,

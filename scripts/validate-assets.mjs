@@ -66,6 +66,10 @@ function validateAssetShape(asset, index) {
     diagnostics.push(diagnostic('error', 'invalid-runtime-keys', asset.path, 'runtimeKeys 必须是数组'))
   }
 
+  if (asset.aliasOf && typeof asset.aliasOf !== 'string') {
+    diagnostics.push(diagnostic('error', 'invalid-alias-of', asset.path, 'aliasOf 必须是资源 id 字符串'))
+  }
+
   return diagnostics
 }
 
@@ -75,7 +79,15 @@ async function validateAssetFile(asset) {
 
   const fullPath = path.join(ROOT_DIR, asset.path)
   if (!(await fileExists(fullPath))) {
-    diagnostics.push(diagnostic('error', 'missing-file', asset.path, 'manifest 中登记的资源文件不存在'))
+    const isTrackedNonRuntimeAsset = asset.lifecycle === 'planned' || asset.lifecycle === 'retired'
+    diagnostics.push(diagnostic(
+      isTrackedNonRuntimeAsset ? 'warning' : 'error',
+      isTrackedNonRuntimeAsset ? `${asset.lifecycle}-missing-file` : 'missing-file',
+      asset.path,
+      isTrackedNonRuntimeAsset
+        ? `manifest 保留的 ${asset.lifecycle} 资源尚未落盘`
+        : 'manifest 中登记的资源文件不存在'
+    ))
     return diagnostics
   }
 
@@ -149,10 +161,15 @@ function validateDuplicates(assets) {
       seenIds.set(asset.id, asset.path)
     }
     if (asset.path) {
-      if (seenPaths.has(asset.path)) {
-        diagnostics.push(diagnostic('error', 'duplicate-path', asset.path, `重复资源路径，首次出现在 ${seenPaths.get(asset.path)}`))
+      const previous = seenPaths.get(asset.path)
+      const isDeclaredAlias = previous && (
+        asset.aliasOf === previous.id
+        || previous.aliasOf === asset.id
+      )
+      if (previous && !isDeclaredAlias) {
+        diagnostics.push(diagnostic('error', 'duplicate-path', asset.path, `重复资源路径，首次出现在 ${previous.id}`))
       }
-      seenPaths.set(asset.path, asset.id)
+      seenPaths.set(asset.path, { id: asset.id, aliasOf: asset.aliasOf })
     }
     for (const runtimeKey of asset.runtimeKeys ?? []) {
       if (seenRuntimeKeys.has(runtimeKey)) {

@@ -40,7 +40,7 @@
         class="skill-node"
         :class="skillNodeClass(node.skillId)"
       >
-        <div class="skill-icon">{{ getState(node.skillId).definition?.icon ?? '?' }}</div>
+        <GameIcon class="skill-icon" :icon="getState(node.skillId).definition?.icon ?? 'book'" :size="22" />
         <div class="skill-copy">
           <div>
             <strong>{{ getState(node.skillId).definition?.name ?? node.skillId }}</strong>
@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import type { SkillProgressSummary } from '@/composables/useCharacterLoadout'
 import type { SkillBranch, SkillTreeNode } from '@/types/skill'
 
@@ -323,6 +324,26 @@ function skillNodeClass(skillId: string) {
 }
 
 @media (max-width: 820px) {
+  .skill-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .skill-points {
+    width: auto;
+    justify-content: space-between;
+  }
+
+  .skill-node {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .skill-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@container game-stage (max-width: 820px) {
   .skill-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

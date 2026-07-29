@@ -5,6 +5,7 @@ export type BattleJourneyResultKind = 'victory' | 'defeat' | 'fled'
 export interface BattleJourneyDrop {
   name: string
   quantity: number
+  status?: 'claimed' | 'pending'
 }
 
 export interface BattleJourneyInput {
@@ -33,15 +34,20 @@ export function resolveBattleJourney(input: BattleJourneyInput): BattleJourneyRe
   const battleType = input.isStoryBattle ? '剧情战' : '历险战斗'
   const severity: WorldLogEntry['severity'] = input.result === 'victory' ? 'major' : 'normal'
   const rewards = buildBattleJourneyRewards(input)
-  const dropText = input.drops?.length
-    ? `，并收得${input.drops.slice(0, 3).map(drop => `${drop.name}x${drop.quantity}`).join('、')}${input.drops.length > 3 ? '等物' : ''}`
+  const claimedDrops = (input.drops ?? []).filter(drop => drop.status !== 'pending')
+  const pendingDrops = (input.drops ?? []).filter(drop => drop.status === 'pending')
+  const claimedDropText = claimedDrops.length
+    ? `，并收得${claimedDrops.slice(0, 3).map(drop => `${drop.name}x${drop.quantity}`).join('、')}${claimedDrops.length > 3 ? '等物' : ''}`
+    : ''
+  const pendingDropText = pendingDrops.length
+    ? `；${pendingDrops.slice(0, 3).map(drop => `${drop.name}x${drop.quantity}`).join('、')}${pendingDrops.length > 3 ? '等物' : ''}因背包已满暂存待领取`
     : ''
 
   if (input.result === 'victory') {
     return {
       severity,
       title: `${areaName}${battleType}胜利`,
-      text: `你在${areaName}完成一场${battleType}，共历 ${Math.max(1, input.turns)} 手后取胜，获得修为与灵石回报${dropText}。`,
+      text: `你在${areaName}完成一场${battleType}，共历 ${Math.max(1, input.turns)} 手后取胜，获得修为与灵石回报${claimedDropText}${pendingDropText}。`,
       rewards,
       tags: buildBattleJourneyTags(input)
     }
@@ -76,7 +82,11 @@ function buildBattleJourneyRewards(input: BattleJourneyInput): PlayerJourneyEntr
     rewards.push({ type: 'gold', label: '灵石', value: input.rewards.gold })
   }
   for (const drop of input.drops ?? []) {
-    rewards.push({ type: 'item', label: drop.name, value: drop.quantity })
+    rewards.push({
+      type: drop.status === 'pending' ? 'flag' : 'item',
+      label: drop.status === 'pending' ? `待领取：${drop.name}` : drop.name,
+      value: drop.quantity
+    })
   }
   return rewards
 }

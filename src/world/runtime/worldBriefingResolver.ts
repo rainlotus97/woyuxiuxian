@@ -83,7 +83,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.captivity.isCaptured) {
     items.push({
       id: 'captivity',
-      icon: '⛓️',
+      icon: 'lock',
       badge: '囚局',
       title: `你正受制于${input.captivity.captorName ?? '敌对势力'}`,
       summary: input.captivity.forecastHint ?? '人已落进别人手里，外头的人情、追索和旧账却不会停，先等脱身的缝隙露出来。',
@@ -101,7 +101,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.sect.name && input.sect.status === 'collapsed') {
     items.push({
       id: 'sect-collapsed',
-      icon: '🏚️',
+      icon: 'landmark',
       badge: '山门',
       title: `${input.sect.name}已陷入沦陷`,
       summary: '山门已经乱了套，伤者、库藏和旧部都会在这时候分出向背。',
@@ -117,7 +117,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   } else if (input.sect.name && input.sect.activeWar) {
     items.push({
       id: 'sect-war',
-      icon: '⚔️',
+      icon: 'sword',
       badge: '战局',
       title: `${input.sect.name}仍在交战`,
       summary: '战线还在往前拱，哪片地界易主，谁被拖下水，都会很快回到你面前。',
@@ -133,7 +133,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   } else if (input.sect.name && input.sect.status === 'rebuilding') {
     items.push({
       id: 'sect-rebuilding',
-      icon: '🧱',
+      icon: 'armor',
       badge: '重建',
       title: `${input.sect.name}正在重整`,
       summary: '山门还没稳住，缺人、缺物还是缺脸面，都会决定它能不能重新立起来。',
@@ -151,7 +151,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.capturedNpc) {
     items.push({
       id: 'npc-captured',
-      icon: '🪢',
+      icon: 'mission',
       badge: '俘获',
       title: `${input.capturedNpc.name}被控制`,
       summary: `${input.capturedNpc.title}已落入${input.capturedNpc.captorName ?? '未知势力'}手中，这一下会把${input.capturedNpc.sectName}的人情、仇怨和后手一并扯动。`,
@@ -169,7 +169,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.hotspotArea) {
     items.push({
       id: 'area-hotspot',
-      icon: input.hotspotArea.anomalyTitle ? '🌐' : '🗺️',
+      icon: input.hotspotArea.anomalyTitle ? 'globe' : 'map',
       badge: '地图',
       title: `${input.hotspotArea.name}态势紧张`,
       summary: input.hotspotArea.anomalyTitle
@@ -189,7 +189,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.spotlightNpc) {
     items.push({
       id: 'npc-spotlight',
-      icon: '🧭',
+      icon: 'map',
       badge: '人物',
       title: `${input.spotlightNpc.name}正在${input.spotlightNpc.goalLabel}`,
       summary: `${input.spotlightNpc.name}来头不小，眼下对你还是${input.spotlightNpc.bondLabel}，人也还算${input.spotlightNpc.hpLabel}。`,
@@ -207,7 +207,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   if (input.latestNpcStory) {
     items.push({
       id: 'npc-story',
-      icon: '📝',
+      icon: 'mission',
       badge: '纪闻',
       title: input.latestNpcStory.title,
       summary: '这件事已经传开了，后面是追杀、报恩还是翻脸，就看谁先顺着它找过来。',
@@ -223,7 +223,7 @@ export function resolveWorldBriefings(input: WorldBriefingInput): WorldBriefingI
   } else if (input.latestLog) {
     items.push({
       id: 'world-log',
-      icon: '📜',
+      icon: 'mission',
       badge: '异闻',
       title: input.latestLog.title,
       summary: '外头刚起的动静已经记下来了，顺着这道风声走，多半能摸到下一桩事。',

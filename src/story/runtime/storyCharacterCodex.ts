@@ -6,6 +6,11 @@ const portraitModules = import.meta.glob('@/assets/story/characters/portraits/*.
   import: 'default'
 }) as Record<string, string>
 
+const portrait9x16Modules = import.meta.glob('@/assets/story/characters/portraits-9x16/*.png', {
+  eager: true,
+  import: 'default'
+}) as Record<string, string>
+
 const avatarModules = import.meta.glob('@/assets/story/characters/avatars/*.png', {
   eager: true,
   import: 'default'
@@ -256,6 +261,22 @@ function findAssetByFilename(modules: Record<string, string>, filename: string) 
   return Object.entries(modules).find(([path]) => path.endsWith(filename))?.[1] ?? ''
 }
 
+const portrait9x16ByCharacterId: Record<string, string[]> = {
+  npc_luoyanzhi: ['luo-yanzhi-main-9x16-v1.png', 'luo-yanzhi-sword-ready-9x16-v2.png'],
+  npc_guchangxi: ['gu-changxi-adult-9x16-v1.png', 'gu-changxi-water-blue-9x16-v1.png'],
+  npc_jiangsu: ['jiangsu-redesign-9x16-v3.png'],
+  npc_jiuyouzi: ['jiuyouzi-redesign-9x16-v2.png'],
+  npc_xiebuyu: ['xiebuyu-redesign-9x16-v2.png']
+}
+
+function findPreferredPortrait9x16(id: string) {
+  for (const filename of portrait9x16ByCharacterId[id] ?? []) {
+    const asset = findAssetByFilename(portrait9x16Modules, filename)
+    if (asset) return asset
+  }
+  return ''
+}
+
 const baseProfiles = characterArtManifest.map((asset) => {
   const portraitFilename = asset.portrait.split('/').pop() ?? ''
   const avatarFilename = asset.avatar.split('/').pop() ?? ''
@@ -271,7 +292,7 @@ const baseProfiles = characterArtManifest.map((asset) => {
       description: '当前只接入了立绘与头像资源，简介与关系线会随着剧情继续补齐。',
       tags: ['待补'],
     }),
-    portrait: findAssetByFilename(portraitModules, portraitFilename),
+    portrait: findPreferredPortrait9x16(asset.id) || findAssetByFilename(portraitModules, portraitFilename),
     avatar: findAssetByFilename(avatarModules, avatarFilename),
     avatarFocus: asset.avatarFocus
       ? {

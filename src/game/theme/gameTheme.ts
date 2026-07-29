@@ -11,11 +11,14 @@ import {
   BookOpen,
   Castle,
   Cherry,
+  ChevronRight,
   CircleDot,
   Clipboard,
+  Clock,
   Coins,
   Compass,
   Crosshair,
+  Crown,
   Diamond,
   Droplets,
   Flame,
@@ -37,10 +40,12 @@ import {
   Moon,
   Mountain,
   Orbit,
+  PawPrint,
   Package,
   Pickaxe,
   Pill,
   Save,
+  RefreshCw,
   ScrollText,
   Settings,
   Shield,
@@ -146,33 +151,33 @@ export const GAME_THEME_TOKENS: GameThemeTokens = {
   },
   battle: {
     roleBadges: {
-      protagonist: 'Sword',
-      companion: 'UsersRound',
-      pet: 'Leaf',
-      summon: 'Sparkles',
-      enemy: 'Skull',
-      elite: 'Crosshair',
-      boss: 'Crown'
+      protagonist: 'sword',
+      companion: 'companion',
+      pet: 'beast',
+      summon: 'spark',
+      enemy: 'skull',
+      elite: 'mission',
+      boss: 'crown'
     },
     effectIcons: {
-      slash: '⚔',
-      fire: '焰',
-      ice: '霜',
-      thunder: '雷',
-      wind: '岚',
-      earth: '岳',
-      water: '潮',
-      wood: '藤',
-      void_magic: '虚',
-      heal: '愈',
-      hit: '裂',
-      knockdown: '坠',
-      defend: '御',
-      idle: '息',
-      attack: '出',
-      critical: '绝',
-      block: '格',
-      dodge: '闪'
+      slash: 'slash',
+      fire: 'fire',
+      ice: 'ice',
+      thunder: 'thunder',
+      wind: 'wind',
+      earth: 'earth',
+      water: 'water',
+      wood: 'herb',
+      void_magic: 'void',
+      heal: 'heal',
+      hit: 'sword',
+      knockdown: 'mountain',
+      defend: 'armor',
+      idle: 'moon',
+      attack: 'sword',
+      critical: 'critical',
+      block: 'armor',
+      dodge: 'wind'
     }
   }
 }
@@ -297,7 +302,59 @@ export const GAME_ICON_MAP: Record<string, Component> = {
   'FolderOpen': FolderOpen,
   'Lock': Lock,
   'Gift': Gift,
-  'Trophy': Trophy
+  'Trophy': Trophy,
+  'ChevronRight': ChevronRight,
+  'Crown': Crown,
+  crown: Crown,
+  'chevron-right': ChevronRight,
+  close: X,
+  refresh: RefreshCw,
+  water: Droplets,
+  ice: Snowflake,
+  earth: Mountain,
+  slash: Swords,
+  heal: Sparkles,
+  attack: Sword,
+  critical: Star,
+  defend: ShieldCheck,
+  dodge: Wind,
+  jade: Gem,
+  scroll: ScrollText,
+  realm: Orbit,
+  alchemy: Pill,
+  armor: Shield,
+  backpack: Backpack,
+  cultivation: Activity,
+  fire: Flame,
+  forge: Hammer,
+  gift: Gift,
+  landmark: Landmark,
+  lock: Lock,
+  globe: Globe,
+  beast: PawPrint,
+  book: BookOpen,
+  cloud: Wind,
+  companion: UsersRound,
+  compass: Compass,
+  clock: Clock,
+  flag: Landmark,
+  formation: Grid3X3,
+  map: Map,
+  mission: Clipboard,
+  moon: Moon,
+  mountain: Mountain,
+  pill: Pill,
+  progress: Activity,
+  reputation: Medal,
+  sect: Landmark,
+  skull: Skull,
+  spark: Sparkles,
+  'spirit-stone': Gem,
+  star: Star,
+  thunder: Zap,
+  void: Orbit,
+  wind: Wind,
+  settings: Settings
 }
 
 export interface NavigationThemeItem {
@@ -354,13 +411,8 @@ export function resolveBattleUnitPresentation(
   side: 'ally' | 'enemy',
   fallbackIcon = ''
 ): BattlePresentationDescriptor {
-  const spriteKey = side === 'ally'
-    ? 'actor_ally'
-    : role === 'boss'
-      ? 'actor_boss'
-      : 'actor_enemy'
-
   const portraitKey = `${side}_${role}`
+  const spriteKey = `portrait_${portraitKey}`
 
   return {
     spriteKey,

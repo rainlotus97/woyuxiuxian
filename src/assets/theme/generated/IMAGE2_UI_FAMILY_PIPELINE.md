@@ -139,10 +139,45 @@ OPENAI_API_KEY=... npm run theme:image2 -- asset button-primary-master-v1
 OPENAI_API_KEY=... npm run theme:image2 -- all-assets
 ```
 
+`all-assets` 默认使用 3 个并发请求，适合小批量生成；也可以显式调整：
+
+```bash
+OPENAI_API_KEY=... npm run theme:image2 -- --concurrency 2 all-assets
+```
+
+遇到 HTTP 429 时脚本会按 `Retry-After` 或指数退避重试，并把下一批并发数减半，最低降到 1。也可以通过 `IMAGE_MAX_CONCURRENCY` 和 `IMAGE_MAX_RETRIES` 设置默认并发与重试次数。
+
 ### 抠底转透明
 
 ```bash
 npm run theme:matte -- --input src/assets/theme/generated/matte/button-primary-master-v1-matte.png
+```
+
+## Icon family
+
+The functional icon family uses the same board-first workflow in
+`image2-icon-family-manifest.json`:
+
+```bash
+OPENAI_API_KEY=... npm run theme:image2 -- \
+  --manifest src/assets/theme/generated/image2-icon-family-manifest.json board
+OPENAI_API_KEY=... npm run theme:image2 -- \
+  --manifest src/assets/theme/generated/image2-icon-family-manifest.json asset icon-mountain-v1
+```
+
+After generation, remove the matte background for each asset and place the
+validated PNG in `src/assets/theme/generated/icons/transparent/`. The runtime
+resolver matches the semantic key, so a file such as `mountain-v1.png` is picked
+up automatically by `GameIcon`.
+
+Use an explicit destination when removing matte so the runtime file does not
+remain beside the source:
+
+```bash
+npm run theme:matte -- \
+  --input src/assets/theme/generated/icons/matte/mountain-v1-matte.png \
+  --output src/assets/theme/generated/icons/transparent/mountain-v1.png \
+  --auto-border-color
 ```
 
 ## 8. 安全要求

@@ -15,9 +15,9 @@
         tone="gold"
       />
       <div class="sweep-stat-row">
-        <GameStatChip icon="修" label="修为" :value="feedback.result.cultivationGain" tone="gold" />
-        <GameStatChip icon="石" label="灵石" :value="feedback.result.goldGain" tone="jade" />
-        <GameStatChip icon="险" label="态势" :value="feedback.result.riskLabel" tone="rose" />
+        <GameStatChip icon="cultivation" label="修为" :value="feedback.result.cultivationGain" tone="gold" />
+        <GameStatChip icon="spirit-stone" label="灵石" :value="feedback.result.goldGain" tone="jade" />
+        <GameStatChip icon="Crosshair" label="态势" :value="feedback.result.riskLabel" tone="rose" />
       </div>
       <div class="sweep-drops">
         <span>掉落</span>

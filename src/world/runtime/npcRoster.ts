@@ -1,6 +1,7 @@
 import { ALL_AREAS } from '@/types/map'
 import { ALL_SECTS, type SectDefinition, type SectSpecialty } from '@/types/sect'
 import { REALM_ORDER, type Realm } from '@/types/unit'
+import { SKILL_DEFINITIONS } from '@/game/battle/config/skills'
 import type {
   BloodlineGrade,
   ConstitutionType,
@@ -42,6 +43,68 @@ const SPECIALTY_TITLES: Record<SectSpecialty, string[]> = {
   剑修: ['剑脉真传', '山门剑侍', '问锋弟子'],
   体修: ['战躯传人', '横练行者', '镇岳弟子'],
   魔修: ['魔门真种', '血狱传人', '夜劫使']
+}
+
+const SPECIALTY_SKILL_IDS: Record<SectSpecialty, string[]> = {
+  炼丹: ['heal', 'team_heal'],
+  锻造: ['basic_sword', 'iron_skin'],
+  符箓: ['fireball', 'ancient_curse'],
+  阵法: ['shield', 'ancient_seal'],
+  御兽: ['basic_sword', 'shield'],
+  剑修: ['basic_sword', 'sword_qi'],
+  体修: ['basic_sword', 'iron_skin'],
+  魔修: ['shadow_strike', 'hellfire']
+}
+
+const ROOT_SKILL_IDS: Record<NpcDefinition['aptitude']['root'], string> = {
+  金: 'sword_qi',
+  木: 'poison_fog',
+  水: 'shield',
+  火: 'fireball',
+  土: 'iron_skin',
+  雷: 'thunder_strike',
+  冰: 'ice_prison',
+  风: 'shadow_strike',
+  空: 'ancient_curse'
+}
+
+function resolveNpcSkillIds(seedIds: string[]) {
+  const resolved: string[] = []
+  const visited = new Set<string>()
+
+  const visit = (skillId: string) => {
+    if (visited.has(skillId)) return
+    visited.add(skillId)
+
+    const definition = SKILL_DEFINITIONS[skillId]
+    if (!definition) return
+
+    const prerequisites = definition.requirements?.skillIds ?? definition.prerequisites ?? []
+    prerequisites.forEach(visit)
+    resolved.push(skillId)
+  }
+
+  seedIds.forEach(visit)
+  return resolved.slice(0, 4)
+}
+
+function deriveNpcSkillIds(
+  sect: SectDefinition | null,
+  role: NpcDefinition['role'],
+  root: NpcDefinition['aptitude']['root']
+) {
+  const specialtySkills = sect ? SPECIALTY_SKILL_IDS[sect.specialty] : []
+  const roleSkill = role === 'enemy'
+    ? 'shadow_strike'
+    : role === 'companion'
+      ? 'heal'
+      : 'basic_sword'
+
+  return resolveNpcSkillIds([
+    ...specialtySkills,
+    ROOT_SKILL_IDS[root],
+    roleSkill
+  ])
 }
 
 const DESTINY_TEMPLATES: Record<DestinyRank, string[]> = {
@@ -356,6 +419,8 @@ function buildSectNpcDefinition(sect: SectDefinition): NpcDefinition {
     role,
     homeMapId: sect.areaId,
     sectId: sect.id,
+    affiliation: { organizationId: sect.id, organizationKind: 'sect' },
+    skills: deriveNpcSkillIds(sect, role, aptitude.root),
     aptitude,
     personality: buildPersonality(role, sect, sect.id),
     profile: {
@@ -390,6 +455,8 @@ function buildRogueNpcDefinition(areaId: string): NpcDefinition {
     gender,
     role: 'random',
     homeMapId: areaId,
+    affiliation: { organizationKind: 'independent' },
+    skills: deriveNpcSkillIds(null, 'random', aptitude.root),
     aptitude,
     personality: buildPersonality('random', null, areaId),
     profile: {
@@ -417,6 +484,14 @@ function createAnchorNpcDefinitions(): NpcDefinition[] {
       role: hc.role,
       homeMapId: hc.homeMapId,
       sectId: hc.sectId || undefined,
+      affiliation: hc.sectId
+        ? { organizationId: hc.sectId, organizationKind: 'sect' }
+        : { organizationKind: 'independent' },
+      skills: deriveNpcSkillIds(
+        hc.sectId ? (ALL_SECTS.find(sect => sect.id === hc.sectId) ?? null) : null,
+        hc.role,
+        hc.root
+      ),
       aptitude: {
         root: hc.root,
         rootGrade: hc.rootGrade,

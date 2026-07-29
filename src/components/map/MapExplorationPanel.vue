@@ -18,7 +18,7 @@
           :disabled="Boolean(point.disabledReason) || stamina < point.staminaCost"
           @click="$emit('explore', point.id)"
         >
-          <span>{{ getPointIcon(point.kind) }}</span>
+          <span class="point-icon"><GameIcon :icon="getPointIcon(point.kind)" :size="16" /></span>
           <strong>{{ point.title }}</strong>
           <small>{{ point.disabledReason ?? point.description }}</small>
           <em>{{ point.staminaCost }} 体力 · {{ point.rewardHint }}</em>
@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import type { MapExplorationPoint, MapExplorationResult, MapExplorationPointKind } from '@/map/runtime/mapExplorationResolver'
 
@@ -53,9 +54,9 @@ defineEmits<{
 }>()
 
 function getPointIcon(kind: MapExplorationPointKind) {
-  if (kind === 'resource') return '采'
-  if (kind === 'trail') return '径'
-  return '迹'
+  if (kind === 'resource') return 'herb'
+  if (kind === 'trail') return 'map'
+  return 'landmark'
 }
 </script>
 
@@ -119,7 +120,7 @@ function getPointIcon(kind: MapExplorationPointKind) {
   opacity: 0.48;
 }
 
-.point-card > span {
+.point-icon {
   width: 30px;
   height: 30px;
   display: grid;

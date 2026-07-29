@@ -25,6 +25,53 @@ function test(name, fn) {
     .catch(error => ({ name, ok: false, error })))
 }
 
+test('random event pool responds to world pressure and local NPC position', async () => {
+  const { resolveRandomEventWorldBias } = await load('/src/world/runtime/randomEventWorldBiasResolver.ts')
+  const marketEvent = {
+    id: 'market-test',
+    type: 'social',
+    title: '坊市试验',
+    storyTags: ['坊市'],
+    choices: [],
+    trigger: { probability: 0.01, cooldownTicks: 10 }
+  }
+  const calm = resolveRandomEventWorldBias({
+    event: marketEvent,
+    areaStates: [{ areaId: 'area-a', riskLevel: 'safe', stability: 80, pressure: 10, contested: false }],
+    activeAreaAnomalyCount: 0,
+    currentRealmAreaIds: ['area-a'],
+    joinedSectId: null,
+    activeWar: false,
+    worldStatus: 'stable'
+  })
+  const tense = resolveRandomEventWorldBias({
+    event: marketEvent,
+    areaStates: [{ areaId: 'area-a', riskLevel: 'chaos', stability: 28, pressure: 88, contested: true }],
+    activeAreaAnomalyCount: 2,
+    currentRealmAreaIds: ['area-a'],
+    joinedSectId: 'sect-a',
+    activeWar: true,
+    worldStatus: 'rebuilding'
+  })
+  assert.ok(tense > calm, 'market event bias should rise with contested unstable routes')
+
+  const npcEvent = {
+    ...marketEvent,
+    choices: [{ memory: [{ type: 'favor', npcId: 'npc-local', amount: 1 }], effects: [] }]
+  }
+  const localNpcBias = resolveRandomEventWorldBias({
+    event: npcEvent,
+    areaStates: [],
+    activeAreaAnomalyCount: 0,
+    currentRealmAreaIds: ['area-a'],
+    joinedSectId: null,
+    activeWar: false,
+    worldStatus: null,
+    npcStates: [{ id: 'npc-local', locationMapId: 'area-a', hpState: 'healthy' }]
+  })
+  assert.equal(localNpcBias, 5)
+})
+
 test('battle runtime resolves lethal command and replay', async () => {
   const { BattleRuntime } = await load('/src/game/battle/battleRuntime.ts')
   const { resolveBattleJourney } = await load('/src/game/battle/battleJourneyResolver.ts')

@@ -14,7 +14,12 @@ import { applyPreparedSummons, hasSummonCapacity } from './summonRuntime'
 import { resolveSummonActionLifecycle } from './summonLifecycleRuntime'
 import { toBattleRuntimeUnit } from './runtimeUnitFactory'
 import { resolveBattleSpeedModifier } from './battleStatusModifierResolver'
-import { BattleReplayRecorder, type BattleReplayEvent } from './battleReplay'
+import {
+  BattleReplayRecorder,
+  resolveBattleBossPhase,
+  type BattleBossPhase,
+  type BattleReplayEvent
+} from './battleReplay'
 import {
   applySkillCooldown,
   canUseRuntimeSkill,
@@ -59,6 +64,7 @@ export class BattleRuntime {
   private pendingTurnContext: BattleTurnContext = { hits: [], logs: [] }
   private summonSerial = 0
   private replayRecorder = new BattleReplayRecorder()
+  private bossPhases = new Map<string, BattleBossPhase>()
 
   constructor(allies: Unit[], enemies: Unit[]) {
     this.units = [
@@ -67,6 +73,7 @@ export class BattleRuntime {
     ]
     this.phase = 'running'
     this.addReplayEvent(this.replayRecorder.recordBattleStart(this.turn, '战斗开始，灵火在阵中流转。'))
+    this.syncBossPhases(this.turn, true)
   }
 
   get aliveAllies() {
@@ -197,8 +204,10 @@ export class BattleRuntime {
   }
 
   resolveCommand(command: BattleRuntimeCommand): BattleResolvedCommand | null {
+    if (this.phase === 'ended') return null
     const actor = this.units.find(unit => unit.id === command.actorId)
     if (!actor || !actor.isAlive) return null
+    if (this.currentActorId && this.currentActorId !== actor.id) return null
     const baseSkill = command.skillId ? (getSkillById(command.skillId) ?? null) : null
     const skill = baseSkill ? withRuntimeSkillCooldown(baseSkill, actor) : null
     if (skill && !canUseRuntimeSkill(skill, actor)) return null
@@ -207,8 +216,10 @@ export class BattleRuntime {
   }
 
   applyResolvedCommand(resolved: BattleResolvedCommand) {
+    if (this.phase === 'ended') return
     const actor = this.units.find(unit => unit.id === resolved.actorId)
-    if (!actor) return
+    if (!actor || !actor.isAlive) return
+    if (this.currentActorId && this.currentActorId !== actor.id) return
 
     const skill = resolved.skill
     if (skill) {
@@ -285,6 +296,8 @@ export class BattleRuntime {
       }
     }
 
+    this.syncBossPhases(this.turn)
+
     for (const targetId of defeatedTargets) {
       const target = this.units.find(unit => unit.id === targetId)
       if (target) {
@@ -346,6 +359,7 @@ export class BattleRuntime {
   }
 
   finishAction(actorId = this.currentActorId) {
+    if (this.phase === 'ended') return
     const exitingSummon = actorId
       ? resolveSummonActionLifecycle(this.units, actorId)
       : null
@@ -374,6 +388,7 @@ export class BattleRuntime {
   }
 
   flee() {
+    if (this.phase === 'ended' || this.result) return
     this.result = 'fled'
     this.phase = 'ended'
     this.addReplayEvent(this.replayRecorder.recordBattleEnd(this.turn, 'fled', '你脱离了战场。'))
@@ -485,7 +500,10 @@ export class BattleRuntime {
       this.addReplayEvent(this.replayRecorder.recordStatusLog(this.turn, actor, log, turnStart.actorDefeated ? 'major' : 'normal'))
     }
 
+    this.syncBossPhases(this.turn)
+
     if (turnStart.actorDefeated) {
+      this.addReplayEvent(this.replayRecorder.recordDefeat(this.turn, actor, 'status'))
       this.finishAction()
       return
     }
@@ -496,5 +514,14 @@ export class BattleRuntime {
     }
 
     this.phase = 'selecting'
+  }
+
+  private syncBossPhases(turn: number, force = false) {
+    for (const boss of this.units.filter(unit => unit.side === 'enemy' && unit.battleRole === 'boss')) {
+      const phase = resolveBattleBossPhase(boss.stats.currentHp, boss.stats.maxHp)
+      if (!force && this.bossPhases.get(boss.id) === phase) continue
+      this.bossPhases.set(boss.id, phase)
+      this.addReplayEvent(this.replayRecorder.recordBossPhase(turn, boss, phase))
+    }
   }
 }

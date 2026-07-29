@@ -80,7 +80,7 @@ export function normalizeWorldLogs(logs: WorldLogEntry[]): WorldLogEntry[] {
       scope: log.scope,
       severity: log.severity,
       title: log.title,
-      text: stripLegacyRepeatSuffix(log.text),
+      text: formatRepeatText(stripLegacyRepeatSuffix(log.text), log.repeatCount ?? 1),
       actorIds: log.actorIds ?? [],
       tags: log.tags ?? [],
       mapId: log.mapId,
@@ -163,7 +163,7 @@ function mergeWorldLogEntry(existing: WorldLogEntry, incoming: WorldLogEntry): W
     timeLabel: incoming.timeLabel,
     severity,
     visibility,
-    text: incoming.text,
+    text: formatRepeatText(incoming.text, repeatCount),
     actorIds: uniqueStrings([...existing.actorIds, ...incoming.actorIds]),
     tags: uniqueStrings([...existing.tags, ...incoming.tags]),
     mapId: incoming.mapId ?? existing.mapId,
@@ -185,7 +185,12 @@ function uniqueStrings(values: string[]) {
 }
 
 function stripLegacyRepeatSuffix(text: string) {
-  return text.replace(/（近来已反复出现\s*\d+\s*次）$/u, '').trim()
+  return text.replace(/（(?:近来已)?反复出现\s*\d+\s*次）$/u, '').trim()
+}
+
+function formatRepeatText(text: string, repeatCount: number) {
+  const normalized = stripLegacyRepeatSuffix(text)
+  return repeatCount > 1 ? `${normalized}（近来已反复出现 ${repeatCount} 次）` : normalized
 }
 
 function getRepetitivePenalty(log: WorldLogEntry) {

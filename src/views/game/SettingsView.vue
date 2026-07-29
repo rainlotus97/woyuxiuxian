@@ -19,7 +19,8 @@
       </div>
     </GameSurface>
 
-    <div class="settings-grid">
+    <div class="settings-content-drawer">
+      <div class="settings-grid">
       <GameSurface tone="gold" padding="md" eyebrow="音频" title="声音控制" subtitle="默认不自动播放，只有手动开启后才会发声。">
         <div class="toggle-list">
           <button class="toggle-card" :class="{ active: bgmEnabled }" @click="handleToggleBgm">
@@ -60,7 +61,7 @@
               <strong>{{ track.name }}</strong>
             </button>
           </div>
-          <GameActionButton icon="止" tone="stone" block @click="handleStopBgm">
+          <GameActionButton icon="moon" tone="stone" block @click="handleStopBgm">
             停止当前曲目
           </GameActionButton>
         </div>
@@ -90,9 +91,9 @@
           </div>
         </div>
       </GameSurface>
-    </div>
+      </div>
 
-    <GameSurface
+      <GameSurface
       tone="mist"
       padding="md"
       eyebrow="P0 验收"
@@ -167,9 +168,9 @@
           </div>
         </div>
       </div>
-    </GameSurface>
+      </GameSurface>
 
-    <GameSurface
+      <GameSurface
       v-if="p0Checklist.items.length > 0"
       tone="jade"
       padding="md"
@@ -213,26 +214,26 @@
         <span v-if="p0Checklist.blockedCount > 0">{{ p0Checklist.blockedCount }} 阻塞</span>
         <span v-if="p0Checklist.remainingCount > 0">{{ p0Checklist.remainingCount }} 待验证</span>
       </div>
-    </GameSurface>
+      </GameSurface>
 
-    <GameSurface tone="realm" padding="md" eyebrow="试听" title="音效校验" subtitle="用于确认当前设备是否允许网页音频播放。">
+      <GameSurface tone="realm" padding="md" eyebrow="试听" title="音效校验" subtitle="用于确认当前设备是否允许网页音频播放。">
       <div class="sfx-row">
-        <GameActionButton icon="点" tone="jade" @click="playClick">
+        <GameActionButton icon="spark" tone="jade" @click="playClick">
           玉磬
         </GameActionButton>
-        <GameActionButton icon="修" tone="gold" @click="playMeditate">
+        <GameActionButton icon="cultivation" tone="gold" @click="playMeditate">
           打坐
         </GameActionButton>
-        <GameActionButton icon="破" tone="rose" @click="playBreakthrough">
+        <GameActionButton icon="thunder" tone="rose" @click="playBreakthrough">
           破境
         </GameActionButton>
-        <GameActionButton icon="得" tone="jade" @click="playItem">
+        <GameActionButton icon="gift" tone="jade" @click="playItem">
           获得
         </GameActionButton>
       </div>
-    </GameSurface>
+      </GameSurface>
 
-    <GameSurface tone="gold" padding="md" eyebrow="曲库" title="完整 BGM 曲库" :subtitle="`当前可试听 ${bgmList.length} 首背景音乐，按场景与情绪分类。`">
+      <GameSurface tone="gold" padding="md" eyebrow="曲库" title="完整 BGM 曲库" :subtitle="`当前可试听 ${bgmList.length} 首背景音乐，按场景与情绪分类。`">
       <div class="library-groups">
         <section v-for="group in bgmGroups" :key="group.category" class="library-group">
           <div class="library-head">
@@ -253,9 +254,9 @@
           </div>
         </section>
       </div>
-    </GameSurface>
+      </GameSurface>
 
-    <GameSurface tone="mist" padding="md" eyebrow="音效库" title="完整 SFX 曲库" :subtitle="`当前可试听 ${sfxList.length} 个音效，覆盖战斗、剧情、法阵与天气。`">
+      <GameSurface tone="mist" padding="md" eyebrow="音效库" title="完整 SFX 曲库" :subtitle="`当前可试听 ${sfxList.length} 个音效，覆盖战斗、剧情、法阵与天气。`">
       <div class="library-groups">
         <section v-for="group in sfxGroups" :key="group.category" class="library-group">
           <div class="library-head">
@@ -275,18 +276,10 @@
           </div>
         </section>
       </div>
-    </GameSurface>
+      </GameSurface>
 
-    <GameSurface tone="jade" padding="md" eyebrow="存档" title="数据管理">
+      <GameSurface tone="jade" padding="md" eyebrow="存档" title="数据管理">
       <div class="toggle-list">
-        <button class="toggle-card" @click="handleOpenThemeShowcase">
-          <span class="toggle-icon"><GameIcon icon="Home" :size="20" /></span>
-          <span class="toggle-copy">
-            <strong>首页组件页</strong>
-            <small>进入独立页面，逐个校准按钮、卡片、图标壳、活动条与进度圆</small>
-          </span>
-          <em>进入</em>
-        </button>
         <button class="toggle-card" @click="handleManualSave">
           <span class="toggle-icon"><GameIcon icon="Save" :size="20" /></span>
           <span class="toggle-copy">
@@ -320,7 +313,8 @@
       <p style="margin:16px 0 0;font-size:11px;color:rgba(49,82,87,0.5)">
         注意：存档会保存角色的所有状态，包括修为、灵石、背包、宗门关系等。读档会覆盖当前进度。
       </p>
-    </GameSurface>
+      </GameSurface>
+    </div>
   </div>
 </template>
 
@@ -344,6 +338,7 @@ import {
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSectStore } from '@/stores/sectStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { getWorldWeatherProfile } from '@/world/runtime/weatherCatalog'
 import type { MainLoopReadinessKey } from '@/world/runtime/mainLoopReadinessResolver'
 import { useSaveSlots } from '@/composables/useSaveSlots'
 import { useRouter } from 'vue-router'
@@ -406,15 +401,7 @@ const sectStatus = computed(() => {
   return sectStore.positionName
 })
 const weatherLabel = computed(() => {
-  const labels: Record<typeof worldStore.weather, string> = {
-    clear: '天朗气清',
-    rain: '灵雨细落',
-    storm: '雷暴压境',
-    flood: '洪水漫野',
-    fire: '火势蔓延',
-    mist: '雾锁山河'
-  }
-  return labels[worldStore.weather]
+  return getWorldWeatherProfile(worldStore.weather).label
 })
 
 function handleToggleBgm() {
@@ -479,11 +466,6 @@ function handleShowSaveSlots() {
   showSaveSlotPicker.value = !showSaveSlotPicker.value
 }
 
-function handleOpenThemeShowcase() {
-  sfxClick()
-  router.push('/theme-showcase')
-}
-
 function handleSelectSlot(slotIndex: number) {
   sfxClick()
   const target = saveSlots.value.find(slot => slot.slotIndex === slotIndex)
@@ -504,10 +486,34 @@ function handleSelectSlot(slotIndex: number) {
 
 <style scoped>
 .settings-view {
-  display: grid;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   max-width: 1120px;
   margin: 0 auto;
+  overflow: hidden;
+}
+
+.settings-view > :first-child {
+  flex: 0 0 auto;
+}
+
+.settings-content-drawer {
+  min-height: 90px;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 1px 2px 14px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.settings-content-drawer > .game-surface {
+  flex: 0 0 auto;
 }
 
 .settings-hero {
@@ -993,11 +999,16 @@ function handleSelectSlot(slotIndex: number) {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
 }
 
 .checklist-head strong {
+  min-width: 0;
+  overflow: hidden;
   color: #315257;
   font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .checklist-state {
@@ -1036,6 +1047,7 @@ function handleSelectSlot(slotIndex: number) {
 .checklist-proof {
   display: grid;
   gap: 3px;
+  min-width: 0;
 }
 
 .checklist-proof span,
@@ -1047,11 +1059,15 @@ function handleSelectSlot(slotIndex: number) {
 
 .checklist-proof em {
   display: -webkit-box;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
+  overflow-wrap: anywhere;
   color: rgba(49, 82, 87, 0.7);
   font-size: 10px;
   font-style: normal;
   line-height: 1.55;
+  word-break: break-word;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
@@ -1063,14 +1079,19 @@ function handleSelectSlot(slotIndex: number) {
 .checklist-sources {
   display: grid;
   gap: 3px;
+  min-width: 0;
 }
 
 .checklist-sources small {
   display: -webkit-box;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
+  overflow-wrap: anywhere;
   color: rgba(49, 82, 87, 0.64);
   font-size: 10px;
   line-height: 1.45;
+  word-break: break-word;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -1168,6 +1189,50 @@ function handleSelectSlot(slotIndex: number) {
   .save-grid,
   .p0-chip-list,
   .p0-gap-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container game-stage (max-width: 760px) {
+  .settings-grid,
+  .settings-hero,
+  .p0-next-card,
+  .p0-report-head,
+  .p0-report-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .p0-next-action {
+    width: fit-content;
+  }
+
+  .sound-orb {
+    width: 58px;
+    border-radius: 20px;
+  }
+
+  .p0-checklist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .track-grid,
+  .save-grid,
+  .p0-chip-list,
+  .p0-gap-list,
+  .library-grid,
+  .sfx-library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container game-stage (max-width: 430px) {
+  .track-grid,
+  .save-grid,
+  .p0-chip-list,
+  .p0-gap-list,
+  .library-grid,
+  .sfx-library-grid,
+  .p0-checklist-grid {
     grid-template-columns: 1fr;
   }
 }

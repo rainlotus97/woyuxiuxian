@@ -34,7 +34,9 @@
         class="schema-issue"
         :class="issue.severity"
       >
-        <span>{{ issue.itemIcon }}</span>
+        <span class="schema-issue-icon">
+          <GameIcon :icon="issue.itemIcon" :size="18" />
+        </span>
         <div>
           <strong>{{ issue.itemName }}</strong>
           <p>{{ issue.diagnostic.message }}</p>
@@ -49,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import type { InventorySchemaSummary } from '@/character/runtime/inventorySchemaSummaryResolver'
 
 defineProps<{
@@ -149,7 +152,7 @@ defineProps<{
   border-color: rgba(185, 91, 72, 0.2);
 }
 
-.schema-issue > span {
+.schema-issue-icon {
   width: 34px;
   height: 34px;
   display: grid;

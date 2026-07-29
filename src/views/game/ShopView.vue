@@ -2,22 +2,18 @@
   <div class="shop-view">
     <GameSurface
       class="market-shell"
-      tone="gold"
-      padding="lg"
+      tone="mist"
+      padding="md"
       eyebrow="灵市开张"
       title="坊市"
       :subtitle="marketSubtitle"
     >
-      <template #header>
-        <ShopMarketSummary
-          :gold="playerStore.gold"
-          :contribution="sectStore.contribution"
-          :total-count="shopStore.inventory.length"
-          :visible-count="shopStore.filteredInventory.length"
-          :next-refresh-hint="shopStore.nextRefreshHint"
-          :tags="marketTags"
-        />
-      </template>
+      <ShopMarketSummary
+        :total-count="shopStore.inventory.length"
+        :visible-count="shopStore.filteredInventory.length"
+        :next-refresh-hint="shopStore.nextRefreshHint"
+        @details="marketDetailOpen = true"
+      />
 
       <ShopToolbar
         :categories="SHOP_CATEGORY_OPTIONS"
@@ -29,20 +25,23 @@
         @refresh="handleRefreshMarket"
       />
 
-      <div v-if="shopStore.filteredInventory.length" class="shop-grid">
+      <div class="shop-stock-heading">
+        <strong>货架</strong>
+        <span>{{ shopStore.filteredInventory.length }} 件可查看</span>
+      </div>
+
+      <div v-if="shopStore.filteredInventory.length" class="shop-grid" data-ui-list="shop">
         <ShopItemCard
           v-for="item in shopStore.filteredInventory"
           :key="item.stockId"
           :item="item"
           :can-buy="shopStore.canBuy(item)"
-          :blocked-reason="getBlockedReason(item)"
           :quality-label="SHOP_QUALITY_LABELS[item.definition.quality]"
-          :cost-label="formatItemCost(item)"
-          @select="handleBuy"
+          @select="handleSelect"
         />
       </div>
 
-      <div v-else class="empty-market">
+      <div v-else class="empty-market" data-ui-empty-state="shop">
         <strong>此类暂时无货</strong>
         <span>换个分类或等下一轮世界时辰刷新。</span>
       </div>
@@ -51,9 +50,36 @@
     <ShopPurchaseDialog
       :item="selectedItem"
       :cost-label="selectedItem ? formatItemCost(selectedItem) : ''"
+      :can-buy="selectedItem ? shopStore.canBuy(selectedItem) : false"
+      :blocked-reason="selectedItem ? getBlockedReason(selectedItem) : ''"
       @close="selectedItem = null"
       @confirm="confirmBuy"
     />
+
+    <GameDialog
+      :visible="marketDetailOpen"
+      title="本轮市况"
+      eyebrow="灵市风向"
+      @close="marketDetailOpen = false"
+    >
+      <div class="market-detail">
+        <div class="market-detail-lead">
+          <GameIcon icon="store" :size="24" />
+          <div>
+            <strong>{{ marketSubtitle }}</strong>
+            <p>{{ marketDetailSummary }}</p>
+          </div>
+        </div>
+        <div v-if="marketTags.length" class="market-detail-tags">
+          <span v-for="tag in marketTags" :key="tag">{{ tag }}</span>
+        </div>
+        <p v-else class="market-detail-empty">本轮市况平稳，价格会随天气、商路和世界推进变化。</p>
+      </div>
+
+      <template #footer>
+        <GameActionButton tone="stone" @click="marketDetailOpen = false">收起</GameActionButton>
+      </template>
+    </GameDialog>
   </div>
 </template>
 
@@ -64,6 +90,9 @@ import ShopItemCard from '@/components/shop/ShopItemCard.vue'
 import ShopMarketSummary from '@/components/shop/ShopMarketSummary.vue'
 import ShopPurchaseDialog from '@/components/shop/ShopPurchaseDialog.vue'
 import ShopToolbar from '@/components/shop/ShopToolbar.vue'
+import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import { sfxSpiritStone } from '@/composables/useAudio'
 import { useModal } from '@/composables/useModal'
 import { useToast } from '@/composables/useToast'
@@ -84,11 +113,17 @@ const { showItemAcquire } = useModal()
 const { success, warning } = useToast()
 
 const selectedItem = ref<ShopInventoryItem | null>(null)
+const marketDetailOpen = ref(false)
 
 const marketSubtitle = computed(() => {
   const ctx = shopStore.context
   const sectHint = ctx.joinedSectId ? '宗门渠道已接入' : '散修市价'
-  return `${sectHint} · ${shopStore.nextRefreshHint} · ${shopStore.inventory.length} 种在售`
+  return `${sectHint} · ${shopStore.inventory.length} 种货品`
+})
+
+const marketDetailSummary = computed(() => {
+  if (!marketTags.value.length) return '当前没有明显的商路异动。'
+  return `本轮价格受到${marketTags.value.slice(0, 2).join('、')}影响，货架会随世界推进重新结算。`
 })
 
 const marketTags = computed(() => {
@@ -101,11 +136,7 @@ const marketTags = computed(() => {
   return [...tags]
 })
 
-function handleBuy(item: ShopInventoryItem) {
-  if (!shopStore.canBuy(item)) {
-    warning(getBlockedReason(item))
-    return
-  }
+function handleSelect(item: ShopInventoryItem) {
   selectedItem.value = item
 }
 
@@ -150,23 +181,85 @@ function getBlockedReason(item: ShopInventoryItem) {
 
 <style scoped>
 .shop-view {
-  min-height: 100%;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .market-shell {
   flex: 1;
   min-height: 0;
+  height: 100%;
+}
+
+.market-shell :deep(.x-card__content) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.market-shell :deep(.x-card__title),
+.market-shell :deep(.x-card__body) {
+  min-height: 0;
+}
+
+.market-shell :deep(.x-card__title) {
+  flex: 0 0 auto;
+  margin-bottom: 0.58rem;
+}
+
+.market-shell :deep(.x-card__body) {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.market-shell :deep(.surface-body) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  max-height: min(58vh, 620px);
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 0.5rem;
   overflow-y: auto;
-  padding: 2px 2px 10px;
+  padding: 0.12rem 0.12rem 0.4rem;
+  align-content: start;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.shop-stock-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.2rem;
+  padding: 0.2rem 0.1rem 0;
+}
+
+.shop-stock-heading strong {
+  color: #4a7068;
+  font-size: 0.74rem;
+}
+
+.shop-stock-heading span {
+  color: rgba(73, 97, 95, 0.62);
+  font-size: 0.62rem;
 }
 
 .empty-market {
@@ -185,10 +278,67 @@ function getBlockedReason(item: ShopInventoryItem) {
   color: #8d6528;
 }
 
-@media (max-width: 720px) {
+.market-detail {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.market-detail-lead {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  color: #4d8175;
+}
+
+.market-detail-lead > .game-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid rgba(123, 153, 145, 0.2);
+  border-radius: 0.7rem;
+  background: rgba(237, 247, 239, 0.82);
+}
+
+.market-detail-lead strong {
+  color: #315b57;
+  font-size: 0.88rem;
+}
+
+.market-detail-lead p,
+.market-detail-empty {
+  margin: 0.3rem 0 0;
+  color: rgba(55, 82, 80, 0.72);
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+.market-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.market-detail-tags span {
+  padding: 0.34rem 0.52rem;
+  border: 1px solid rgba(189, 141, 58, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 249, 226, 0.78);
+  color: #80602e;
+  font-size: 0.68rem;
+}
+
+.market-detail-empty {
+  padding: 0.7rem;
+  border: 1px dashed rgba(123, 153, 145, 0.24);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+@media (min-width: 900px) {
   .shop-grid {
-    grid-template-columns: 1fr;
-    max-height: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div class="toast-container toast-top">
+    <div class="toast-container toast-center">
       <TransitionGroup name="toast">
         <ToastItem
           v-for="toast in toasts"
@@ -34,9 +34,12 @@ const { toasts, remove } = useToast()
   max-width: 100%;
 }
 
-.toast-top {
-  top: env(safe-area-inset-top, 16px);
-  padding-top: 16px;
+.toast-center {
+  box-sizing: border-box;
+  top: 50%;
+  width: min(100%, 28rem);
+  transform: translate(-50%, -50%);
+  padding: 0 1rem;
 }
 
 /* Toast 动画 */

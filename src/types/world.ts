@@ -1,5 +1,6 @@
 import type { Realm, Element } from './unit'
 import type { WorldRealm } from './map'
+import type { ContentDefinition, DefinitionSkillRefs } from './definition'
 
 export type ShichenName = '子' | '丑' | '寅' | '卯' | '辰' | '巳' | '午' | '未' | '申' | '酉' | '戌' | '亥'
 export type IdleMode = 'cultivate' | 'adventure' | 'sectDuty' | 'gatherHerbs' | 'trainSkill'
@@ -81,12 +82,13 @@ export interface RelationshipState {
   bond: 'stranger' | 'friend' | 'rival' | 'enemy' | 'mentor' | 'companion' | 'lover'
 }
 
-export interface NpcDefinition {
+export interface NpcDefinition extends ContentDefinition, DefinitionSkillRefs {
   id: string
   name: string
   gender: 'male' | 'female' | 'unknown'
   role: NpcRole
   homeMapId: string
+  /** @deprecated Use affiliation.organizationId for new definitions. */
   sectId?: string
   aptitude: AptitudeProfile
   personality: PersonalityProfile
@@ -208,4 +210,22 @@ export const SHICHEN_NAMES: ShichenName[] = ['子', '丑', '寅', '卯', '辰', 
 
 export function formatWorldTime(clock: WorldClock): string {
   return `修仙历${clock.year}年${clock.month}月${clock.day}日 ${SHICHEN_NAMES[clock.shichenIndex]}时`
+}
+
+export function formatWorldTimeAtTick(totalTicks: number): string {
+  const safeTicks = Math.max(0, Math.floor(Number.isFinite(totalTicks) ? totalTicks : 0))
+  const absoluteShichen = 4 + safeTicks
+  const elapsedDays = Math.floor(absoluteShichen / SHICHEN_NAMES.length)
+  const year = Math.floor(elapsedDays / (30 * 12)) + 1
+  const month = Math.floor(elapsedDays / 30) % 12 + 1
+  const day = elapsedDays % 30 + 1
+
+  return formatWorldTime({
+    year,
+    month,
+    day,
+    shichenIndex: absoluteShichen % SHICHEN_NAMES.length,
+    totalTicks: safeTicks,
+    lastSimulatedAt: 0
+  })
 }

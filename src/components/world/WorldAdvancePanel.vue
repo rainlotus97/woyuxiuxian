@@ -6,7 +6,7 @@
           <span>当前时辰</span>
           <strong>{{ timeLabel }}</strong>
         </div>
-        <GameActionButton icon="行" tone="jade" :disabled="!canAdvance" @click="$emit('advance')">
+        <GameActionButton icon="map" tone="jade" :disabled="!canAdvance" @click="$emit('advance')">
           推演一时辰
         </GameActionButton>
       </div>

@@ -1,10 +1,11 @@
 <template>
   <div class="sect-view">
-    <SectRecruitPanel
-      v-if="!sectStore.joinedSectId"
-      :candidates="sectStore.joinCandidates"
-      @join="handleJoinSect"
-    />
+    <div v-if="!sectStore.joinedSectId" class="sect-entry-drawer">
+      <SectRecruitPanel
+        :candidates="sectStore.joinCandidates"
+        @join="handleJoinSect"
+      />
+    </div>
 
     <template v-else-if="sectStore.currentSect">
       <SectOverviewPanel
@@ -39,101 +40,104 @@
               :class="{ active: activeTab === tab.id }"
               @click="activeTab = tab.id"
             >
-              <span>{{ tab.icon }}</span>
+              <GameIcon :icon="tab.icon" :size="18" />
               <span>{{ tab.name }}</span>
             </button>
           </div>
         </GameSurface>
       </div>
 
-      <SectCyclePanel
-        :total-task-count="sectStore.dailyTasks.length + sectStore.weeklyTasks.length"
-        :completed-task-count="completedTaskCount"
-        :reward-ready-count="sectStore.completedTasks.length"
-        :can-claim-salary="sectStore.canClaimSalary"
-        :task-summary="taskSummary"
-        :garden-slot-count="sectStore.gardenSlotCount"
-        :active-garden-slots="sectStore.activeGardenSlots"
-        :ready-garden-slots="sectStore.readyGardenSlots"
-        :garden-summary="gardenSummary"
-        :garden-hint="gardenHint"
-        :alchemy-level="sectStore.getFacilityLevel('alchemy_furnace')"
-        :garden-level="sectStore.getFacilityLevel('medicine_garden')"
-        :available-recipe-count="sectStore.availableAlchemyRecipes.length"
-        :facility-summary="facilitySummary"
-        :active-war="sectStore.activeWar"
-        :last-war-report="sectStore.lastWarReport"
-        :last-duty-title="lastDuty?.title ?? null"
-        :last-duty-text="lastDuty?.text ?? null"
-        @resolve-duty="handleSectDuty"
-        @claim-all-tasks="handleClaimAllRewards"
-        @claim-salary="handleClaimSalary"
-        @harvest-ready="handleHarvestReady"
-        @open-facility="handleUseFacility"
-        @go-tab="handleTabSelect"
-        @ack-war-report="handleAcknowledgeWarReport"
-      />
+      <div class="sect-content-drawer">
+        <SectCyclePanel
+          :total-task-count="sectStore.dailyTasks.length + sectStore.weeklyTasks.length"
+          :completed-task-count="completedTaskCount"
+          :reward-ready-count="sectStore.completedTasks.length"
+          :can-claim-salary="sectStore.canClaimSalary"
+          :task-summary="taskSummary"
+          :garden-slot-count="sectStore.gardenSlotCount"
+          :active-garden-slots="sectStore.activeGardenSlots"
+          :ready-garden-slots="sectStore.readyGardenSlots"
+          :garden-summary="gardenSummary"
+          :garden-hint="gardenHint"
+          :alchemy-level="sectStore.getFacilityLevel('alchemy_furnace')"
+          :garden-level="sectStore.getFacilityLevel('medicine_garden')"
+          :available-recipe-count="sectStore.availableAlchemyRecipes.length"
+          :facility-summary="facilitySummary"
+          :active-war="sectStore.activeWar"
+          :last-war-report="sectStore.lastWarReport"
+          :last-duty-title="lastDuty?.title ?? null"
+          :last-duty-text="lastDuty?.text ?? null"
+          @resolve-duty="handleSectDuty"
+          @claim-all-tasks="handleClaimAllRewards"
+          @claim-salary="handleClaimSalary"
+          @harvest-ready="handleHarvestReady"
+          @open-facility="handleUseFacility"
+          @go-tab="handleTabSelect"
+          @ack-war-report="handleAcknowledgeWarReport"
+        />
 
-      <SectDirectivePanel
-        :authority-label="authorityLabel"
-        :authority-description="authorityDescription"
-        :active-directive="sectStore.activeDirective"
-        :active-directive-label="activeDirectiveLabel"
-        :directives="directiveOptions"
-        @change-directive="handleDirectiveChange"
-      />
+        <SectDirectivePanel
+          :authority-label="authorityLabel"
+          :authority-description="authorityDescription"
+          :active-directive="sectStore.activeDirective"
+          :active-directive-label="activeDirectiveLabel"
+          :directives="directiveOptions"
+          @change-directive="handleDirectiveChange"
+        />
 
-      <SectRecoveryPanel
-        v-if="sectStore.recoveryState.active || capturedNpcRescueTarget"
-        :state="sectStore.recoveryState"
-        :captured-npc="capturedNpcRescueTarget"
-        :npc-rescue-cost="NPC_RESCUE_COST"
-        @act="handleRecoveryAction"
-        @rescue-npc="handleRescueNpc"
-      />
+        <SectRecoveryPanel
+          v-if="sectStore.recoveryState.active || capturedNpcRescueTarget"
+          :state="sectStore.recoveryState"
+          :captured-npc="capturedNpcRescueTarget"
+          :npc-rescue-cost="NPC_RESCUE_COST"
+          @act="handleRecoveryAction"
+          @rescue-npc="handleRescueNpc"
+        />
 
-      <SectTasksPanel
-        v-if="activeTab === 'tasks'"
-        :daily-tasks="sectStore.dailyTasks"
-        :weekly-tasks="sectStore.weeklyTasks"
-        :salary="sectStore.stipendPreview.gold"
-        :contribution-gain="sectStore.stipendPreview.contribution"
-        :can-claim-salary="sectStore.canClaimSalary"
-        @claim-task="handleClaimReward"
-        @claim-salary="handleClaimSalary"
-      />
+        <SectTasksPanel
+          v-if="activeTab === 'tasks'"
+          :daily-tasks="sectStore.dailyTasks"
+          :weekly-tasks="sectStore.weeklyTasks"
+          :salary="sectStore.stipendPreview.gold"
+          :contribution-gain="sectStore.stipendPreview.contribution"
+          :can-claim-salary="sectStore.canClaimSalary"
+          @claim-task="handleClaimReward"
+          @claim-salary="handleClaimSalary"
+        />
 
-      <SectFacilitiesPanel
-        v-else-if="activeTab === 'facilities'"
-        :facilities="SECT_FACILITIES"
-        :position-level="sectStore.positionLevel"
-        :get-level="sectStore.getFacilityLevel"
-        :can-use-facility="canUseFacility"
-        @use-facility="handleUseFacility"
-        @upgrade-facility="handleUpgradeFacility"
-      />
+        <SectFacilitiesPanel
+          data-ui-state="sect-facilities-view"
+          v-else-if="activeTab === 'facilities'"
+          :facilities="SECT_FACILITIES"
+          :position-level="sectStore.positionLevel"
+          :get-level="sectStore.getFacilityLevel"
+          :can-use-facility="canUseFacility"
+          @use-facility="handleUseFacility"
+          @upgrade-facility="handleUpgradeFacility"
+        />
 
-      <SectDiplomacyPanel
-        v-else
-        :tone="sectTone"
-        :subtitle="diplomacySubtitle"
-        :active-war="sectStore.activeWar"
-        :relations="diplomacyRows"
-        :active-war-label="activeWarLabel"
-        @declare-war="handleDeclareWar"
-      />
+        <SectDiplomacyPanel
+          v-else
+          :tone="sectTone"
+          :subtitle="diplomacySubtitle"
+          :active-war="sectStore.activeWar"
+          :relations="diplomacyRows"
+          :active-war-label="activeWarLabel"
+          @declare-war="handleDeclareWar"
+        />
 
-      <GameSurface tone="mist" padding="md" compact>
-        <div class="leave-row">
-          <div class="leave-copy">
-            <strong>脱离宗门</strong>
-            <small>退出后将失去当前宗门的贡献、声望与部分世界关联。</small>
+        <GameSurface tone="mist" padding="md" compact>
+          <div class="leave-row">
+            <div class="leave-copy">
+              <strong>脱离宗门</strong>
+              <small>退出后将失去当前宗门的贡献、声望与部分世界关联。</small>
+            </div>
+            <GameActionButton icon="LogOut" tone="rose" @click="showLeaveDialog = true">
+              退出宗门
+            </GameActionButton>
           </div>
-          <GameActionButton icon="LogOut" tone="rose" @click="showLeaveDialog = true">
-            退出宗门
-          </GameActionButton>
-        </div>
-      </GameSurface>
+        </GameSurface>
+      </div>
     </template>
 
     <FacilityModal
@@ -151,8 +155,8 @@
       <p class="dialog-copy">退出后将清空当前宗门贡献、声望与进行中的宗门任务。此操作用于世界分歧，但不适合频繁切换。</p>
 
       <template #footer>
-        <GameActionButton icon="取消" tone="stone" @click="showLeaveDialog = false">取消</GameActionButton>
-        <GameActionButton icon="确认" tone="rose" @click="handleLeaveSect">确认退出</GameActionButton>
+        <GameActionButton icon="close" tone="stone" @click="showLeaveDialog = false">取消</GameActionButton>
+        <GameActionButton icon="spark" tone="rose" @click="handleLeaveSect">确认退出</GameActionButton>
       </template>
     </GameDialog>
   </div>
@@ -162,6 +166,7 @@
 import { ref } from 'vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
 import GameDialog from '@/components/game-ui/GameDialog.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
 import FacilityModal from '@/components/sect/FacilityModal.vue'
 import SectCyclePanel from '@/components/sect/SectCyclePanel.vue'
@@ -238,7 +243,7 @@ const showLeaveDialog = ref(false)
 const tabs = [
   { id: 'tasks' as const, name: '任务', icon: 'Clipboard' },
   { id: 'facilities' as const, name: '设施', icon: 'Castle' },
-  { id: 'diplomacy' as const, name: '外交', icon: '⚔️' }
+  { id: 'diplomacy' as const, name: '外交', icon: 'sword' }
 ]
 
 function handleJoinSect(sectId: string) {
@@ -405,15 +410,45 @@ function closeFacilityModal() {
 
 <style scoped>
 .sect-view {
-  display: grid;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
-  padding-bottom: 10px;
+  min-width: 0;
+  overflow: hidden;
+  padding-bottom: 4px;
+}
+
+.sect-view > :not(.sect-entry-drawer):not(.sect-content-drawer) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.sect-entry-drawer,
+.sect-content-drawer {
+  min-height: 90px;
+  flex: 1 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.sect-entry-drawer {
+  padding: 1px 2px 12px;
+}
+
+.sect-content-drawer {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 1px 2px 12px;
 }
 
 .tab-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .tab-btn {
@@ -421,14 +456,22 @@ function closeFacilityModal() {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 10px;
   border-radius: 16px;
   border: 1px solid rgba(103, 149, 144, 0.18);
   background: rgba(255, 255, 255, 0.62);
   color: #5b7272;
   font-family: var(--font-game);
   font-size: 12px;
+}
+
+.tab-btn > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab-btn.active {
@@ -466,13 +509,36 @@ function closeFacilityModal() {
 }
 
 @media (max-width: 720px) {
-  .tab-row {
-    grid-template-columns: 1fr;
-  }
-
   .leave-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .tab-row {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    gap: 5px;
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+}
+
+@container game-stage (max-width: 720px) {
+  .leave-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tab-row {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    gap: 5px;
+    padding-inline: 5px;
+    font-size: 11px;
   }
 }
 </style>

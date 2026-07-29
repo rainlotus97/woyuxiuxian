@@ -1,33 +1,36 @@
 <template>
   <button
     class="shop-card"
+    data-ui-card="shop-item"
+    type="button"
     :class="[`quality-${item.definition.quality}`, { disabled: !canBuy }]"
     @click="$emit('select', item)"
   >
-    <span class="item-icon">{{ item.definition.icon }}</span>
-    <span class="item-copy">
-      <span class="item-heading">
-        <strong>{{ item.definition.name }}</strong>
-        <em>{{ qualityLabel }}</em>
-      </span>
-      <span class="item-desc">{{ item.definition.description }}</span>
-      <span class="item-meta">
-        <span>{{ costLabel }}</span>
-        <span>存货 {{ item.stock }}/{{ item.maxStock }}</span>
-        <span v-if="!canBuy" class="blocked">{{ blockedReason }}</span>
-      </span>
-      <span v-if="item.merchantEvent" class="event-line">
-        {{ item.merchantEvent.merchantName }} · {{ item.merchantEvent.title }}
-      </span>
-      <span v-if="item.tags.length" class="item-tags">
-        <i v-for="tag in item.tags.slice(0, 4)" :key="tag">{{ tag }}</i>
-      </span>
+    <span class="shop-card-topline">
+      <span class="item-quality">{{ qualityLabel }}</span>
+      <span class="item-stock">{{ item.stock }}/{{ item.maxStock }}</span>
+    </span>
+    <ItemArt
+      class="shop-card-art"
+      :icon="item.definition.icon"
+      :art-key="item.definition.artKey"
+      :label="item.definition.name"
+      :tone="item.definition.quality === 'legendary' ? 'gold' : 'jade'"
+      size="3.1rem"
+      :icon-size="22"
+    />
+    <strong class="item-name">{{ item.definition.name }}</strong>
+    <span class="shop-card-bottomline">
+      <span class="item-cost">{{ item.price }} 灵石</span>
+      <GameIcon class="shop-card-arrow" icon="chevron-right" :size="14" />
     </span>
   </button>
 </template>
 
 <script setup lang="ts">
 import type { ShopInventoryItem } from '@/shop/runtime/shopInventoryResolver'
+import ItemArt from '@/components/game-ui/ItemArt.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 
 defineEmits<{
   select: [item: ShopInventoryItem]
@@ -36,128 +39,159 @@ defineEmits<{
 defineProps<{
   item: ShopInventoryItem
   canBuy: boolean
-  blockedReason: string
   qualityLabel: string
-  costLabel: string
 }>()
 </script>
 
 <style scoped>
 .shop-card {
-  min-height: 138px;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 8rem;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  padding: 12px;
-  border: 1px solid rgba(118, 150, 142, 0.2);
-  border-radius: 16px;
+  grid-template-rows: auto 3.1rem minmax(1.1rem, auto) auto;
+  gap: 0.28rem;
+  align-content: start;
+  justify-items: center;
+  padding: 0.58rem 0.48rem 0.5rem;
+  border: 1.5px solid rgba(118, 150, 142, 0.24);
+  border-radius: 0.9rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 250, 0.94), rgba(240, 249, 242, 0.88)),
     radial-gradient(circle at top left, rgba(248, 214, 122, 0.16), transparent 58%);
-  box-shadow: 0 14px 28px rgba(83, 116, 108, 0.1);
+  box-shadow: 0 8px 18px rgba(83, 116, 108, 0.08);
   color: #315257;
   font-family: var(--font-game);
   text-align: left;
+  text-wrap: pretty;
   cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .shop-card:hover:not(.disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(180, 133, 52, 0.35);
-  box-shadow: 0 18px 34px rgba(91, 118, 111, 0.14);
+  transform: translateY(-1px);
+  border-color: rgba(180, 133, 52, 0.58);
+  box-shadow: 0 12px 24px rgba(91, 118, 111, 0.14);
 }
 
 .shop-card.disabled {
-  opacity: 0.58;
-  cursor: not-allowed;
+  opacity: 0.68;
 }
 
-.item-icon {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(119, 148, 139, 0.2);
-  color: #8d6528;
-  font-size: 22px;
-  font-weight: 800;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.item-copy {
-  min-width: 0;
-  display: grid;
-  gap: 7px;
-}
-
-.item-heading {
+.shop-card-topline,
+.shop-card-bottomline {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
-.item-heading strong {
+.shop-card-topline {
+  gap: 0.3rem;
+}
+
+.item-quality,
+.item-stock {
   min-width: 0;
-  color: #315257;
-  font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.item-heading em {
-  flex: 0 0 auto;
+.item-quality {
+  color: #80602e;
+  font-size: 0.6rem;
+}
+
+.item-stock {
+  color: rgba(73, 97, 95, 0.58);
+  font-size: 0.58rem;
+}
+
+.shop-card-art {
+  display: grid;
+  place-items: center;
+  width: 3.1rem;
+  height: 3.1rem;
+}
+
+.shop-card :deep(.item-art-fallback) {
+  border-radius: 0.78rem;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.item-name {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  color: #315257;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-cost {
   color: #8d6528;
-  font-size: 11px;
-  font-style: normal;
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.item-desc {
-  min-height: 34px;
-  color: rgba(52, 82, 79, 0.72);
-  font-size: 12px;
-  line-height: 1.45;
+.shop-card-arrow {
+  color: #78968b;
 }
 
-.item-meta,
-.item-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.quality-common {
+  border-color: rgba(118, 150, 142, 0.25);
 }
 
-.item-meta span,
-.item-tags i {
-  padding: 4px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(122, 151, 141, 0.16);
-  color: #587069;
-  font-size: 11px;
-  font-style: normal;
+.quality-fine {
+  border-color: rgba(76, 163, 121, 0.46);
 }
 
-.item-meta .blocked {
-  border-color: rgba(190, 95, 82, 0.2);
-  background: rgba(255, 245, 242, 0.8);
-  color: #9a5548;
+.quality-excellent {
+  border-color: rgba(88, 139, 190, 0.5);
 }
 
-.event-line {
-  color: #8d6528;
-  font-size: 11px;
-  line-height: 1.4;
+.quality-supreme {
+  border-color: rgba(143, 105, 179, 0.54);
 }
 
-.quality-excellent .item-icon,
-.quality-supreme .item-icon,
-.quality-legendary .item-icon {
-  border-color: rgba(192, 145, 59, 0.38);
-  background: linear-gradient(180deg, rgba(255, 252, 230, 0.95), rgba(235, 249, 240, 0.9));
+.quality-legendary {
+  border-color: rgba(192, 145, 59, 0.64);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 230, 0.96), rgba(240, 248, 236, 0.9)),
+    radial-gradient(circle at top, rgba(248, 214, 122, 0.2), transparent 62%);
+}
+
+.quality-excellent .item-quality {
+  color: #557fa8;
+}
+
+.quality-supreme .item-quality {
+  color: #8060a1;
+}
+
+.quality-legendary .item-quality {
+  color: #9b6e24;
+}
+
+@container game-stage (max-width: 350px) {
+  .shop-card {
+    min-height: 7.4rem;
+    grid-template-rows: auto 2.8rem minmax(1.1rem, auto) auto;
+  }
+
+  .shop-card-art {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
 }
 </style>

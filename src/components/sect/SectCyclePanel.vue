@@ -22,10 +22,10 @@
         </div>
 
         <div class="action-row">
-          <GameActionButton icon="令" tone="jade" @click="$emit('resolve-duty')">
+          <GameActionButton icon="mission" tone="jade" @click="$emit('resolve-duty')">
             处理差遣
           </GameActionButton>
-          <GameActionButton icon="🎁" tone="gold" :disabled="rewardReadyCount === 0" @click="$emit('claim-all-tasks')">
+          <GameActionButton icon="gift" tone="gold" :disabled="rewardReadyCount === 0" @click="$emit('claim-all-tasks')">
             一键领取
           </GameActionButton>
           <GameActionButton icon="Coins" tone="jade" :disabled="!canClaimSalary" @click="$emit('claim-salary')">
@@ -51,10 +51,10 @@
         <p class="card-copy">{{ gardenHint }}</p>
 
         <div class="action-row">
-          <GameActionButton icon="🌿" tone="jade" :disabled="readyGardenSlots === 0" @click="$emit('harvest-ready')">
+          <GameActionButton icon="herb" tone="jade" :disabled="readyGardenSlots === 0" @click="$emit('harvest-ready')">
             收取成熟作物
           </GameActionButton>
-          <GameActionButton icon="🏛️" tone="gold" @click="$emit('open-facility', 'medicine_garden')">
+          <GameActionButton icon="sect" tone="gold" @click="$emit('open-facility', 'medicine_garden')">
             管理药园
           </GameActionButton>
         </div>
@@ -87,10 +87,10 @@
         <p class="card-copy">{{ facilitySummary }}</p>
 
         <div class="action-row">
-          <GameActionButton icon="🧪" tone="jade" @click="$emit('open-facility', 'alchemy_furnace')">
+          <GameActionButton icon="alchemy" tone="jade" @click="$emit('open-facility', 'alchemy_furnace')">
             开炉炼丹
           </GameActionButton>
-          <GameActionButton icon="⬆️" tone="gold" @click="$emit('go-tab', 'facilities')">
+          <GameActionButton icon="progress" tone="gold" @click="$emit('go-tab', 'facilities')">
             查看设施
           </GameActionButton>
         </div>
@@ -122,7 +122,7 @@
           <GameActionButton icon="Swords" tone="jade" @click="$emit('go-tab', 'diplomacy')">
             查看战局
           </GameActionButton>
-          <GameActionButton icon="📋" tone="gold" :disabled="!hasWarReport" @click="$emit('ack-war-report')">
+          <GameActionButton icon="mission" tone="gold" :disabled="!hasWarReport" @click="$emit('ack-war-report')">
             收起战报
           </GameActionButton>
         </div>
@@ -263,6 +263,10 @@ const warSummary = computed(() => {
   align-items: start;
 }
 
+.card-head > div {
+  min-width: 0;
+}
+
 .card-eyebrow,
 .card-copy {
   color: rgba(73, 97, 95, 0.76);
@@ -279,6 +283,7 @@ const warSummary = computed(() => {
 
 .card-head strong {
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .card-metric,
@@ -293,6 +298,12 @@ const warSummary = computed(() => {
   border: 1px solid rgba(194, 146, 66, 0.18);
   color: #8b6226;
   font-size: 11px;
+}
+
+.card-metric {
+  max-width: 46%;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .stat-row,
@@ -322,6 +333,7 @@ const warSummary = computed(() => {
   min-height: 42px;
   font-size: 12px;
   line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .action-row {
@@ -337,6 +349,19 @@ const warSummary = computed(() => {
 }
 
 @media (max-width: 640px) {
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@container game-stage (max-width: 920px) {
+  .cycle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container game-stage (max-width: 640px) {
   .action-row {
     display: grid;
     grid-template-columns: 1fr;

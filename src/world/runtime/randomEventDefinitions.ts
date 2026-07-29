@@ -272,7 +272,7 @@ export const SOCIAL_EVENTS: RandomEvent[] = [
       },
       {
         text: '记住她的声音，不接玉简',
-        effects: [],
+        effects: [{ type: 'flag_set', flag: 'encounter:umbrella_woman_remembered' }],
         memory: [
           {
             type: 'unlock_npc',
@@ -308,7 +308,7 @@ export const SOCIAL_EVENTS: RandomEvent[] = [
       },
       {
         text: '先记住摊位位置',
-        effects: []
+        effects: [{ type: 'flag_set', flag: 'encounter:roadside_stall_not_bought' }]
       }
     ]
   },
@@ -332,7 +332,7 @@ export const SOCIAL_EVENTS: RandomEvent[] = [
       },
       {
         text: '点头致意，继续赶路',
-        effects: []
+        effects: [{ type: 'flag_set', flag: 'encounter:crippled_elder_passed' }]
       }
     ]
   },
@@ -378,7 +378,7 @@ export const SOCIAL_EVENTS: RandomEvent[] = [
       },
       {
         text: '记下他的样子，不贸然出手',
-        effects: [],
+        effects: [{ type: 'flag_set', flag: 'encounter:white_clothed_youth_witnessed' }],
         memory: [
           {
             type: 'unlock_npc',

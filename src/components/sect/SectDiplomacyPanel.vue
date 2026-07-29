@@ -29,14 +29,14 @@
       <div v-for="relation in relations" :key="relation.sectId" class="relation-card">
         <div class="relation-head">
           <div class="relation-leading">
-            <div class="relation-icon">{{ relation.icon }}</div>
+            <GameIcon class="relation-icon" :icon="relation.icon" :size="26" />
             <div class="relation-copy">
               <strong>{{ relation.name }}</strong>
               <small>{{ relation.realm }} · {{ relation.description }}</small>
             </div>
           </div>
           <GameStatChip
-            icon="⚑"
+            icon="flag"
             label="关系"
             :value="getSectRelationLabel(relation.relation)"
             :tone="getSectRelationTone(relation.relation)"
@@ -61,6 +61,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import GameActionButton from '@/components/game-ui/GameActionButton.vue'
+import GameIcon from '@/components/game-ui/GameIcon.vue'
 import GameProgressBar from '@/components/game-ui/GameProgressBar.vue'
 import GameStatChip from '@/components/game-ui/GameStatChip.vue'
 import GameSurface from '@/components/game-ui/GameSurface.vue'
@@ -110,6 +111,7 @@ const activeWar = computed(() => props.activeWar)
 .relation-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .war-copy strong,
@@ -123,6 +125,7 @@ const activeWar = computed(() => props.activeWar)
 .relation-copy small {
   color: rgba(73, 97, 95, 0.72);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .war-progress-list {
@@ -143,6 +146,8 @@ const activeWar = computed(() => props.activeWar)
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .relation-icon {

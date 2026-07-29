@@ -14,8 +14,15 @@ import type {
 import { ALL_RANDOM_EVENTS } from '@/world/runtime/randomEventDefinitions'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useWorldStore } from '@/stores/worldStore'
+import { useMapStore } from '@/stores/mapStore'
+import { useSectStore } from '@/stores/sectStore'
 import { useStoryStore } from '@/story/storyStore'
 import { useToast } from '@/composables/useToast'
+import {
+  resolveRandomEventChoice,
+  type RandomEventChoiceResolution
+} from '@/world/runtime/worldEffectResolver'
+import { resolveRandomEventWorldBias } from '@/world/runtime/randomEventWorldBiasResolver'
 
 const STORAGE_KEY = 'woyu-xiuxian-random-event-state'
 const GLOBAL_MIN_INTERVAL_TICKS = 6
@@ -37,6 +44,8 @@ const REALM_STAGE_BASE: Record<string, number> = {
 export function useRandomEvent() {
   const playerStore = usePlayerStore()
   const worldStore = useWorldStore()
+  const mapStore = useMapStore()
+  const sectStore = useSectStore()
   const storyStore = useStoryStore()
   const { info, success } = useToast()
 
@@ -164,6 +173,36 @@ export function useRandomEvent() {
     return relationship.favor + relationship.debt * 1.2 + relationship.hatred * 1.4 + relationship.fear * 0.8
   }
 
+  function getWorldContextWeight(event: RandomEvent) {
+    const currentRealmAreaIds = mapStore.currentRealmAreas.map(area => area.id)
+    const areaStates = currentRealmAreaIds.flatMap(areaId => {
+      const state = mapStore.getAreaState(areaId)
+      if (!state) return []
+      return [{
+        areaId: state.areaId,
+        riskLevel: state.riskLevel,
+        stability: state.stability,
+        pressure: state.pressure,
+        contested: state.contested
+      }]
+    })
+
+    return resolveRandomEventWorldBias({
+      event,
+      areaStates,
+      activeAreaAnomalyCount: worldStore.activeAreaAnomalies.filter(anomaly => currentRealmAreaIds.includes(anomaly.areaId)).length,
+      currentRealmAreaIds,
+      joinedSectId: sectStore.joinedSectId,
+      activeWar: Boolean(sectStore.activeWar),
+      worldStatus: sectStore.currentSect ? sectStore.worldCondition.status : null,
+      npcStates: worldStore.npcStates.map(state => ({
+        id: state.id,
+        locationMapId: state.locationMapId,
+        hpState: state.hpState
+      }))
+    })
+  }
+
   function getRecentMemoryEcho(event: RandomEvent) {
     const npcId = event.choices
       .flatMap(choice => choice.memory ?? [])
@@ -182,6 +221,7 @@ export function useRandomEvent() {
     if (isStoryEncounter(event)) weight += 24
     weight += Math.max(0, getRelationshipPressure(event))
     weight += getRecentMemoryEcho(event)
+    weight += getWorldContextWeight(event)
     return weight
   }
 
@@ -200,7 +240,8 @@ export function useRandomEvent() {
     const weight = getEncounterWeight(event)
     const pressure = Math.round(getRelationshipPressure(event) * 10) / 10
     const echo = getRecentMemoryEcho(event)
-    return `${event.title} · 权重${weight} · 人情${pressure} · 回响${echo} · ${resolveEncounterBiasLabel(event)}`
+    const worldBias = getWorldContextWeight(event)
+    return `${event.title} · 权重${weight} · 天地${worldBias} · 人情${pressure} · 回响${echo} · ${resolveEncounterBiasLabel(event)}`
   }
 
   function getStoryEncounterLifetimeLimit() {
@@ -491,9 +532,11 @@ export function useRandomEvent() {
   function confirmChoice(choiceIndex: number) {
     const event = currentEvent.value
     if (!event) return
-    fireEvent(event, choiceIndex)
+    const outcome = fireEvent(event, choiceIndex)
+    if (!outcome) return
     showEventToast(event)
     currentEvent.value = null
+    return outcome
   }
 
   // 忽略事件
@@ -502,11 +545,13 @@ export function useRandomEvent() {
   }
 
   // 触发事件（执行效果+显示通知）
-  function fireEvent(event: RandomEvent, choiceIndex: number) {
+  function fireEvent(event: RandomEvent, choiceIndex: number): RandomEventChoiceResolution | null {
     const choice = event.choices[choiceIndex]
-    if (!choice) return
+    if (!choice) return null
+    const outcome = resolveRandomEventChoice(event, choiceIndex)
+    if (!outcome) return null
 
-    for (const effect of choice.effects) {
+    for (const effect of choice.effects ?? []) {
       switch (effect.type) {
         case 'realm_exp':
           if (effect.value) playerStore.addCultivation(effect.value)
@@ -523,6 +568,24 @@ export function useRandomEvent() {
               favorDelta: effect.value,
               title: `${event.title}留下回响`,
               text: `你的抉择让${effect.npcId}对你另眼相看。`
+            })
+          }
+          break
+        case 'npc_hatred':
+          if (effect.npcId && effect.value) {
+            worldStore.applyStoryRelationshipChange(effect.npcId, {
+              hatredDelta: effect.value,
+              title: `${event.title}留下仇怨`,
+              text: `你的抉择让${effect.npcId}记住了这次冲突。`
+            })
+          }
+          break
+        case 'npc_fear':
+          if (effect.npcId && effect.value) {
+            worldStore.applyStoryRelationshipChange(effect.npcId, {
+              fearDelta: effect.value,
+              title: `${event.title}留下阴影`,
+              text: `你的抉择让${effect.npcId}对你多了一层戒心。`
             })
           }
           break
@@ -565,17 +628,20 @@ export function useRandomEvent() {
             text: memory.text || '你的手段让对方生出畏惧。'
           })
         }
-        if (memory.type === 'journey_note') {
-          worldStore.recordManualPlayerJourney({
-            severity: 'normal',
-            title: memory.title || event.title,
-            text: memory.text || event.description,
-            rewards: [],
-            tags: memory.tags ?? ['encounter-memory', 'story-encounter', event.id]
-          })
-        }
       }
     }
+
+    worldStore.recordManualPlayerJourney({
+      severity: outcome.severity,
+      title: outcome.title,
+      text: outcome.text,
+      rewards: outcome.rewards,
+      tags: outcome.tags,
+      effects: outcome.effects,
+      source: 'random_event',
+      sourceId: `${event.id}:choice-${choiceIndex}`,
+      relatedNpcIds: outcome.actorIds.filter(actorId => actorId !== 'player')
+    })
 
     addEventMemory({
       eventId: event.id,
@@ -586,6 +652,7 @@ export function useRandomEvent() {
       summary: choice.text,
       tags: [...(event.storyTags ?? []), event.type, ...(isStoryEncounter(event) ? ['story-encounter'] : [])]
     })
+    return outcome
   }
 
   // 显示事件通知（toast）

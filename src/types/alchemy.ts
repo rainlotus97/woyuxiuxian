@@ -35,7 +35,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'pill_hp_small',
     name: '回春丹',
-    icon: '💊',
+    icon: 'pill',
     quality: 'common',
     description: '恢复50点生命值',
     materials: [
@@ -45,7 +45,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredFacilityLevel: 1,
     output: {
       name: '回春丹',
-      icon: '💊',
+      icon: 'pill',
       effects: [{ type: 'restore_hp', value: 50 }]
     },
     craftTime: 30
@@ -53,7 +53,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'pill_mp_small',
     name: '聚气丹',
-    icon: '💊',
+    icon: 'pill',
     quality: 'fine',
     description: '恢复30点灵力',
     materials: [
@@ -63,7 +63,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredFacilityLevel: 2,
     output: {
       name: '聚气丹',
-      icon: '💊',
+      icon: 'pill',
       effects: [{ type: 'restore_mp', value: 30 }]
     },
     craftTime: 45
@@ -71,7 +71,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'pill_cultivation',
     name: '筑基丹',
-    icon: '💊',
+    icon: 'pill',
     quality: 'rare',
     description: '增加100点修为',
     materials: [
@@ -82,7 +82,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredFacilityLevel: 3,
     output: {
       name: '筑基丹',
-      icon: '💊',
+      icon: 'pill',
       effects: [{ type: 'add_cultivation', value: 100 }]
     },
     craftTime: 60
@@ -90,7 +90,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'pill_hp_large',
     name: '大还丹',
-    icon: '💊',
+    icon: 'pill',
     quality: 'epic',
     description: '恢复200点生命值',
     materials: [
@@ -101,7 +101,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredFacilityLevel: 4,
     output: {
       name: '大还丹',
-      icon: '💊',
+      icon: 'pill',
       effects: [{ type: 'restore_hp', value: 200 }]
     },
     craftTime: 90
@@ -109,7 +109,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'pill_cultivation_large',
     name: '金元丹',
-    icon: '💊',
+    icon: 'pill',
     quality: 'legendary',
     description: '增加500点修为',
     materials: [
@@ -121,7 +121,7 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     requiredFacilityLevel: 5,
     output: {
       name: '金元丹',
-      icon: '💊',
+      icon: 'pill',
       effects: [{ type: 'add_cultivation', value: 500 }]
     },
     craftTime: 120

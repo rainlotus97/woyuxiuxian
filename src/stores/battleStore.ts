@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
  * Legacy compatibility store.
  *
  * The active battle pipeline is now:
- * `useBattleSession -> src/game/battle/battleRuntime.ts -> Phaser scenes`.
+ * `useBattleSession -> src/game/battle/battleRuntime.ts -> CanvasBattleHost`.
  *
  * Keep this store only as a defensive compatibility boundary so any stale import
  * fails loudly instead of silently reviving the deprecated battle flow.

@@ -6,7 +6,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   slime: {
     id: 'slime',
     name: '史莱姆',
-    icon: '🟢',
+    icon: 'beast',
     realm: '炼气',
     realmLevel: 1,
     baseStats: { maxHp: 50, attack: 8, defense: 3, speed: 80 },
@@ -18,7 +18,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   wild_wolf: {
     id: 'wild_wolf',
     name: '野狼',
-    icon: '🐺',
+    icon: 'beast',
     realm: '炼气',
     realmLevel: 2,
     baseStats: { maxHp: 80, attack: 15, defense: 5, speed: 110 },
@@ -30,7 +30,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   forest_spider: {
     id: 'forest_spider',
     name: '林中蛛',
-    icon: '🕷️',
+    icon: 'beast',
     realm: '炼气',
     realmLevel: 3,
     baseStats: { maxHp: 60, attack: 12, defense: 4, speed: 95 },
@@ -42,7 +42,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   cave_bat: {
     id: 'cave_bat',
     name: '洞穴蝙蝠',
-    icon: '🦇',
+    icon: 'beast',
     realm: '炼气',
     realmLevel: 4,
     baseStats: { maxHp: 70, attack: 14, defense: 4, speed: 130 },
@@ -54,7 +54,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   rock_golem: {
     id: 'rock_golem',
     name: '岩石魔像',
-    icon: '🗿',
+    icon: 'mountain',
     realm: '炼气',
     realmLevel: 5,
     baseStats: { maxHp: 200, attack: 20, defense: 25, speed: 60 },
@@ -66,7 +66,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   shadow_snake: {
     id: 'shadow_snake',
     name: '暗影蛇',
-    icon: '🐍',
+    icon: 'beast',
     realm: '炼气',
     realmLevel: 6,
     baseStats: { maxHp: 90, attack: 25, defense: 6, speed: 120 },
@@ -78,7 +78,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   sand_worm: {
     id: 'sand_worm',
     name: '沙虫',
-    icon: '🐛',
+    icon: 'beast',
     realm: '筑基',
     realmLevel: 2,
     baseStats: { maxHp: 120, attack: 22, defense: 8, speed: 85 },
@@ -90,7 +90,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   desert_scorpion: {
     id: 'desert_scorpion',
     name: '沙漠巨蝎',
-    icon: '🦂',
+    icon: 'beast',
     realm: '筑基',
     realmLevel: 3,
     baseStats: { maxHp: 100, attack: 28, defense: 12, speed: 95 },
@@ -102,7 +102,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   mummy_warrior: {
     id: 'mummy_warrior',
     name: '木乃伊战士',
-    icon: '🧟',
+    icon: 'skull',
     realm: '筑基',
     realmLevel: 5,
     baseStats: { maxHp: 180, attack: 32, defense: 15, speed: 70 },
@@ -114,7 +114,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   ice_wolf: {
     id: 'ice_wolf',
     name: '冰狼',
-    icon: '🐺',
+    icon: 'beast',
     realm: '筑基',
     realmLevel: 5,
     baseStats: { maxHp: 150, attack: 30, defense: 10, speed: 110 },
@@ -126,7 +126,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   frost_giant: {
     id: 'frost_giant',
     name: '霜巨人',
-    icon: '🧊',
+    icon: 'cloud',
     realm: '筑基',
     realmLevel: 7,
     baseStats: { maxHp: 250, attack: 40, defense: 20, speed: 60 },
@@ -138,7 +138,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   snow_demon: {
     id: 'snow_demon',
     name: '雪魔',
-    icon: '👹',
+    icon: 'skull',
     realm: '金丹',
     realmLevel: 1,
     baseStats: { maxHp: 300, attack: 50, defense: 18, speed: 90 },
@@ -150,7 +150,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   void_walker: {
     id: 'void_walker',
     name: '虚空行者',
-    icon: '👁️',
+    icon: 'void',
     realm: '金丹',
     realmLevel: 3,
     baseStats: { maxHp: 350, attack: 55, defense: 22, speed: 100 },
@@ -162,7 +162,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   demon_lord: {
     id: 'demon_lord',
     name: '恶魔领主',
-    icon: '👿',
+    icon: 'skull',
     realm: '金丹',
     realmLevel: 5,
     baseStats: { maxHp: 500, attack: 70, defense: 30, speed: 85 },
@@ -174,7 +174,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   abyss_dragon: {
     id: 'abyss_dragon',
     name: '深渊魔龙',
-    icon: '🐉',
+    icon: 'beast',
     realm: '元婴',
     realmLevel: 1,
     baseStats: { maxHp: 800, attack: 100, defense: 45, speed: 95 },
@@ -186,7 +186,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   fire_elemental: {
     id: 'fire_elemental',
     name: '火焰元素',
-    icon: '🔥',
+    icon: 'fire',
     realm: '金丹',
     realmLevel: 3,
     baseStats: { maxHp: 280, attack: 60, defense: 15, speed: 105 },
@@ -198,7 +198,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   lava_golem: {
     id: 'lava_golem',
     name: '熔岩魔像',
-    icon: '🗿',
+    icon: 'mountain',
     realm: '金丹',
     realmLevel: 5,
     baseStats: { maxHp: 400, attack: 55, defense: 35, speed: 65 },
@@ -210,7 +210,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   phoenix_chick: {
     id: 'phoenix_chick',
     name: '幼凤',
-    icon: '🕊️',
+    icon: 'beast',
     realm: '金丹',
     realmLevel: 7,
     baseStats: { maxHp: 350, attack: 75, defense: 20, speed: 120 },
@@ -222,7 +222,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   ancient_guardian: {
     id: 'ancient_guardian',
     name: '上古守卫',
-    icon: '🗿',
+    icon: 'mountain',
     realm: '元婴',
     realmLevel: 2,
     baseStats: { maxHp: 600, attack: 80, defense: 40, speed: 75 },
@@ -234,7 +234,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   spirit_wraith: {
     id: 'spirit_wraith',
     name: '灵体幽魂',
-    icon: '👻',
+    icon: 'skull',
     realm: '元婴',
     realmLevel: 4,
     baseStats: { maxHp: 450, attack: 95, defense: 25, speed: 110 },
@@ -246,7 +246,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   celestial_beast: {
     id: 'celestial_beast',
     name: '天界神兽',
-    icon: '🦁',
+    icon: 'beast',
     realm: '元婴',
     realmLevel: 6,
     baseStats: { maxHp: 700, attack: 110, defense: 35, speed: 90 },
@@ -258,7 +258,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
   chaos_serpent: {
     id: 'chaos_serpent',
     name: '混沌巨蛇',
-    icon: '🐍',
+    icon: 'beast',
     realm: '元婴',
     realmLevel: 8,
     baseStats: { maxHp: 900, attack: 120, defense: 50, speed: 100 },

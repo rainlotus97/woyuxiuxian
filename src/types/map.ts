@@ -21,7 +21,7 @@ export interface WorldRealmConfig {
 export const WORLD_REALM_CONFIGS: Record<WorldRealm, WorldRealmConfig> = {
   '人界': {
     name: '人界',
-    icon: '🌏',
+    icon: 'globe',
     color: '#4ade80',
     bgColor: 'linear-gradient(135deg, #1a3a2a, #2d5a3f)',
     description: '凡人修行之地，灵气稀薄却生机盎然。修仙者在此起步，逐步踏入仙途。',
@@ -30,7 +30,7 @@ export const WORLD_REALM_CONFIGS: Record<WorldRealm, WorldRealmConfig> = {
   },
   '妖界': {
     name: '妖界',
-    icon: '🐺',
+    icon: 'beast',
     color: '#f59e0b',
     bgColor: 'linear-gradient(135deg, #3d2a1a, #5a4020)',
     description: '万妖聚集之地，妖气弥漫。各种妖兽在此修炼，化形飞升。',
@@ -39,7 +39,7 @@ export const WORLD_REALM_CONFIGS: Record<WorldRealm, WorldRealmConfig> = {
   },
   '魔界': {
     name: '魔界',
-    icon: '😈',
+    icon: 'skull',
     color: '#a855f7',
     bgColor: 'linear-gradient(135deg, #2a1a3a, #402050)',
     description: '魔修之地，魔气翻涌。修炼魔道者在此追求力量，不惜堕入黑暗。',
@@ -48,7 +48,7 @@ export const WORLD_REALM_CONFIGS: Record<WorldRealm, WorldRealmConfig> = {
   },
   '仙界': {
     name: '仙界',
-    icon: '☁️',
+    icon: 'cloud',
     color: '#67e8f9',
     bgColor: 'linear-gradient(135deg, #1a2a3a, #2a3a4a)',
     description: '仙人栖息之所，仙气飘渺。超脱凡尘，追求大道至理。',
@@ -109,6 +109,12 @@ export interface MapArea {
   // 区域状态
   isUnlocked: boolean
   isConquered: boolean
+  // 非境界解锁来源，可由世界事件、主线节点或宗门势力提供
+  unlockRules?: {
+    eventIds?: string[]
+    storyNodeIds?: string[]
+    sectIds?: string[]
+  }
   controllingSectId?: string | null
   defaultRiskLevel?: 'safe' | 'watch' | 'danger' | 'chaos'
   // 背景故事
@@ -121,7 +127,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'qingyun_mountain',
     name: '青云山',
     realm: '人界',
-    icon: '⛰️',
+    icon: 'mountain',
     description: '人界修仙的起点，灵气充沛的名山。',
     requiredRealm: '炼气',
     requiredRealmLevel: 1,
@@ -136,7 +142,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'azure_valley',
     name: '碧水谷',
     realm: '人界',
-    icon: '🌿',
+    icon: 'herb',
     description: '灵药遍地的幽谷，炼丹师的天堂。',
     requiredRealm: '炼气',
     requiredRealmLevel: 3,
@@ -151,7 +157,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'cloud_peak',
     name: '云霄峰',
     realm: '人界',
-    icon: '🏔️',
+    icon: 'mountain',
     description: '人界最高峰，接近仙界的神秘之地。',
     requiredRealm: '筑基',
     requiredRealmLevel: 1,
@@ -166,7 +172,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'flame_city',
     name: '烈焰城',
     realm: '人界',
-    icon: '🔥',
+    icon: 'fire',
     description: '以锻造闻名的古城，名剑出产地。',
     requiredRealm: '炼气',
     requiredRealmLevel: 5,
@@ -181,7 +187,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'thunder_plains',
     name: '雷霆平原',
     realm: '人界',
-    icon: '⚡',
+    icon: 'thunder',
     description: '常有雷霆落下的广阔平原，雷修圣地。',
     requiredRealm: '筑基',
     requiredRealmLevel: 3,
@@ -196,7 +202,7 @@ export const HUMAN_REALM_AREAS: MapArea[] = [
     id: 'sky_temple',
     name: '天机阁',
     realm: '人界',
-    icon: '🏛️',
+    icon: 'landmark',
     description: '人界最神秘的宗门，精通卜算之术。',
     requiredRealm: '筑基',
     requiredRealmLevel: 5,
@@ -215,7 +221,7 @@ export const DEMON_REALM_AREAS: MapArea[] = [
     id: 'hundred_beast_forest',
     name: '百兽林',
     realm: '妖界',
-    icon: '🌲',
+    icon: 'herb',
     description: '万妖聚集的原始森林，危机四伏。',
     requiredRealm: '筑基',
     requiredRealmLevel: 5,
@@ -230,7 +236,7 @@ export const DEMON_REALM_AREAS: MapArea[] = [
     id: 'fox_den',
     name: '青丘狐域',
     realm: '妖界',
-    icon: '🦊',
+    icon: 'beast',
     description: '九尾狐族的领地，美丽而危险。',
     requiredRealm: '金丹',
     requiredRealmLevel: 1,
@@ -245,7 +251,7 @@ export const DEMON_REALM_AREAS: MapArea[] = [
     id: 'dragon_pool',
     name: '龙渊',
     realm: '妖界',
-    icon: '🐉',
+    icon: 'beast',
     description: '龙族栖息的深渊，妖界最强大的势力。',
     requiredRealm: '金丹',
     requiredRealmLevel: 3,
@@ -260,7 +266,7 @@ export const DEMON_REALM_AREAS: MapArea[] = [
     id: 'phoenix_nest',
     name: '凤凰巢',
     realm: '妖界',
-    icon: '🦅',
+    icon: 'beast',
     description: '凤凰一族的圣地，火焰永不熄灭。',
     requiredRealm: '金丹',
     requiredRealmLevel: 5,
@@ -279,7 +285,7 @@ export const DEVIL_REALM_AREAS: MapArea[] = [
     id: 'blood_sea',
     name: '血海',
     realm: '魔界',
-    icon: '🩸',
+    icon: 'skull',
     description: '无尽的血色海洋，魔修的圣地。',
     requiredRealm: '金丹',
     requiredRealmLevel: 5,
@@ -294,7 +300,7 @@ export const DEVIL_REALM_AREAS: MapArea[] = [
     id: 'shadow_city',
     name: '影城',
     realm: '魔界',
-    icon: '🌑',
+    icon: 'moon',
     description: '永远笼罩在黑暗中的城池，刺客的天堂。',
     requiredRealm: '元婴',
     requiredRealmLevel: 1,
@@ -309,7 +315,7 @@ export const DEVIL_REALM_AREAS: MapArea[] = [
     id: 'chaos_abyss',
     name: '混沌深渊',
     realm: '魔界',
-    icon: '🌀',
+    icon: 'void',
     description: '魔界最深处的禁地，混沌魔神的沉睡之地。',
     requiredRealm: '元婴',
     requiredRealmLevel: 3,
@@ -328,7 +334,7 @@ export const IMMORTAL_REALM_AREAS: MapArea[] = [
     id: 'jade_palace',
     name: '玉虚宫',
     realm: '仙界',
-    icon: '🏛️',
+    icon: 'landmark',
     description: '仙界最古老的宫殿，天庭所在。',
     requiredRealm: '元婴',
     requiredRealmLevel: 5,
@@ -343,7 +349,7 @@ export const IMMORTAL_REALM_AREAS: MapArea[] = [
     id: 'star_sea',
     name: '星海',
     realm: '仙界',
-    icon: '✨',
+    icon: 'spark',
     description: '由无数星辰组成的海域，美丽而神秘。',
     requiredRealm: '化神',
     requiredRealmLevel: 1,
@@ -358,7 +364,7 @@ export const IMMORTAL_REALM_AREAS: MapArea[] = [
     id: 'void_temple',
     name: '虚空殿',
     realm: '仙界',
-    icon: '🌀',
+    icon: 'void',
     description: '存在于虚与实之间的神秘殿堂，道的终点。',
     requiredRealm: '化神',
     requiredRealmLevel: 5,

@@ -16,6 +16,8 @@ export interface ShopItemDefinition {
   definitionId: string
   name: string
   icon: string
+  artKey?: string
+  iconKey?: string
   category: Exclude<ShopCategoryId, 'all'>
   type: ShopItemType
   quality: ShopQuality

@@ -11,6 +11,15 @@ export type BattleReplayEventType =
   | 'defeat'
   | 'battle_end'
 
+export type BattleBossPhase = 1 | 2 | 3
+
+export function resolveBattleBossPhase(currentHp: number, maxHp: number): BattleBossPhase {
+  const ratio = maxHp > 0 ? Math.max(0, currentHp) / maxHp : 0
+  if (ratio > 0.66) return 1
+  if (ratio > 0.33) return 2
+  return 3
+}
+
 export interface BattleReplayActorRef {
   id: string
   name: string
@@ -141,7 +150,30 @@ export class BattleReplayRecorder {
         isCrit: effect.isCrit,
         isHeal: effect.isHeal,
         statusType: effect.appliedStatus?.type ?? null,
-        targetDefeated: effect.targetDefeated
+        targetDefeated: effect.targetDefeated,
+        targetHp: target?.stats.currentHp ?? null,
+        targetMaxHp: target?.stats.maxHp ?? null,
+        targetAlive: target?.isAlive ?? null,
+        targetStatusTypes: target?.statusEffects.map(status => status.type) ?? []
+      }
+    })
+  }
+
+  recordBossPhase(turn: number, boss: BattleRuntimeUnit, phase: BattleBossPhase) {
+    const phaseLabel = phase === 1 ? '第一' : phase === 2 ? '第二' : '最终'
+    const hpRatio = boss.stats.maxHp > 0 ? Math.max(0, boss.stats.currentHp) / boss.stats.maxHp : 0
+    return this.record({
+      turn,
+      type: 'turn_status',
+      text: `${boss.name}进入${phaseLabel}阶段。`,
+      severity: phase === 3 ? 'major' : 'normal',
+      actor: boss,
+      targets: [boss],
+      payload: {
+        bossPhase: phase,
+        bossHp: boss.stats.currentHp,
+        bossMaxHp: boss.stats.maxHp,
+        hpRatio: Number(hpRatio.toFixed(3))
       }
     })
   }
@@ -181,7 +213,7 @@ export class BattleReplayRecorder {
     })
   }
 
-  recordDefeat(turn: number, target: BattleRuntimeUnit) {
+  recordDefeat(turn: number, target: BattleRuntimeUnit, reason = 'damage') {
     return this.record({
       turn,
       type: 'defeat',
@@ -190,7 +222,10 @@ export class BattleReplayRecorder {
       actor: target,
       targets: [target],
       payload: {
-        targetId: target.id
+        targetId: target.id,
+        reason,
+        targetHp: target.stats.currentHp,
+        targetMaxHp: target.stats.maxHp
       }
     })
   }

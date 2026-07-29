@@ -37,10 +37,9 @@ woyu-xiuxian/
 │   │   ├── story/      # 剧情播放器组件
 │   │   └── world/      # 世界简报、NPC/区域动态组件
 │   ├── composables/    # 组合式业务入口与 UI/SFX helper
-│   ├── game/           # Phaser 引擎、战斗 runtime、战斗配置与场景
+│   ├── game/           # Canvas 战斗演出、战斗 runtime 与战斗配置
 │   │   ├── battle/     # 回合制战斗、技能、敌人、区域、阵型
-│   │   ├── engine/     # PhaserHost、事件总线、Game 创建
-│   │   └── scenes/     # Boot / Preload / BattleScene
+│   │   └── engine/     # Canvas 战斗宿主、事件总线与 VFX
 │   ├── map/            # 地图区域准入、风险、遭遇和控制权 runtime
 │   ├── sect/           # 宗门职位、战争、恢复、循环收益 runtime
 │   ├── shop/           # 坊市商品目录、动态库存 runtime

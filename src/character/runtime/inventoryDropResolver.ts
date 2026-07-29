@@ -1,5 +1,10 @@
 import type { InventoryItem } from '@/stores/playerStore'
 import type { DropItem } from '@/types/adventure'
+import {
+  resolveDropDisplayDescription,
+  resolveDropDisplayName,
+  type DropNamingContext
+} from '@/game/battle/config/dropNaming'
 import { normalizeInventoryItemSchema } from './inventoryItemSchemaResolver'
 
 export interface EncounterDropStack {
@@ -10,6 +15,7 @@ export interface EncounterDropStack {
 export interface DropInventorySource {
   idPrefix: string
   serial?: number | string
+  rewardContext?: DropNamingContext
 }
 
 export function resolveDropDefinitionId(drop: DropItem) {
@@ -23,12 +29,14 @@ export function createInventoryItemFromDrop(
   return normalizeInventoryItemSchema({
     id: `${source.idPrefix}_${drop.item.id}_${source.serial ?? Date.now()}`,
     definitionId: resolveDropDefinitionId(drop.item),
-    name: drop.item.name,
+    name: resolveDropDisplayName(drop.item, source.rewardContext),
     icon: drop.item.icon,
+    artKey: drop.item.artKey,
+    iconKey: drop.item.iconKey,
     type: drop.item.type === 'equipment' ? 'equipment' : drop.item.type === 'consumable' ? 'consumable' : 'material',
     quality: drop.item.quality,
     quantity: Math.max(1, Math.floor(drop.quantity)),
-    description: drop.item.description
+    description: resolveDropDisplayDescription(drop.item, source.rewardContext)
   })
 }
 

@@ -536,7 +536,11 @@ onMounted(() => {
     var(--ui-page-padding-x)
     calc(var(--ui-page-padding-bottom) + env(safe-area-inset-bottom, 0px));
   color: #315257;
+  height: 100dvh;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .menu-backdrop {

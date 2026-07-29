@@ -41,6 +41,8 @@ export interface DropItem {
   id: string
   name: string
   icon: string
+  artKey?: string
+  iconKey?: string
   type: DropType
   quality: 'common' | 'fine' | 'rare' | 'epic' | 'legendary'
   minQuantity: number

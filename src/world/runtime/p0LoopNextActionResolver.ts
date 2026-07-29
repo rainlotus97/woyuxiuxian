@@ -98,11 +98,11 @@ export function resolveP0LoopNextAction(input: P0LoopNextActionInput): P0LoopNex
   const primary = items[0] ?? fallback
   const allClosed = items.length > 0 && items.every(item => item.closureState === 'closed')
   const headline = allClosed
-    ? '六条路都已经留下回响，接下来只管往深处推。'
+    ? '六条路都已经留下回响，可以做深系统，接下来只管往深处推。'
     : primary.kind === 'unblock'
       ? `${primary.label} 这条路被卡住了，先把眼前因果理顺。`
       : primary.kind === 'verify'
-        ? `${primary.label} 这边还没碰出回响，先亲自去走一遭。`
+        ? `${primary.label} 这边还缺结果证据，先亲自去走一遭。`
         : `${primary.label} 眼下有事，先顺手把它处理掉。`
 
   return {

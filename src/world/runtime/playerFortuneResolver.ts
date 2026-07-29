@@ -100,8 +100,7 @@ function createFortuneText(input: PlayerFortuneInput, type: PlayerFortuneType, c
 }
 
 export function resolvePlayerFortune(input: PlayerFortuneInput): PlayerFortuneResult {
-  const weatherCost = input.weather === 'storm' || input.weather === 'flood' || input.weather === 'fire' ? 4 : 0
-  const staminaCost = BASE_STAMINA_COST + weatherCost
+  const staminaCost = input.idleMode === 'gatherHerbs' ? 8 : BASE_STAMINA_COST
   if (input.stamina < staminaCost) {
     return {
       success: false,

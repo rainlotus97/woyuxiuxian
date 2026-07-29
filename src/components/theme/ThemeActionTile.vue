@@ -2,7 +2,7 @@
   <button class="theme-action-tile" :class="[`tone-${tone}`, { disabled }]" type="button" :disabled="disabled">
     <span class="tile-shell" aria-hidden="true"></span>
     <span class="tile-tint" aria-hidden="true"></span>
-    <span class="tile-glyph">{{ glyph }}</span>
+    <span class="tile-glyph"><GameIcon :icon="glyph" :size="24" /></span>
     <span class="tile-copy">
       <strong>{{ title }}</strong>
       <small v-if="subtitle">{{ subtitle }}</small>
@@ -11,6 +11,8 @@
 </template>
 
 <script setup lang="ts">
+import GameIcon from '@/components/game-ui/GameIcon.vue'
+
 withDefaults(defineProps<{
   glyph: string
   title: string

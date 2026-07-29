@@ -3,7 +3,7 @@ import { ref, computed, watchEffect, toRaw } from 'vue'
 import type { Unit, Realm, Quality, Element, UnitStats, StatusEffect } from '@/types/unit'
 import { REALM_ORDER, REALM_MULTIPLIER, REALM_COLORS, REALM_PRIMARY_COLOR, REALM_CULTIVATION_PER_SECOND, calculateBaseStats } from '@/types/unit'
 import type { Equipment } from '@/types/equipment'
-import type { LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
+import type { CombatLoadout, LearnedSkill, SkillDefinition, SkillBranch } from '@/types/skill'
 import {
   resolveBreakthroughAttempt,
   resolveBreakthroughPreview
@@ -41,6 +41,8 @@ export interface InventoryItem {
   equipmentData?: Equipment  // 完整的装备数据（用于卸下的装备）
   name: string
   icon: string
+  artKey?: string
+  iconKey?: string
   type: 'equipment' | 'consumable' | 'material'
   quality: string
   quantity: number
@@ -98,10 +100,13 @@ interface PlayerState {
 
   // 背包
   inventory: InventoryItem[]
+  pendingRewards: InventoryItem[]
   maxInventorySlots: number
 
   // 技能（已学习的技能及其等级）
   learnedSkills: LearnedSkill[]
+  combatLoadouts: CombatLoadout[]
+  activeCombatLoadoutId: string
 
   // 临时buff
   temporaryBuffs: StatusEffect[]
@@ -120,6 +125,26 @@ interface PlayerState {
 }
 
 // 默认玩家数据
+function normalizeCombatLoadouts(loadouts: CombatLoadout[] | undefined, learnedSkills: LearnedSkill[] | undefined): CombatLoadout[] {
+  const learnedIds = new Set((learnedSkills ?? []).map(skill => skill.id))
+  const source = Array.isArray(loadouts) && loadouts.length
+    ? loadouts
+    : [
+        { id: 'balanced', name: '均衡应战', skillIds: getStarterSkills(), ultimateSkillId: null },
+        { id: 'blade', name: '剑修突进', skillIds: ['basic_sword', 'sword_qi', 'thunder_strike', 'fireball'], ultimateSkillId: null },
+        { id: 'guardian', name: '守御回春', skillIds: ['basic_sword', 'shield', 'heal', 'iron_skin'], ultimateSkillId: null }
+      ]
+  const normalized = source.map((loadout, index) => ({
+    id: typeof loadout.id === 'string' && loadout.id ? loadout.id : `loadout-${index + 1}`,
+    name: typeof loadout.name === 'string' && loadout.name ? loadout.name : `战斗配置 ${index + 1}`,
+    skillIds: [...new Set((loadout.skillIds ?? []).filter(skillId => learnedIds.has(skillId)))].slice(0, 4),
+    ultimateSkillId: loadout.ultimateSkillId && learnedIds.has(loadout.ultimateSkillId)
+      ? loadout.ultimateSkillId
+      : null
+  }))
+  return normalized.length ? normalized : [{ id: 'balanced', name: '均衡应战', skillIds: [], ultimateSkillId: null }]
+}
+
 function getDefaultPlayer(): PlayerState {
   return {
     id: 'protagonist',
@@ -173,10 +198,17 @@ function getDefaultPlayer(): PlayerState {
       { id: 'item_011', name: '铁甲丹', icon: '铁', type: 'consumable', quality: 'fine', quantity: 3, description: '战斗中防御+20%，持续3回合', effects: [{ type: 'buff_def', value: 0.2, duration: 3 }] },
       { id: 'item_012', definitionId: 'food_spirit_fruit', name: '灵果', icon: '果', type: 'consumable', quality: 'common', quantity: 3, description: '恢复10体力，并在3次挂机结算内修炼收益+12%。', effects: [{ type: 'stamina', value: 10 }, { type: 'food_cultivation', value: 0.12, duration: 3 }] },
     ],
+    pendingRewards: [],
     maxInventorySlots: 20,
 
     // 初始技能（使用 createLearnedSkill 创建）
     learnedSkills: getStarterSkills().map(id => createLearnedSkill(id)).filter((s): s is LearnedSkill => s !== null),
+    combatLoadouts: [
+      { id: 'balanced', name: '均衡应战', skillIds: ['basic_sword', 'fireball', 'shield', 'heal'], ultimateSkillId: null },
+      { id: 'blade', name: '剑修突进', skillIds: ['basic_sword', 'sword_qi', 'thunder_strike', 'fireball'], ultimateSkillId: null },
+      { id: 'guardian', name: '守御回春', skillIds: ['basic_sword', 'shield', 'heal', 'iron_skin'], ultimateSkillId: null }
+    ],
+    activeCombatLoadoutId: 'balanced',
     skillPoints: 3, // 初始技能点
     skillBonuses: {},
 
@@ -228,8 +260,11 @@ export const usePlayerStore = defineStore('player', () => {
         ),
         // 确保技能系统的新属性有默认值
         learnedSkills: parsed.learnedSkills ?? defaults.learnedSkills,
+        combatLoadouts: parsed.combatLoadouts ?? defaults.combatLoadouts,
+        activeCombatLoadoutId: parsed.activeCombatLoadoutId ?? defaults.activeCombatLoadoutId,
         skillPoints: parsed.skillPoints ?? defaults.skillPoints,
         skillBonuses: parsed.skillBonuses ?? defaults.skillBonuses,
+        pendingRewards: normalizeInventoryItemsSchema(parsed.pendingRewards ?? defaults.pendingRewards),
       }
     } else {
       initialData = getDefaultPlayer()
@@ -266,6 +301,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 背包
   const inventory = ref<InventoryItem[]>(normalizeInventoryItemsSchema(initialData.inventory))
+  const pendingRewards = ref<InventoryItem[]>(normalizeInventoryItemsSchema(initialData.pendingRewards ?? []))
   const maxInventorySlots = ref(initialData.maxInventorySlots)
 
   // 技能系统（兼容旧数据）
@@ -274,6 +310,8 @@ export const usePlayerStore = defineStore('player', () => {
       ? [...initialData.learnedSkills]
       : getStarterSkills().map(id => createLearnedSkill(id)).filter((s): s is LearnedSkill => s !== null)
   )
+  const combatLoadouts = ref<CombatLoadout[]>(normalizeCombatLoadouts(initialData.combatLoadouts, initialData.learnedSkills))
+  const activeCombatLoadoutId = ref(initialData.activeCombatLoadoutId || combatLoadouts.value[0]?.id || 'balanced')
   const skillPoints = ref(initialData.skillPoints ?? 3)
   const skillBonuses = ref<Partial<UnitStats>>(initialData.skillBonuses ?? {})
 
@@ -440,6 +478,30 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 背包是否已满
   const isInventoryFull = computed(() => inventory.value.length >= maxInventorySlots.value)
+  const pendingRewardCount = computed(() => pendingRewards.value.reduce((total, item) => total + item.quantity, 0))
+  const pendingRewardAvailableSlots = computed(() => Math.max(0, maxInventorySlots.value - inventory.value.length))
+  const pendingRewardNewSlotCount = computed(() => pendingRewards.value.reduce((total, item) => {
+    if (item.type !== 'equipment' && inventory.value.some(current => isSameStack(current, item))) return total
+    return total + 1
+  }, 0))
+  const pendingRewardClaimableCount = computed(() => {
+    let availableSlots = pendingRewardAvailableSlots.value
+    let claimable = 0
+    const existing = [...inventory.value]
+
+    for (const item of pendingRewards.value) {
+      if (item.type !== 'equipment' && existing.some(current => isSameStack(current, item))) {
+        claimable++
+        continue
+      }
+      if (availableSlots <= 0) continue
+      availableSlots--
+      existing.push(item)
+      claimable++
+    }
+
+    return claimable
+  })
 
   // ====== 方法 ======
 
@@ -490,8 +552,11 @@ export const usePlayerStore = defineStore('player', () => {
         equippedAccessory1: toRaw(equippedAccessory1.value),
         equippedAccessory2: toRaw(equippedAccessory2.value),
         inventory: toRaw(inventory.value),
+        pendingRewards: toRaw(pendingRewards.value),
         maxInventorySlots: maxInventorySlots.value,
         learnedSkills: toRaw(learnedSkills.value),
+        combatLoadouts: toRaw(combatLoadouts.value),
+        activeCombatLoadoutId: activeCombatLoadoutId.value,
         skillPoints: skillPoints.value,
         skillBonuses: toRaw(skillBonuses.value),
         temporaryBuffs: toRaw(temporaryBuffs.value),
@@ -752,6 +817,57 @@ export const usePlayerStore = defineStore('player', () => {
     return true
   }
 
+  function isSameStack(current: InventoryItem, incoming: InventoryItem) {
+    if (current.type !== incoming.type) return false
+    if (incoming.definitionId && current.definitionId) {
+      return current.definitionId === incoming.definitionId
+    }
+    return current.name === incoming.name
+  }
+
+  function addPendingReward(item: InventoryItem) {
+    const normalizedItem = normalizeInventoryItemSchema(item)
+    if (normalizedItem.type !== 'equipment') {
+      const existing = pendingRewards.value.find(current => (
+        normalizedItem.definitionId && current.definitionId
+          ? current.definitionId === normalizedItem.definitionId
+          : current.name === normalizedItem.name
+      ))
+      if (existing) {
+        existing.quantity += normalizedItem.quantity
+        saveToStorage()
+        return
+      }
+    }
+    pendingRewards.value.push(normalizedItem)
+    saveToStorage()
+  }
+
+  function claimPendingReward(itemId: string): boolean {
+    const index = pendingRewards.value.findIndex(item => item.id === itemId)
+    if (index < 0) return false
+    const item = pendingRewards.value[index]
+    if (!item || !addToInventory(item)) return false
+    pendingRewards.value.splice(index, 1)
+    saveToStorage()
+    return true
+  }
+
+  function claimPendingRewards() {
+    let claimed = 0
+    for (const item of [...pendingRewards.value]) {
+      if (!addToInventory(item)) continue
+      const index = pendingRewards.value.findIndex(current => current.id === item.id)
+      if (index >= 0) pendingRewards.value.splice(index, 1)
+      claimed++
+    }
+    if (claimed > 0) saveToStorage()
+    return {
+      claimed,
+      remaining: pendingRewards.value.length
+    }
+  }
+
   // 更新采集任务进度（避免循环依赖的辅助函数）
   function updateCollectTaskProgress(item: InventoryItem) {
     // 使用动态导入避免循环依赖
@@ -1003,6 +1119,38 @@ export const usePlayerStore = defineStore('player', () => {
     return true
   }
 
+  function getActiveCombatLoadout() {
+    return combatLoadouts.value.find(loadout => loadout.id === activeCombatLoadoutId.value)
+      ?? combatLoadouts.value[0]
+      ?? null
+  }
+
+  function getActiveCombatSkillIds() {
+    const loadout = getActiveCombatLoadout()
+    if (!loadout) return learnedSkills.value.filter(skill => skill.enabled).map(skill => skill.id).slice(0, 4)
+    const learnedIds = new Set(learnedSkills.value.map(skill => skill.id))
+    const activeIds = loadout.skillIds.filter(skillId => learnedIds.has(skillId)).slice(0, 4)
+    if (loadout.ultimateSkillId && learnedIds.has(loadout.ultimateSkillId)) activeIds.push(loadout.ultimateSkillId)
+    return [...new Set(activeIds)]
+  }
+
+  function setActiveCombatLoadout(loadoutId: string) {
+    if (!combatLoadouts.value.some(loadout => loadout.id === loadoutId)) return false
+    activeCombatLoadoutId.value = loadoutId
+    return true
+  }
+
+  function updateCombatLoadout(loadoutId: string, skillIds: string[], ultimateSkillId?: string | null) {
+    const loadout = combatLoadouts.value.find(item => item.id === loadoutId)
+    if (!loadout) return false
+    const learnedIds = new Set(learnedSkills.value.map(skill => skill.id))
+    loadout.skillIds = [...new Set(skillIds.filter(skillId => learnedIds.has(skillId)))].slice(0, 4)
+    loadout.ultimateSkillId = ultimateSkillId && learnedIds.has(ultimateSkillId) && !loadout.skillIds.includes(ultimateSkillId)
+      ? ultimateSkillId
+      : null
+    return true
+  }
+
   // 获取技能定义列表
   function getAvailableSkills(): SkillDefinition[] {
     return Object.values(SKILL_DEFINITIONS)
@@ -1011,7 +1159,9 @@ export const usePlayerStore = defineStore('player', () => {
   // 获取技能树某分支的技能
   function getSkillTreeBranch(branch: SkillBranch): SkillDefinition[] {
     const nodeSkillIds = SKILL_TREE[branch].map(node => node.skillId)
-    return nodeSkillIds.map(id => SKILL_DEFINITIONS[id]).filter((s): s is SkillDefinition => s !== undefined)
+    return nodeSkillIds
+      .map(id => SKILL_DEFINITIONS[id])
+      .filter((s): s is NonNullable<typeof s> => s !== undefined)
   }
 
   // 转换为战斗单位
@@ -1026,7 +1176,7 @@ export const usePlayerStore = defineStore('player', () => {
       quality: quality.value,
       level: level.value,
       stats: { ...totalStats.value },
-      skillIds: learnedSkills.value.map(skill => skill.id),
+        skillIds: getActiveCombatSkillIds(),
       statusEffects: [
         ...temporaryBuffs.value,
         ...resolveEquipmentEffects(allEquipped.value).battleStatusEffects
@@ -1155,8 +1305,15 @@ export const usePlayerStore = defineStore('player', () => {
     characterProgression,
     equippedWeapon, equippedArmor, equippedAccessory1, equippedAccessory2,
     allEquipped,
-    inventory, maxInventorySlots, isInventoryFull,
-    learnedSkills, skillPoints,
+    inventory,
+    pendingRewards,
+    pendingRewardCount,
+    pendingRewardAvailableSlots,
+    pendingRewardNewSlotCount,
+    pendingRewardClaimableCount,
+    maxInventorySlots,
+    isInventoryFull,
+    learnedSkills, skillPoints, combatLoadouts, activeCombatLoadoutId,
     temporaryBuffs,
     idleStartTime, isIdling,
     captivity,
@@ -1172,13 +1329,19 @@ export const usePlayerStore = defineStore('player', () => {
     // 技能系统方法
     hasLearnedSkill, getLearnedSkill, canLearnSkill, learnSkill, upgradeSkill, addSkillExp,
     toggleSkillEnabled, getAvailableSkills, getSkillTreeBranch, recalculateSkillBonuses,
+    getActiveCombatLoadout, getActiveCombatSkillIds, setActiveCombatLoadout, updateCombatLoadout,
     addSkillPoints,
 
     // 方法
     applyCreationProfile,
     addCultivation, levelUp, breakthrough, attemptBreakthrough,
     equip, unequip, recalculateEquipmentBonuses,
-    addToInventory, removeFromInventory, useConsumable,
+    addToInventory,
+    addPendingReward,
+    claimPendingReward,
+    claimPendingRewards,
+    removeFromInventory,
+    useConsumable,
     addBuff, removeBuff, clearBuffs,
     startIdle, stopIdle, calculateOfflineGains,
     setCaptivity, clearCaptivity,

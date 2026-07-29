@@ -1,8 +1,11 @@
-import type { Element, StatusEffectType } from './unit'
+import type { ContentDefinition } from './definition'
+import type { Element, Realm, StatusEffectType } from './unit'
 import { SKILL_DEFINITIONS } from '@/game/battle/config/skills'
 import { SKILL_TREE } from '@/game/battle/config/skillTrees'
 
 export type SkillCategory = 'attack' | 'defense' | 'support' | 'passive'
+
+export type SkillRarity = 'common' | 'rare' | 'epic' | 'legendary'
 
 export type SkillTargetType =
   | 'single_enemy'
@@ -35,19 +38,28 @@ export interface SkillEffect {
 
 export type SkillBranch = 'attack' | 'defense' | 'cultivation' | 'special'
 
-export interface SkillDefinition {
-  id: string
-  name: string
+export interface SkillRequirements {
+  skillIds: string[]
+  realm?: Realm
+}
+
+export interface SkillDefinition extends ContentDefinition {
   description: string
   icon: string
   category: SkillCategory
   branch: SkillBranch
   tier: number
+  /** Optional in the public input type for old saved/custom definitions. */
+  rarity?: SkillRarity
   mpCost: number
   mpCostPerLevel?: number
   cooldown: number
   effects: SkillEffect[]
+  /** Canonical grouped unlock conditions. */
+  requirements?: SkillRequirements
+  /** @deprecated Use requirements.skillIds for new definitions. */
   prerequisites?: string[]
+  /** @deprecated Use requirements.realm for new definitions. */
   unlockRealm?: string
   maxLevel: number
   passiveBonus?: {
@@ -60,6 +72,30 @@ export interface SkillDefinition {
   }
 }
 
+export type ResolvedSkillDefinition = SkillDefinition & {
+  rarity: SkillRarity
+  requirements: SkillRequirements
+  prerequisites: string[]
+  affiliation: NonNullable<SkillDefinition['affiliation']>
+}
+
+export function resolveSkillRarity(tier: number): SkillRarity {
+  if (tier >= 4) return 'legendary'
+  if (tier === 3) return 'epic'
+  if (tier === 2) return 'rare'
+  return 'common'
+}
+
+export function resolveSkillRequirements(skill: SkillDefinition): SkillRequirements {
+  const skillIds = skill.requirements?.skillIds ?? skill.prerequisites ?? []
+  const realm = skill.requirements?.realm ?? (skill.unlockRealm as Realm | undefined)
+
+  return {
+    skillIds: [...skillIds],
+    ...(realm ? { realm } : {})
+  }
+}
+
 export interface LearnedSkill {
   id: string
   level: number
@@ -68,6 +104,15 @@ export interface LearnedSkill {
   currentCooldown: number
   enabled: boolean
 }
+
+export interface CombatLoadout {
+  id: string
+  name: string
+  skillIds: string[]
+  ultimateSkillId: string | null
+}
+
+export const COMBAT_LOADOUT_MAX_SKILLS = 4
 
 export interface SkillTreeNode {
   skillId: string

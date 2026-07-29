@@ -200,12 +200,6 @@ import type { GameplayResult, GameplayTrigger, StoryTermination } from '@/story/
 
 const AUTO_ADVANCE_DELAY_MS = 180
 const STORY_OPENING_CINEMATIC_PAGES = 6
-const STORY_PAGE_CHAR_LIMIT = 34
-const STORY_PAGE_HARD_LIMIT = 46
-const STORY_PAGE_MIN_LENGTH = 14
-const STORY_DIALOG_PAGE_CHAR_LIMIT = 28
-const STORY_DIALOG_PAGE_HARD_LIMIT = 40
-const STORY_DIALOG_PAGE_MIN_LENGTH = 12
 const STORY_PAGE_AUTO_ADVANCE_MIN_MS = 1120
 const STORY_PAGE_AUTO_ADVANCE_MAX_MS = 2840
 const STORY_DIALOG_AUTO_ADVANCE_BASE_MS = 680
@@ -411,11 +405,7 @@ const currentBeatLabel = computed(() => {
 })
 
 const displayPageText = computed(() => {
-  const formatted = formatReadableStoryPage(currentPageText.value, {
-    preferCompact: isNarrativeScene.value,
-    hasIllustration: Boolean(currentIllustration.value),
-    isOpening: isChapterOpeningNarration.value && pageIndex.value < STORY_OPENING_CINEMATIC_PAGES
-  }).trim()
+  const formatted = formatReadableStoryPage(currentPageText.value).trim()
 
   if (formatted) return formatted
   if (readableFallbackText.value) return readableFallbackText.value
@@ -560,19 +550,50 @@ function splitStoryText(text: string): string[] {
     .replace(/^那天黄昏江溯/u, '那天入暮时，江溯')
     .replace(/^第三天夜里——/u, '第三天夜里，')
     .replace(/^第七天黄昏他/u, '第七天入暮时，他')
-  return splitTextForPages(normalizedText, {
-    charLimit: STORY_PAGE_CHAR_LIMIT,
-    hardLimit: STORY_PAGE_HARD_LIMIT,
-    minLength: STORY_PAGE_MIN_LENGTH
-  })
+  return paginateStoryText(normalizedText, 260)
 }
 
 function splitDialogText(text: string): string[] {
-  return splitTextForPages(text, {
-    charLimit: STORY_DIALOG_PAGE_CHAR_LIMIT,
-    hardLimit: STORY_DIALOG_PAGE_HARD_LIMIT,
-    minLength: STORY_DIALOG_PAGE_MIN_LENGTH
-  })
+  return paginateStoryText(text, 112)
+}
+
+function paginateStoryText(text: string, pageLimit: number): string[] {
+  const paragraphs = text
+    .replace(/\r/g, '')
+    .split(/\n+/u)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean)
+
+  const pages: string[] = []
+  let current = ''
+
+  const pushCurrent = () => {
+    if (!current.trim()) return
+    pages.push(current.trim())
+    current = ''
+  }
+
+  for (const paragraph of paragraphs) {
+    const sentences = paragraph
+      .split(/(?<=[。！？!?])/u)
+      .map(sentence => sentence.trim())
+      .filter(Boolean)
+
+    for (const sentence of sentences.length ? sentences : [paragraph]) {
+      const separator = current ? '\n' : ''
+      if (current && `${current}${separator}${sentence}`.replace(/\s+/g, '').length > pageLimit) {
+        pushCurrent()
+      }
+      current = current ? `${current}\n${sentence}` : sentence
+    }
+
+    if (current && paragraphs.length > 1) {
+      pushCurrent()
+    }
+  }
+
+  pushCurrent()
+  return pages
 }
 
 function splitTextForPages(
@@ -1205,13 +1226,14 @@ function formatStoryPageText(
 }
 
 function formatReadableStoryPage(
-  text: string,
-  options: {
-    preferCompact: boolean
-    hasIllustration: boolean
-    isOpening: boolean
-  }
+  text: string
 ) {
+  // Import-time story tooling still shares these helpers; the player deliberately
+  // leaves authored paragraphs intact instead of invoking its hard paginator.
+  void splitTextForPages
+  void splitReadableSentence
+  void mergeReadableLines
+
   const cleaned = normalizeDetachedStoryBreaks(text)
     .replace(/\r/g, '')
     .replace(/[ \t]+\n/g, '\n')
@@ -1220,61 +1242,10 @@ function formatReadableStoryPage(
 
   if (!cleaned) return ''
 
-  const normalizedParagraphs = cleaned
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-
-  const compact = normalizedParagraphs.join('').replace(/\s+/g, '')
-  if (compact.length <= 10) return cleaned
-
-  const sentenceCount = normalizedParagraphs
-    .join('')
-    .split(/(?<=[。！？!?])/u)
-    .map(part => part.trim())
-    .filter(Boolean)
-    .length
-
-  const maxCharsPerLine = options.isOpening
-    ? 16
-    : options.hasIllustration
-      ? 18
-      : options.preferCompact
-        ? 16
-        : 18
-
-  const splitBySentence = normalizedParagraphs.flatMap(paragraph => (
-    paragraph
-      .split(/(?<=[。！？!?])/u)
-      .map(part => part.trim())
-      .filter(Boolean)
-  ))
-
-  const sentenceLines: string[] = []
-  splitBySentence.forEach(sentence => {
-    const fragments = splitReadableSentence(sentence, maxCharsPerLine)
-    fragments.forEach(fragment => {
-      if (fragment.trim()) sentenceLines.push(fragment.trim())
-    })
-  })
-
-  const mergedLines = mergeReadableLines(sentenceLines, maxCharsPerLine)
-  const joinedMergedLines = mergedLines.join('\n')
-  if (options.hasIllustration && options.preferCompact && compact.length <= 14) {
-    return compressIllustratedNarration(joinedMergedLines || cleaned)
-  }
-
-  if (mergedLines.length <= 1) return mergedLines[0] ?? cleaned
-  if (mergedLines.length <= 3) return joinedMergedLines
-
-  const repaginated = repaginateReadableLines(mergedLines, {
-    maxCharsPerLine,
-    sentenceCount,
-    hasIllustration: options.hasIllustration,
-    preferCompact: options.preferCompact
-  })
-
-  return repaginated.join('\n')
+  // Keep authored paragraphs and complete sentences intact. The text container
+  // owns visual wrapping and scrolling; character-count line breaking can split
+  // Chinese clauses in ways that change the meaning of the scene.
+  return cleaned
 }
 
 function normalizeDetachedStoryBreaks(text: string) {
@@ -1558,39 +1529,6 @@ function mergeReadableLines(lines: string[], maxCharsPerLine: number) {
   })
 
   return merged
-}
-
-function repaginateReadableLines(
-  lines: string[],
-  options: {
-    maxCharsPerLine: number
-    sentenceCount: number
-    hasIllustration: boolean
-    preferCompact: boolean
-  }
-) {
-  const maxLines = options.hasIllustration
-    ? 5
-    : options.preferCompact || options.sentenceCount >= 3
-      ? 3
-      : 3
-
-  if (lines.length <= maxLines) {
-    return lines
-  }
-
-  const pages = splitTextForPages(lines.join(''), {
-    charLimit: Math.max(18, options.maxCharsPerLine * maxLines - 4),
-    hardLimit: Math.max(26, options.maxCharsPerLine * maxLines + 3),
-    minLength: Math.max(8, options.maxCharsPerLine - 4)
-  })
-
-  if (pages.length <= 1) {
-    return mergeReadableLines(lines, options.maxCharsPerLine + 2).slice(0, maxLines)
-  }
-
-  return splitReadableSentence(pages[0] ?? lines.join(''), options.maxCharsPerLine)
-    .slice(0, maxLines)
 }
 
 function clearAutoAdvanceTimer() {
@@ -1983,13 +1921,19 @@ defineExpose({
   --story-scene-strip-height: clamp(210px, 28vh, 268px);
   --story-scene-strip-offset: clamp(176px, 23vh, 224px);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
+  min-width: 0;
   background: transparent;
   color: #2f4d47;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 0 8px 22px;
+  padding: max(8px, env(safe-area-inset-top, 0px)) 8px 22px;
   font-family: var(--font-game);
   isolation: isolate;
 }
@@ -2008,10 +1952,13 @@ defineExpose({
 
 .story-stage {
   display: grid;
+  flex: 1 1 auto;
   gap: 12px;
+  grid-template-rows: minmax(0, 1fr);
   margin-top: 6px;
   min-width: 0;
-  align-content: start;
+  min-height: 0;
+  align-content: stretch;
 }
 
 .story-stage.story-stage-live {
@@ -2020,13 +1967,16 @@ defineExpose({
 
 .story-stage-event-shell {
   position: relative;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 6px 6px 10px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   min-width: 0;
+  min-height: 100%;
+  box-sizing: border-box;
   overflow: visible;
 }
 
@@ -2086,7 +2036,7 @@ defineExpose({
   background:
     linear-gradient(180deg, rgba(255, 251, 242, 0.44), rgba(238, 246, 241, 0.24)),
     radial-gradient(circle at top right, rgba(221, 184, 111, 0.08), transparent 30%);
-  min-height: min(68dvh, 660px);
+  min-height: 100%;
 }
 
 .story-stage-event-shell.template-debut .story-stage-copy-flow {
@@ -2099,7 +2049,7 @@ defineExpose({
   background:
     linear-gradient(180deg, rgba(245, 248, 243, 0.5), rgba(232, 240, 236, 0.58)),
     radial-gradient(circle at top right, rgba(221, 184, 111, 0.08), transparent 24%);
-  min-height: min(54dvh, 520px);
+  min-height: 100%;
   padding-bottom: 6px;
 }
 
@@ -2128,7 +2078,7 @@ defineExpose({
 .story-stage-event-shell.template-dialog {
   background:
     linear-gradient(180deg, rgba(245, 249, 244, 0.28), rgba(231, 239, 235, 0.18));
-  min-height: min(56dvh, 520px);
+  min-height: 100%;
   padding-bottom: 0;
 }
 
@@ -2136,7 +2086,7 @@ defineExpose({
   background:
     linear-gradient(180deg, rgba(244, 250, 247, 0.32), rgba(234, 242, 239, 0.24)),
     radial-gradient(circle at top right, rgba(163, 196, 184, 0.06), transparent 30%);
-  min-height: min(50dvh, 460px);
+  min-height: 100%;
 }
 
 .story-stage-event-shell.template-warning {
@@ -2178,8 +2128,14 @@ defineExpose({
 }
 
 .story-stage-event-shell.with-supporting-visual .story-stage-copy-flow {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 0;
   margin-top: var(--story-scene-strip-offset);
-  padding: 0 12px 0;
+  padding: 0 12px clamp(18px, 3.5vh, 32px);
 }
 
 .story-stage-supporting-visual {
@@ -2188,7 +2144,8 @@ defineExpose({
   display: flex;
   justify-content: stretch;
   align-items: flex-start;
-  height: var(--story-scene-strip-height);
+  height: auto;
+  aspect-ratio: 16 / 9;
   padding: 0;
   z-index: 1;
   pointer-events: none;
@@ -2527,7 +2484,7 @@ defineExpose({
   .story-player {
     --story-scene-strip-height: clamp(224px, 29vh, 270px);
     --story-scene-strip-offset: clamp(184px, 24vh, 224px);
-    padding: 0 6px 16px;
+    padding: max(6px, env(safe-area-inset-top, 0px)) 6px 16px;
   }
 
   .story-stage {
@@ -2541,19 +2498,19 @@ defineExpose({
   }
 
   .story-stage-event-shell.template-dialog {
-    min-height: min(54dvh, 458px);
+    min-height: 100%;
   }
 
   .story-stage-event-shell.template-debut {
-    min-height: min(60dvh, 560px);
+    min-height: 100%;
   }
 
   .story-stage-event-shell.template-debut_dialog {
-    min-height: min(48dvh, 440px);
+    min-height: 100%;
   }
 
   .story-stage-event-shell.template-monologue {
-    min-height: min(42dvh, 360px);
+    min-height: 100%;
   }
 
   .story-stage-event-shell.template-debut_dialog :deep(.story-character-debut-stage) {
@@ -2601,7 +2558,8 @@ defineExpose({
 
   .story-stage-event-shell.with-supporting-visual .story-stage-copy-flow {
     margin-top: var(--story-scene-strip-offset);
-    padding: 0 10px 0;
+    justify-content: flex-start;
+    padding: 0 10px max(16px, env(safe-area-inset-bottom, 0px));
   }
 
   .story-stage-event-shell :deep(.story-text-panel) {
@@ -2656,6 +2614,12 @@ defineExpose({
 
   .story-player > :not(.loading-overlay, .story-notification-stack, .gameplay-layer) {
     width: 100%;
+  }
+}
+
+@media (min-width: 900px) {
+  .story-player > :not(.loading-overlay, .story-notification-stack, .gameplay-layer) {
+    width: min(820px, 100%);
   }
 }
 </style>

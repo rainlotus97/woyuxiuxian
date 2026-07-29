@@ -157,7 +157,7 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
       input,
       'story',
       storyEvidence,
-      '这条事已经露过脸了',
+      '故事卷宗已有行程或节点进度',
       '这条事还没真正压进来',
       storySources.join('，'),
       '眼下还没留下这条事推进的痕迹；先让第一段风声真正压进主循环。',
@@ -167,7 +167,7 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
       input,
       'npc',
       npcEvidence,
-      '已经有人开始回头记住你',
+      '已有人物纪闻或互动行程',
       evidence.unlockedNpcCount > 0 ? '人已经露面，但还没真正牵上你' : '眼下还没碰上能记住你的人',
       npcSources.join('，'),
       evidence.unlockedNpcCount > 0
@@ -195,7 +195,7 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
       evidence.sectJoinableCount > 0 ? '山门已经朝你开口，但你还没真正选边站' : '眼下还没有山门收你入局',
       sectSources.join('，'),
       evidence.sectJoinableCount > 0
-        ? `眼下已有 ${evidence.sectJoinableCount} 座山门可去叩门，但你还没真正和哪一边牵上。`
+        ? `眼下有 ${evidence.sectJoinableCount} 个可拜山宗门，但你还没真正和哪一边牵上线。`
         : '眼下还没和任何山门牵上线；先推进拜山、故事或地图前置。',
       sectSources
     )
@@ -213,10 +213,10 @@ export function resolveP0LoopClosure(input: P0LoopClosureInput): P0LoopClosureSu
 
   const totalCount = items.length
   const headline = counts.blocked > 0
-    ? `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，另有 ${counts.blocked} 条还被拦着。`
+    ? `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，另有 ${counts.blocked} 条发生阻塞。`
     : counts.closed === totalCount
-      ? '六条路都已经留了回响。'
-      : `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，另外 ${counts.actionable} 条还得亲自去碰一碰。`
+      ? '六项核心循环都已经留了回响。'
+      : `眼下已有 ${counts.closed}/${totalCount} 条路留下了动静，可继续验证；另外 ${counts.actionable} 条还得亲自去碰一碰。`
 
   return {
     items,

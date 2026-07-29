@@ -5,8 +5,15 @@ export interface SelectableBattleTarget {
   id: string
   name: string
   icon: string
+  markerText?: string
   portraitKey?: string
+  avatarUrl?: string
   side: 'ally' | 'enemy'
+}
+
+export interface ResolvedBattleTargetGroup {
+  targetType: SkillTargetType
+  targetIds: string[]
 }
 
 function getAllies(actor: BattleRuntimeUnit, units: BattleRuntimeUnit[]) {
@@ -22,13 +29,13 @@ export function isManualTargetType(targetType: SkillTargetType): boolean {
 }
 
 export function getPrimaryTargetType(commandType: BattleRuntimeCommand['type'], skill: Skill | null): SkillTargetType {
-  if (commandType === 'attack') return 'single_enemy'
-  return skill?.effects[0]?.targetType ?? 'single_enemy'
+  if (commandType === 'attack' || !skill || skill.effects.length === 0) return 'single_enemy'
+  return skill.effects[0]?.targetType ?? 'single_enemy'
 }
 
 export function getManualTargetType(commandType: BattleRuntimeCommand['type'], skill: Skill | null): SkillTargetType | null {
-  const targetType = getPrimaryTargetType(commandType, skill)
-  return isManualTargetType(targetType) ? targetType : null
+  const targetTypes = getCommandTargetTypes(commandType, skill)
+  return targetTypes.find(isManualTargetType) ?? null
 }
 
 export function getSelectableTargets(
@@ -38,14 +45,22 @@ export function getSelectableTargets(
   skill: Skill | null
 ): SelectableBattleTarget[] {
   const targetType = getManualTargetType(commandType, skill)
+  if (!targetType) return []
   const source = targetType === 'single_ally' ? getAllies(actor, units) : getEnemies(actor, units)
   return source.map(unit => ({
     id: unit.id,
     name: unit.name,
     icon: unit.icon,
+    markerText: unit.markerText,
     portraitKey: unit.portraitKey,
+    avatarUrl: unit.avatarUrl,
     side: unit.side
   }))
+}
+
+function getCommandTargetTypes(commandType: BattleRuntimeCommand['type'], skill: Skill | null): SkillTargetType[] {
+  if (commandType === 'attack' || !skill || skill.effects.length === 0) return ['single_enemy']
+  return skill.effects.map(effect => effect.targetType)
 }
 
 export function resolveEffectTargetIds(
@@ -80,15 +95,23 @@ export function resolveCommandTargetIds(
   units: BattleRuntimeUnit[],
   skill: Skill | null
 ): string[] {
-  if (command.type === 'attack' || !skill) {
-    return resolveEffectTargetIds('single_enemy', actor, units, command.targetIds)
-  }
-
   const ids = new Set<string>()
-  for (const effect of skill.effects) {
-    for (const targetId of resolveEffectTargetIds(effect.targetType, actor, units, command.targetIds)) {
+  for (const group of resolveCommandTargetGroups(command, actor, units, skill)) {
+    for (const targetId of group.targetIds) {
       ids.add(targetId)
     }
   }
   return [...ids]
+}
+
+export function resolveCommandTargetGroups(
+  command: BattleRuntimeCommand,
+  actor: BattleRuntimeUnit,
+  units: BattleRuntimeUnit[],
+  skill: Skill | null
+): ResolvedBattleTargetGroup[] {
+  return getCommandTargetTypes(command.type, skill).map(targetType => ({
+    targetType,
+    targetIds: resolveEffectTargetIds(targetType, actor, units, command.targetIds)
+  })).filter(group => group.targetIds.length > 0)
 }

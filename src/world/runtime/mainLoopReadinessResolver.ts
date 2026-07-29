@@ -283,9 +283,9 @@ export function resolveMainLoopReadiness(input: MainLoopReadinessInput): MainLoo
   }, { ready: 0, warning: 0, blocked: 0 } as Record<MainLoopReadinessState, number>)
 
   const headline = counts.blocked > 0
-    ? `眼下有 ${counts.blocked} 处被拦住，先解脱困或前置因果。`
+    ? `眼下有 ${counts.blocked} 处发生阻塞，先解脱困或前置因果。`
     : counts.warning > 0
-      ? `眼下有 ${counts.warning} 桩事正在催你，其余路数都还能继续走。`
+      ? `眼下有 ${counts.warning} 桩事需要处理，正在催你，其余路数都还能继续走。`
       : '六条路眼下都能往前走。'
 
   return {

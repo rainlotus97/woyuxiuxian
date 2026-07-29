@@ -110,6 +110,10 @@ import type {
   VolumeCompletion
 } from './types'
 import { enrichStoryDialogVisual, resolveStoryIllustration } from './runtime/storyArtResolver'
+import {
+  collectWorldEffectActorIds,
+  resolveStoryEffect
+} from '@/world/runtime/worldEffectResolver'
 
 export interface SideQuestInfo {
   id: string
@@ -864,7 +868,14 @@ export const useStoryStore = defineStore('story', () => {
           if (effect.target) addStoryInventoryItem(effect.target, -Number(effect.value ?? 1))
           break
         case 'unlock_clue':
-          if (effect.target) unlockedClues.value.add(effect.target)
+          if (effect.target) {
+            unlockedClues.value.add(effect.target)
+            worldStore.addWorldFlag(
+              `story_map_unlock:${effect.target}`,
+              '主线接通新路',
+              `主线线索已经指向${effect.target}，这条地图入口会被世界记录保留。`
+            )
+          }
           break
         case 'route':
           if (effect.target) currentRoute.value = effect.target
@@ -1094,8 +1105,26 @@ export const useStoryStore = defineStore('story', () => {
     if (!choice) return
 
     completedNodes.value.add(node.id)
+    worldStore.addWorldFlag(
+      `story_node:${node.id}`,
+      '主线节点落定',
+      `主线节点「${node.name}」已经落定，后续地图判定可以读取这段经历。`
+    )
     choiceHistory.value.set(node.id, choiceIndex)
-    if (choice.effects?.length) applyEffects(choice.effects)
+    const choiceEffects = choice.effects ?? []
+    if (choiceEffects.length) applyEffects(choiceEffects)
+
+    const worldEffects = choiceEffects.map(resolveStoryEffect)
+    worldStore.recordWorldEffectTransaction({
+      source: 'story_choice',
+      sourceId: `${node.id}:choice-${choice.id ?? choiceIndex}`,
+      title: currentReadableHeadline.value || node.name,
+      summary: choice.text,
+      effects: worldEffects,
+      actorIds: collectWorldEffectActorIds(worldEffects),
+      locationId: node.map || undefined,
+      tags: ['story', 'story-choice', `story-volume-${currentVolume.value}`]
+    })
 
     if (choice.targetId) {
       await goToNode(choice.targetId)
